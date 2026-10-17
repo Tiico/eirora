@@ -1,7 +1,7 @@
 # Krafternas regler v1
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, O-01  
+> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, D-62, D-63, O-01  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Invarianter:** [invariants.md](./invariants.md)
 
 Det här dokumentet bestämmer hur egenvård blir krafter: omvandling, avtagande avkastning, mjuka tak, grundnivå, manuell inmatning och hur mycket som kan sparas.
@@ -59,8 +59,15 @@ Ett pass räknas om det varar **minst 10 minuter** (D-42); yoga, stretching och 
 | Byggkraft för passet | 100 | 90 | 80 | 50 | 25 | 0 |
 | Ackumulerat | 100 | 190 | 270 | 320 | **345 (tak)** | 345 |
 
-Ett spelardygns Byggkraft är `G(n + m) − G(n)`, där `G` är den ackumulerade raden, `n` antalet pass under de sex föregående spelardygnen och `m` antalet pass under dagen.
-Avtagandet räknas per vecka och inte per dag, så att vilodagar aldrig kostar något: tre pass i veckan ger 78 % av taket.
+Ett spelardygn med pass ger `max(0, G(n + m) − B)`, där `G` är den ackumulerade raden, `n` antalet pass under de sex föregående spelardygnen, `m` antalet pass under dagen och `B` den Byggkraft som de sex föregående spelardygnen gav (D-63).
+Ett spelardygn utan pass ger 0.
+Varje rullande vecka som slutar med ett pass ger därmed minst kurvans värde för sina pass och aldrig mer än taket.
+Med sex pass i veckan, måndag till lördag, ger den första veckan 100, 90, 80, 50, 25 och 0.
+Nästa måndag ger 100, eftersom tisdag till söndag gav 245 och kurvan för veckans sex pass är 345.
+Avtagandet räknas per vecka och inte per dag, så att vilodagar aldrig kostar något: tre pass i veckan ger 78 % av taket, vecka efter vecka.
+Mer träning ger aldrig mindre Byggkraft, och det finns ingen fast veckodag.
+`B` är det som dygnen gav enligt regeln, före sparandets tak (avsnitt 5), så ett fullt förråd ändrar inte vad kommande pass ger.
+Ett pass som kommer in i efterhand räknar om de senare spelardygnen med pass; det de då ger mindre dras av enligt D-36 och D-62.
 Ett pass som också registreras som promenad ger både Byggkraft och steg; det är två olika vanor.
 
 ### Sömnlängd → Gryningskraft (per spelardygn)
@@ -167,6 +174,5 @@ Produktägarens svar på de öppna frågorna i v0.1:
 
 Senare beslut som ändrar reglerna ovan:
 
-- **D-63** (från [epok 1](./epoch-1.md#7-byggkraftens-rullande-vecka)): formeln `G(n + m) − G(n)` ger mindre Byggkraft ju fler pass som görs vecka efter vecka, till exempel 0 i veckan med sex pass.
-  Den ersätts av kurvan för passen under sju spelardygn minus det de sex föregående spelardygnen redan gav, aldrig under noll.
-  Avsnitt 3 och `ForceRules` rättas i en egen uppgift.
+- **D-63** (från [epok 1](./epoch-1.md#7-byggkraftens-rullande-vecka)): formeln `G(n + m) − G(n)` gav mindre Byggkraft ju fler pass som gjordes vecka efter vecka, till exempel 0 i veckan med sex pass.
+  Den är ersatt av kurvan för passen under sju spelardygn minus det de sex föregående spelardygnen redan gav, aldrig under noll (avsnitt 3).

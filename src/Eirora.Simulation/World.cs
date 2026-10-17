@@ -137,7 +137,7 @@ namespace Eirora.Simulation
         internal void RecordSelfCare(int day, Habit habit, ContributionSource source, int total)
         {
             _selfCare.Record(day, habit, source, total);
-            foreach (int affected in SelfCareLedger.AffectedDays(day, habit, GameDay))
+            foreach (int affected in _selfCare.AffectedDays(day, habit, GameDay))
             {
                 _unreconciled.Add((affected, habit));
             }
