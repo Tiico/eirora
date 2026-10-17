@@ -71,9 +71,9 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 5. [UX-resor](./docs/design/ux-journeys.md): första sessionen, återkomst efter 7 dagar, kväll med vilolås.
 6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D, förankrade i det nordiska temat (PRD 1.3).
    Se [art-direction.md](./docs/design/art-direction.md).
-7. Kontur för epok 1.
+7. [Kontur för epok 1](./docs/design/epoch-1.md).
 
-**Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction), uppdaterad PRD, GitHub-ärenden för M1.
+**Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction, kontur för epok 1), uppdaterad PRD, GitHub-ärenden för M1.
 
 **Kvalitetsgrind A0:** det går att beskriva en hel dag inklusive vila, med konkreta siffror.
 Inget beslut som blockerar prototypen är öppet.
@@ -148,7 +148,7 @@ Minst två strategier fungerar och ingen dominerar.
 2. Expeditioner som drivs av Utforskning: rutter, fynd, nya öar.
 3. Forskning med minst tre inriktningar.
 4. Guidad tur och löpande introduktion med tutorialelement.
-5. Epok 1 från början till milstolpe.
+5. Epok 1 från början till milstolpe enligt [konturen](./docs/design/epoch-1.md), med forskningens inriktningar och fynden.
 6. Fake health provider för testscenarier: låg, hög, ingen och manuell egenvård.
 7. Återkomst efter frånvaro (O-12).
 
