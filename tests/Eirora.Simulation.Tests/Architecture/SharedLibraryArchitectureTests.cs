@@ -45,6 +45,7 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.HashesString), "System.String::GetHashCode")]
     [InlineData(nameof(ImpureFixture.ComputesWithFloats), "ldc.r8")]
     [InlineData(nameof(ImpureFixture.CallsMath), "System.Math")]
+    [InlineData(nameof(ImpureFixture.ReadsTickCount), "System.Environment")]
     public void ScannerCatchesEachKindOfImpurity(string method, string expectedViolation)
     {
         var violations = ScanFixture();
@@ -66,6 +67,14 @@ public sealed class SharedLibraryArchitectureTests
         var violations = ScanFixture();
 
         Assert.DoesNotContain(violations, v => v.Contains(nameof(ImpureFixture.UsesInterfaceNamedLikeSystemIo), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ScannerAllowsTheThreadCheckInCompilerGeneratedIterators()
+    {
+        var violations = ScanFixture();
+
+        Assert.DoesNotContain(violations, v => v.Contains(nameof(ImpureFixture.IteratesWithYield), StringComparison.Ordinal));
     }
 
     private static IReadOnlyList<string> ScanFixture()
