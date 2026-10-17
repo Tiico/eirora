@@ -1,4 +1,4 @@
-# Verdawn
+# Eirora
 
 Ett passivt, kartbaserat strategi- och civilisationsspel där spelarens värld växer när spelaren tar hand om sig själv.
 Termerna nedan är kanoniska; kodnamn (engelska) anges inom parentes.
