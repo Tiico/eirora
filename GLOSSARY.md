@@ -87,6 +87,28 @@ _Avoid_: nattlås, sömnlås, paus
 Övergången när viloperioden slutar och världen öppnar igen.
 _Avoid_: upplåsning, reset
 
+## Simulering
+
+**Kommando** (`GameCommand`):
+En handling som spelaren begär i världen; det valideras och godkänns eller nekas, och bär en idempotensnyckel.
+_Avoid_: order, action, klick
+
+**Spelpåverkande kommando** (`GameplayCommand`):
+Ett kommando som ändrar världen, till exempel att bygga, starta en expedition eller handla; nekas under viloperioden.
+_Avoid_: aktiv handling
+
+**Administrativt kommando** (`AdministrativeCommand`):
+Ett kommando som rör konto, integritet, tillgänglighet, hjälp, radering eller viloschema; tillåts även under viloperioden.
+_Avoid_: inställning (när kommandot avses)
+
+**Händelse** (`GameEvent`):
+Ett faktum om en förändring som har skett i världen; tillståndet är summan av alla händelser.
+_Avoid_: logg, notis
+
+**Grundnivå** (`Baseline`):
+Den neutrala mängd Gryningskraft som ges när sömndata saknas; ingen inloggad sömn ger mindre.
+_Avoid_: minimum, straffnivå
+
 ## Progression
 
 **Epok** (`Epoch`):
