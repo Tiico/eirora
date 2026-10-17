@@ -103,8 +103,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-56 | **Morgonnotisen** kommer bara när något nytt hänt, alltid tyst, och pausas efter två oöppnade i följd | [BESLUTAT] |
 | D-57 | **Bidrag per spelardygn följer med i molnsparningen, end-to-end-krypterade;** servern kan aldrig läsa dem | [BESLUTAT] |
 | D-58 | **18+ sköts av butikernas åldersklassning,** utan egen bekräftelse i spelet | [BESLUTAT] |
-| D-59 | **Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B | [BESLUTAT] |
+| D-59 | ~~**Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B~~ | [ERSATT av D-61] |
 | D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
+| D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -134,7 +135,7 @@ Eirora är ett konstruerat fantasynamn inspirerat av två källor:
 Namnet ska förmedla nordisk mystik, livskraft, personlig utveckling och harmoni.
 Det knyter ihop egenvård och vila som motor (D-14, D-22) med gryningen som visuellt motiv (D-10) och Gryningskraften (D-15).
 Tidigare arbetsnamn (Arkipelagen, Verdawn) används inte längre.
-Den visuella riktningen står i [art direction](./docs/design/art-direction.md) (D-59).
+Den visuella riktningen står i [art direction](./docs/design/art-direction.md) (D-61).
 
 ---
 
@@ -624,6 +625,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | — | 2026-10-17 | Första sessionens ordning i 4.4 ändrad: turen före hälsokälla och viloperiod | D-49 |
 | — | 2026-10-17 | O-12 avgjord: ingen återstartsbonus | D-52 |
 | D-59–D-60 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-006 |
+| D-61 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 (PR #21); ersätter D-59 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
