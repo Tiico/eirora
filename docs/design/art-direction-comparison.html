@@ -1,0 +1,881 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eirora art direction v0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ett ljusbord. Matrisen (riktning × ljusstämning) är sidans tes, sedan telefongranskning, sedan riktningarnas detaljer. */
+:root {
+  --bg: #EDEFF2;
+  --surface: #FFFFFF;
+  --surface-2: #F5F6F8;
+  --fg: #1B2130;
+  --muted: #586174;
+  --line: #D3D8E0;
+  --accent: #A9482F;
+  --accent-fg: #FFFFFF;
+  --focus: #2A6FB0;
+  --font-display: "Marcellus", "Cormorant Garamond", Georgia, serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.75rem;
+  --step-3: clamp(2rem, 5vw, 3rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E121A; --surface: #161B26; --surface-2: #1C2230; --fg: #E5E9F0; --muted: #9AA3B5;
+    --line: #283041; --accent: #E59572; --accent-fg: #1A0F0A; --focus: #7FB4E8; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E121A; --surface: #161B26; --surface-2: #1C2230; --fg: #E5E9F0; --muted: #9AA3B5;
+  --line: #283041; --accent: #E59572; --accent-fg: #1A0F0A; --focus: #7FB4E8; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: var(--step-0); line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 40px 64px; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: var(--step-3); }
+h2 { font-size: var(--step-2); }
+h3 { font-size: var(--step-1); }
+p { margin: 0; }
+a { color: var(--accent); }
+.eyebrow { font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lede { max-width: 65ch; color: var(--muted); font-size: 1.0625rem; }
+header { display: grid; gap: 14px; }
+.decision {
+  display: inline-flex; gap: 10px; align-items: center; justify-self: start; padding: 8px 14px; border: 1px solid var(--accent);
+  border-radius: 999px; color: var(--accent); font-weight: 600; font-size: var(--step--1); letter-spacing: 0.02em;
+}
+.decision::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+section { display: grid; gap: 20px; }
+.sec-head { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+.sec-head > div { display: grid; gap: 6px; min-width: 0; }
+.sec-head p { color: var(--muted); max-width: 65ch; }
+
+/* Kontroller */
+.field { display: grid; gap: 6px; }
+.field > span, .label { font-size: var(--step--1); color: var(--muted); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+select {
+  font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 40px;
+}
+.seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button {
+  font: inherit; font-size: 0.9375rem; color: var(--fg); background: transparent; border: 0; padding: 8px 14px; min-height: 40px; cursor: pointer; flex: 1 1 auto;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.checks label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; min-height: 32px; }
+input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Matrisen */
+.matrix { display: grid; grid-template-columns: minmax(150px, 1.1fr) repeat(4, minmax(0, 2fr)); gap: 10px; align-items: stretch; }
+.matrix .colhead { font-size: var(--step--1); font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; padding: 0 2px; align-self: end; }
+.rowhead { display: grid; gap: 4px; align-content: center; padding-right: 8px; min-width: 0; }
+.rowhead .letter { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--accent); }
+.rowhead b { font-family: var(--font-display); font-weight: 400; font-size: 1.15rem; }
+.rowhead small { color: var(--muted); font-size: var(--step--1); line-height: 1.4; }
+.thumb {
+  position: relative; display: block; padding: 0; border: 0; border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--surface-2);
+  aspect-ratio: 4 / 3; max-width: 100%; width: 100%;
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .tag {
+  position: absolute; left: 8px; bottom: 8px; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: rgba(10, 14, 22, 0.62); color: #F2F4F8;
+}
+.thumb[aria-current="true"] { outline: 3px solid var(--accent); outline-offset: 2px; }
+.thumb .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: var(--step--1); }
+.mhead-mobile { display: none; }
+@media (max-width: 760px) {
+  .matrix { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .matrix .colhead { display: none; }
+  .rowhead { grid-column: 1 / -1; padding-top: 12px; }
+  .mhead-mobile { display: inline; }
+}
+
+/* Telefongranskning */
+.review { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 860px) { .review { grid-template-columns: minmax(0, 1fr); justify-items: center; } .review .panel { justify-self: stretch; } }
+.phone {
+  position: relative; width: 340px; max-width: 100%; aspect-ratio: 9 / 16; border-radius: 34px; overflow: hidden; background: #000;
+  box-shadow: 0 0 0 10px #12151C, 0 0 0 11px #2B3140, 0 24px 48px rgba(0, 0, 0, 0.28); touch-action: none; cursor: grab;
+}
+.phone canvas { display: block; width: 100%; height: 100%; }
+.hud { position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-rows: auto 1fr auto; padding: 14px 12px; font-family: var(--font-body); }
+.hud .forces { display: flex; gap: 6px; justify-content: center; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 7px; border-radius: 999px; font-weight: 700; font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums; background: var(--hud-panel); color: var(--hud-text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.chip svg { width: 16px; height: 16px; display: block; }
+.hud .bottom { display: flex; gap: 8px; justify-content: center; align-items: end; }
+.hud .btn {
+  padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 0.875rem; background: var(--hud-panel); color: var(--hud-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.hud .btn.primary { background: var(--hud-accent); color: var(--hud-accent-text); }
+.hud .rest {
+  display: grid; gap: 2px; text-align: center; padding: 12px 18px; border-radius: 16px; background: var(--hud-panel); color: var(--hud-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); max-width: 260px;
+}
+.hud .rest b { font-size: 0.9375rem; }
+.hud .rest span { font-size: 0.8125rem; color: var(--hud-muted); }
+.panel { display: grid; gap: 18px; min-width: 0; }
+.panel .row { display: grid; gap: 6px; }
+.mood-note { padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 8px; }
+.mood-note h3 { font-size: 1.2rem; }
+.mood-note p { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 0.8125rem; }
+.mood-swatches { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.mood-swatches span { display: inline-flex; align-items: center; gap: 6px; }
+.mood-swatches i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+
+/* Riktningarna */
+.dirs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 980px) { .dirs { grid-template-columns: minmax(0, 1fr); } }
+.dir { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dir .cost { margin-top: auto; padding-top: 4px; }
+.dir header { gap: 6px; }
+.dir header .letter { font-family: var(--font-display); color: var(--accent); font-size: 1rem; letter-spacing: 0.08em; }
+.dir .idea { color: var(--muted); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.sw { display: grid; gap: 4px; font-size: 0.75rem; min-width: 0; }
+.sw i { height: 34px; border-radius: 6px; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.sw b { font-weight: 600; }
+.sw code { font-family: var(--font-mono); color: var(--muted); }
+.dir ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.dir h4 { margin: 0; font-size: var(--step--1); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cost { display: flex; gap: 8px; align-items: center; font-size: 0.875rem; }
+.meter { display: inline-flex; gap: 3px; }
+.meter i { width: 18px; height: 8px; border-radius: 2px; background: var(--line); display: block; }
+.meter i.on { background: var(--accent); }
+.rec { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px; display: grid; gap: 12px; }
+.rec p { max-width: 70ch; }
+.rec ol { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 70ch; }
+footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="cvd-protan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/></filter>
+  <filter id="cvd-deutan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/></filter>
+  <filter id="cvd-tritan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0"/></filter>
+  <filter id="cvd-gray" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"/></filter>
+</svg>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Eirora · TASK-006 · Art direction v0</span>
+    <h1>Tre ljus över samma ö</h1>
+    <p class="lede">Samma procedurgenererade ö på hexkarta, renderad i low-poly 3D i tre riktningar och fyra ljusstämningar. Klicka på en ruta för att granska den i telefonstorlek, med spelets gränssnitt ovanpå. Nattrutorna visar nattvyn under vilolåset.</p>
+    <span class="decision">Beslut öppet · produktägaren väljer riktning</span>
+  </header>
+
+  <section aria-labelledby="matrix-h">
+    <div class="sec-head">
+      <div>
+        <h2 id="matrix-h">Jämförelse</h2>
+        <p>Gryning, dag och skymning visas med spelkameran. Natt visas med den sänkta nattvykameran som föreslås för vilolåset.</p>
+      </div>
+      <label class="field" for="cvd">
+        <span>Simulera färgseende</span>
+        <select id="cvd">
+          <option value="none">Normalt färgseende</option>
+          <option value="protan">Protanopi (rött)</option>
+          <option value="deutan">Deuteranopi (grönt)</option>
+          <option value="tritan">Tritanopi (blått)</option>
+          <option value="gray">Gråskala</option>
+        </select>
+      </label>
+    </div>
+    <div class="matrix cvd-target" id="matrix" role="group" aria-label="Riktningar och ljusstämningar"></div>
+  </section>
+
+  <section aria-labelledby="review-h">
+    <div class="sec-head">
+      <div>
+        <h2 id="review-h">Granska i telefonstorlek</h2>
+        <p>Ramen är ungefär lika stor som en telefon på skärmen. Dra i bilden för att vrida ön. Hexrutnätet visar hur planeringsläget kan läsas ovanpå terrängen.</p>
+      </div>
+    </div>
+    <div class="review">
+      <div class="phone cvd-target" id="phone">
+        <div class="hud" id="hud" aria-hidden="true"></div>
+      </div>
+      <div class="panel">
+        <div class="row"><span class="label" id="l-dir">Riktning</span><div class="seg" id="seg-dir" role="group" aria-labelledby="l-dir"></div></div>
+        <div class="row"><span class="label" id="l-mood">Ljusstämning</span><div class="seg" id="seg-mood" role="group" aria-labelledby="l-mood"></div></div>
+        <div class="row"><span class="label" id="l-cam">Kamera</span><div class="seg" id="seg-cam" role="group" aria-labelledby="l-cam"></div></div>
+        <div class="row"><span class="label" id="l-zoom">Zoom</span><div class="seg" id="seg-zoom" role="group" aria-labelledby="l-zoom"></div></div>
+        <div class="checks">
+          <label for="opt-grid"><input type="checkbox" id="opt-grid"> Hexrutnät</label>
+          <label for="opt-hud"><input type="checkbox" id="opt-hud" checked> Gränssnitt</label>
+          <label for="opt-rot"><input type="checkbox" id="opt-rot"> Långsam rotation</label>
+        </div>
+        <div class="mood-note" id="mood-note" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="dirs-h">
+    <div class="sec-head">
+      <div>
+        <h2 id="dirs-h">Riktningarna</h2>
+        <p>Paletterna är kontrollerade mot WCAG-kontrast och simulerad färgblindhet. Siffrorna och motiveringarna finns i art-direction.md.</p>
+      </div>
+    </div>
+    <div class="dirs" id="dirs"></div>
+  </section>
+
+  <section class="rec" aria-labelledby="rec-h">
+    <span class="eyebrow">Förslag, inte beslut</span>
+    <h2 id="rec-h">Rekommendation: A, med C:s natt</h2>
+    <p>Gryningsdioraman ger den tydligaste hexkartan på en liten skärm, den lägsta prestandakostnaden och den ljusaste spegeln av egenvården. Dess svaghet är att den liknar andra lugna byggspel. Därför föreslås att nattvyn lånas från Norrskensmyten: ett dämpat norrsken och glödande runor när byborna sover, så att vilolåset blir det mest egna ögonblicket i spelet och namnets aurora syns.</p>
+    <ol>
+      <li>Välj A, B eller C som grund. Rekommendationen ovan är bara ett förslag.</li>
+      <li>Säg om natten ska lånas från C eller följa den valda riktningen.</li>
+      <li>Valet dokumenteras i art-direction.md och styr M1-prototypens ö.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Källa: docs/design/art-direction.md och docs/design/art-direction-comparison.html i Tiico/eirora.</span>
+    <span>Skisserna är en grov förhandsvisning i webbläsaren (three.js), inte spelets rendering i Unity.</span>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  // ---------- Data: riktningar, paletter och ljusstämningar (samma värden som art-direction.md) ----------
+  const MOODS = [
+    { id: "gryning", name: "Gryning" },
+    { id: "dag", name: "Dag" },
+    { id: "skymning", name: "Skymning" },
+    { id: "natt", name: "Natt (vilolås)" }
+  ];
+  const ICONS = {
+    Utforskning: '<path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z"/>',
+    Byggkraft: '<path d="M12 3l9 8h-2.5v10h-13V11H3z"/>',
+    Gryningskraft: '<path d="M4.5 17a7.5 7.5 0 0115 0z"/><path d="M2 19.5h20v1.6H2z"/><path d="M11.2 3h1.6v4h-1.6zM3.9 7l1.1-1.1 2.8 2.8-1.1 1.1zM16.2 9.6l2.8-2.8 1.1 1.1-2.8 2.8z"/>'
+  };
+  const DIRS = {
+    A: {
+      name: "Gryningsdiorama",
+      short: "Klar, ljus och leksaksnära. Falurött, björkvitt och havsturkos.",
+      idea: "Världen som ett handbyggt diorama i morgonljus. Rena facetter, mjuka gradienter och mättade men ljusa färger; det nordiska bärs av arkitekturen och färgerna från svenska och norska byar.",
+      pal: {
+        "Djupt hav": "#2F7FA3", "Grunt hav": "#6CC4C0", "Sand": "#F0D9A8", "Gräs": "#9BCB7A", "Skog": "#3F7F55",
+        "Berg": "#A3A0A8", "Snö": "#F5F3F8", "Dimma": "#C9C2DD", "Tak, falurött": "#B4473A", "Vägg, björk": "#F3E9DA"
+      },
+      extra: { cliff: "#C9A577", rockSide: "#807D88", trunk: "#EDE6DA", wood: "#6B4A3A", sail: "#F3E9DA", glow: "#FFC27A", villager: ["#2A7FB0", "#B4473A", "#E3C26B"] },
+      forces: { Utforskning: "#2A7FB0", Byggkraft: "#B4473A", Gryningskraft: "#C27A12" },
+      ui: { panel: "#FBF7EF", text: "#2B2A33", muted: "#5E5A66", accent: "#B4473A", accentText: "#FFFFFF" },
+      style: { jitter: 0.03, tree: "birch", house: "gable", special: "hall", grid: "#FFFFFF" },
+      cost: 1,
+      strengths: ["Tydligast hexkarta och terräng på liten skärm", "Lägst prestandakostnad: vertexfärger och ett ljus", "Varm och inbjudande; spegeln av egenvården syns direkt"],
+      risks: ["Kan förväxlas med Townscaper, Islanders och Dorfromantik", "Mytologin syns svagt utan särskilda inslag", "Ljus natt kan kännas mindre som vila"],
+      moods: {
+        gryning: { zen: "#8FA2D4", hor: "#F6C7A8", sun: "#FFBE94", sunI: 1.2, el: 14, az: 202, hs: "#E2D2EC", hg: "#E8B994", hi: 0.85, glow: 0.35, stars: 0, aurora: 0,
+          note: "Persikoljus från sidan, långa skuggor och ett ljust dis över havet. Gryningen är spelets belöningsögonblick: krafterna kommer med ljuset." },
+        dag: { zen: "#66AEE6", hor: "#D3ECF7", sun: "#FFF6E8", sunI: 0.78, el: 55, az: 130, hs: "#DDF0FB", hg: "#A9C28A", hi: 0.42, glow: 0, stars: 0, aurora: 0,
+          note: "Högt, klart ljus med korta skuggor. Dagen är arbetsljuset: terrängtyper och byggnader ska läsas utan ansträngning." },
+        skymning: { zen: "#4A4A8C", hor: "#F2A07E", sun: "#FF9466", sunI: 1.15, el: 12, az: 343, hs: "#A898CC", hg: "#C88A74", hi: 0.78, glow: 0.7, stars: 0, aurora: 0,
+          note: "Korallrött motljus och violetta skuggor. Fönstren tänds en efter en; byborna går hem." },
+        natt: { zen: "#10172E", hor: "#2B3B60", sun: "#A9BEE6", sunI: 0.5, el: 38, az: 200, hs: "#3A4A78", hg: "#1A2030", hi: 0.55, glow: 1, stars: 1, aurora: 0,
+          note: "Blått månljus, stjärnor och dämpade fönster. Lugnt och läsbart men fortfarande ljust för att vara natt." }
+      }
+    },
+    B: {
+      name: "Torv och tjära",
+      short: "Handgjort och jordnära. Tjärat trä, torvtak, sten och ull.",
+      idea: "Sagans vardag: materialen är huvudsaken. Dova jordfärger, havsdis och härdens glöd. Stavkyrkor, långhus med torvtak och båtar med ullsegel. Allvar och värme som i John Bauers skogar och Kittelsens nätter.",
+      pal: {
+        "Djupt hav": "#24414F", "Grunt hav": "#4F7C7A", "Sten och strand": "#B8A98A", "Gräs": "#7E8F55", "Skog": "#3B5233",
+        "Berg": "#77716A", "Snö": "#E4E1DA", "Dimma": "#B9B6AE", "Torvtak": "#6B7F3E", "Tjärat trä": "#4A3426"
+      },
+      extra: { cliff: "#5E4B3A", rockSide: "#5A554F", trunk: "#3A2A20", wood: "#2E2420", sail: "#9E3B2E", glow: "#E39B4A", villager: ["#9E3B2E", "#CDBFA6", "#5C6B7A"] },
+      forces: { Utforskning: "#6A9CB8", Byggkraft: "#B85F38", Gryningskraft: "#E6B04F" },
+      ui: { panel: "#2A2420", text: "#EDE6D8", muted: "#B8AE9E", accent: "#E39B4A", accentText: "#1E1611" },
+      style: { jitter: 0.09, tree: "spruce", house: "longhouse", special: "stave", grid: "#F3E4C8" },
+      cost: 2,
+      strengths: ["Mest genuint nordiskt; tydlig identitet", "Material och hantverk åldras väl och passar epoker", "Härdens glöd ger en varm, trygg natt"],
+      risks: ["Torvtak mot gräs smälter ihop (ΔE 6,5); kräver form och mörka gavlar", "Dovare färger ger lägre läsbarhet i solljus utomhus", "Risk att uppfattas som tungt eller dystert i stället för lugnt"],
+      moods: {
+        gryning: { zen: "#66789A", hor: "#E2B48F", sun: "#F0BC8E", sunI: 1.25, el: 13, az: 202, hs: "#C4C0C8", hg: "#A08A70", hi: 0.95, glow: 0.45, stars: 0, aurora: 0,
+          note: "Havsdis som lättar, dämpat guldljus och rök från härdarna. Gryningen känns som att elden tänds igen." },
+        dag: { zen: "#8CA6BA", hor: "#D8DEDC", sun: "#F5EFE2", sunI: 0.8, el: 40, az: 130, hs: "#D3DCDF", hg: "#8F9572", hi: 0.62, glow: 0, stars: 0, aurora: 0,
+          note: "Nordiskt, lätt molnigt dagsljus med mjuka skuggor. Materialen syns: trä, torv, sten." },
+        skymning: { zen: "#3B3D5A", hor: "#C47A4E", sun: "#E5884A", sunI: 1.15, el: 12, az: 343, hs: "#8A7E90", hg: "#8A6450", hi: 0.85, glow: 0.9, stars: 0, aurora: 0,
+          note: "Kopparljus och långa skuggor. Härdarna lyser genom dörröppningarna." },
+        natt: { zen: "#0B0F15", hor: "#1D2530", sun: "#8C9CB2", sunI: 0.45, el: 30, az: 200, hs: "#2E3846", hg: "#141414", hi: 0.55, glow: 1.2, stars: 0.7, aurora: 0,
+          note: "Mörk, nästan svart natt där härdarnas glöd är det enda varma. Mycket lugn och lågt ljus, men svårare att läsa detaljer." }
+      }
+    },
+    C: {
+      name: "Norrskensmyt",
+      short: "Ljuset är huvudpersonen. Djupt blått, runguld och norrsken.",
+      idea: "Myten blir synlig genom ljus. Djupa kalla toner, självlysande runor och ett världsträd vid bosättningen. Gryningskraften syns som guldljus i världen. Natten, med norrsken, är riktningens höjdpunkt.",
+      pal: {
+        "Djupt hav": "#13314A", "Grunt hav": "#2A7A8C", "Sand": "#D9C9A3", "Gräs": "#6FAE7E", "Skog": "#1F5A55",
+        "Berg": "#5A6480", "Snö": "#E6EEF5", "Dimma": "#7F8CB0", "Tak, skiffer": "#3D4A6B", "Vägg, kalk": "#D8D2E2",
+        "Runglöd": "#FFD27A", "Norrsken": "#6EF0B4"
+      },
+      extra: { cliff: "#4A4F6A", rockSide: "#424A63", trunk: "#5C4E6E", wood: "#3A3550", sail: "#E6EEF5", glow: "#FFD27A", villager: ["#D8D2E2", "#FFD27A", "#59C3E8"] },
+      forces: { Utforskning: "#59C3E8", Byggkraft: "#F08A5D", Gryningskraft: "#FFD27A" },
+      ui: { panel: "#101830", text: "#E8EEF8", muted: "#A9B4CC", accent: "#FFD27A", accentText: "#1A1405" },
+      style: { jitter: 0.04, tree: "spire", house: "steep", special: "worldtree", grid: "#BFD8FF" },
+      cost: 3,
+      strengths: ["Mest särpräglad; knyter an till namnet (aurora) och Gryningskraften", "Natten blir en gåva: vilolåset blir vackert att titta på", "Starka siluetter mot ljus himmel"],
+      risks: ["Högst prestandakostnad: bloom, transparens och emissiva material", "Kall dagspalett kan kännas mindre varm och omhändertagande", "Ljust norrsken kan väcka i stället för lugna; måste dämpas"],
+      moods: {
+        gryning: { zen: "#3B3F8E", hor: "#F3A7B4", sun: "#FFC0A8", sunI: 1.3, el: 14, az: 202, hs: "#CDB6E2", hg: "#DCA6A6", hi: 0.92, glow: 0.35, stars: 0.15, aurora: 0,
+          note: "Rosa och violett gryning; runorna slocknar långsamt när solen kommer. Gryningskraften syns som guldljus i världsträdet." },
+        dag: { zen: "#4A9CD8", hor: "#C3E5F3", sun: "#FFF3DA", sunI: 0.8, el: 55, az: 130, hs: "#CFE6F5", hg: "#7FB59A", hi: 0.45, glow: 0, stars: 0, aurora: 0,
+          note: "Krispigt, kallt nordiskt dagsljus med hög sikt. Inga glödeffekter; dagen är för att läsa kartan." },
+        skymning: { zen: "#2A1F5C", hor: "#E07088", sun: "#FF8A6A", sunI: 1.2, el: 12, az: 343, hs: "#9A7EC4", hg: "#A65E7C", hi: 0.85, glow: 0.7, stars: 0.3, aurora: 0,
+          note: "Djup magenta och violett. Runorna börjar glöda och de första stjärnorna syns." },
+        natt: { zen: "#060A1A", hor: "#10274A", sun: "#86AEE0", sunI: 0.48, el: 38, az: 200, hs: "#2E4A78", hg: "#0D1424", hi: 0.55, glow: 1, stars: 1, aurora: 1,
+          note: "Dämpat norrsken, stjärnor och glödande runor över en sovande by. Långsamt och lugnt; norrskenet rör sig knappt." }
+      }
+    }
+  };
+
+  // ---------- Deterministisk ö (samma för alla riktningar) ----------
+  const SQ3 = Math.sqrt(3);
+  function rng(seed) {
+    return () => {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hash(ix, iy) {
+    let h = (ix * 374761393 + iy * 668265263) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  function vnoise(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+    const s = t => t * t * (3 - 2 * t);
+    const a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+    const u = s(fx), v = s(fy);
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+  }
+  const fbm = (x, y) => 0.6 * vnoise(x, y) + 0.3 * vnoise(x * 2.1 + 5, y * 2.1 + 9) + 0.1 * vnoise(x * 4.3 + 1, y * 4.3 + 3);
+
+  const R = 8;
+  const TILES = [];
+  for (let q = -R; q <= R; q++) {
+    for (let r = Math.max(-R, -q - R); r <= Math.min(R, -q + R); r++) {
+      const x = SQ3 * (q + r / 2), z = 1.5 * r;
+      const d = (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 / R;
+      const n = fbm(x * 0.17 + 3, z * 0.17 + 7);
+      let e = 1.0 - d * 1.3 + (n - 0.5) * 0.95;
+      e += 0.62 * Math.exp(-((x + 4) ** 2 + (z + 5.5) ** 2) / 10);
+      e -= 0.35 * Math.exp(-((x - 1) ** 2 + (z - 9) ** 2) / 8);
+      let biome;
+      if (e < -0.05) continue;
+      else if (e < 0.12) biome = "shallow";
+      else if (e < 0.24) biome = "sand";
+      else if (e < 0.66) biome = fbm(x * 0.3 + 11, z * 0.3 + 2) > 0.55 ? "forest" : "grass";
+      else if (e < 0.92) biome = "rock";
+      else biome = "snow";
+      const level = biome === "shallow" ? -1 : Math.max(0, Math.min(6, Math.floor((e - 0.12) * 7)));
+      const top = biome === "shallow" ? -0.2 : 0.14 + level * 0.2;
+      TILES.push({ q, r, x, z, e, biome, top, fog: x > 8.5 && biome !== "shallow" || x > 10 });
+    }
+  }
+  const tileAt = new Map(TILES.map(t => [t.q + "," + t.r, t]));
+  const NB = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  const isCoast = t => NB.some(([dq, dr]) => { const o = tileAt.get((t.q + dq) + "," + (t.r + dr)); return !o || o.biome === "shallow"; });
+  const settlement = TILES.filter(t => (t.biome === "grass") && !t.fog)
+    .sort((a, b) => Math.hypot(a.x - 1.5, a.z - 3.2) - Math.hypot(b.x - 1.5, b.z - 3.2)).slice(0, 7);
+  const settleSet = new Set(settlement);
+  const pierFrom = settlement.filter(isCoast)[0] || settlement[settlement.length - 1];
+  const pierTo = NB.map(([dq, dr]) => tileAt.get((pierFrom.q + dq) + "," + (pierFrom.r + dr)))
+    .filter(o => o && o.biome === "shallow").sort((a, b) => b.z - a.z)[0];
+
+  // ---------- three.js ----------
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xffffff, 35, 80);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 140 });
+  sun.shadow.bias = -0.0006;
+  sun.shadow.normalBias = 0.03;
+  scene.add(sun, sun.target);
+
+  const camera = new THREE.PerspectiveCamera(34, 4 / 3, 0.5, 400);
+  const C = h => new THREE.Color(h);
+  let world = null, water = null, glowMats = [], villagers = null, gridLines = null, stars = null, aurora = null, moon = null, waterBase = null;
+
+  function hexGeo(h, topCol, sideCol, jitter, rnd) {
+    const g = new THREE.CylinderGeometry(0.985, 1.0, h, 6, 1);
+    const n = g.attributes.normal, cols = new Float32Array(n.count * 3);
+    const tc = topCol.clone().offsetHSL(0, 0, (rnd() - 0.5) * jitter), sc = sideCol;
+    for (let i = 0; i < n.count; i++) {
+      const c = n.getY(i) > 0.9 ? tc : sc;
+      cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
+    }
+    g.setAttribute("color", new THREE.BufferAttribute(cols, 3));
+    return g;
+  }
+  function std(color, opts) { return new THREE.MeshStandardMaterial(Object.assign({ color: C(color), flatShading: true, roughness: 0.95, metalness: 0 }, opts || {})); }
+  function prism(w, h, d, color) {
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2, 0); s.lineTo(w / 2, 0); s.lineTo(0, h); s.closePath();
+    const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: false });
+    g.translate(0, 0, -d / 2);
+    return new THREE.Mesh(g, std(color));
+  }
+  function box(w, h, d, mat) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.castShadow = m.receiveShadow = true; return m; }
+  function shadowAll(o) { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; }
+
+  function glowMat(base, glow) {
+    const m = std(base, { emissive: C(glow), emissiveIntensity: 0 });
+    glowMats.push(m);
+    return m;
+  }
+
+  function tree(D, rnd) {
+    const g = new THREE.Group(), P = D.pal, X = D.extra, s = 0.85 + rnd() * 0.35;
+    if (D.style.tree === "birch") {
+      const trunk = box(0.07, 0.42, 0.07, std(X.trunk)); trunk.position.y = 0.21; g.add(trunk);
+      const can = new THREE.Mesh(new THREE.IcosahedronGeometry(0.26, 0), std(rnd() > 0.4 ? P["Skog"] : "#5E9E64"));
+      can.position.y = 0.55; can.scale.set(1, 1.25, 1); g.add(can);
+    } else if (D.style.tree === "spruce") {
+      const trunk = box(0.08, 0.2, 0.08, std(X.trunk)); trunk.position.y = 0.1; g.add(trunk);
+      [[0.34, 0.42, 0.28], [0.27, 0.36, 0.52], [0.18, 0.3, 0.74]].forEach(([r, h, y]) => {
+        const c = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6), std(P["Skog"])); c.position.y = y; c.rotation.y = rnd() * 3; g.add(c);
+      });
+    } else {
+      const trunk = box(0.05, 0.2, 0.05, std(X.trunk)); trunk.position.y = 0.1; g.add(trunk);
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.95, 5), std(P["Skog"])); c.position.y = 0.62; g.add(c);
+    }
+    g.scale.setScalar(s);
+    return shadowAll(g);
+  }
+
+  function house(D, rnd) {
+    const g = new THREE.Group(), P = D.pal, X = D.extra, st = D.style.house;
+    const win = glowMat(X.wood, X.glow);
+    if (st === "gable") {
+      const w = 0.62, d = 0.48;
+      const body = box(w, 0.34, d, std(P["Vägg, björk"])); body.position.y = 0.17; g.add(body);
+      const roof = prism(w + 0.08, 0.3, d + 0.1, P["Tak, falurött"]); roof.position.y = 0.34; roof.rotation.y = Math.PI / 2; g.add(roof);
+      roof.scale.set(1, 1, 1);
+      const chim = box(0.07, 0.16, 0.07, std(X.wood)); chim.position.set(0.14, 0.58, 0.08); g.add(chim);
+      const w1 = box(0.1, 0.1, 0.02, win); w1.position.set(-0.13, 0.18, d / 2 + 0.005); g.add(w1);
+      const w2 = box(0.1, 0.1, 0.02, win); w2.position.set(0.13, 0.18, d / 2 + 0.005); g.add(w2);
+    } else if (st === "longhouse") {
+      const w = 0.95, d = 0.42;
+      const body = box(w, 0.24, d, std(P["Tjärat trä"])); body.position.y = 0.12; g.add(body);
+      const roof = prism(d + 0.14, 0.26, w + 0.06, P["Torvtak"]); roof.position.y = 0.24; roof.rotation.y = Math.PI / 2; g.add(roof);
+      const gable = box(0.03, 0.02, d + 0.16, std(X.wood)); gable.position.set(0, 0.5, 0); gable.rotation.x = 0; g.add(gable);
+      const door = box(0.12, 0.15, 0.02, win); door.position.set(0.18, 0.08, d / 2 + 0.005); g.add(door);
+    } else {
+      const w = 0.46, d = 0.44;
+      const body = box(w, 0.4, d, std(P["Vägg, kalk"])); body.position.y = 0.2; g.add(body);
+      const roof = prism(w + 0.06, 0.46, d + 0.08, P["Tak, skiffer"]); roof.position.y = 0.4; roof.rotation.y = Math.PI / 2; g.add(roof);
+      const w1 = box(0.1, 0.13, 0.02, win); w1.position.set(0, 0.22, d / 2 + 0.005); g.add(w1);
+    }
+    g.rotation.y = (rnd() - 0.5) * 0.9;
+    return shadowAll(g);
+  }
+
+  function special(D) {
+    const g = new THREE.Group(), P = D.pal, X = D.extra;
+    if (D.style.special === "hall") {
+      const body = box(1.05, 0.42, 0.6, std(P["Vägg, björk"])); body.position.y = 0.21; g.add(body);
+      const roof = prism(0.7, 0.36, 1.13, P["Tak, falurött"]); roof.position.y = 0.42; g.add(roof);
+      const tower = box(0.24, 0.5, 0.24, std(P["Vägg, björk"])); tower.position.set(0.36, 0.55, 0); g.add(tower);
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.45, 4), std(P["Tak, falurött"])); spire.position.set(0.36, 1.02, 0); spire.rotation.y = Math.PI / 4; g.add(spire);
+      const win = glowMat(X.wood, X.glow);
+      [-0.3, -0.05].forEach(x => { const w = box(0.12, 0.14, 0.02, win); w.position.set(x, 0.2, 0.31); g.add(w); });
+    } else if (D.style.special === "stave") {
+      const dark = std(X.wood);
+      [[0.62, 0.3, 0.15], [0.46, 0.24, 0.47], [0.3, 0.2, 0.74]].forEach(([s, h, y]) => {
+        const b = box(s, h, s, std(P["Tjärat trä"])); b.position.y = y; g.add(b);
+        const r = new THREE.Mesh(new THREE.ConeGeometry(s * 0.78, h * 0.9, 4), dark); r.position.y = y + h * 0.5; r.rotation.y = Math.PI / 4; g.add(r);
+      });
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 4), dark); spire.position.y = 1.12; spire.rotation.y = Math.PI / 4; g.add(spire);
+      const door = box(0.14, 0.18, 0.02, glowMat(X.wood, X.glow)); door.position.set(0, 0.1, 0.32); g.add(door);
+    } else {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.17, 0.9, 6), std(X.trunk)); trunk.position.y = 0.45; g.add(trunk);
+      const canopyMat = std("#2F8F7F", { emissive: C(X.glow), emissiveIntensity: 0 });
+      glowMats.push(canopyMat);
+      canopyMat.userData.glowScale = 0.28;
+      [[0.62, 1.05, 0], [0.45, 1.42, 0.4], [0.3, 1.72, 0.9]].forEach(([r, y, rot]) => {
+        const c = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), canopyMat); c.position.y = y; c.rotation.y = rot; c.scale.set(1.15, 0.7, 1.15); g.add(c);
+      });
+      const runeMat = std("#4A5068", { emissive: C(P["Runglöd"]), emissiveIntensity: 0 });
+      glowMats.push(runeMat);
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * Math.PI * 2 + 0.3;
+        const st = box(0.09, 0.32 + (i % 2) * 0.08, 0.05, runeMat);
+        st.position.set(Math.cos(a) * 0.72, 0.17, Math.sin(a) * 0.72); st.rotation.y = -a; g.add(st);
+      }
+    }
+    return shadowAll(g);
+  }
+
+  function boat(D) {
+    const g = new THREE.Group(), X = D.extra;
+    const s = new THREE.Shape();
+    [[-0.75, 0.32], [-0.5, 0.04], [0.5, 0.04], [0.75, 0.32], [0.58, 0.2], [-0.58, 0.2]].forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y));
+    s.closePath();
+    const hull = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: false }), std(X.wood));
+    hull.geometry.translate(0, 0, -0.15); g.add(hull);
+    const mast = box(0.03, 0.7, 0.03, std(X.wood)); mast.position.y = 0.5; g.add(mast);
+    const sail = box(0.02, 0.4, 0.5, std(X.sail)); sail.position.set(0.02, 0.6, 0); g.add(sail);
+    return shadowAll(g);
+  }
+
+  function makeStars() {
+    const r = rng(7), pos = [];
+    for (let i = 0; i < 700; i++) {
+      const a = r() * Math.PI * 2, el = 0.06 + r() * 1.2, R2 = 180;
+      pos.push(Math.cos(a) * Math.cos(el) * R2, Math.sin(el) * R2, Math.sin(a) * Math.cos(el) * R2);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    return new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, fog: false, depthWrite: false }));
+  }
+  function makeAurora(D) {
+    const grp = new THREE.Group();
+    const c1 = C(D.pal["Norrsken"]), c2 = C("#9B7BF0");
+    [[-30, -120, 0.0, 1], [25, -130, 1.7, 0.75], [-5, -150, 3.1, 0.6]].forEach(([x, z, ph, k]) => {
+      const g = new THREE.PlaneGeometry(110, 34, 60, 8), p = g.attributes.position, cols = [];
+      for (let i = 0; i < p.count; i++) {
+        const px = p.getX(i), py = p.getY(i);
+        p.setZ(i, Math.sin(px * 0.05 + ph) * 12);
+        const t = (py + 17) / 34, fade = Math.sin(Math.PI * Math.min(1, Math.max(0, (px + 55) / 110)));
+        const v = t < 0.18 ? t / 0.18 : (1 - t) / 0.82;
+        const c = c1.clone().lerp(c2, t).multiplyScalar(v * v * fade * k);
+        cols.push(c.r, c.g, c.b);
+      }
+      g.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false, opacity: 0.7 }));
+      m.position.set(x, 38, z); m.rotation.x = -0.15;
+      grp.add(m);
+    });
+    return grp;
+  }
+
+  function buildWorld(key) {
+    if (world) {
+      scene.remove(world);
+      world.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
+    }
+    glowMats = [];
+    const D = DIRS[key], P = D.pal, X = D.extra, rnd = rng(42);
+    world = new THREE.Group();
+    const tileMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0 });
+    const sand = P["Sand"] || P["Sten och strand"];
+    const top = { shallow: P["Grunt hav"], sand, grass: P["Gräs"], forest: P["Gräs"], rock: P["Berg"], snow: P["Snö"] };
+    const side = { shallow: P["Grunt hav"], sand: X.cliff, grass: X.cliff, forest: X.cliff, rock: X.rockSide, snow: X.rockSide };
+    const gridPts = [];
+    for (const t of TILES) {
+      const h = t.top + 1.2;
+      const forestTop = t.biome === "forest" ? C(P["Gräs"]).lerp(C(P["Skog"]), 0.35) : C(top[t.biome]);
+      const m = new THREE.Mesh(hexGeo(h, forestTop, C(side[t.biome]).multiplyScalar(t.biome === "shallow" ? 0.85 : 1), D.style.jitter * 2, rnd), tileMat);
+      m.position.set(t.x, t.top - h / 2, t.z);
+      m.receiveShadow = true; m.castShadow = t.biome !== "shallow";
+      world.add(m);
+      if (t.biome !== "shallow" && !t.fog) {
+        for (let i = 0; i < 6; i++) {
+          const a1 = Math.PI / 6 + i * Math.PI / 3, a2 = a1 + Math.PI / 3, y = t.top + 0.012, rr = 0.95;
+          gridPts.push(t.x + Math.cos(a1) * rr, y, t.z + Math.sin(a1) * rr, t.x + Math.cos(a2) * rr, y, t.z + Math.sin(a2) * rr);
+        }
+      }
+      if (t.fog) {
+        const fogMat = std(P["Dimma"], { roughness: 1 });
+        for (let i = 0; i < 2; i++) {
+          const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95 + rnd() * 0.35, 1), fogMat);
+          p.position.set(t.x + (rnd() - 0.5) * 0.8, Math.max(t.top, 0) + 0.45 + rnd() * 0.25, t.z + (rnd() - 0.5) * 0.8);
+          p.scale.set(1.25, 0.5, 1.25); p.castShadow = true; p.receiveShadow = true;
+          world.add(p);
+        }
+        continue;
+      }
+      if (t.biome === "forest") {
+        const n = 3 + Math.floor(rnd() * 2);
+        for (let i = 0; i < n; i++) {
+          const tr = tree(D, rnd); const a = rnd() * 6.28, rr = 0.25 + rnd() * 0.5;
+          tr.position.set(t.x + Math.cos(a) * rr, t.top, t.z + Math.sin(a) * rr); world.add(tr);
+        }
+      } else if (t.biome === "grass" && !settleSet.has(t) && rnd() < 0.22) {
+        const tr = tree(D, rnd); tr.position.set(t.x + (rnd() - 0.5) * 0.8, t.top, t.z + (rnd() - 0.5) * 0.8); world.add(tr);
+      } else if (t.biome === "rock" && rnd() < 0.5) {
+        const b = new THREE.Mesh(new THREE.DodecahedronGeometry(0.22 + rnd() * 0.15, 0), std(P["Berg"]));
+        b.position.set(t.x + (rnd() - 0.5) * 0.8, t.top + 0.08, t.z + (rnd() - 0.5) * 0.8); b.castShadow = true; world.add(b);
+      }
+    }
+    gridLines = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(gridPts, 3)),
+      new THREE.LineBasicMaterial({ color: C(D.style.grid), transparent: true, opacity: 0.55 }));
+    gridLines.visible = state.grid;
+    world.add(gridLines);
+
+    settlement.forEach((t, i) => {
+      if (i === 0) { const s = special(D); s.position.set(t.x, t.top, t.z); s.rotation.y = 0.35; world.add(s); return; }
+      const count = D.style.house === "longhouse" ? 1 : 2;
+      for (let k = 0; k < count; k++) {
+        const h = house(D, rnd);
+        const off = count === 1 ? [0, 0] : (k ? [0.36, -0.22] : [-0.3, 0.28]);
+        h.position.set(t.x + off[0], t.top, t.z + off[1]); world.add(h);
+      }
+    });
+    villagers = new THREE.Group();
+    settlement.slice(1).forEach((t, i) => {
+      for (let k = 0; k < 2; k++) {
+        const v = new THREE.Group(), col = X.villager[(i + k) % 3];
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 0.16, 6), std(col)); body.position.y = 0.08; v.add(body);
+        const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05, 0), std("#E8C9A8")); head.position.y = 0.2; v.add(head);
+        v.position.set(t.x + 0.55 * Math.cos(i * 2 + k * 3), t.top, t.z + 0.55 * Math.sin(i * 2 + k * 3));
+        villagers.add(shadowAll(v));
+      }
+    });
+    world.add(villagers);
+
+    if (pierFrom && pierTo) {
+      const dx = pierTo.x - pierFrom.x, dz = pierTo.z - pierFrom.z, len = Math.hypot(dx, dz);
+      const pier = box(0.34, 0.06, len * 0.85, std(X.wood));
+      pier.position.set(pierFrom.x + dx * 0.62, 0.08, pierFrom.z + dz * 0.62); pier.rotation.y = Math.atan2(dx, dz); world.add(pier);
+      const b = boat(D); b.position.set(pierTo.x + 0.75, 0.02, pierTo.z + 0.2); b.rotation.y = Math.atan2(dx, dz) + Math.PI / 2; world.add(b);
+    }
+
+    waterBase = C(P["Djupt hav"]);
+    const wg = new THREE.PlaneGeometry(260, 260, 90, 90);
+    wg.rotateX(-Math.PI / 2);
+    const wr = rng(3), wp = wg.attributes.position;
+    for (let i = 0; i < wp.count; i++) wp.setY(i, (wr() - 0.5) * 0.08);
+    water = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({ color: waterBase.clone(), flatShading: true, roughness: 0.32, metalness: 0.05, transparent: true, opacity: 0.86 }));
+    water.receiveShadow = true;
+    world.add(water);
+
+    stars = makeStars(); world.add(stars);
+    moon = new THREE.Mesh(new THREE.IcosahedronGeometry(3.4, 1), new THREE.MeshBasicMaterial({ color: 0xE4EAF4, fog: false }));
+    moon.position.set(-22, 21, -150); world.add(moon);
+    aurora = key === "C" ? makeAurora(D) : null;
+    if (aurora) world.add(aurora);
+    scene.add(world);
+  }
+
+  const gradCache = new Map();
+  function gradient(zen, hor) {
+    const k = zen + hor;
+    if (gradCache.has(k)) return gradCache.get(k);
+    const c = document.createElement("canvas"); c.width = 2; c.height = 256;
+    const g = c.getContext("2d"), lg = g.createLinearGradient(0, 0, 0, 256);
+    lg.addColorStop(0, zen); lg.addColorStop(0.55, hor); lg.addColorStop(1, hor);
+    g.fillStyle = lg; g.fillRect(0, 0, 2, 256);
+    const t = new THREE.CanvasTexture(c);
+    gradCache.set(k, t);
+    return t;
+  }
+
+  function applyMood(key, moodId, cam) {
+    const M = DIRS[key].moods[moodId];
+    scene.background = gradient(M.zen, M.hor);
+    scene.fog.color.set(M.hor);
+    if (cam === "low") { scene.fog.near = 40; scene.fog.far = 150; } else { scene.fog.near = 46; scene.fog.far = 100; }
+    sun.color.set(M.sun); sun.intensity = M.sunI;
+    const el = M.el * Math.PI / 180, az = M.az * Math.PI / 180;
+    sun.position.set(Math.cos(el) * Math.cos(az) * 60, Math.sin(el) * 60, Math.cos(el) * Math.sin(az) * 60);
+    hemi.color.set(M.hs); hemi.groundColor.set(M.hg); hemi.intensity = M.hi;
+    glowMats.forEach(m => { m.emissiveIntensity = M.glow * (m.userData.glowScale || 1); });
+    water.material.color.copy(waterBase).lerp(C(M.hor), 0.12);
+    stars.visible = M.stars > 0; stars.material.opacity = M.stars;
+    moon.visible = moodId === "natt";
+    if (aurora) aurora.visible = M.aurora > 0;
+    villagers.visible = moodId !== "natt";
+  }
+
+  function placeCamera(cam, aspect, zoom, angle) {
+    camera.aspect = aspect;
+    const z = { near: 0.62, normal: 1, far: 1.45 }[zoom || "normal"];
+    let dist, height, target;
+    if (cam === "low") { camera.fov = 40; dist = 23 * z; height = 4.6 * z; target = new THREE.Vector3(0.5, 1.6, 0); }
+    else { camera.fov = 34; dist = 25 * z; height = 23 * z; target = aspect < 1 ? new THREE.Vector3(1.2, 0, 2.4) : new THREE.Vector3(0.5, 0, 1.5); }
+    camera.position.set(target.x + Math.sin(angle) * dist, height, target.z + Math.cos(angle) * dist);
+    camera.lookAt(target);
+    camera.updateProjectionMatrix();
+  }
+
+  // ---------- UI ----------
+  const state = { dir: "A", mood: "gryning", cam: "game", zoom: "normal", grid: false, hud: true, rot: false, angle: -0.25 };
+  try {
+    const saved = JSON.parse(localStorage.getItem("eirora-ad-v0") || "null");
+    if (saved && DIRS[saved.dir]) Object.assign(state, { dir: saved.dir, mood: saved.mood, cam: saved.cam, zoom: saved.zoom, grid: !!saved.grid, hud: saved.hud !== false });
+  } catch (e) { /* lagring saknas: standardläge */ }
+  const save = () => { try { localStorage.setItem("eirora-ad-v0", JSON.stringify(state)); } catch (e) { /* ignoreras */ } };
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const $ = s => document.querySelector(s);
+  const matrix = $("#matrix"), phone = $("#phone"), hud = $("#hud");
+  const thumbs = {};
+  matrix.insertAdjacentHTML("beforeend", '<div></div>' + MOODS.map(m => `<div class="colhead">${m.name}</div>`).join(""));
+  Object.entries(DIRS).forEach(([k, D]) => {
+    matrix.insertAdjacentHTML("beforeend", `<div class="rowhead"><span class="letter">${k}</span><b>${D.name}</b><small>${D.short}</small></div>`);
+    MOODS.forEach(m => {
+      const b = document.createElement("button");
+      b.className = "thumb"; b.type = "button"; b.id = `t-${k}-${m.id}`;
+      b.setAttribute("aria-label", `${k} ${D.name}, ${m.name}: granska i telefonstorlek`);
+      b.innerHTML = `<span class="ph">Renderar…</span><span class="tag">${m.name}</span>`;
+      b.addEventListener("click", () => { Object.assign(state, { dir: k, mood: m.id, cam: m.id === "natt" ? "low" : "game" }); sync(); phone.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" }); });
+      matrix.appendChild(b);
+      thumbs[k + m.id] = b;
+    });
+  });
+
+  function seg(id, items, keyName) {
+    const el = $(id);
+    el.innerHTML = items.map(([v, label]) => `<button type="button" data-v="${v}">${label}</button>`).join("");
+    el.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state[keyName] = b.dataset.v; sync(); });
+  }
+  seg("#seg-dir", Object.entries(DIRS).map(([k, D]) => [k, `${k} · ${D.name}`]), "dir");
+  seg("#seg-mood", MOODS.map(m => [m.id, m.name.replace(" (vilolås)", "")]), "mood");
+  seg("#seg-cam", [["game", "Spelkamera"], ["low", "Nattvy / låg"]], "cam");
+  seg("#seg-zoom", [["near", "Nära"], ["normal", "Normal"], ["far", "Översikt"]], "zoom");
+  const optGrid = $("#opt-grid"), optHud = $("#opt-hud"), optRot = $("#opt-rot");
+  optGrid.addEventListener("change", () => { state.grid = optGrid.checked; sync(); });
+  optHud.addEventListener("change", () => { state.hud = optHud.checked; sync(); });
+  optRot.addEventListener("change", () => { state.rot = optRot.checked; sync(); });
+  optRot.disabled = reduced;
+
+  $("#cvd").addEventListener("change", e => {
+    const v = e.target.value;
+    document.querySelectorAll(".cvd-target").forEach(el => { el.style.filter = v === "none" ? "" : `url(#cvd-${v})`; });
+  });
+
+  // Riktningskort
+  $("#dirs").innerHTML = Object.entries(DIRS).map(([k, D]) => `
+    <article class="dir">
+      <header><span class="letter">RIKTNING ${k}</span><h3>${D.name}</h3></header>
+      <p class="idea">${D.idea}</p>
+      <div class="swatches">${Object.entries(D.pal).map(([n, h]) => `<div class="sw"><i style="background:${h}"></i><b>${n}</b><code>${h}</code></div>`).join("")}</div>
+      <div><h4>Krafter (form + färg)</h4>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding:10px;border-radius:10px;background:${D.ui.panel}">
+          ${Object.entries(D.forces).map(([n, h]) => `<span class="chip" style="--hud-panel:${D.ui.panel};--hud-text:${D.ui.text};box-shadow:none"><svg viewBox="0 0 24 24" fill="${h}" aria-hidden="true">${ICONS[n]}</svg>${n}</span>`).join("")}
+        </div></div>
+      <div><h4>Styrkor</h4><ul>${D.strengths.map(s => `<li>${s}</li>`).join("")}</ul></div>
+      <div><h4>Risker</h4><ul>${D.risks.map(s => `<li>${s}</li>`).join("")}</ul></div>
+      <div class="cost"><span class="label">Prestandakostnad</span><span class="meter" aria-label="${["låg", "medel", "hög"][D.cost - 1]}">${[1, 2, 3].map(i => `<i class="${i <= D.cost ? "on" : ""}"></i>`).join("")}</span><span>${["Låg", "Medel", "Hög"][D.cost - 1]}</span></div>
+    </article>`).join("");
+
+  function renderHud() {
+    const D = DIRS[state.dir], night = state.mood === "natt";
+    phone.style.setProperty("--hud-panel", D.ui.panel); phone.style.setProperty("--hud-text", D.ui.text);
+    phone.style.setProperty("--hud-muted", D.ui.muted); phone.style.setProperty("--hud-accent", D.ui.accent); phone.style.setProperty("--hud-accent-text", D.ui.accentText);
+    const values = night ? [64, 40, 0] : { gryning: [12, 40, 96], dag: [58, 40, 71], skymning: [87, 112, 30] }[state.mood];
+    hud.hidden = !state.hud;
+    hud.innerHTML = `<div class="forces">${Object.entries(D.forces).map(([n, h], i) => `<span class="chip"><svg viewBox="0 0 24 24" fill="${h}">${ICONS[n]}</svg>${values[i]}</span>`).join("")}</div><div></div>` +
+      (night
+        ? `<div class="bottom"><div class="rest"><b>Viloperiod · byborna sover</b><span>Världen öppnar vid gryningen, 06:30</span></div></div>`
+        : `<div class="bottom"><span class="btn primary">Rikta krafter</span><span class="btn">Planera</span></div>`);
+  }
+
+  function renderNote() {
+    const D = DIRS[state.dir], M = D.moods[state.mood], mood = MOODS.find(m => m.id === state.mood).name;
+    $("#mood-note").innerHTML = `<h3>${state.dir} · ${D.name} · ${mood}</h3><p>${M.note}</p>
+      <div class="mood-swatches mono">
+        <span><i style="background:${M.zen}"></i>Zenit ${M.zen}</span><span><i style="background:${M.hor}"></i>Horisont ${M.hor}</span>
+        <span><i style="background:${M.sun}"></i>${state.mood === "natt" ? "Måne" : "Sol"} ${M.sun} · ${M.el}°</span><span><i style="background:${M.hs}"></i>Himmelsljus ${M.hs}</span>
+      </div>`;
+  }
+
+  let builtFor = null;
+  const view = { w: 0, h: 0 };
+  function renderView() {
+    if (builtFor !== state.dir) { buildWorld(state.dir); builtFor = state.dir; }
+    gridLines.visible = state.grid;
+    const r = phone.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (w !== view.w || h !== view.h) { renderer.setSize(w, h, false); view.w = w; view.h = h; }
+    applyMood(state.dir, state.mood, state.cam);
+    placeCamera(state.cam, w / h, state.zoom, state.angle);
+    renderer.render(scene, camera);
+  }
+
+  function sync() {
+    ["dir", "mood", "cam", "zoom"].forEach(k => document.querySelectorAll(`#seg-${k} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === state[k]))));
+    optGrid.checked = state.grid; optHud.checked = state.hud; optRot.checked = state.rot && !reduced;
+    Object.entries(thumbs).forEach(([id, b]) => b.setAttribute("aria-current", String(id === state.dir + state.mood)));
+    renderHud(); renderNote(); renderView(); save();
+    if (state.rot && !reduced) loop();
+  }
+
+  let looping = false, last = 0;
+  function loop() {
+    if (looping) return;
+    looping = true; last = performance.now();
+    const step = now => {
+      if (!state.rot || reduced) { looping = false; return; }
+      state.angle += (now - last) / 1000 * 0.08; last = now;
+      renderView();
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  let drag = null;
+  phone.addEventListener("pointerdown", e => { drag = { x: e.clientX, a: state.angle }; phone.setPointerCapture(e.pointerId); phone.style.cursor = "grabbing"; });
+  phone.addEventListener("pointermove", e => { if (!drag) return; state.angle = drag.a - (e.clientX - drag.x) * 0.008; renderView(); });
+  const endDrag = () => { drag = null; phone.style.cursor = ""; };
+  phone.addEventListener("pointerup", endDrag);
+  phone.addEventListener("pointercancel", endDrag);
+  window.addEventListener("resize", () => renderView());
+
+  // ---------- Miniatyrer: rendera alla tolv, en per bildruta så att sidan förblir responsiv ----------
+  const jobs = [];
+  Object.keys(DIRS).forEach(k => MOODS.forEach(m => jobs.push([k, m.id])));
+  function renderThumbs() {
+    const job = jobs.shift();
+    if (!job) { builtFor = null; phone.appendChild(renderer.domElement); renderView(); return; }
+    const [k, mood] = job;
+    if (builtFor !== k) { buildWorld(k); builtFor = k; }
+    gridLines.visible = false;
+    renderer.setSize(720, 540, false);
+    const cam = mood === "natt" ? "low" : "game";
+    applyMood(k, mood, cam);
+    placeCamera(cam, 720 / 540, "normal", -0.25);
+    renderer.render(scene, camera);
+    const img = new Image();
+    img.alt = `${DIRS[k].name}, ${MOODS.find(m => m.id === mood).name}`;
+    img.src = renderer.domElement.toDataURL("image/jpeg", 0.88);
+    const b = thumbs[k + mood];
+    b.querySelector(".ph").remove();
+    b.prepend(img);
+    view.w = view.h = 0;
+    requestAnimationFrame(renderThumbs);
+  }
+
+  ["dir", "mood", "cam", "zoom"].forEach(k => document.querySelectorAll(`#seg-${k} button`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === state[k]))));
+  renderHud(); renderNote();
+  requestAnimationFrame(renderThumbs);
+})();
+</script>

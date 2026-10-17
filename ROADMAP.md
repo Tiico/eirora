@@ -70,6 +70,7 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 4. Första ekonomin med siffror: 8–12 byggnader, 6–10 resurser, minst tre logistiska avvägningar, minst tre beslut om var krafterna ska riktas.
 5. UX-resor: första sessionen, återkomst efter 7 dagar, kväll med vilolås.
 6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D, förankrade i det nordiska temat (PRD 1.3).
+   Se [art-direction.md](./docs/design/art-direction.md).
 7. Kontur för epok 1.
 
 **Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction), uppdaterad PRD, GitHub-ärenden för M1.
