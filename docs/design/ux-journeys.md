@@ -1,7 +1,7 @@
 # UX-resor
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-005 · **Milstolpe:** M0 · **PRD:** UX-02, UX-03, UX-05, UX-07, RST-01–RST-11, PRG-01, HLT-03, HLT-07, HLT-12, D-17, D-22, D-33, D-37, O-12  
+> **Ärende:** TASK-005 · **Milstolpe:** M0 · **PRD:** UX-02, UX-03, UX-05, UX-07, RST-01–RST-11, PRG-01, HLT-03, HLT-07, HLT-12, D-17, D-22, D-33, D-37, D-45, D-49–D-58  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)
 
 Tre resor steg för steg: första sessionen, återkomst efter sju dagars frånvaro och en kväll när vilolåset börjar.
@@ -11,7 +11,7 @@ Varje steg beskriver vad spelaren ser, gör och känner och vad simuleringen gö
 Texterna i spelet är utkast på svenska och skrivs i *kursiv* eller i skisser; den engelska versionen skrivs parallellt (UX-06).
 Utseende, ljus och guidens gestalt bestäms i art direction (TASK-006) och M9.
 Kraftsiffrorna följer [krafternas regler](./forces.md) exakt.
-Byggnader, resurser och kraftkostnader följer utkastet till ekonomi v1 och kan ändras, se [beroende till ekonomin](#beroende-till-ekonomi-v1).
+Byggnader, resurser och kraftkostnader följer [ekonomi v1](./economy-v1.md), se [beroende till ekonomin](#beroende-till-ekonomi-v1).
 
 ## Gemensamt för alla resor
 
@@ -47,13 +47,12 @@ Den sammanfattar allt sedan spelaren senast läste en rapport, så efter en frå
 
 ### Beroende till ekonomi v1
 
-Ekonomin (TASK-004, [#5](https://github.com/Tiico/eirora/issues/5)) är inte beslutad ännu; utkastet ligger i [PR #16](https://github.com/Tiico/eirora/pull/16).
-Resorna använder bara det som står i tabellen nedan.
+Resorna använder bara det ur [ekonomi v1](./economy-v1.md) som står i tabellen nedan.
 Ändras ekonomin byts raderna här och motsvarande ord i texterna, utan att resornas form ändras.
 
-| Används i resorna | Värde i ekonomiutkastet | Används till |
+| Används i resorna | Värde i ekonomi v1 | Används till |
 |---|---|---|
-| Startkrafter | 100 Utforskning, 100 Byggkraft, 40 Gryningskraft | Den guidade turen |
+| Startkrafter | 100 Utforskning, 100 Byggkraft, 40 Gryningskraft (D-45) | Den guidade turen |
 | Handling för Gryningskraft | Dagsverke på en byggnad, 30 | Resa 1, steg 4 |
 | Handling för Utforskning | Kartlägg närområdet, 60 | Resa 1, steg 5 |
 | Gratis bygge | Huggarkoja | Resa 1, steg 6 |
@@ -74,9 +73,10 @@ Sessionen tar 5–8 minuter och har ett tydligt slut.
 - Ny installation, inget konto och ingen värld.
 - Inga hälsobehörigheter och ingen egenvård registrerad i spelet.
 - Tiden på dygnet är godtycklig; gränsfallet när installationen sker under den valda viloperioden beskrivs nedan.
+- Åldersgränsen 18+ (D-30) sköts av butikernas åldersklassning; turen frågar inte om ålder (D-58).
 
-**Ordning:** valet av hälsokälla och viloperiod kommer efter turen, inte före som i PRD 4.4.
-Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett nattläget när viloperioden väljs (öppen fråga 1).
+**Ordning:** valet av hälsokälla och viloperiod kommer efter turen (D-49, PRD 4.4).
+Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett nattläget när viloperioden väljs.
 
 ### Steg
 
@@ -99,7 +99,7 @@ Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett n
    - *Gör:* tittar.
    - *Känner:* att ön är hens egen.
    - *Simuleringen:* `WorldGenerator` skapar världen från en seed; starttillståndet innehåller startkrafterna.
-     Det första spelardygnet börjar vid lokal midnatt samma dag (öppen fråga 3).
+     Det första spelardygnet börjar vid lokal midnatt samma dag, så att dagens steg räknas (D-51).
 4. **Gryningskraft.**
    - *Ser:* guiden pekar på fiskeboden.
      *Gryningskraft kommer av sömn. Med den ger du byn en extra god dag där den behövs bäst.*
@@ -145,7 +145,7 @@ Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett n
       *Byn vilar 23:00–07:00. Du kan ändra tiden senare; en ändring gäller efter ett dygn.*
     - *Gör:* väljer tid och trycker *Klart*.
     - *Känner:* att vilan är en del av spelet, inte en spärr (princip 3); inga överraskningar första kvällen (RST-03).
-    - *Simuleringen:* ett administrativt kommando sätter viloschemat; det gäller från det att turen är slut (öppen fråga 2).
+    - *Simuleringen:* ett administrativt kommando sätter viloschemat; det gäller från det att turen är slut (D-50).
 11. **Morgonnotisen.**
     - *Ser:* *Vill du ha en tyst hälsning när byn vaknar och något nytt har hänt? Högst en om dagen, aldrig under natten.*
       Knapparna *Ja tack* och *Nej tack*.
@@ -180,7 +180,9 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 │  Av sömnen används bara längden, aldrig hur  │
 │  du sov. Ingen plats, ingen puls.            │
 │                                              │
-│  Uppgifterna stannar på din telefon.         │
+│  Uppgifterna räknas om till krafter på din   │
+│  telefon. I molnsparningen är de krypterade  │
+│  så att bara du kan läsa dem.                │
 │  Ingenting delas med andra om du inte själv  │
 │  väljer det, vana för vana.                  │
 │  De används aldrig till reklam.              │
@@ -203,7 +205,8 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 - **Skriva in själv:** en kort visning av inmatningen: steg eller aktiva minuter (D-41), träningspass och sömn.
 - *Läs mer* öppnar integritetspolicyn i klartext.
 - Valet kan alltid ändras under *Inställningar → Egenvård och integritet*, även under vilan (RST-07).
-- Meningen *Uppgifterna stannar på din telefon* är sann bara om molnsparningen inte innehåller bidrag per spelardygn (öppen fråga 9).
+- Rå hälsodata lämnar aldrig telefonen (HLT-10).
+  Molnsparningen innehåller bidrag per spelardygn, end-to-end-krypterade så att servern aldrig kan läsa dem (D-57).
 
 ### Gränsfall
 
@@ -212,15 +215,15 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 - **Health Connect saknas på telefonen:** *Koppla*-knappen ersätts av *Health Connect finns inte på den här telefonen. Du kan skriva in själv och koppla senare.*
 - **Installationen sker under den valda viloperioden**, till exempel 23:30 med viloperiod 23–07: turen genomförs till slut, eftersom schemat börjar gälla först när turen är klar.
   Efter steg 13 övergår ön direkt till nattvyn: *Byn vilar redan i natt. Världen öppnar klockan 7.*
-  Vilolåset blir därmed konkret redan första kvällen (öppen fråga 2).
+  Vilolåset blir därmed konkret redan första kvällen (D-50).
 - **Turen avbryts:** nästa start fortsätter på samma steg.
   Kommandon som redan godkänts står kvar och körs inte igen (INV-D6).
 - **Reducerad rörelse:** kameraflykten i steg 3 och nattoningen i steg 10 ersätts av mjuka övertoningar.
-- **Befintligt konto på ny telefon:** turen hoppas över; världen hämtas från molnsparningen (ACC-01) och spelaren möts av *Välkommen tillbaka till din ö.*, och därefter som i resa 2.
+- **Befintligt konto på ny telefon:** turen hoppas över; världen och de krypterade bidragen hämtas från molnsparningen (ACC-01, D-57) och spelaren möts av *Välkommen tillbaka till din ö.*, och därefter som i resa 2.
 
 ### Verifierar
 
-- **PRD:** UX-03, HLT-03, HLT-07, HLT-12, PRG-01, PRG-02, RST-01, RST-03, UX-05, UX-07, D-15, D-23, D-33, AC-04.
+- **PRD:** UX-03, HLT-03, HLT-07, HLT-12, PRG-01, PRG-02, RST-01, RST-03, UX-05, UX-07, D-15, D-23, D-33, D-49–D-51, D-57, D-58, AC-04.
 - **Invarianter:** INV-F2 (startkrafter i starttillståndet), INV-F5, INV-F7, INV-D6, INV-T1.
 - **Ärendets acceptanskriterium:** spelaren lär sig de tre krafterna genom att använda dem, utan krav på hälsobehörighet.
 
@@ -317,9 +320,9 @@ Världens händelser i skissen är illustrationer tills ekonomin är beslutad; k
 - **Variant B, aktiv vecka med hälsokälla:** med 7 500 steg varje spelardygn blir det 86 Utforskning per dygn, 602 för veckan.
   Saldot går från 40 till 400 med fullt tillskott och sedan till 521 med halvt (D-35).
   Raden lyder *Rörelse 52 500 steg → Utforskning 481*; när ett förråd når taket står det bara *Förrådet av Utforskning är fullt.*, utan uppmaning att spendera.
-- **Variant C, aktiv vecka med egen inmatning:** enligt [forces.md](./forces.md#6-manuell-inmatning-hlt-07-d-18) kan spelaren bara skriva in för innevarande och föregående spelardygn.
-  Rapporten nämner inte de andra dagarna; länken *Lägg till egenvård* finns som vanligt.
-  Det gör manuell inmatning sämre än hälsokällan efter en frånvaro, vilket strider mot andan i HLT-07 (öppen fråga 5).
+- **Variant C, aktiv vecka med egen inmatning:** spelaren kan skriva in för varje spelardygn sedan senaste besöket, högst sju ([forces.md](./forces.md#6-manuell-inmatning-hlt-07-d-18), D-53).
+  Krafterna krediteras per spelardygn precis som hälsokällans historik, inom sparandets tak, så båda vägarna är likvärdiga (HLT-07).
+  Länken *Lägg till egenvård* leder till dygnen sedan senast; rapporten räknar inte dagarna och påpekar inte vad som saknas.
 - **Återkomst under viloperioden,** till exempel klockan 01:00: nattvyn visas med rapporten tillgänglig.
   *Välkommen tillbaka. Byn vilar nu och världen öppnar klockan 7.*
   Rapporten går att läsa men inga kommandon går att ge (INV-T3).
@@ -327,7 +330,7 @@ Världens händelser i skissen är illustrationer tills ekonomin är beslutad; k
   Inget fynd eller erbjudande går ut med tiden (princip 11).
 - **Gruppen (från M8):** *Gruppen har byggt vidare på fyren.* och väntande hälsningar som *Ada: Lycka till med bygget.*
   Aldrig vem som inte bidragit, och spelarens andel i gemensamma byggen är oförändrad (SOC-04, AC-12).
-- **Notiser under frånvaron [FÖRSLAG]:** morgonnotisen skickas bara när något nytt har hänt.
+- **Notiser under frånvaron (D-56):** morgonnotisen skickas bara när något nytt har hänt.
   Efter två morgonnotiser i följd som inte öppnats pausas de tills spelaren öppnar spelet igen, så en vecka borta ger högst två notiser.
 - **Mycket lång frånvaro,** till exempel ett halvår: samma resa.
   Rapporten visar de fem viktigaste händelserna och *och 23 saker till* som går att fälla ut; världen är minst lika utvecklad som före (INV-V4).
@@ -336,13 +339,12 @@ Världens händelser i skissen är illustrationer tills ekonomin är beslutad; k
 
 ### Återstartsbonus (O-12)
 
-Förslaget är **ingen särskild återstartsbonus**.
+Beslutet är **ingen särskild återstartsbonus** (D-52).
 
 - Den sparade Gryningskraften och en värld som vuxit av sig själv är redan ett varmt mottagande.
 - En bonus i krafter skulle kräva ett undantag från INV-F2, att bara egenvård skapar krafter.
 - En bonus för att ha varit borta riskerar att belöna frånvaro, eller att kännas som tröst och därmed påminna om frånvaron.
 
-Alternativen står i öppen fråga 4.
 
 ### Verifierar
 
@@ -383,11 +385,11 @@ Alternativen står i öppen fråga 4.
    - *Ser:* informationen om bygget som vanligt, men handlingsknapparna är ersatta av *Byborna sover. Det här kan du göra i morgon.*
    - *Känner:* ett vänligt nej, inget fel.
    - *Simuleringen:* om ett kommando ändå skickas nekas det utan sidoeffekter med orsaken att viloperioden pågår (INV-D7, INV-T3, AC-01).
-5. **23:10 Skriver in kvällspromenaden [FÖRSLAG].**
+5. **23:10 Skriver in kvällspromenaden.**
    - *Gör:* *Lägg till egenvård → Rörelse → 30 aktiva minuter*.
    - *Ser:* *Sparat. Det blir kraft när byn vaknar.*
    - *Simuleringen:* bidraget, 3 000 steg enligt D-41, hör till det pågående spelardygnet och krediteras senast vid gryningen (INV-T9).
-     Det är ett bidrag, inte ett spelpåverkande kommando; att tillåta det under vilan ger manuell inmatning samma villkor som bakgrundssynken (RST-05, HLT-07, öppen fråga 6).
+     Det är ett bidrag, inte ett spelpåverkande kommando; under vilan har manuell inmatning samma villkor som bakgrundssynken (RST-05, HLT-07, D-54).
 6. **23:12 Ändrar viloperioden.**
    - *Gör:* *Inställningar → Viloperiod*, flyttar till 22:30–06:30.
    - *Ser:* *Den nya tiden gäller från söndag kväll klockan 22:30. I natt och i morgon natt vilar byn som vanligt, 23–07.*
@@ -411,7 +413,7 @@ Alternativen står i öppen fråga 4.
      4. Den dagliga rapporten byggs.
      5. Morgonnotisen skickas om något nytt har hänt.
    - *Ser, på låsskärmen:* *Byn har vaknat. Expeditionen har siktat land i nordväst.*
-     Notisen kommer utan ljud och vibration (Androids tysta notiskanal, iOS `passive`), så att den aldrig väcker någon.
+     Notisen kommer utan ljud och vibration (Androids tysta notiskanal, iOS `passive`; D-56), så att den aldrig väcker någon.
 10. **07:40 Morgonen.**
     - *Gör:* öppnar appen.
     - *Ser:* en kort gryningsövergång över ön, första gången efter gryningen, och sedan den dagliga rapporten, se [skissen nedan](#skiss-daglig-rapport).
@@ -430,11 +432,11 @@ Alternativen står i öppen fråga 4.
 | Handel, hälsningar och andra gruppåtgärder | Nej; servern nekar | RST-02 |
 | Ta emot gruppens interaktioner | Köas till gryningen | RST-11 |
 | Synka egenvård i bakgrunden | Ja; krafter vid gryningen | RST-05, INV-T9 |
-| Skriva in egenvård | Ja [FÖRSLAG]; krafter vid gryningen | HLT-07, öppen fråga 6 |
+| Skriva in egenvård | Ja; krafter vid gryningen | HLT-07, D-54 |
 | Ändra viloperioden | Ja; gäller efter 24 h | RST-09, INV-T7 |
 | Inställningar, tillgänglighet, integritet, hjälp, konto, radering | Ja | RST-07 |
 | Hantera eller avsluta prenumeration | Ja, under konto | RST-07 |
-| Köpa kosmetika | Nej [FÖRSLAG] | RST-08, öppen fråga 7 |
+| Köpa kosmetika | Nej | RST-08, D-55 |
 | Notiser | Inga | RST-06 |
 | Väcka byn tidigare | Nej; ingen knapp, inget köp, inget sömnbevis | RST-08–RST-10 |
 
@@ -534,31 +536,19 @@ Varje resa blir ett automatiserat scenario i headless-simuleringen med virtuell 
 | 3 | Schemaändring fredag 23:12 till 22:30–06:30 | Vilan lördag är 23–07; första vilan med nya tiden börjar söndag 22:30 |
 | 3 | Sommartidsövergång och tidszonsbyte under vilan | Vilan slutar på schemats lokala klockslag; pågående vila ändras inte |
 
-## Öppna frågor till produktägaren
+## Beslut
 
-1. **Ordningen i första sessionen.**
-   Förslaget flyttar valet av hälsokälla och viloperiod från början (PRD 4.4, steg 1–2) till efter den guidade turen, och använder *kartlägg närområdet* i stället för *skicka en expedition*, eftersom en expedition kräver brygga i ekonomiutkastet.
-   Godkänns det uppdateras PRD 4.4.
-2. **När den första viloperioden börjar gälla.**
-   Förslaget är att schemat gäller från det att turen är slut, även första natten och även om installationen sker under viloperioden.
-   Alternativet är att den första viloperioden börjar nästa dygn, vilket ger en ostörd första kväll men en första upplevelse av vilan först dagen efter.
-3. **Det första spelardygnet** börjar vid lokal midnatt på installationsdagen och slutar vid den första gryningen, så att dagens steg före installationen räknas.
-   Alternativet är att det börjar vid installationen, vilket gör spegeln i steg 9 tom.
-4. **Återstartsbonus (O-12).**
-   Förslaget är ingen bonus.
-   Alternativen är en liten gåva i varor från byborna (ett fynd, som inte bryter INV-F2) eller en bonus i krafter, som kräver ett undantag från INV-F2.
-5. **Manuell inmatning efter frånvaro.**
-   I dag kan spelaren bara skriva in för innevarande och föregående spelardygn, medan hälsokällans historik läses in för hela frånvaron.
-   Förslaget är att inmatning tillåts för alla spelardygn sedan senaste besöket, högst sju, så att båda vägarna blir likvärdiga; sparandets tak begränsar ändå.
-6. **Manuell inmatning under vilan** föreslås vara tillåten, med krafter vid gryningen, eftersom bakgrundssynken också är det.
-7. **Butiken under vilan** föreslås vara stängd för köp av kosmetika, så att ingen betalning förknippas med vilan; att hantera och avsluta prenumerationen är alltid öppet.
-8. **Morgonnotisen** föreslås komma bara när något nytt har hänt, alltid utan ljud, och pausas efter två oöppnade i följd tills spelaren öppnar spelet igen.
-9. **Molnsparning och hälsodata.**
-   Simuleringen behöver bidrag per spelardygn för att deduplicera och korrigera (INV-B1, INV-B3).
-   Om de följer med i molnsparningen (ACC-01) lämnar dagssummor för steg och sömn telefonen, och integritetsförklaringens *Uppgifterna stannar på din telefon* blir osann.
-   Förslaget är att molnsparningen bara innehåller världen och kraftsaldona, och att bidragen återskapas från hälsokällan på en ny telefon; det behöver beslutas inför M2 tillsammans med PRD 7.4.
-10. **Åldersgränsen 18+ (D-30):** räcker butikernas åldersklassning, eller behövs en egen bekräftelse före steg 2?
-11. **Ekonomiberoendet:** resorna bygger på utkastet i [PR #16](https://github.com/Tiico/eirora/pull/16).
-    Ändras startkrafterna, kraftkostnaderna eller byggnaderna uppdateras [tabellen](#beroende-till-ekonomi-v1) och texterna.
-12. **Guiden:** vem eller vad hälsar spelaren välkommen?
-    Avgörs tillsammans med art direction (TASK-006).
+Produktägarens svar på de öppna frågorna i v0.1, loggade i PRD 1.1:
+
+- **D-49:** första sessionen börjar med den guidade turen; hälsokälla och viloperiod väljs efteråt, och Utforskning visas med *kartlägg närområdet* (PRD 4.4).
+- **D-50:** den första viloperioden gäller direkt efter turen, även om installationen sker under viloperioden.
+- **D-51:** det första spelardygnet börjar vid lokal midnatt på installationsdagen.
+- **D-52:** ingen återstartsbonus efter frånvaro (O-12).
+- **D-53:** manuell inmatning kan göras för varje spelardygn sedan senaste besöket, högst sju.
+- **D-54:** manuell inmatning är tillåten under vilan; krafterna krediteras vid gryningen.
+- **D-55:** köp av kosmetika är stängda under vilan; prenumerationen går alltid att hantera.
+- **D-56:** morgonnotisen kommer bara när något nytt har hänt, alltid tyst, och pausas efter två oöppnade i följd.
+- **D-57:** molnsparningen innehåller bidrag per spelardygn, end-to-end-krypterade så att servern aldrig kan läsa dem.
+- **D-58:** åldersgränsen 18+ sköts av butikernas åldersklassning, utan egen bekräftelse i spelet.
+
+Kvar att avgöra: **guiden**, vem eller vad som hälsar spelaren välkommen, avgörs med art direction (TASK-006).
