@@ -57,10 +57,11 @@ Sedan kördes den på produktägarens Pixel 7 med Android 17 och riktig data (ra
   Bara `MANUAL_ENTRY` blir egenrapporterat, eftersom ordlistan definierar egenrapporterat som det hälsokällan markerat som manuellt inmatat; `UNKNOWN` är inte markerat och blir verifierat (D-68).
 - Spelet identifierar aldrig källor med fasta paketnamn: telefonens egen stegräknare har ett namn per enhet.
 - Bidrag per spelardygn beräknas med Health Connects aggregat över spelardygnets intervall (deduplicering efter användarens prioritet) i stället för att summera poster (INV-B1).
+  Sömn räknas på samma sätt över natten fram till gryningen, med Health Connects egen sömnlängd och utan egen regel för vakenfaser eller överlapp (D-71).
 - Korrigeringar (HLT-04, INV-B3) läses med ändrings-API:t; eftersom en radering bara har ett id måste klienten minnas vilket intervall varje läst post-id hörde till, utan att spara värdena (HLT-10).
   En ändringstoken gäller i 30 dagar; har den gått ut läses de senaste 30 dagarna om.
-- Krafterna kan beräknas när spelaren öppnar appen, så bakgrundsbehörighet är inte nödvändig för kärnan (RST-05 säger "kan").
-  Om vi senare läser i bakgrunden får 0 poster utan behörighet aldrig tolkas som ingen egenvård.
+- Hälsodata läses när spelaren öppnar appen och spelet begär aldrig bakgrundsbehörighet (D-70).
+  En läsning som ändå sker utan appen i förgrunden ger 0 poster utan fel och får aldrig tolkas som ingen egenvård.
 - Vi begär bara läsbehörighet för de vanor spelaren väljer, aldrig historik, och skriver aldrig till Health Connect.
 - Google Play kräver en deklaration per datatyp och att Health Connects länk till integritetspolicyn visar samma policy som butikssidan; spikens förklaringssida är bara en platshållare.
 - Vi äger underhållet av adaptern och måste följa Health Connect-klientens versioner själva; ytan är liten och spiken visar vilka API:er som räcker.
