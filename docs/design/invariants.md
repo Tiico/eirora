@@ -1,7 +1,7 @@
 # Simuleringsinvarianter
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-002 · **Milstolpe:** M0 · **PRD:** NFR-02, CIV-04, CIV-06, RST-*, HLT-04–10, SOC-04, D-08, D-17, D-22, D-35, D-36  
+> **Ärende:** TASK-002 · **Milstolpe:** M0 · **PRD:** NFR-02, CIV-04, CIV-06, RST-*, HLT-04–10, SOC-04, D-08, D-17, D-22, D-35–D-39  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md)
 
 Det här är det som **alltid** är sant i simuleringen av en värld, oavsett innehåll, balans eller regelversion.
@@ -85,7 +85,7 @@ Varje resurs som behövs för basbehov kan produceras utan krafter, på minst tv
 
 **INV-V1 Inget går förlorat med tiden.**
 När tiden går minskar aldrig antalet bybor, byggnader, byggnadsnivåer, bosättningar, utforskade brickor, avslutad forskning, epokframsteg eller historik (D-08, D-17).
-Bara ett uttryckligt kommando från spelaren kan minska något av dem.
+Bara ett uttryckligt rivningskommando från spelaren kan minska något av dem (D-38).
 *Test:* för varje sådant attribut `M` gäller `M(advance(S, Δt)) ≥ M(S)`.
 
 **INV-V2 Arbetsfördelning.**
@@ -93,7 +93,7 @@ Summan av bybor i arbetsgrupper är högst antalet bybor, och ingen arbetsgrupp 
 *Test:* kontrolleras efter varje steg.
 
 **INV-V3 Ouppfyllda basbehov kostar bara tillväxt.**
-När ett basbehov inte uppfylls kan tillväxt stanna, men antalet bybor, byggnadsnivåer och grundproduktion minskar aldrig.
+När ett basbehov inte uppfylls kan tillväxt stanna, men antalet bybor, byggnadsnivåer och grundproduktion minskar aldrig (D-39).
 *Test:* följer av INV-V1 med generatorer som tömmer lagren av basbehov.
 
 **INV-V4 Frånvaro är ofarlig.**
@@ -104,6 +104,7 @@ Hur länge spelaren än är borta utan egenvård och kommandon är världen efte
 
 **INV-F1 Icke-negativa heltal.**
 Varje krafts saldo är ett heltal ≥ 0.
+*Test:* kontrolleras efter varje steg i varje genererad sekvens, och schematest över saldots typ.
 
 **INV-F2 Endast egenvård skapar krafter, och bara sin egen.**
 Steg ger bara Utforskning, träningspass bara Byggkraft och sömnlängd bara Gryningskraft (D-15).
@@ -145,6 +146,7 @@ Att importera samma hälsodata flera gånger, i valfri ordning och från överla
 
 **INV-B2 Varje bidrag är entydigt.**
 Ett bidrag har exakt en vana, ett tidsintervall och en klassning: verifierat eller egenrapporterat (HLT-08).
+*Test:* schematest över bidragstypen, plus property: varje importerat bidrag har exakt en vana, ett icke-tomt intervall och en klassning.
 
 **INV-B3 Korrigeringar är kompensationshändelser.**
 Sen eller ändrad källdata ger kompensationshändelser, så att summan av bidrag konvergerar till den korrigerade källan.
@@ -180,9 +182,9 @@ En långsam process gör lika stora framsteg under `Δt` oavsett fas (CIV-06).
 *Test:* framsteg över samma `Δt` är identiskt för två tillstånd som bara skiljer sig i viloschema.
 
 **INV-T6 Viloperiodens längd.**
-Ett viloschema har alltid en längd om 6–10 timmar (D-22).
-Hur längden räknas vid sommartidsövergång avgörs i ADR:n för tidsmotorn [ÖPPET].
-*Test:* varje kommando som sätter en längd utanför intervallet nekas.
+Ett viloschema har alltid en längd om 6–10 timmar i lokal tid (D-22, D-37).
+Vid sommartidsövergång kan den verkliga längden därför bli 5–11 timmar.
+*Test:* varje kommando som sätter en längd utanför intervallet nekas, och över genererade sommartidsövergångar slutar vilan alltid på schemats lokala klockslag.
 
 **INV-T7 Schemaändringar väntar 24 timmar.**
 En ändring av viloschemat påverkar inte fasen förrän tidigast 24 timmar senare, och en pågående viloperiod kan aldrig kortas (RST-09, AC-05).
@@ -194,6 +196,7 @@ Ett byte av tidszon eller en sommartidsövergång ändrar varken start eller slu
 
 **INV-T9 Krafter från natten finns vid gryningen.**
 Bidrag som importeras under vilan krediteras senast vid `DAWN` (RST-05).
+*Test:* för varje bidrag som importeras under `RESTING` är kraftsaldot vid övergången till `DAWN` minst lika med saldot före plus bidragets kraft.
 
 ## 7. Grupper (från M8)
 
@@ -205,15 +208,16 @@ En medlems utfall är aldrig sämre för att en annan medlem är inaktiv än om 
 
 **INV-G2 Mer bidrag från andra hjälper aldrig mindre.**
 En medlems utfall är växande i de andra medlemmarnas bidrag.
+*Test:* om en annan medlems bidrag ökar från `x` till `x + d` blir medlem A:s utfall aldrig sämre.
 
 **INV-G3 Tak för egenrapporterade gruppbidrag.**
 Det dagliga taket för egenrapporterade gruppbidrag är lägre än för verifierade (D-18, SOC-07).
+*Test:* för varje vana och spelardygn ger egenrapporterade gruppbidrag aldrig mer än sitt tak, och taket är strikt lägre än det verifierade.
 
-## Öppna frågor till produktägaren
+## Beslut
 
-1. **Sommartid:** räknas viloperiodens 6–10 timmar i lokal tid eller i verklig tid när en övergång infaller under natten?
-   Avgörs i ADR:n för tidsmotorn inför M2/M7.
-2. **Rivning:** ska spelaren kunna riva byggnader?
-   I så fall är det det enda undantaget från INV-V1, och det måste vara ett uttryckligt kommando.
-3. **Basbehov (INV-V3):** räcker det att ouppfyllda basbehov bara stoppar tillväxt?
-   Detaljerna avgörs i TASK-004.
+Produktägarens svar på de öppna frågorna i v0.1:
+
+- **D-37:** viloperiodens 6–10 timmar räknas i lokal tid (INV-T6).
+- **D-38:** rivning är ett uttryckligt kommando och det enda undantaget från INV-V1.
+- **D-39:** ouppfyllda basbehov stoppar bara tillväxt (INV-V3); siffrorna sätts i TASK-004.
