@@ -210,6 +210,8 @@ Optimera inte ensidigt sessionstid eller retention.
 
 ### 4.4 Första sessionen [FÖRSLAG]
 
+Steg för steg, med integritetsförklaring, återkomst och kväll med vilolås: se [UX-resorna](./docs/design/ux-journeys.md).
+
 1. Välj språk, tillgänglighet och viloperiod (6–10 h).
 2. Integritetsförklaring: hälsokälla eller manuell inmatning, båda fullvärdiga.
 3. Guidad tur: en liten bosättning på en ö vid gryning.
