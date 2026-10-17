@@ -42,7 +42,7 @@ Tre egenskaper gör att besluten väger tyngre än mängden:
    Samma byggnad är värd olika mycket beroende på var den står, vad den ligger nära och om varorna når fram (CIV-02, LOG-02).
    Därför ger samma Byggkraft helt olika utfall hos två spelare.
 
-**Designmål [FÖRSLAG]:** inom normalt spann av egenvård ska skillnaden mellan ett genomtänkt och ett slarvigt beslut vara större än skillnaden mellan en låg och en hög egenvårdsdag.
+**Designmål (D-34):** inom normalt spann av egenvård ska skillnaden mellan ett genomtänkt och ett slarvigt beslut vara större än skillnaden mellan en låg och en hög egenvårdsdag.
 Mer egenvård ska ändå alltid synas i världen när strategin är densamma, annars dör spegeln.
 
 ## Spelarens viktigaste beslut
@@ -92,7 +92,7 @@ Varje skydd nedan går att verifiera:
 4. **Planering är alltid gratis** (D-23).
    Logistik, specialisering och prioritering kostar ingen kraft, så strategi kan utövas varje dag oavsett egenvård.
 5. **Balansbotar** (M4/M5): två botar med identisk egenvård och olika strategier ska få mätbart olika världar (AC-06).
-   En bot med måttlig egenvård och god strategi ska kunna mäta sig med en bot med hög egenvård och naiv strategi [FÖRSLAG, se öppna frågor].
+   En bot med måttlig egenvård och god strategi ska kunna mäta sig med en bot med hög egenvård och naiv strategi (D-34).
 6. **Grind A5:** en extern testare kan förklara hur egenvård blir krafter och krafter blir beslut, och spelet är roligt även med enbart manuell inmatning.
 
 ## Hypoteser för prototypen (M1)
@@ -104,9 +104,11 @@ Dessa avgörs genom dagligt spel och skrivs in i prototypdagboken (TASK-009):
 - **H3 Spegeln syns:** spelaren ser skillnad i världen mellan en aktiv och en lugn vecka.
 - **H4 Kort räcker:** 2–5 minuter per dag ger känslan av att ha spelat på riktigt.
 
-## Öppna frågor till produktägaren
+## Beslut
 
-1. Ska måttlig egenvård med god strategi kunna mäta sig med hög egenvård och naiv strategi, eller ska hög egenvård alltid ligga före?
-   Förslaget ovan väljer det förra för att skydda mot R-01; det senare stärker spegeln.
-2. Sparas krafter som inte används, och i så fall med tak?
-   Påverkar om spelaren kan "spara ihop" till stora beslut; avgörs i TASK-003.
+Frågorna som utkastet lämnade öppna är avgjorda av produktägaren och loggade i PRD:n (införs i #14):
+
+- **D-34:** strategin kan hinna ikapp egenvården.
+  Måttlig egenvård med god strategi ska kunna mäta sig med hög egenvård och naiv strategi, men vid samma strategi syns mer egenvård alltid.
+- **D-35:** oanvända krafter sparas med mjukt tak och förfaller aldrig.
+  Spelaren kan alltså spara ihop till stora beslut, men inte samla en obegränsad hög under lång frånvaro.
