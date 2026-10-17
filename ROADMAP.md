@@ -343,8 +343,8 @@ flowchart TD
 | [ADR-0003](./docs/adr/0003-rest-lock-is-honest-protection.md) | Vilolåset är ett ärligt skydd, inte fuskskydd | Beslutat |
 | [ADR-0004](./docs/adr/0004-shared-libraries-as-source-packages.md) | De delade biblioteken kompileras från samma källkod av både .NET och Unity | Beslutat |
 | [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
+| [ADR-0006](./docs/adr/0006-saves-are-migrated-snapshots.md) | Versionering av regler, innehåll och sparningar: sparningen är en snapshot som migreras framåt; gamla regler finns bara som frysta byggen | Beslutat |
 | kommande | Kartformat och generatorversion | Inför M3 |
-| kommande | Versionering av regler, innehåll och sparningar | Inför M2 |
 | kommande | Hälsoadapter: HealthBridge eller egen (O-08) | Inför M1/M6 |
 | kommande | Backend-hosting, auth och databas (O-09) | Inför M2 |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |
