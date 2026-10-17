@@ -77,10 +77,18 @@ namespace Eirora.Simulation.Forces
                 throw new ArgumentOutOfRangeException(nameof(amount), amount, "Must not be negative.");
             }
 
+            return WithdrawHalves(force, 2L * amount);
+        }
+
+        /// <summary>The balance in half forces, the unit credit is kept in.</summary>
+        internal long Halves(Force force) => _halves[Index(force)];
+
+        /// <summary>Removes up to <paramref name="halves"/> half forces, never below zero; returns the whole forces removed.</summary>
+        internal int WithdrawHalves(Force force, long halves)
+        {
             int i = Index(force);
             int before = Available(force);
-            long removed = 2L * amount < _halves[i] ? 2L * amount : _halves[i];
-            _halves[i] -= removed;
+            _halves[i] -= halves < _halves[i] ? halves : _halves[i];
             return before - Available(force);
         }
 
