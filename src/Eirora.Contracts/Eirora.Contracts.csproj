@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Types shared between the Unity client and the server API (ADR-0004).
+    Also a local Unity package, so it targets .NET Standard 2.1 and C# 9.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>Eirora.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>

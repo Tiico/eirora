@@ -1,0 +1,12 @@
+// Floating point (INV-D3) is enforced by ArchitectureTests, since banned-API analysis misses type declarations.
+P:System.DateTime.Now;Time is an input to the simulation, never read from the clock (INV-D2)
+P:System.DateTime.UtcNow;Time is an input to the simulation, never read from the clock (INV-D2)
+P:System.DateTime.Today;Time is an input to the simulation, never read from the clock (INV-D2)
+P:System.DateTimeOffset.Now;Time is an input to the simulation, never read from the clock (INV-D2)
+P:System.DateTimeOffset.UtcNow;Time is an input to the simulation, never read from the clock (INV-D2)
+P:System.Environment.TickCount;Time is an input to the simulation, never read from the clock (INV-D2)
+P:System.Environment.TickCount64;Time is an input to the simulation, never read from the clock (INV-D2)
+T:System.Diagnostics.Stopwatch;Time is an input to the simulation, never read from the clock (INV-D2)
+T:System.Random;Randomness comes from seeded input, never from the platform (INV-D2)
+N:System.IO;The simulation has no I/O (INV-D2)
+N:System.Net;The simulation has no I/O (INV-D2)

@@ -1,2 +1,25 @@
+# Python design models
 __pycache__/
 *.pyc
+
+# .NET (UseArtifactsOutput puts all build output here)
+artifacts/
+*.user
+.vs/
+.idea/
+TestResults/
+
+# Unity client
+client/[Ll]ibrary/
+client/[Tt]emp/
+client/[Oo]bj/
+client/[Bb]uild/
+client/[Bb]uilds/
+client/[Ll]ogs/
+client/[Uu]ser[Ss]ettings/
+client/MemoryCaptures/
+client/*.csproj
+client/*.sln
+client/*.slnx
+client/.vsconfig
+client/.utmp/

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Engine-independent simulation shared by the Unity client and the server (ADR-0002, ADR-0004).
+    This folder is also a local Unity package (package.json, Eirora.Simulation.asmdef), so it
+    targets what Unity 6 compiles: .NET Standard 2.1 and C# 9.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>Eirora.Simulation</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="BannedSymbols.txt" />
+    <InternalsVisibleTo Include="Eirora.Simulation.Tests" />
+  </ItemGroup>
+
+</Project>

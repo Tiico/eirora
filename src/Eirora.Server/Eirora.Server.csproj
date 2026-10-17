@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- Owns what is shared between players: accounts, groups, archipelago, trade (ADR-0001). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Eirora.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Eirora.Contracts\Eirora.Contracts.csproj" />
+    <ProjectReference Include="..\Eirora.Simulation\Eirora.Simulation.csproj" />
+  </ItemGroup>
+
+</Project>

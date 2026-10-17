@@ -41,7 +41,7 @@ En milstolpe som inte klarar sin grind återgår till `IN_PROGRESS` med dokument
 |---|---|---|---|
 | M0 | Kärndesign | Beslut D-01–D-33 | IN_PROGRESS |
 | M1 | Spelbar prototyp i fickan | M0 | NOT_STARTED |
-| M2 | Teknisk grund | M0, lärdomar från M1 | NOT_STARTED |
+| M2 | Teknisk grund | M0, lärdomar från M1 | IN_PROGRESS |
 | M3 | Världsgenerering | M2 | NOT_STARTED |
 | M4 | Ekonomi och logistik | M2, M3 | NOT_STARTED |
 | M5 | Krafter, expeditioner, forskning och första epoken | M4, M1-lärdomar | NOT_STARTED |
@@ -340,6 +340,7 @@ flowchart TD
 | [ADR-0001](./docs/adr/0001-local-world-server-for-shared-state.md) | Den egna världen simuleras lokalt; servern äger det delade | Beslutat |
 | [ADR-0002](./docs/adr/0002-unity-csharp-shared-simulation.md) | Unity 6 LTS + C#, delad simulering, ASP.NET Core | Beslutat |
 | [ADR-0003](./docs/adr/0003-rest-lock-is-honest-protection.md) | Vilolåset är ett ärligt skydd, inte fuskskydd | Beslutat |
+| [ADR-0004](./docs/adr/0004-simulation-as-local-unity-package.md) | Simuleringen delas med Unity som lokalt paket i källkodsform | Beslutat |
 | kommande | Tidsmotor, tidszoner och dygnsschema | Inför M2/M7 |
 | kommande | Kartformat och generatorversion | Inför M3 |
 | kommande | Versionering av regler, innehåll och sparningar | Inför M2 |
