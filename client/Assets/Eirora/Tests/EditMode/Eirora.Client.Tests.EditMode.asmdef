@@ -1,0 +1,25 @@
+{
+  "name": "Eirora.Client.Tests.EditMode",
+  "rootNamespace": "Eirora.Client.Tests",
+  "references": [
+    "Eirora.Client",
+    "Eirora.Simulation",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
