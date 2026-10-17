@@ -70,6 +70,7 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 4. Första ekonomin med siffror: 8–12 byggnader, 6–10 resurser, minst tre logistiska avvägningar, minst tre beslut om var krafterna ska riktas.
 5. [UX-resor](./docs/design/ux-journeys.md): första sessionen, återkomst efter 7 dagar, kväll med vilolås.
 6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D, förankrade i det nordiska temat (PRD 1.3).
+   Se [art-direction.md](./docs/design/art-direction.md).
 7. Kontur för epok 1.
 
 **Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction), uppdaterad PRD, GitHub-ärenden för M1.
@@ -341,7 +342,7 @@ flowchart TD
 | [ADR-0002](./docs/adr/0002-unity-csharp-shared-simulation.md) | Unity 6 LTS + C#, delad simulering, ASP.NET Core | Beslutat |
 | [ADR-0003](./docs/adr/0003-rest-lock-is-honest-protection.md) | Vilolåset är ett ärligt skydd, inte fuskskydd | Beslutat |
 | [ADR-0004](./docs/adr/0004-shared-libraries-as-source-packages.md) | De delade biblioteken kompileras från samma källkod av både .NET och Unity | Beslutat |
-| kommande | Tidsmotor, tidszoner och dygnsschema | Inför M2/M7 |
+| [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
 | kommande | Kartformat och generatorversion | Inför M3 |
 | kommande | Versionering av regler, innehåll och sparningar | Inför M2 |
 | [ADR-0005](./docs/adr/0005-own-health-connect-adapter.md) | Health Connect läses med en egen Kotlin-adapter bakom ett C#-gränssnitt, inte med HealthBridge (O-08) | Förslag, väntar på test på telefon |

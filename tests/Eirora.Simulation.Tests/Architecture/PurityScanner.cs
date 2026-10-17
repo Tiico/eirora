@@ -48,6 +48,13 @@ internal static class PurityScanner
         "System.String::GetHashCode",
     ];
 
+    // Members of forbidden types that cannot affect results.
+    private static readonly HashSet<string> s_allowedMembers =
+    [
+        // Compiler-generated iterators (yield return) check which thread owns them.
+        "System.Environment::get_CurrentManagedThreadId",
+    ];
+
     private static readonly HashSet<Code> s_floatingPointOpCodes =
     [
         Code.Ldc_R4,
@@ -153,8 +160,13 @@ internal static class PurityScanner
 
     private static void CheckMember(TypeReference declaringType, string name, string where, List<string> violations)
     {
-        CheckType(declaringType, where, violations);
         var member = $"{declaringType.FullName}::{name}";
+        if (s_allowedMembers.Contains(member))
+        {
+            return;
+        }
+
+        CheckType(declaringType, where, violations);
         if (s_forbiddenMembers.Contains(member))
         {
             violations.Add($"{where}: uses {member}");
