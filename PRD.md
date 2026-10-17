@@ -210,6 +210,8 @@ Optimera inte ensidigt sessionstid eller retention.
 
 ### 4.4 Första sessionen [FÖRSLAG]
 
+Steg för steg, med integritetsförklaring, och föreslagen ny ordning: se [UX-resorna](./docs/design/ux-journeys.md#resa-1-första-sessionen).
+
 1. Välj språk, tillgänglighet och viloperiod (6–10 h).
 2. Integritetsförklaring: hälsokälla eller manuell inmatning, båda fullvärdiga.
 3. Guidad tur: en liten bosättning på en ö vid gryning.
@@ -313,6 +315,8 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 | RST-09 | P0 | Schemaändringar börjar gälla först efter **24 timmar**; en pågående viloperiod kan inte kortas. |
 | RST-10 | P0 | Upplåsning kräver aldrig bevisad sömn. |
 | RST-11 | P0 | Gruppinteraktioner som berör en vilande medlem köas tills medlemmen vaknar. |
+
+Kväll, nattvy och gryning steg för steg: se [UX-resorna](./docs/design/ux-journeys.md#resa-3-kväll-med-vilolås).
 
 ### 5.7 Grupper och arkipelag
 
@@ -418,6 +422,8 @@ Ingen obligatorisk resurs får ha ett enda, lätt blockerbart sätt att producer
 - Utan egenvård tillkommer inga krafter, men ekonomin går i grundtakt och långsamma processer fortgår.
 - Inget vissnar, svälter eller förfaller.
 - Återkomsten möts varmt, eventuellt med en liten återstartsbonus [FÖRSLAG], aldrig med skuld.
+
+Återkomsten steg för steg: se [UX-resorna](./docs/design/ux-journeys.md#resa-2-återkomst-efter-sju-dagars-frånvaro).
 
 Effekterna ska **speltestas**, inte hårdkodas som sanning.
 Inga medicinska påståenden.
