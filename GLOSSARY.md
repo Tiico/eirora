@@ -154,8 +154,28 @@ Den neutrala mängd Gryningskraft som ges när sömndata saknas; ingen inloggad 
 _Avoid_: minimum, straffnivå
 
 **Regelversion** (`RulesVersion`):
-Versionen av simuleringens regler; samma starttillstånd, regelversion och kommandon ger alltid samma tillstånd.
+Versionen av simuleringens regler, inklusive hur befintligt innehåll verkar; samma starttillstånd, regelversion och kommandon ger alltid samma tillstånd.
 _Avoid_: spelversion, appversion
+
+**Innehållsversion** (`ContentVersion`):
+Versionen av spelets innehåll (byggnader, recept, resurser, fynd, epoker), som bara ökar när innehåll läggs till.
+_Avoid_: datapaket, innehållsuppdatering (när versionen avses)
+
+**Journal** (`Journal`):
+Den ordnade följden av kommandon och avläsningar som en värld har fått sedan den fick sin regelversion.
+_Avoid_: logg, historik (som är världens berättelse för spelaren)
+
+**Snapshot** (`SimulationSnapshot`):
+Hela en världs tillstånd vid en tidpunkt, märkt med regelversion och innehållsversion.
+_Avoid_: ögonblicksbild, sparfil
+
+**Sparning** (`Save`):
+En världs lagrade form på enheten eller i molnet: den senaste snapshoten och journalen.
+_Avoid_: sparfil, backup
+
+**Migration** (`Migration`):
+Omvandlingen av en snapshot från en regelversion till nästa när appen uppdateras; den ändrar aldrig det som redan hänt.
+_Avoid_: konvertering, uppgradering (när omvandlingen avses)
 
 ## Progression
 
