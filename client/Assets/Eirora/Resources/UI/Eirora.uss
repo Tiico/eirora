@@ -1,0 +1,313 @@
+/* Gränssnittet i riktning A: ljusa paneler, mörk text (art-direction.md, section 3). Sizes are reference pixels at 1080 wide. */
+
+.screen {
+    flex-grow: 1;
+    justify-content: space-between;
+    padding: 36px 32px 40px 32px;
+}
+
+.card {
+    background-color: rgba(251, 247, 239, 0.94);
+    border-radius: 34px;
+    padding: 26px 32px;
+    border-color: rgba(43, 42, 51, 0.08);
+    border-width: 2px;
+    color: rgb(43, 42, 51);
+}
+
+.top {
+    flex-direction: column;
+}
+
+.forces {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.force {
+    flex-direction: row;
+    align-items: center;
+}
+
+.force-value {
+    font-size: 54px;
+    -unity-font-style: bold;
+    margin-left: 12px;
+}
+
+.force-name {
+    font-size: 26px;
+    color: rgb(104, 101, 117);
+    margin-left: 10px;
+    margin-top: 10px;
+}
+
+.resources {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.resource {
+    font-size: 30px;
+    margin-right: 26px;
+    color: rgb(68, 66, 80);
+}
+
+.status {
+    font-size: 30px;
+    color: rgb(104, 101, 117);
+    margin-top: 12px;
+    white-space: normal;
+}
+
+.bottom {
+    flex-direction: column;
+}
+
+.bar {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.button {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 120px;
+    margin: 0 8px;
+    border-radius: 30px;
+    background-color: rgba(251, 247, 239, 0.96);
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.10);
+    color: rgb(43, 42, 51);
+    font-size: 31px;
+    -unity-font-style: bold;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+.button:hover {
+    background-color: rgb(255, 252, 245);
+}
+
+.button:active {
+    background-color: rgb(241, 233, 220);
+}
+
+.button:disabled {
+    opacity: 0.45;
+}
+
+.button-title {
+    font-size: 31px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: rgb(43, 42, 51);
+}
+
+.button-cost {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.button-cost-value {
+    font-size: 27px;
+    color: rgb(104, 101, 117);
+    margin-left: 6px;
+}
+
+.button-wide {
+    flex-grow: 0;
+    flex-basis: auto;
+    flex-shrink: 0;
+    height: 120px;
+    margin: 18px 0 0 0;
+}
+
+.button-primary {
+    background-color: rgb(180, 71, 58);
+    color: rgb(251, 247, 239);
+    border-color: rgb(160, 60, 49);
+}
+
+.button-primary:active {
+    background-color: rgb(160, 60, 49);
+}
+
+.sheet {
+    margin-bottom: 4px;
+}
+
+.sheet-title {
+    font-size: 46px;
+    -unity-font-style: bold;
+}
+
+.sheet-subtitle {
+    font-size: 30px;
+    color: rgb(104, 101, 117);
+    margin-top: 4px;
+    margin-bottom: 14px;
+}
+
+.sheet-text {
+    font-size: 32px;
+    white-space: normal;
+    margin-bottom: 10px;
+}
+
+.action {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 8px 0;
+    padding: 18px 26px;
+    border-radius: 26px;
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.10);
+    background-color: rgb(255, 252, 245);
+    -unity-text-align: middle-left;
+}
+
+.action:active {
+    background-color: rgb(241, 233, 220);
+}
+
+.action-title {
+    font-size: 36px;
+    -unity-font-style: bold;
+    color: rgb(43, 42, 51);
+}
+
+.action-cost {
+    font-size: 27px;
+    color: rgb(104, 101, 117);
+    white-space: normal;
+}
+
+.action-unavailable {
+    opacity: 0.5;
+}
+
+.close {
+    position: absolute;
+    right: 18px;
+    top: 14px;
+    width: 76px;
+    height: 76px;
+    border-radius: 38px;
+    font-size: 40px;
+    background-color: rgba(43, 42, 51, 0.06);
+    border-width: 0;
+    color: rgb(43, 42, 51);
+}
+
+.night {
+    background-color: rgba(16, 24, 48, 0.86);
+    border-color: rgba(255, 210, 122, 0.25);
+    color: rgb(232, 238, 248);
+    align-items: center;
+    margin-top: 40px;
+}
+
+.night-title {
+    font-size: 58px;
+    -unity-font-style: bold;
+    color: rgb(255, 210, 122);
+}
+
+.night-text {
+    font-size: 34px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+    margin-top: 8px;
+}
+
+.toast {
+    position: absolute;
+    left: 60px;
+    right: 60px;
+    bottom: 330px;
+    padding: 24px 30px;
+    border-radius: 30px;
+    background-color: rgba(43, 42, 51, 0.92);
+    color: rgb(251, 247, 239);
+    font-size: 31px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+.row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 0;
+}
+
+.row-label {
+    font-size: 34px;
+    flex-grow: 1;
+}
+
+.stepper {
+    flex-direction: row;
+    align-items: center;
+}
+
+.stepper-button {
+    width: 96px;
+    height: 96px;
+    border-radius: 48px;
+    font-size: 44px;
+    margin: 0 6px;
+    background-color: rgb(255, 252, 245);
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.12);
+    color: rgb(43, 42, 51);
+}
+
+.stepper-value {
+    min-width: 210px;
+    font-size: 38px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.tabs {
+    flex-direction: row;
+    margin-bottom: 14px;
+}
+
+.tab {
+    flex-grow: 1;
+    height: 88px;
+    border-radius: 24px;
+    font-size: 31px;
+    margin: 0 6px;
+    background-color: rgba(43, 42, 51, 0.05);
+    border-width: 0;
+    color: rgb(43, 42, 51);
+}
+
+.tab-selected {
+    background-color: rgb(43, 42, 51);
+    color: rgb(251, 247, 239);
+}
+
+.report-line {
+    font-size: 32px;
+    white-space: normal;
+    margin: 6px 0;
+}
+
+.setup {
+    margin-top: 180px;
+}
+
+.setup-title {
+    font-size: 64px;
+    -unity-font-style: bold;
+    color: rgb(180, 71, 58);
+}
