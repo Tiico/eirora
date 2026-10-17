@@ -1,6 +1,6 @@
-# VERDAWN — Roadmap till version 1.0
+# EIRORA — Roadmap till version 1.0
 
-> **Dokumentstatus:** Utkast v0.2 — reviderat efter produktgrillning  
+> **Dokumentstatus:** Utkast v0.3 — reviderat efter produktgrillning och namnbeslut  
 > **Datum:** 2026-10-17  
 > **Produktkrav:** [PRD.md](./PRD.md) · **Ordlista:** [GLOSSARY.md](./GLOSSARY.md) · **Beslut:** [docs/adr/](./docs/adr/)  
 > **Planeringsprincip:** kvalitetsstyrda milstolpar. **Utvecklingstid är aldrig en faktor** (D-09); genvägar och halvfärdiga system accepteras inte.
@@ -18,7 +18,7 @@ Varje milstolpe har mål, leverabler, kvalitetsgrind och beroenden.
 - **Produktägarens tid** för beslut, granskning och test på fysiska enheter.
 - **Butiksgranskningar och policyprocesser** (Health Connect-deklaration, App Review).
 
-Arbetet sker via GitHub-ärenden i [Tiico/verdawn](https://github.com/Tiico/verdawn) enligt [docs/agents/](./docs/agents/).
+Arbetet sker via GitHub-ärenden i [Tiico/eirora](https://github.com/Tiico/eirora) enligt [docs/agents/](./docs/agents/).
 
 ### Statusar
 
@@ -69,7 +69,7 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 3. Krafternas första regler: omvandling, tak, avtagande avkastning, manuell inmatning och neutral grundnivå.
 4. Första ekonomin med siffror: 8–12 byggnader, 6–10 resurser, minst tre logistiska avvägningar, minst tre beslut om var krafterna ska riktas.
 5. UX-resor: första sessionen, återkomst efter 7 dagar, kväll med vilolås.
-6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D.
+6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D, förankrade i det nordiska temat (PRD 1.3).
 7. Kontur för epok 1.
 
 **Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction), uppdaterad PRD, GitHub-ärenden för M1.
@@ -79,7 +79,7 @@ Inget beslut som blockerar prototypen är öppet.
 
 ### M1 — Spelbar prototyp i fickan
 
-**Mål:** produktägaren spelar Verdawn på sin Android-telefon varje dag så tidigt som möjligt.
+**Mål:** produktägaren spelar Eirora på sin Android-telefon varje dag så tidigt som möjligt.
 
 1. Unity 6 LTS-projekt med motoroberoende C#-simuleringsbibliotek och tester i headless-läge.
 2. En liten ö på hexkarta i low-poly 3D med enkelt dygnsljus.
@@ -108,7 +108,7 @@ Simuleringen är deterministisk i headless-tester.
 5. Backend-skelett: konto, auth, molnsparning, konfliktlösning mellan enheter (O-09).
 6. Bevis att simuleringsbiblioteket körs identiskt på klient och server.
 7. Mätbudgetar och lista över målenheter (O-13).
-8. Varumärkes- och butikskontroll av "Verdawn" (O-11).
+8. Varumärkes- och butikskontroll av "Eirora" (O-11).
 
 **Kvalitetsgrind A2:** replay är deterministisk på klient och server.
 En dubblett av ett kommando ändrar inte tillståndet två gånger.
@@ -410,11 +410,11 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 
 ## 10. Överlämningsprompt till nästa agent
 
-> Du arbetar på Verdawn.
+> Du arbetar på Eirora: *A world worth growing.*
 > Läs PRD.md, ROADMAP.md, GLOSSARY.md och docs/adr/ som källor till sanning, och AGENTS.md för arbetsflödet.
 > Respektera allt som är markerat [BESLUTAT].
 > Utvecklingstid är aldrig en faktor; välj alltid den bästa lösningen.
-> Kärnan: egenvård (steg, träning, sömn) blir tre krafter som spelaren strategiskt riktar i en ögrupp på en hexkarta i vacker low-poly 3D; inget slut, epoker; grupper om 2–6 delar en arkipelag med endast positiv koppling; vilolås 6–10 h.
+> Kärnan: egenvård (steg, träning, sömn) blir tre krafter som spelaren strategiskt riktar i en ögrupp på en hexkarta i vacker low-poly 3D med nordiskt mytologiskt tema; inget slut, epoker; grupper om 2–6 delar en arkipelag med endast positiv koppling; vilolås 6–10 h.
 > Börja med M0 (TASK-001–006) och förbered M1 så att produktägaren kan spela dagligen på sin Android så snart som möjligt.
 > Skapa GitHub-ärenden enligt docs/agents/.
 
@@ -426,3 +426,4 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 |---|---|---|
 | 0.1 | 2026-10-17 | Första planutkast M0–M11 (Arkipelagen). |
 | 0.2 | 2026-10-17 | Verdawn. Ny ordning med tidig prototyp i fickan (M1). Hälsa, vilolås, grupper och arkipelag som kärna. Unity + ASP.NET Core. Visuell kvalitet som egen ström och grind. M0–M12. |
+| 0.3 | 2026-10-17 | Namn Eirora ersätter Verdawn; art direction förankras i det nordiska temat. |

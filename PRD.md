@@ -1,8 +1,9 @@
-# VERDAWN — Product Requirements Document (PRD)
+# EIRORA — Product Requirements Document (PRD)
 
-> **Dokumentstatus:** Utkast v0.2 — reviderat efter produktgrillning  
+> **Dokumentstatus:** Utkast v0.3 — reviderat efter produktgrillning och namnbeslut  
 > **Datum:** 2026-10-17  
-> **Produktnamn:** Verdawn (arbetsnamn; varumärkes- och butikskontroll återstår)  
+> **Produktnamn:** Eirora (tekniskt projektnamn `eirora`; varumärkes- och butikskontroll återstår, O-11)  
+> **Slogan:** *A world worth growing.*  
 > **Målrelease:** Version 1.0 — fullvärdigt kommersiellt mobilspel, samtidigt på Android och iOS  
 > **Relaterade dokument:** [ROADMAP.md](./ROADMAP.md) · [GLOSSARY.md](./GLOSSARY.md) · [docs/adr/](./docs/adr/)
 
@@ -27,7 +28,7 @@
 
 ## 1. Sammanfattning
 
-Verdawn är ett **passivt, kartbaserat strategi- och civilisationsspel där din värld speglar hur du tar hand om dig själv.**
+Eirora är ett **passivt, kartbaserat strategi- och civilisationsspel där din värld speglar hur du tar hand om dig själv.**
 Rörelse, träning och sömn omvandlas till tre olika **krafter** som spelaren strategiskt riktar för att utforska, bygga och planera i en ögrupp på en hexkarta.
 Ekonomin (produktionskedjor och logistik i Anno-anda) lever sitt eget liv; egenvården avgör hur långt och hur snabbt världen kan växa.
 Precis som kroppen tackar dig, tackar din värld dig.
@@ -53,7 +54,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-07 | Byggande, ekonomi, logistik och utforskning är kärnan | [BESLUTAT] |
 | D-08 | Inga straff för livet: ingen stressdriven bestraffning för vilodagar, sjukdom eller frånvaro | [BESLUTAT] |
 | D-09 | **Utvecklingstid är aldrig en faktor**; V1 ska vara fullt genomarbetad | [BESLUTAT] |
-| D-10 | Namn: **Verdawn**. Öar och sjöfart är kartans kärna; gryningen är det visuella och tematiska motivet | [BESLUTAT] |
+| D-10 | Namn: **Eirora** (tekniskt `eirora`), slogan *A world worth growing.* och tema i nordisk mytologi; se avsnitt 1.3. Öar och sjöfart är kartans kärna; gryningen är det visuella och tematiska motivet | [BESLUTAT] |
 | D-11 | Byggs av en person (produktägaren) med AI-agenter. **Kommersiell satsning** | [BESLUTAT] |
 | D-12 | Spelkänsla: **Anno-ekonomi × Islanders beslutstäthet × Pikmin Blooms dygnsrytm** | [BESLUTAT] |
 | D-13 | **Ingen kampanj och inget slut.** Guidad tur, löpande introduktion av system med tutorialelement, epoker om ~6–10 veckor; inget nollställs | [BESLUTAT] |
@@ -87,6 +88,26 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 
 Ett vackert, lugnt och djupt strategispel för vuxna som vill att deras vardagsvanor ska betyda något, utan tävling, skuld eller oändliga sessioner.
 
+### 1.3 Varumärkesidentitet [BESLUTAT]
+
+| Element | Värde |
+|---|---|
+| Produktnamn | **Eirora** |
+| Tekniskt projektnamn | `eirora` |
+| Officiell slogan | *A world worth growing.* |
+| Kort produktbeskrivning | *A passive fantasy civilization-building game where your world grows as you care for yourself.* |
+| Genre | Passive fantasy strategy / Civilization builder / Wellness-inspired gaming |
+| Tema | Nordisk mytologi, personlig utveckling, välmående, utforskning och civilisationsbyggande |
+
+Eirora är ett konstruerat fantasynamn inspirerat av två källor:
+
+- **Eir:** en gestalt i nordisk mytologi som förknippas med läkande, omsorg och återhämtning.
+- **Aurora:** gryning, ljus och en ny början.
+
+Namnet ska förmedla nordisk mystik, livskraft, personlig utveckling och harmoni.
+Det knyter ihop egenvård och vila som motor (D-14, D-22) med gryningen som visuellt motiv (D-10) och Gryningskraften (D-15).
+Tidigare arbetsnamn (Arkipelagen, Verdawn) används inte längre.
+
 ---
 
 ## 2. Produktmål, målgrupp och problem
@@ -95,7 +116,7 @@ Ett vackert, lugnt och djupt strategispel för vuxna som vill att deras vardagsv
 
 Hälsoappar reducerar ofta beteenden till siffror och obrutna sviter.
 Mobilspel premierar frekventa sessioner även när spelaren borde göra annat.
-Verdawn vänder på incitamenten: **ett meningsfullt strategispel som växer av ett hälsosamt liv och aktivt respekterar vila**.
+Eirora vänder på incitamenten: **ett meningsfullt strategispel som växer av ett hälsosamt liv och aktivt respekterar vila**.
 
 ### 2.2 Målgrupp
 
@@ -559,6 +580,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | — | 2026-10-17 | Godot + Spring Boot ersatt av Unity + ASP.NET Core | ADR-0002 |
 | — | 2026-10-17 | Absolut, serververifierat vilolås ersatt av ärligt skydd | ADR-0003 |
 | — | 2026-10-17 | Socialt flyttat från P1 till kärna (P0) | D-19–D-21 |
+| — | 2026-10-17 | Arbetsnamnen Arkipelagen och Verdawn ersatta av Eirora; slogan, kort beskrivning, genre och nordiskt tema fastställda | D-10, avsnitt 1.3 |
 
 ### Öppna frågor
 
@@ -574,7 +596,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-08 | Egen native-adapter eller HealthBridge? | Utvärdera mot HLT-04/08 | M1 |
 | O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
-| O-11 | Varumärkes- och butikskontroll av "Verdawn" | Kontrollera före butikssida | M2 |
+| O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |
 | O-12 | Återstartsbonus efter frånvaro: ja eller nej? | Liten och varm | M5 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
 
@@ -605,3 +627,4 @@ Länkarna är ingångar, inte garantier; granska aktuell dokumentation vid imple
 |---|---|---|
 | 0.1 | 2026-10-17 | Första utkast (Arkipelagen). |
 | 0.2 | 2026-10-17 | Namn Verdawn; egenvård som motor med tre krafter; inget slut, epoker; grupper och gemensam arkipelag; lokal värld + server för det delade; Unity + ASP.NET Core; low-poly 3D; intäktsmodell; vilolås som ärligt skydd. |
+| 0.3 | 2026-10-17 | Namn Eirora ersätter Verdawn; varumärkesidentitet (slogan, kort beskrivning, genre, nordiskt tema) i avsnitt 1.3. |

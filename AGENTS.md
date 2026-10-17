@@ -1,4 +1,4 @@
-# Verdawn
+# Eirora
 
 ## Development standards
 
