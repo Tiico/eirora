@@ -28,5 +28,12 @@ internal static class ImpureFixture
 
     public static int CallsMath(int value) => Math.Abs(value);
 
+    public static int ReadsTickCount() => Environment.TickCount;
+
+    public static IEnumerable<int> IteratesWithYield()
+    {
+        yield return 1;
+    }
+
     public static IObservable<int>? UsesInterfaceNamedLikeSystemIo() => null;
 }

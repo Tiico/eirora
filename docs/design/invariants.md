@@ -166,7 +166,8 @@ Upplåsning kräver aldrig bevisad sömn (RST-10).
 
 **INV-T2 Tillåtna övergångar.**
 Fasen går bara `ACTIVE → RESTING → DAWN → ACTIVE`.
-*Test:* kontrolleras över varje genererad tidslinje.
+`DAWN` är ögonblicket då vilan slutar och nästa spelardygn börjar; simuleringen rapporterar det som en händelse ([ADR-0005](../adr/0005-time-arrives-as-readings.md)).
+*Test:* kontrolleras över varje genererad tidslinje: skymning och gryning växlar, och varje gryning ökar spelardygnet med ett.
 
 **INV-T3 Vilolåset.**
 Under `RESTING` nekas varje spelpåverkande kommando enligt INV-D7.

@@ -341,7 +341,7 @@ flowchart TD
 | [ADR-0002](./docs/adr/0002-unity-csharp-shared-simulation.md) | Unity 6 LTS + C#, delad simulering, ASP.NET Core | Beslutat |
 | [ADR-0003](./docs/adr/0003-rest-lock-is-honest-protection.md) | Vilolåset är ett ärligt skydd, inte fuskskydd | Beslutat |
 | [ADR-0004](./docs/adr/0004-shared-libraries-as-source-packages.md) | De delade biblioteken kompileras från samma källkod av både .NET och Unity | Beslutat |
-| kommande | Tidsmotor, tidszoner och dygnsschema | Inför M2/M7 |
+| [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
 | kommande | Kartformat och generatorversion | Inför M3 |
 | kommande | Versionering av regler, innehåll och sparningar | Inför M2 |
 | kommande | Hälsoadapter: HealthBridge eller egen (O-08) | Inför M1/M6 |

@@ -142,7 +142,7 @@ Ett kommando som ändrar världen, till exempel att bygga, starta en expedition 
 _Avoid_: aktiv handling
 
 **Administrativt kommando** (`AdministrativeCommand`):
-Ett kommando som rör konto, integritet, tillgänglighet, hjälp, radering eller viloschema; tillåts även under viloperioden.
+Ett kommando som rör konto, integritet, tillgänglighet, hjälp, radering, viloschema eller registrering av egenvård; tillåts även under viloperioden (D-54).
 _Avoid_: inställning (när kommandot avses)
 
 **Händelse** (`GameEvent`):
