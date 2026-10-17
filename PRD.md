@@ -87,6 +87,12 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-40 | **Krafter räknas per spelardygn,** från gryning till gryning, inte per kalenderdygn | [BESLUTAT] |
 | D-41 | **Aktiva minuter kan matas in som rörelse** och räknas om med 100 steg per minut, inom samma tak som steg | [BESLUTAT] |
 | D-42 | **Ett träningspass räknas från 10 minuter;** längd och intensitet därutöver spelar ingen roll | [BESLUTAT] |
+| D-43 | **Bostad finns både med och utan Byggkraft:** långhus kostar Byggkraft, stugan bara material, så tillväxten blockeras aldrig av en bortvald vana | [BESLUTAT] |
+| D-44 | **LOG-06 är P0:** minimilager och prioriteringar behövs redan i prototypen | [BESLUTAT] |
+| D-45 | **Startkrafter i den guidade turen:** 100 Utforskning, 100 Byggkraft, 40 Gryningskraft | [BESLUTAT] |
+| D-46 | **Prototypdagboken är ett GitHub-ärende per vecka** med en kommentar per spelardygn; det bestående förs i lärdomsloggen i repot | [BESLUTAT] |
+| D-47 | **Veckogenomgången görs första spelardygnet** i den nya veckan | [BESLUTAT] |
+| D-48 | **Hypotes H5 Vilan känns som en gåva** prövas i prototypen tillsammans med H1–H4 | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -264,7 +270,7 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 | LOG-03 | P0 | Spelaren ser varför en vara inte når mottagaren. |
 | LOG-04 | P0 | Hamnar och sjövägar inom världen. |
 | LOG-05 | P0 | Sjövägar och handel mellan gruppmedlemmars världar, validerade av servern. |
-| LOG-06 | P1 | Automatiseringsregler: minimilager, importprioritet, reservering. |
+| LOG-06 | P0 | Automatiseringsregler: minimilager, importprioritet, reservering. |
 
 ### 5.4 Utforskning, forskning och progression
 
@@ -401,6 +407,8 @@ Resurslager [FÖRSLAG]: basbehov, naturresurser, förädlade varor, avancerade v
 **Strategiska avvägningar** ska finnas på varje nivå, t.ex.: rikta Byggkraft mot ett nytt sågverk nära skogen *eller* mot en hamn som öppnar handel med gruppen; spendera Utforskning på en lång expedition mot en ny ö *eller* kartlägga närområdet för resurser.
 
 Ingen obligatorisk resurs får ha ett enda, lätt blockerbart sätt att produceras.
+
+Byggnader, recept och kraftkostnader står i [ekonomi v1](./docs/design/economy-v1.md).
 
 ### 6.3 Bybor
 
@@ -596,6 +604,9 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-34–D-36 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-001 och TASK-002 |
 | D-37–D-39 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-002 |
 | D-40–D-42 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-003 |
+| D-43–D-45 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-004 |
+| D-46–D-48 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-009 |
+| — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
 | — | 2026-10-17 | Serverauktoritet för hela spelet ersatt av lokal värld + server för det delade | ADR-0001 |
