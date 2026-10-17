@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Health Connect declarations for the spike (TASK-007).
+  Read-only: the spike never declares a write permission.
+  The build script fails if the merged APK can reach the network (android.permission.INTERNET).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
+
+    <queries>
+        <!-- Health Connect as an app on Android 13 and lower. -->
+        <package android:name="com.google.android.apps.healthdata" />
+        <!-- Common data sources, only to show their names instead of package names. -->
+        <package android:name="com.sec.android.app.shealth" />
+        <package android:name="com.google.android.apps.fitness" />
+        <package android:name="com.fitbit.FitbitMobile" />
+        <package android:name="com.garmin.android.apps.connectmobile" />
+        <package android:name="com.strava" />
+        <package android:name="com.ouraring.oura" />
+        <package android:name="com.withings.wiscale2" />
+        <package android:name="fi.polar.polarflow" />
+        <package android:name="com.huawei.health" />
+        <package android:name="com.mi.health" />
+    </queries>
+
+    <application>
+        <!-- Explains how the spike uses the data; Health Connect links to it from the permission dialog (Android 13 and lower). -->
+        <activity
+            android:name="com.eirora.spike.healthconnect.bridge.HealthPrivacyActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- The same explanation on Android 14 and higher. -->
+        <activity-alias
+            android:name="com.eirora.spike.healthconnect.bridge.ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity="com.eirora.spike.healthconnect.bridge.HealthPrivacyActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Hosts the Health Connect permission contract, which needs a ComponentActivity. -->
+        <activity
+            android:name="com.eirora.spike.healthconnect.bridge.HealthPermissionActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>

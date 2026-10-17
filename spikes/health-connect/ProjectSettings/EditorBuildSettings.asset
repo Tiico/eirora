@@ -1,0 +1,12 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Spike/Scenes/Spike.unity
+    guid: 6c375e3c1393bf340a7e5a1b5417c151
+  m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0

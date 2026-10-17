@@ -1,0 +1,18 @@
+{
+  "name": "Eirora.Spike.HealthConnect.Editor",
+  "rootNamespace": "Eirora.Spike.HealthConnect.Editor",
+  "references": [
+    "Eirora.Spike.HealthConnect"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
