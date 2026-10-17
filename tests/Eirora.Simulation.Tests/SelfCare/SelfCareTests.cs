@@ -2,11 +2,13 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.SelfCare;
+using FsCheck;
+using FsCheck.Xunit;
 using static Eirora.Simulation.Tests.TestClock;
 
 namespace Eirora.Simulation.Tests.SelfCare;
 
-/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54).</summary>
+/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-68).</summary>
 public sealed class SelfCareTests
 {
     private static int s_key;
@@ -151,6 +153,131 @@ public sealed class SelfCareTests
         Record(world, 0, Habit.Workouts, ContributionSource.Verified, 1); // Arrives late for the day before.
 
         Assert.Equal(100 + 190, world.Available(Force.BuildPower)); // Week total G(2) = 190, whatever the order.
+    }
+
+    [Fact]
+    public void LateWorkoutsAcrossTheSoftCapGiveTheSameTotalAsWorkoutsInOrder()
+    {
+        var inOrder = Afternoon();
+        var late = Afternoon();
+        inOrder.AdvanceTo(At("2026-10-15 12:00", 2));
+        late.AdvanceTo(At("2026-10-15 12:00", 2));
+
+        Record(inOrder, 0, Habit.Workouts, ContributionSource.Verified, 3);
+        Record(inOrder, 1, Habit.Workouts, ContributionSource.Verified, 3);
+        Record(late, 1, Habit.Workouts, ContributionSource.Verified, 3);
+        Record(late, 0, Habit.Workouts, ContributionSource.Verified, 3); // Briefly lifts the balance over 600.
+
+        Assert.Equal(100 + 345, inOrder.Available(Force.BuildPower));
+        Assert.Equal(inOrder.Available(Force.BuildPower), late.Available(Force.BuildPower));
+    }
+
+    [Fact]
+    public void LateWorkoutsAboveTheFullCreditCapGiveTheSameTotalAsWorkoutsInOrder()
+    {
+        var inOrder = Afternoon();
+        var late = Afternoon();
+        foreach (var world in new[] { inOrder, late })
+        {
+            for (int day = 0; day <= 14; day += 7)
+            {
+                world.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+                Record(world, day, Habit.Workouts, ContributionSource.Verified, 3);
+            }
+
+            world.AdvanceTo(At("2026-11-05 14:00", 2));
+        }
+
+        Record(inOrder, 21, Habit.Workouts, ContributionSource.Verified, 3);
+        Record(inOrder, 22, Habit.Workouts, ContributionSource.Verified, 3);
+        Record(late, 22, Habit.Workouts, ContributionSource.Verified, 3);
+        Record(late, 21, Habit.Workouts, ContributionSource.Verified, 3);
+
+        Assert.Equal(inOrder.Available(Force.BuildPower), late.Available(Force.BuildPower));
+    }
+
+    [Fact]
+    public void ACorrectionAfterTheSoftCapGivesWhatTheCorrectedDataWouldHaveGiven()
+    {
+        var corrected = Afternoon();
+        var correctFromTheStart = Afternoon();
+        Record(corrected, 0, Habit.Steps, ContributionSource.Verified, 20_000);
+        for (int day = 1; day <= 2; day++)
+        {
+            corrected.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+            correctFromTheStart.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+            Record(corrected, day, Habit.Steps, ContributionSource.Verified, 20_000);
+            Record(correctFromTheStart, day, Habit.Steps, ContributionSource.Verified, 20_000);
+        }
+
+        Assert.Equal(400 + (30 / 2), corrected.Available(Force.Exploration)); // Day 2 crossed the full-credit cap.
+
+        Record(corrected, 0, Habit.Steps, ContributionSource.Verified, 0);
+
+        Assert.Equal(100 + 110 + 110, correctFromTheStart.Available(Force.Exploration));
+        Assert.Equal(correctFromTheStart.Available(Force.Exploration), corrected.Available(Force.Exploration));
+    }
+
+    // INV-B1 with the soft cap (D-35, D-68): a week of self-care arriving in any order, in growing parts and with
+    // duplicates, gives the same forces as arriving in order, after a week saved that may reach any cap.
+    [Property(MaxTest = 100)]
+    public bool SelfCareGivesTheSameForcesInAnyOrderAcrossTheSoftCap(PositiveInt[] volumes, int seed)
+    {
+        var inOrder = Afternoon();
+        var anyOrder = Afternoon();
+        int Volume(int day, Habit habit) => volumes.Length == 0 ? 0 : volumes[((3 * day) + (int)habit) % volumes.Length].Get;
+        int Total(int day, Habit habit) => habit switch
+        {
+            Habit.Steps => Volume(day, habit) % 30_001,
+            Habit.Workouts => Volume(day, habit) % 7,
+            _ => Volume(day, habit) % (12 * 60),
+        };
+
+        // Workouts join once a late session can no longer lower the rolling week's Build Power (D-63).
+        var habits = new[] { Habit.Steps, Habit.Sleep };
+        for (int day = 0; day <= 13; day++)
+        {
+            inOrder.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+            anyOrder.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+            if (day > 6)
+            {
+                continue;
+            }
+
+            foreach (var habit in habits)
+            {
+                Record(inOrder, day, habit, ContributionSource.Verified, Total(day, habit));
+                Record(anyOrder, day, habit, ContributionSource.Verified, Total(day, habit));
+            }
+        }
+
+        var parts = new List<(int Day, Habit Habit, int Total)>();
+        for (int day = 7; day <= 13; day++)
+        {
+            foreach (var habit in habits)
+            {
+                Record(inOrder, day, habit, ContributionSource.Verified, Total(day, habit));
+                parts.Add((day, habit, Total(day, habit) / 2));
+                parts.Add((day, habit, Total(day, habit)));
+                parts.Add((day, habit, Total(day, habit)));
+            }
+        }
+
+        // Shuffle across days and habits, but keep each day's own totals growing as a health store reports them.
+        var random = new Random(seed);
+        var queues = parts.GroupBy(p => (p.Day, p.Habit)).Select(g => new Queue<(int Day, Habit Habit, int Total)>(g)).ToList();
+        while (queues.Count > 0)
+        {
+            int next = random.Next(queues.Count);
+            var (day, habit, total) = queues[next].Dequeue();
+            Record(anyOrder, day, habit, ContributionSource.Verified, total);
+            if (queues[next].Count == 0)
+            {
+                queues.RemoveAt(next);
+            }
+        }
+
+        return Enumerable.Range(0, 3).All(f => inOrder.Available((Force)f) == anyOrder.Available((Force)f));
     }
 
     [Theory]

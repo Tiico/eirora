@@ -112,6 +112,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
 | D-66 | **Forskning kostar ingen kraft,** bara varor och tid | [BESLUTAT] |
 | D-67 | **Nästa epok börjar vid gryningen efter milstolpen,** utan att något nollställs | [BESLUTAT] |
+| D-68 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -635,6 +636,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-61 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 (PR #21); ersätter D-59 |
 | D-62 | 2026-10-17 | Se avsnitt 1.1 | Granskning av simuleringskärnan i TASK-008 (PR #24) |
 | D-63–D-67 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-011 |
+| D-68 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 (PR #48) visade att ett sent pass över sparandets tak gav en annan slutsumma (INV-B1) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |

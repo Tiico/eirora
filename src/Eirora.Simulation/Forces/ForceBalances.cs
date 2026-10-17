@@ -7,9 +7,11 @@ namespace Eirora.Simulation.Forces
     /// The player's saved forces (D-35): they never decay, and a soft cap per force limits only new credit.
     /// </summary>
     /// <remarks>
-    /// Balances are kept in half forces. Each whole force of credit adds two halves below the full threshold,
-    /// one half between the full and the half threshold, and nothing above it. Because credit is defined
-    /// one force at a time, crediting in parts gives the same balance as crediting at once (INV-F8).
+    /// Each force keeps its position: the credit it holds before the soft cap, in half forces. The balance follows
+    /// from the position: two halves per force of credit below the full threshold, one half between the full and the
+    /// half threshold, and nothing above it. Credit moves the position up and a correction moves it back down, so
+    /// the balance is the same whatever order and parts they come in (INV-F8, INV-B1, D-68). Spending moves the
+    /// position to the lowest one that gives the balance left, so the soft cap counts from what is actually saved.
     /// </remarks>
     public sealed class ForceBalances
     {
@@ -19,7 +21,7 @@ namespace Eirora.Simulation.Forces
         private static readonly int[] s_fullCreditBelow = { 400, 600, 300 };
         private static readonly int[] s_halfCreditBelow = { 800, 1_200, 600 };
 
-        private readonly long[] _halves = new long[ForceCount];
+        private readonly long[] _positions = new long[ForceCount];
 
         /// <summary>Starting forces from the guided tour (D-45).</summary>
         public static ForceBalances GuidedTourStart()
@@ -32,7 +34,7 @@ namespace Eirora.Simulation.Forces
         }
 
         /// <summary>The whole forces available to spend.</summary>
-        public int Available(Force force) => (int)(_halves[Index(force)] / 2);
+        public int Available(Force force) => (int)(Halves(force) / 2);
 
         /// <summary>Adds credit under the soft cap and returns the whole forces actually gained.</summary>
         public int Credit(Force force, int amount)
@@ -42,53 +44,38 @@ namespace Eirora.Simulation.Forces
                 throw new ArgumentOutOfRangeException(nameof(amount), amount, "Use Withdraw for corrections downwards.");
             }
 
-            int i = Index(force);
             int before = Available(force);
-            long full = 2L * s_fullCreditBelow[i], half = 2L * s_halfCreditBelow[i];
-            long halves = _halves[i];
-            long remaining = amount;
-
-            if (halves < full && remaining > 0)
-            {
-                long units = (full - halves + 1) / 2;
-                long used = units < remaining ? units : remaining;
-                halves += 2 * used;
-                remaining -= used;
-            }
-
-            if (halves < half && remaining > 0)
-            {
-                long used = half - halves < remaining ? half - halves : remaining;
-                halves += used;
-            }
-
-            _halves[i] = halves;
+            _positions[Index(force)] += 2L * amount;
             return Available(force) - before;
         }
 
         /// <summary>
-        /// Removes up to <paramref name="amount"/> after a correction downwards; never below zero (D-36).
-        /// Returns the whole forces actually removed.
+        /// Takes back <paramref name="amount"/> of credit after a correction downwards, along the soft cap it was
+        /// credited under, and never below zero (D-36). Returns the whole forces actually removed.
         /// </summary>
-        public int Withdraw(Force force, int amount)
+        public int Withdraw(Force force, int amount) => Withdraw(force, amount, long.MaxValue);
+
+        /// <summary>
+        /// Takes back <paramref name="amount"/> of credit like <see cref="Withdraw(Force, int)"/>, but lowers the
+        /// balance by at most <paramref name="maxHalves"/> half forces (D-62).
+        /// </summary>
+        internal int Withdraw(Force force, int amount, long maxHalves)
         {
             if (amount < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(amount), amount, "Must not be negative.");
             }
 
-            return WithdrawHalves(force, 2L * amount);
-        }
+            if (maxHalves < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxHalves), maxHalves, "Must not be negative.");
+            }
 
-        /// <summary>The balance in half forces, the unit credit is kept in.</summary>
-        internal long Halves(Force force) => _halves[Index(force)];
-
-        /// <summary>Removes up to <paramref name="halves"/> half forces, never below zero; returns the whole forces removed.</summary>
-        internal int WithdrawHalves(Force force, long halves)
-        {
             int i = Index(force);
             int before = Available(force);
-            _halves[i] -= halves < _halves[i] ? halves : _halves[i];
+            long halves = Halves(force);
+            long position = _positions[i] > 2L * amount ? _positions[i] - (2L * amount) : 0;
+            _positions[i] = halves - BalanceAt(i, position) > maxHalves ? PositionOf(i, halves - maxHalves) : position;
             return before - Available(force);
         }
 
@@ -101,19 +88,52 @@ namespace Eirora.Simulation.Forces
             }
 
             int i = Index(force);
-            if (_halves[i] < 2L * cost)
+            long halves = Halves(force);
+            if (halves < 2L * cost)
             {
                 return false;
             }
 
-            _halves[i] -= 2L * cost;
+            _positions[i] = PositionOf(i, halves - (2L * cost));
             return true;
         }
 
-        internal void AppendFingerprint(StringBuilder text) =>
-            text.Append("forces:").Append(_halves[0]).Append(',').Append(_halves[1]).Append(',').Append(_halves[2]).Append(';');
+        /// <summary>The balance in half forces, the unit credit is kept in.</summary>
+        internal long Halves(Force force)
+        {
+            int i = Index(force);
+            return BalanceAt(i, _positions[i]);
+        }
 
-        private void SetWhole(Force force, int amount) => _halves[Index(force)] = 2L * amount;
+        internal void AppendFingerprint(StringBuilder text) =>
+            text.Append("forces:").Append(_positions[0]).Append(',').Append(_positions[1]).Append(',').Append(_positions[2]).Append(';');
+
+        // The balance in half forces that a position gives; a half force of credit straddling the full threshold
+        // counts in full, so crediting from an odd balance below it matches crediting force by force.
+        private static long BalanceAt(int i, long position)
+        {
+            long full = 2L * s_fullCreditBelow[i], half = 2L * s_halfCreditBelow[i];
+            if (position <= full)
+            {
+                return position;
+            }
+
+            long balance = full + ((position - full + 1) / 2);
+            return balance < half ? balance : half;
+        }
+
+        // The lowest position that gives a balance of at most the half-credit threshold.
+        private static long PositionOf(int i, long halves)
+        {
+            long full = 2L * s_fullCreditBelow[i];
+            return halves <= full ? halves : full + (2 * (halves - full));
+        }
+
+        private void SetWhole(Force force, int amount)
+        {
+            int i = Index(force);
+            _positions[i] = PositionOf(i, 2L * amount);
+        }
 
         private static int Index(Force force) => force switch
         {
