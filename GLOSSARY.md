@@ -153,6 +153,10 @@ _Avoid_: logg, notis
 Den neutrala mängd Gryningskraft som ges när sömndata saknas; ingen inloggad sömn ger mindre.
 _Avoid_: minimum, straffnivå
 
+**Regelversion** (`RulesVersion`):
+Versionen av simuleringens regler; samma starttillstånd, regelversion och kommandon ger alltid samma tillstånd.
+_Avoid_: spelversion, appversion
+
 ## Progression
 
 **Epok** (`Epoch`):

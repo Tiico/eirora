@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Eirora.Contracts/Eirora.Contracts.csproj" />
+    <Project Path="src/Eirora.Server/Eirora.Server.csproj" />
+    <Project Path="src/Eirora.Simulation/Eirora.Simulation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Eirora.Server.Tests/Eirora.Server.Tests.csproj" />
+    <Project Path="tests/Eirora.Simulation.Tests/Eirora.Simulation.Tests.csproj" />
+  </Folder>
+</Solution>

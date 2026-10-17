@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Wire contracts shared by the Unity client and the server.
+    Also a local Unity package (package.json, Eirora.Contracts.asmdef): Unity compiles these same sources.
+  -->
+  <PropertyGroup>
+    <!-- Unity's compiler builds these sources too: netstandard2.1 and C# 9, so no implicit usings (C# 10). -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Eirora.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

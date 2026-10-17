@@ -1,2 +1,36 @@
+# .NET build output (see UseArtifactsOutput in Directory.Build.props)
+/artifacts/
+*.user
+.vs/
+.idea/
+TestResults/
+
+# Unity client (client/)
+/client/[Ll]ibrary/
+/client/[Tt]emp/
+/client/[Oo]bj/
+/client/[Bb]uild/
+/client/[Bb]uilds/
+/client/[Ll]ogs/
+/client/.utmp/
+/client/[Uu]ser[Ss]ettings/
+/client/[Mm]emoryCaptures/
+/client/[Rr]ecordings/
+/client/*.csproj
+/client/*.sln
+/client/*.slnx
+/client/*.unityproj
+/client/.vsconfig
+/client/Assets/Plugins/Editor/JetBrains*
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Python (tools)
 __pycache__/
 *.pyc
+
+# OS
+.DS_Store
+Thumbs.db
