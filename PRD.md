@@ -471,7 +471,7 @@ Inga medicinska påståenden.
 - **Klient:** Unity 6 LTS + C# för världsvy, UI, ljus, animation och lokal simulering.
 - **Simuleringsbibliotek:** rent C# utan Unity-beroenden; delas mellan klient och server.
 - **Native-adaptrar:** Health Connect (Kotlin) och HealthKit (Swift) bakom ett gemensamt C#-gränssnitt.
-  Färdiga plugins som HealthBridge (Fab) utvärderas mot kraven i HLT-04/08.
+  HealthBridge (Fab) valdes bort mot kraven i HLT-03/04/08/12 ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)).
 - **Backend:** ASP.NET Core för konto, molnsparning, grupper, arkipelag, handel, gemensamma byggen, delade siffror och köpvalidering.
 - **Databas:** [FÖRSLAG] PostgreSQL.
 - **Karta:** versionerad genereringsmodul utan beroende till Unity.
@@ -637,6 +637,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-62 | 2026-10-17 | Se avsnitt 1.1 | Granskning av simuleringskärnan i TASK-008 (PR #24) |
 | D-63–D-67 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-011 |
 | D-68 | 2026-10-18 | Se avsnitt 1.1 | Health Connect-spiken på produktägarens telefon i TASK-007 (PR #44) |
+| — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -657,7 +658,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
-| O-08 | Egen native-adapter eller HealthBridge? | Förslag: egen adapter ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)); avgörs efter test på telefon | M1 |
 | O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |

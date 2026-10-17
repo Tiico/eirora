@@ -1,6 +1,7 @@
 # Health Connect läses med en egen Kotlin-adapter bakom ett C#-gränssnitt, inte med HealthBridge
 
-> **Förslag.** Beslutas när spiken i TASK-007 har körts på produktägarens telefon; rapporten kan ändra konsekvenserna men knappast valet.
+> **Beslutat 2026-10-18** av produktägaren efter en första körning på telefonen.
+> Träningspass, 365 dagar, bakgrunds- och historikbehörighet, ändringar och bakgrundskörningar över en natt kördes bara på emulatorn; de prövas på riktig enhet när adaptern byggs in i klienten.
 
 Spelet läser steg, träningspass och sömn från Health Connect med en egen Android-biblioteksmodul i Kotlin (`.androidlib`) som Unity-klienten anropar via ett C#-gränssnitt; HealthKit får en motsvarande Swift-adapter bakom samma gränssnitt (HLT-02).
 Vi valde detta framför HealthBridge (Healthwired Games, Fab och Unity Asset Store) därför att det vi behöver för HLT-03, HLT-04, HLT-08 och HLT-12 inte finns i HealthBridge enligt dess egen dokumentation, medan en egen adapter visade sig vara liten: spiken klarar allt med drygt 600 rader Kotlin och ett C#-gränssnitt på ett femtiotal rader.
