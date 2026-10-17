@@ -137,7 +137,7 @@ namespace Eirora.Simulation
         internal void RecordSelfCare(int day, Habit habit, ContributionSource source, int total)
         {
             _selfCare.Record(day, habit, source, total);
-            foreach (int affected in SelfCareLedger.AffectedDays(day, habit, GameDay))
+            foreach (int affected in _selfCare.AffectedDays(day, habit, GameDay))
             {
                 _unreconciled.Add((affected, habit));
             }
@@ -195,7 +195,7 @@ namespace Eirora.Simulation
             }
             else if (expected < credited)
             {
-                // A correction takes back its credit along the soft cap (D-68), but never more than this day and habit
+                // A correction takes back its credit along the soft cap (D-69), but never more than this day and habit
                 // actually gave (D-62).
                 int removed = _forces.Withdraw(force, credited - expected, _selfCare.GainedHalves(day, habit));
                 _events.Add(new ForceWithdrawn(utcSeconds, force, removed));

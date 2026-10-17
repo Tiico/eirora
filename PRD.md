@@ -112,7 +112,8 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
 | D-66 | **Forskning kostar ingen kraft,** bara varor och tid | [BESLUTAT] |
 | D-67 | **Nästa epok börjar vid gryningen efter milstolpen,** utan att något nollställs | [BESLUTAT] |
-| D-68 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
+| D-68 | **Bara det som är markerat som manuellt inmatat är egenrapporterat:** `MANUAL_ENTRY` i Health Connect, `HKMetadataKeyWasUserEntered` i HealthKit och manuell inmatning i spelet; okänd inspelningsmetod (`UNKNOWN`) räknas som verifierat ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -471,7 +472,7 @@ Inga medicinska påståenden.
 - **Klient:** Unity 6 LTS + C# för världsvy, UI, ljus, animation och lokal simulering.
 - **Simuleringsbibliotek:** rent C# utan Unity-beroenden; delas mellan klient och server.
 - **Native-adaptrar:** Health Connect (Kotlin) och HealthKit (Swift) bakom ett gemensamt C#-gränssnitt.
-  Färdiga plugins som HealthBridge (Fab) utvärderas mot kraven i HLT-04/08.
+  HealthBridge (Fab) valdes bort mot kraven i HLT-03/04/08/12 ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)).
 - **Backend:** ASP.NET Core för konto, molnsparning, grupper, arkipelag, handel, gemensamma byggen, delade siffror och köpvalidering.
 - **Databas:** [FÖRSLAG] PostgreSQL.
 - **Karta:** versionerad genereringsmodul utan beroende till Unity.
@@ -636,7 +637,9 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-61 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 (PR #21); ersätter D-59 |
 | D-62 | 2026-10-17 | Se avsnitt 1.1 | Granskning av simuleringskärnan i TASK-008 (PR #24) |
 | D-63–D-67 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-011 |
-| D-68 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 (PR #48) visade att ett sent pass över sparandets tak gav en annan slutsumma (INV-B1) |
+| D-68 | 2026-10-18 | Se avsnitt 1.1 | Health Connect-spiken på produktägarens telefon i TASK-007 (PR #44) |
+| — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
+| D-69 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 (PR #48) visade att ett sent pass över sparandets tak gav en annan slutsumma (INV-B1) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -657,7 +660,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
-| O-08 | Egen native-adapter eller HealthBridge? | Utvärdera mot HLT-04/08 | M1 |
 | O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |

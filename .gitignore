@@ -22,6 +22,27 @@ TestResults/
 /client/*.unityproj
 /client/.vsconfig
 /client/Assets/Plugins/Editor/JetBrains*
+
+# Unity spike projects (spikes/*/)
+/spikes/*/[Ll]ibrary/
+/spikes/*/[Tt]emp/
+/spikes/*/[Oo]bj/
+/spikes/*/[Bb]uild/
+/spikes/*/[Bb]uilds/
+/spikes/*/[Ll]ogs/
+/spikes/*/.utmp/
+/spikes/*/[Uu]ser[Ss]ettings/
+/spikes/*/*.csproj
+/spikes/*/*.sln
+/spikes/*/*.slnx
+/spikes/*/.vsconfig
+
+# Emulator test-data seeder (spikes/health-connect-seeder/)
+/spikes/health-connect-seeder/build/
+/spikes/health-connect-seeder/.gradle/
+/spikes/health-connect-seeder/.kotlin/
+/spikes/health-connect-seeder/local.properties
+
 *.apk
 *.aab
 *.keystore

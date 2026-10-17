@@ -10,7 +10,7 @@ namespace Eirora.Simulation.Forces
     /// Each force keeps its position: the credit it holds before the soft cap, in half forces. The balance follows
     /// from the position: two halves per force of credit below the full threshold, one half between the full and the
     /// half threshold, and nothing above it. Credit moves the position up and a correction moves it back down, so
-    /// the balance is the same whatever order and parts they come in (INV-F8, INV-B1, D-68). Spending moves the
+    /// the balance is the same whatever order and parts they come in (INV-F8, INV-B1, D-69). Spending moves the
     /// position to the lowest one that gives the balance left, so the soft cap counts from what is actually saved.
     /// </remarks>
     public sealed class ForceBalances

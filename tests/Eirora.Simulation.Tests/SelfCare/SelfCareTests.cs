@@ -1,3 +1,4 @@
+using System.Globalization;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
@@ -8,7 +9,7 @@ using static Eirora.Simulation.Tests.TestClock;
 
 namespace Eirora.Simulation.Tests.SelfCare;
 
-/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-68).</summary>
+/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-69).</summary>
 public sealed class SelfCareTests
 {
     private static int s_key;
@@ -218,7 +219,7 @@ public sealed class SelfCareTests
         Assert.Equal(correctFromTheStart.Available(Force.Exploration), corrected.Available(Force.Exploration));
     }
 
-    // INV-B1 with the soft cap (D-35, D-68): a week of self-care arriving in any order, in growing parts and with
+    // INV-B1 with the soft cap (D-35, D-69): a week of self-care arriving in any order, in growing parts and with
     // duplicates, gives the same forces as arriving in order, after a week saved that may reach any cap.
     [Property(MaxTest = 100)]
     public bool SelfCareGivesTheSameForcesInAnyOrderAcrossTheSoftCap(PositiveInt[] volumes, int seed)
@@ -280,6 +281,82 @@ public sealed class SelfCareTests
         return Enumerable.Range(0, 3).All(f => inOrder.Available((Force)f) == anyOrder.Available((Force)f));
     }
 
+    [Fact]
+    public void ALateWorkoutMovesTheWeeksBuildPowerToEarlierDays()
+    {
+        var world = Afternoon();
+        world.AdvanceTo(At("2026-10-16 12:00", 2));
+        Record(world, 1, Habit.Workouts, ContributionSource.Verified, 1); // 100.
+        Record(world, 2, Habit.Workouts, ContributionSource.Verified, 1); // 90.
+
+        var result = Record(world, 0, Habit.Workouts, ContributionSource.Verified, 1); // Now 100, 90 and 80.
+
+        Assert.Equal(100 + 270, world.Available(Force.BuildPower)); // Week total G(3) = 270.
+        Assert.Equal(2, result.Events.OfType<ForceWithdrawn>().Count(e => e.Amount == 10));
+    }
+
+    [Property(MaxTest = 200)]
+    public bool WorkoutsGiveTheSameBuildPowerInAnyOrder(byte[] sessions, int seed)
+    {
+        var days = Enumerable.Range(0, RecordSelfCare.DaysBack).ToArray();
+        var inOrder = AfterAWeek();
+        var shuffled = AfterAWeek();
+
+        foreach (int day in days)
+        {
+            Record(inOrder, day, Habit.Workouts, ContributionSource.Verified, SessionsOn(day));
+        }
+
+        new Random(seed).Shuffle(days);
+        foreach (int day in days)
+        {
+            Record(shuffled, day, Habit.Workouts, ContributionSource.Verified, SessionsOn(day));
+        }
+
+        return shuffled.Available(Force.BuildPower) == inOrder.Available(Force.BuildPower);
+
+        // One session a day at most keeps every step under the soft cap, which no order can then cross.
+        int SessionsOn(int day) => day < sessions.Length ? sessions[day] % 2 : 0;
+
+        static World AfterAWeek()
+        {
+            var world = Afternoon();
+            world.AdvanceTo(At("2026-10-20 12:00", 2));
+            return world;
+        }
+    }
+
+    [Theory]
+    [InlineData(1, 100)]
+    [InlineData(2, 190)]
+    [InlineData(3, 270)]
+    [InlineData(4, 320)]
+    [InlineData(5, 345)]
+    [InlineData(6, 345)]
+    [InlineData(7, 345)]
+    public void WeekAfterWeekOfWorkoutsGivesTheCurveForTheWeek(int sessionsPerWeek, int expected)
+    {
+        var world = Afternoon();
+        int creditedInLastWeek = 0;
+        for (int day = 0; day < 10 * 7; day++)
+        {
+            world.AdvanceTo(At(Day(day).ToString("yyyy-MM-dd 14:00", CultureInfo.InvariantCulture), 2));
+            if (day % 7 < sessionsPerWeek)
+            {
+                var result = Record(world, day, Habit.Workouts, ContributionSource.Verified, 1);
+                if (day >= 9 * 7)
+                {
+                    creditedInLastWeek += result.Events.OfType<ForceCredited>().Sum(e => e.Amount);
+                }
+            }
+
+            // Spending everything keeps the store under the soft cap, so each day's Build Power is credited in full.
+            world.Apply(NextKey(), new SpendAll(Force.BuildPower));
+        }
+
+        Assert.Equal(expected, creditedInLastWeek); // D-63: more training never gives less.
+    }
+
     [Theory]
     [InlineData(1)] // Tomorrow.
     [InlineData(-7)] // Eight game days ago counting today.
@@ -308,6 +385,8 @@ public sealed class SelfCareTests
     }
 
     private static World Afternoon() => World.Create(At("2026-10-14 14:00", 2), Night);
+
+    private static DateTime Day(int gameDay) => new DateTime(2026, 10, 14).AddDays(gameDay);
 
     private static CommandResult Record(World world, int day, Habit habit, ContributionSource source, int total) =>
         world.Apply(NextKey(), new RecordSelfCare(day, habit, source, total));

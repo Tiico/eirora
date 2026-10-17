@@ -178,7 +178,7 @@ Fynden i dimman (M5) ska ge just de veckorna egna beslut, se [avsnitt 8](#8-kvar
 ## 7. Byggkraftens rullande vecka
 
 Tempot kräver att Byggkraften per vecka blir den som [forces.md](./forces.md) avser.
-Regeln i forces.md v0.1, som också finns i `ForceRules.BuildPower`, räknar avtagandet från passen under de sex föregående spelardygnen.
+Regeln i forces.md v0.1, som också fanns i `ForceRules.BuildPower`, räknar avtagandet från passen under de sex föregående spelardygnen.
 I den första veckan ger den rätt summa, men när passen fortsätter vecka efter vecka ger mer träning mindre Byggkraft:
 
 | Pass i veckan | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
@@ -189,7 +189,7 @@ I den första veckan ger den rätt summa, men när passen fortsätter vecka efte
 Med regel v0.1 når hög egenvård milstolpen först vecka 11, efter normal egenvård vecka 8.
 Produktägaren har valt att rätta regeln (D-63): ett spelardygn med pass ger kurvans värde för passen under de sju senaste spelardygnen, minus den Byggkraft som de sex föregående spelardygnen redan gav, dock aldrig under noll.
 Varje rullande vecka ger då exakt kurvans värde, vilodagar kostar fortfarande inget och det finns ingen fast veckodag.
-Rättelsen av forces.md, `ForceRules` och testerna görs i en egen uppgift.
+Den rättade regeln står i [forces.md](./forces.md#träningspass--byggkraft-rullande-sju-spelardygn) avsnitt 3 och i `ForceRules.BuildPower`.
 
 ## 8. Kvar att avgöra i M5
 

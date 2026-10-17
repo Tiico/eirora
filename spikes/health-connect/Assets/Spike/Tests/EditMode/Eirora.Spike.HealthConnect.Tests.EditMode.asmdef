@@ -1,0 +1,25 @@
+{
+  "name": "Eirora.Spike.HealthConnect.Tests.EditMode",
+  "rootNamespace": "Eirora.Spike.HealthConnect.Tests",
+  "references": [
+    "Eirora.Spike.HealthConnect",
+    "Eirora.Spike.HealthConnect.Editor",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

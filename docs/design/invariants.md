@@ -142,7 +142,7 @@ Samma bidrag ger samma kraftsaldo oavsett i hur många delar och i vilken ordnin
 
 **INV-B1 Högst en gång per intervall.**
 Att importera samma hälsodata flera gånger, i valfri ordning och från överlappande källor, ger samma bidrag som en enda import (HLT-04, AC-03).
-Det gäller även kraftsaldot när sparandets tak nås, eftersom taket räknas på kraftens läge (D-68).
+Det gäller även kraftsaldot när sparandets tak nås, eftersom taket räknas på kraftens läge (D-69).
 *Test:* `import(S, R) == import(S, perm(R ++ R'))` där `R'` är dubbletter av poster i `R` och `perm` en godtycklig ordning.
 
 **INV-B2 Varje bidrag är entydigt.**
@@ -152,7 +152,7 @@ Ett bidrag har exakt en vana, ett tidsintervall och en klassning: verifierat ell
 **INV-B3 Korrigeringar är kompensationshändelser.**
 Sen eller ändrad källdata ger kompensationshändelser, så att summan av bidrag konvergerar till den korrigerade källan.
 En korrigering nedåt klipps vid noll: den gör aldrig ett kraftsaldo negativt och tar aldrig tillbaka något som redan byggts eller upptäckts (D-36).
-Den tar tillbaka kraft i samma takt som sparandets tak gav den (D-68), och aldrig mer än bidraget faktiskt gav (D-62).
+Den tar tillbaka kraft i samma takt som sparandets tak gav den (D-69), och aldrig mer än bidraget faktiskt gav (D-62).
 *Test:* efter varje sekvens av importer och korrigeringar är bidragssumman lika med källans slutliga värde, och INV-F1 och INV-V1 håller.
 
 **INV-B4 Ingen rådata i tillståndet.**
