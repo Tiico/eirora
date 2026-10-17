@@ -107,6 +107,11 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
 | D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
 | D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak (förtydligar D-36) | [BESLUTAT] |
+| D-63 | **Byggkraftens rullande vecka ger kurvans värde:** ett spelardygn med pass ger kurvan för passen under sju spelardygn minus det de sex föregående redan gav, aldrig under noll; mer träning ger aldrig mindre Byggkraft ([epoch-1.md](./docs/design/epoch-1.md#7-byggkraftens-rullande-vecka)) | [BESLUTAT] |
+| D-64 | **Epok 1:s milstolpe är att Vårdkasen tänds,** byggd i tre etapper (grunden, stommen, elden) med egna förutsättningar ([epoch-1.md](./docs/design/epoch-1.md)) | [BESLUTAT] |
+| D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
+| D-66 | **Forskning kostar ingen kraft,** bara varor och tid | [BESLUTAT] |
+| D-67 | **Nästa epok börjar vid gryningen efter milstolpen,** utan att något nollställs | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -436,6 +441,7 @@ Byggnader, recept och kraftkostnader står i [ekonomi v1](./docs/design/economy-
 
 - Spelet börjar med en guidad tur och introducerar sedan system löpande.
 - Epoker om ~6–10 veckor [FÖRSLAG: bosättning → handel → upptäckt → blomstring] introducerar nya mekaniker och avslutas med en milstolpe.
+  Epok 1 slutar när Vårdkasen tänds (D-64); konturen och tempot står i [epoch-1.md](./docs/design/epoch-1.md).
 - Forskning med minst tre inriktningar [FÖRSLAG]: **produktion**, **sjöfart/logistik**, **kartläggning/kultur**.
 - Inget nollställs.
   Nya epoker kan tillföras efter release.
@@ -628,6 +634,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-59–D-60 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-006 |
 | D-61 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 (PR #21); ersätter D-59 |
 | D-62 | 2026-10-17 | Se avsnitt 1.1 | Granskning av simuleringskärnan i TASK-008 (PR #24) |
+| D-63–D-67 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-011 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -648,7 +655,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
-| O-08 | Egen native-adapter eller HealthBridge? | Förslag: egen adapter ([ADR-0006](./docs/adr/0006-own-health-connect-adapter.md)); avgörs efter test på telefon | M1 |
+| O-08 | Egen native-adapter eller HealthBridge? | Förslag: egen adapter ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)); avgörs efter test på telefon | M1 |
 | O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |
