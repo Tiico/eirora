@@ -114,6 +114,8 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-67 | **Nästa epok börjar vid gryningen efter milstolpen,** utan att något nollställs | [BESLUTAT] |
 | D-68 | **Bara det som är markerat som manuellt inmatat är egenrapporterat:** `MANUAL_ENTRY` i Health Connect, `HKMetadataKeyWasUserEntered` i HealthKit och manuell inmatning i spelet; okänd inspelningsmetod (`UNKNOWN`) räknas som verifierat ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
+| D-70 | **Hälsodata läses när spelaren öppnar appen;** spelet begär aldrig bakgrundsbehörighet, och krafterna räknas fram ur hälsokällan vid öppning ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -336,7 +338,7 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 | RST-02 | P0 | Under viloperioden blockeras alla spelpåverkande handlingar i den lokala simuleringen, och servern nekar spelarens gruppåtgärder. |
 | RST-03 | P0 | Nattvy med besked om när världen öppnar och ett lugnt budskap. |
 | RST-04 | P0 | Bybornas arbete pausar; långsamma processer fortgår; inget går förlorat. |
-| RST-05 | P0 | Hälsodata kan synkas i bakgrunden; krafter blir tillgängliga vid gryningen. |
+| RST-05 | P0 | Hälsodata läses när spelaren öppnar appen, aldrig i bakgrunden (D-70); krafter blir tillgängliga vid gryningen. |
 | RST-06 | P0 | Inga notiser under viloperioden. |
 | RST-07 | P0 | Konto, integritet, tillgänglighet, hjälp och radering är åtkomliga även under vila. |
 | RST-08 | P0 | Inget köp, annons eller premiumläge låser upp spel under vila. |
@@ -638,8 +640,10 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-62 | 2026-10-17 | Se avsnitt 1.1 | Granskning av simuleringskärnan i TASK-008 (PR #24) |
 | D-63–D-67 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-011 |
 | D-68 | 2026-10-18 | Se avsnitt 1.1 | Health Connect-spiken på produktägarens telefon i TASK-007 (PR #44) |
-| — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
 | D-69 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 (PR #48) visade att ett sent pass över sparandets tak gav en annan slutsumma (INV-B1) |
+| D-70–D-71 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor efter Health Connect-spiken i TASK-007 |
+| — | 2026-10-18 | RST-05 ändrat: ingen synk i bakgrunden, hälsodata läses vid öppning | D-70 |
+| — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
