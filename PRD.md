@@ -81,6 +81,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-34 | **Strategin kan hinna ikapp egenvården:** inom normalt spann ska måttlig egenvård med god strategi kunna mäta sig med hög egenvård och naiv strategi; vid samma strategi syns mer egenvård alltid i världen | [BESLUTAT] |
 | D-35 | **Oanvända krafter sparas med mjukt tak** och förfaller aldrig | [BESLUTAT] |
 | D-36 | **En korrigering nedåt av ett bidrag klipps vid noll:** kraftsaldot blir aldrig negativt och inget som redan hänt tas tillbaka | [BESLUTAT] |
+| D-37 | **Viloschemat följer lokal tid:** 6–10 h gäller schemat på väggklockan; vid sommartidsövergång kan den verkliga längden bli 5–11 h | [BESLUTAT] |
+| D-38 | **Rivning är ett uttryckligt kommando** med bekräftelse och det enda sättet något i världen kan minska | [BESLUTAT] |
+| D-39 | **Ouppfyllda basbehov stoppar bara tillväxt;** bybor, byggnadsnivåer och grundproduktion minskar aldrig | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -441,6 +444,7 @@ Inga medicinska påståenden.
   Servern nekar gruppåtgärder under spelarens viloperiod.
 - Under viloperioden pausar bybornas arbete medan långsamma processer fortgår.
 - Sent inkommande hälsodata hanteras med idempotenta kompensationshändelser.
+- Det som alltid ska gälla i simuleringen står i [simuleringsinvarianterna](./docs/design/invariants.md).
 
 ### 7.4 Hälsodatans livscykel
 
@@ -578,6 +582,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-03, D-08 | 2026-10-17 | Förtydligade och D-08 upphöjt till BESLUTAT | Produktgrillning |
 | D-10–D-33 | 2026-10-17 | Se avsnitt 1.1 | Produktgrillning |
 | D-34–D-36 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-001 och TASK-002 |
+| D-37–D-39 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-002 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
 | — | 2026-10-17 | Serverauktoritet för hela spelet ersatt av lokal värld + server för det delade | ADR-0001 |
