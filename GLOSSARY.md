@@ -31,6 +31,18 @@ _Avoid_: by, stad (som generella termer)
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
 _Avoid_: invånare, befolkning, NPC:er
 
+**Basbehov** (`BasicNeed`):
+Det byborna förbrukar varje spelardygn, i v1 mat; brist stoppar bara tillväxt, aldrig något som redan finns.
+_Avoid_: hunger, underhåll
+
+**Förråd** (`Depot`):
+En byggnad som lagrar resurser och som produktionens avstånd räknas till; en brygga räknas också som förråd för avstånd.
+_Avoid_: lager (om byggnaden), magasin
+
+**Minimilager** (`Reserve`):
+En gratis planeringsinställning som anger hur mycket av en råvara förädlingen alltid lämnar kvar.
+_Avoid_: buffert, spärr
+
 **Långsam process** (`SlowProcess`):
 En naturlig förändring i världen som fortgår även under vilan, till exempel skogsväxt eller mognad.
 _Avoid_: passiv produktion
@@ -60,6 +72,22 @@ _Avoid_: träningspoäng, arbetskraft
 **Gryningskraft** (`DawnPower`):
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
 _Avoid_: sömnpoäng, vilobonus
+
+**Kartläggning** (`Survey`):
+En handling som kostar Utforskning och visar dolda platser nära bosättningen.
+_Avoid_: scouting, spaning
+
+**Expedition** (`Expedition`):
+En resa från en brygga som kostar Utforskning och efter en tid hittar en ny ö.
+_Avoid_: uppdrag, quest
+
+**Dagsverke** (`Workday`):
+En handling som kostar Gryningskraft och låter en byggnad producera mer under ett spelardygn.
+_Avoid_: boost, buff
+
+**Rusta** (`Rush`):
+En handling som kostar Gryningskraft och lägger extra arbetstimmar på det första bygget i kön.
+_Avoid_: snabba upp, skippa
 
 **Bidrag** (`Contribution`):
 En registrerad mängd egenvård för ett tidsintervall som omvandlas till kraft.
