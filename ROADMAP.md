@@ -68,7 +68,7 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 2. Simuleringsinvarianter: vad som alltid gäller för resurser, bybor, krafter, tid, vila, bidrag och kommandon.
 3. Krafternas första regler: omvandling, tak, avtagande avkastning, manuell inmatning och neutral grundnivå.
 4. Första ekonomin med siffror: 8–12 byggnader, 6–10 resurser, minst tre logistiska avvägningar, minst tre beslut om var krafterna ska riktas.
-5. UX-resor: första sessionen, återkomst efter 7 dagar, kväll med vilolås.
+5. [UX-resor](./docs/design/ux-journeys.md): första sessionen, återkomst efter 7 dagar, kväll med vilolås.
 6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D, förankrade i det nordiska temat (PRD 1.3).
    Se [art-direction.md](./docs/design/art-direction.md).
 7. Kontur för epok 1.
@@ -324,7 +324,7 @@ flowchart TD
 3. **TASK-003 — Krafternas regler v1:** omvandling, tak, avtagande avkastning, manuell inmatning, grundnivå.
 4. **TASK-004 — Ekonomi v1 med siffror:** byggnader, resurser, avvägningar och kraftbeslut.
 5. **TASK-005 — UX-resor:** första sessionen, sju dagars frånvaro, kväll med vilolås.
-6. **TASK-006 — Art direction v0:** moodboard, palett, ljus över dygnet.
+6. **TASK-006 — Art direction v0:** moodboard, palett, ljus över dygnet: [art-direction.md](./docs/design/art-direction.md).
 7. **TASK-007 — Spike för Health Connect** på produktägarens telefon; HealthBridge eller egen adapter (O-08).
 8. **TASK-008 — Unity-prototyp:** ö, ekonomi, krafter, vilolås, rapport.
 9. **TASK-009 — Format för prototypdagbok** och rutin för att återföra lärdomar: [prototype-diary.md](./docs/design/prototype-diary.md).

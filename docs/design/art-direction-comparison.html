@@ -180,7 +180,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     <span class="eyebrow">Eirora · TASK-006 · Art direction v0</span>
     <h1>Tre ljus över samma ö</h1>
     <p class="lede">Samma procedurgenererade ö på hexkarta, renderad i low-poly 3D i tre riktningar och fyra ljusstämningar. Den översta raden visar den valda kombinationen. Klicka på en ruta för att granska den i telefonstorlek, med spelets gränssnitt ovanpå. Nattrutorna visar nattvyn under vilolåset.</p>
-    <span class="decision">Beslutat (D-49) · A Gryningsdiorama med C:s natt</span>
+    <span class="decision">Beslutat (D-61) · A Gryningsdiorama med C:s natt</span>
   </header>
 
   <section aria-labelledby="matrix-h">
@@ -240,7 +240,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
   </section>
 
   <section class="rec" aria-labelledby="rec-h">
-    <span class="eyebrow">Beslutat 2026-10-17 · D-49</span>
+    <span class="eyebrow">Beslutat 2026-10-17 · D-61</span>
     <h2 id="rec-h">Vald: A, med C:s natt</h2>
     <p>Gryningsdioraman ger den tydligaste hexkartan på en liten skärm, den lägsta prestandakostnaden och den ljusaste spegeln av egenvården. Dess svaghet är att den liknar andra lugna byggspel. Därför föreslås att nattvyn lånas från Norrskensmyten: ett dämpat norrsken och glödande runor när byborna sover, så att vilolåset blir det mest egna ögonblicket i spelet och namnets aurora syns.</p>
     <ol>
@@ -355,10 +355,10 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     }
   };
 
-  // Vald riktning (D-49): A:s värld med C:s natt.
+  // Vald riktning (D-61): A:s värld med C:s natt.
   DIRS.V = Object.assign({}, DIRS.A, {
     letter: "A+C", chosen: true, name: "Vald: A med C:s natt",
-    short: "Beslutat (D-49). Gryningsdioraman på dagen, Norrskensmytens natt under vilolåset.",
+    short: "Beslutat (D-61). Gryningsdioraman på dagen, Norrskensmytens natt under vilolåset.",
     pal: Object.assign({}, DIRS.A.pal, { "Runglöd": "#FFD27A", "Norrsken": "#6EF0B4" }),
     extra: Object.assign({}, DIRS.A.extra, { glow: "#FFD27A" }),
     moods: Object.assign({}, DIRS.A.moods, { natt: Object.assign({}, DIRS.C.moods.natt, {

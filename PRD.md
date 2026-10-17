@@ -93,7 +93,19 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-46 | **Prototypdagboken är ett GitHub-ärende per vecka** med en kommentar per spelardygn; det bestående förs i lärdomsloggen i repot | [BESLUTAT] |
 | D-47 | **Veckogenomgången görs första spelardygnet** i den nya veckan | [BESLUTAT] |
 | D-48 | **Hypotes H5 Vilan känns som en gåva** prövas i prototypen tillsammans med H1–H4 | [BESLUTAT] |
-| D-49 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
+| D-49 | **Första sessionen börjar med den guidade turen;** hälsokälla och viloperiod väljs efteråt | [BESLUTAT] |
+| D-50 | **Den första viloperioden gäller direkt efter turen,** även vid installation under viloperioden | [BESLUTAT] |
+| D-51 | **Det första spelardygnet börjar vid lokal midnatt** på installationsdagen, så att dagens egenvård räknas | [BESLUTAT] |
+| D-52 | **Ingen återstartsbonus** efter frånvaro; världen och de sparade krafterna är mottagandet | [BESLUTAT] |
+| D-53 | **Manuell inmatning för varje spelardygn sedan senaste besöket,** högst sju, likvärdigt med hälsokällans historik | [BESLUTAT] |
+| D-54 | **Manuell inmatning är tillåten under vilan;** krafterna krediteras vid gryningen | [BESLUTAT] |
+| D-55 | **Inga kosmetikaköp under vilan;** prenumerationen går alltid att hantera | [BESLUTAT] |
+| D-56 | **Morgonnotisen** kommer bara när något nytt hänt, alltid tyst, och pausas efter två oöppnade i följd | [BESLUTAT] |
+| D-57 | **Bidrag per spelardygn följer med i molnsparningen, end-to-end-krypterade;** servern kan aldrig läsa dem | [BESLUTAT] |
+| D-58 | **18+ sköts av butikernas åldersklassning,** utan egen bekräftelse i spelet | [BESLUTAT] |
+| D-59 | ~~**Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B~~ | [ERSATT av D-61] |
+| D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
+| D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -123,6 +135,7 @@ Eirora är ett konstruerat fantasynamn inspirerat av två källor:
 Namnet ska förmedla nordisk mystik, livskraft, personlig utveckling och harmoni.
 Det knyter ihop egenvård och vila som motor (D-14, D-22) med gryningen som visuellt motiv (D-10) och Gryningskraften (D-15).
 Tidigare arbetsnamn (Arkipelagen, Verdawn) används inte längre.
+Den visuella riktningen står i [art direction](./docs/design/art-direction.md) (D-61).
 
 ---
 
@@ -215,13 +228,15 @@ Optimera inte ensidigt sessionstid eller retention.
   Inga kommandon, inga notiser.
   Skogen växer.
 
-### 4.4 Första sessionen [FÖRSLAG]
+### 4.4 Första sessionen [BESLUTAT, se D-49]
 
-1. Välj språk, tillgänglighet och viloperiod (6–10 h).
-2. Integritetsförklaring: hälsokälla eller manuell inmatning, båda fullvärdiga.
-3. Guidad tur: en liten bosättning på en ö vid gryning.
-4. Lär dig de tre krafterna genom tre konkreta handlingar: skicka en expedition (Utforskning), bygg en brygga (Byggkraft), planera morgonen (Gryningskraft).
-5. Förhandsvisning av nattläget och vilolåset.
+Steg för steg, med integritetsförklaring: se [UX-resorna](./docs/design/ux-journeys.md#resa-1-första-sessionen).
+
+1. Välj språk och tillgänglighet.
+2. Guidad tur: en liten bosättning på en ö vid gryning.
+3. Lär dig de tre krafterna genom tre konkreta handlingar: ett dagsverke (Gryningskraft), kartlägg närområdet (Utforskning), bygg en brygga (Byggkraft); planering är gratis.
+4. Integritetsförklaring: hälsokälla eller manuell inmatning, båda fullvärdiga.
+5. Välj viloperiod (6–10 h) med nattläget och vilolåset framför dig.
 6. Erbjudande att bjuda in vänner, utan press.
 
 ---
@@ -320,6 +335,8 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 | RST-09 | P0 | Schemaändringar börjar gälla först efter **24 timmar**; en pågående viloperiod kan inte kortas. |
 | RST-10 | P0 | Upplåsning kräver aldrig bevisad sömn. |
 | RST-11 | P0 | Gruppinteraktioner som berör en vilande medlem köas tills medlemmen vaknar. |
+
+Kväll, nattvy och gryning steg för steg: se [UX-resorna](./docs/design/ux-journeys.md#resa-3-kväll-med-vilolås).
 
 ### 5.7 Grupper och arkipelag
 
@@ -428,6 +445,8 @@ Byggnader, recept och kraftkostnader står i [ekonomi v1](./docs/design/economy-
 - Inget vissnar, svälter eller förfaller.
 - Återkomsten möts varmt, eventuellt med en liten återstartsbonus [FÖRSLAG], aldrig med skuld.
 
+Återkomsten steg för steg: se [UX-resorna](./docs/design/ux-journeys.md#resa-2-återkomst-efter-sju-dagars-frånvaro).
+
 Effekterna ska **speltestas**, inte hårdkodas som sanning.
 Inga medicinska påståenden.
 
@@ -469,6 +488,7 @@ Inga medicinska påståenden.
 4. Krafter beräknas lokalt med tak och avtagande avkastning.
 5. Till servern skickas endast: aggregerade bidrag till gemensamma byggen och de siffror spelaren uttryckligen valt att dela.
    Rådata lämnar aldrig enheten.
+   Molnsparningen innehåller bidrag per spelardygn end-to-end-krypterade, så att servern aldrig kan läsa dem (D-57).
 6. Spelaren kan pausa, återkalla, granska och radera; återkallat tillstånd innebär inga nya läsningar.
 
 ### 7.5 Dataskydd och butikspolicy
@@ -601,7 +621,11 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-40–D-42 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-003 |
 | D-43–D-45 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-004 |
 | D-46–D-48 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-009 |
-| D-49 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 |
+| D-49–D-58 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-005 |
+| — | 2026-10-17 | Första sessionens ordning i 4.4 ändrad: turen före hälsokälla och viloperiod | D-49 |
+| — | 2026-10-17 | O-12 avgjord: ingen återstartsbonus | D-52 |
+| D-59–D-60 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-006 |
+| D-61 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 (PR #21); ersätter D-59 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -626,7 +650,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |
-| O-12 | Återstartsbonus efter frånvaro: ja eller nej? | Liten och varm | M5 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
 
 ---

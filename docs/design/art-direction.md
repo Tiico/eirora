@@ -1,12 +1,12 @@
 # Art direction v0
 
-> **Status:** [BESLUTAT] v0.2, riktning A med nattvyn från C vald av produktägaren (D-49)  
-> **Ärende:** TASK-006 · **Milstolpe:** M0 (förs vidare till art bible i M9) · **PRD:** D-10, D-29, D-49, avsnitt 1.3, princip 12, UX-04, UX-05, NFR-03, NFR-13, RST-03, MAP-04, R-08, R-12, O-13  
+> **Status:** [BESLUTAT] v0.2, riktning A med nattvyn från C vald av produktägaren (D-61)  
+> **Ärende:** TASK-006 · **Milstolpe:** M0 (förs vidare till art bible i M9) · **PRD:** D-10, D-29, D-60, D-61, avsnitt 1.3, princip 12, UX-04, UX-05, NFR-03, NFR-13, RST-03, MAP-04, R-08, R-12, O-13  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Jämförelse:** [Eirora art direction v0 (Artifact)](https://claude.ai/artifact/VBWXLoy6yaxZxpukWsAg2t), källkod i [art-direction-comparison.html](./art-direction-comparison.html)
 
 Det här dokumentet lägger fram tre riktningar för Eiroras utseende i low-poly 3D med nordiskt mytologiskt tema.
 Varje riktning har kärnidé, moodboard, palett, formspråk, ljusstämningar för gryning, dag, skymning och natt, läsbarhet, tillgänglighet och prestandakonsekvenser.
-Produktägaren har valt **riktning A, Gryningsdiorama, med nattvyn från riktning C, Norrskensmyt** (D-49); se avsnitt 11.
+Produktägaren har valt **riktning A, Gryningsdiorama, med nattvyn från riktning C, Norrskensmyt** (D-61); se avsnitt 11.
 Avsnitt 3–8 står kvar som underlag för valet.
 
 ## Beslut
@@ -365,7 +365,7 @@ Siffrorna är startvärden som mäts och fastställs i M1 och M2 (O-13).
 - **Skuggor:** ett ljus med en kaskad och kort räckvidd; lågnivån använder bakade skuggfläckar.
 - **Kvalitetsnivåer:** varje riktning har en lågnivå där de dyraste effekterna har en billigare ersättare enligt avsnitten ovan.
 
-## 8. Rekommendation (vald, D-49)
+## 8. Rekommendation (vald, D-61)
 
 **Välj A, Gryningsdiorama, och låna nattvyn från C.**
 
@@ -381,7 +381,7 @@ Om produktägaren hellre prioriterar särprägel framför läsbarhet är C det s
 
 ## 9. Nästa steg efter valet
 
-1. Valet är infört i avsnitt 11 och i PRD:ns beslutslogg som D-49.
+1. Valet är infört i avsnitt 11 och i PRD:ns beslutslogg som D-61.
 2. M1-prototypens ö (ROADMAP M1 punkt 2) byggs i den valda riktningen med enkelt dygnsljus.
 3. Paletten och ljusstämningarna läggs som versionerad data, inte i scener (NFR-14).
 4. Prestandabudgeten mäts på produktägarens Android och en lågklassenhet (O-13).
@@ -400,7 +400,7 @@ Om produktägaren hellre prioriterar särprägel framför läsbarhet är C det s
 
 ## 11. Beslut
 
-**D-49 [BESLUTAT] 2026-10-17:** Eiroras art direction är **riktning A, Gryningsdiorama, med nattvyn från riktning C, Norrskensmyt**.
+**D-61 [BESLUTAT] 2026-10-17:** Eiroras art direction är **riktning A, Gryningsdiorama, med nattvyn från riktning C, Norrskensmyt**.
 
 Det betyder:
 
@@ -415,6 +415,13 @@ Det betyder:
   Norrskenet är dämpat, ligger nära horisonten, rör sig knappt och stängs av med reducerad rörelse (avsnitt 2, princip 3).
 - **Prestanda:** A:s budget gäller hela dygnet.
   Nattvyns glöd och norrsken renderas med låg bildfrekvens; på lågnivån ersätts bloom av bakade glorior och norrskenet av en målad himmelstextur (avsnitt 5).
+
+D-61 ersätter D-59, som valde riktningen Gryningsljus ur ett tidigare utkast av det här ärendet.
+Det utkastets dokument och jämförelsesida är ersatta av det här dokumentet och [art-direction-comparison.html](./art-direction-comparison.html).
+
+**D-60 [BESLUTAT] 2026-10-17:** guiden är en ljusgestalt inspirerad av Eir.
+Den leder den [guidade turen](./ux-journeys.md#resa-1-första-sessionen) och syns tydligast i gryningen, i runglödens guldton `#FFD27A`.
+Gestalten utformas i art bible (M9); i prototypen räcker en enkel ljuskälla med text.
 
 Jämförelsen visar den valda kombinationen i en egen rad överst.
 Nästa steg följer avsnitt 9.
