@@ -164,3 +164,9 @@ Produktägarens svar på de öppna frågorna i v0.1:
 - **D-40:** krafter räknas per spelardygn, från gryning till gryning.
 - **D-41:** aktiva minuter kan matas in som rörelse, med 100 steg per minut.
 - **D-42:** 10 minuter är minsta passlängd.
+
+Senare beslut som ändrar reglerna ovan:
+
+- **D-63** (från [epok 1](./epoch-1.md#7-byggkraftens-rullande-vecka)): formeln `G(n + m) − G(n)` ger mindre Byggkraft ju fler pass som görs vecka efter vecka, till exempel 0 i veckan med sex pass.
+  Den ersätts av kurvan för passen under sju spelardygn minus det de sex föregående spelardygnen redan gav, aldrig under noll.
+  Avsnitt 3 och `ForceRules` rättas i en egen uppgift.

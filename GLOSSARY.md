@@ -21,6 +21,10 @@ _Avoid_: delad värld, server, lobby
 En förbindelse över havet mellan två hamnar, inom en värld eller mellan två världar i en arkipelag.
 _Avoid_: handelsrutt (när förbindelsen i sig avses)
 
+**Dimma** (`Fog`):
+Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
+_Avoid_: fog of war, mörker
+
 ## Civilisation och ekonomi
 
 **Bosättning** (`Settlement`):
@@ -46,6 +50,14 @@ _Avoid_: buffert, spärr
 **Långsam process** (`SlowProcess`):
 En naturlig förändring i världen som fortgår även under vilan, till exempel skogsväxt eller mognad.
 _Avoid_: passiv produktion
+
+**Handkraft** (`HandBuild`):
+Att bygga något som annars kostar Byggkraft utan kraft, på en fast tid, så att en bortvald vana aldrig blockerar milstolpen.
+_Avoid_: gratisbygge, långsamt läge
+
+**Runsten** (`RuneStone`):
+Byggnaden där forskningen ristas och där världens historik bevaras.
+_Avoid_: forskningscenter, bibliotek
 
 ## Egenvård och krafter
 
@@ -182,6 +194,22 @@ _Avoid_: konvertering, uppgradering (när omvandlingen avses)
 **Epok** (`Epoch`):
 Ett kapitel om ungefär 6–10 veckor som introducerar nya system och mål och avslutas med en milstolpe; inget nollställs.
 _Avoid_: säsong, kampanj, level
+
+**Milstolpe** (`EpochMilestone`):
+Det som avslutar en epok och som spelaren ser i världen när det nås; i epok 1 att Vårdkasen tänds.
+_Avoid_: bossnivå, slutmål, achievement
+
+**Vårdkase** (`Beacon`):
+Signalelden på Hemöns krön som byggs i tre etapper och vars tändning är epok 1:s milstolpe.
+_Avoid_: fyr, monument
+
+**Forskning** (`Research`):
+Steg för steg i en inriktning som öppnar nya strategier; kostar varor och tid, ingen kraft.
+_Avoid_: teknikträd, uppgradering (när forskning avses)
+
+**Introduktion** (`Introduction`):
+Det korta ögonblick då ett nytt system visas för första gången, när spelaren når dess förutsättning; högst en per spelardygn.
+_Avoid_: tutorial, uppdrag, quest
 
 **Guidad tur** (`GuidedTour`):
 Första sessionens introduktion där spelaren använder var och en av de tre krafterna en gång.

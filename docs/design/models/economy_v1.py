@@ -60,7 +60,7 @@ SITES = {
     "N2": Site(11, 0, "Nyön", {"berg"}, hidden=True, richness=2.0),
 }
 SURVEYS = [["M2", "F3"], ["K2", "O2"]]  # närområdet, sedan kusten längre bort
-EXPEDITION_REVEALS = ["N0", "N1", "N2"]
+HOME = "Hemön"
 
 
 def hexdist(a: Site, b: Site) -> int:
@@ -137,6 +137,8 @@ DAWN_RUSH_COST = 20      # Rusta: +8 arbetstimmar på ett bygge
 SURVEY_COSTS = [60, 120]
 EXPEDITION_COST = 250
 EXPEDITION_HOURS = 32
+# Expeditionsmål i den ordning de hittas: (ö, Utforskning, aktiva timmar, platser som visas).
+EXPEDITIONS = [("Nyön", EXPEDITION_COST, EXPEDITION_HOURS, ["N0", "N1", "N2"])]
 SEA_CAPACITY_PER_DAY = 40
 RESERVE = 20  # minimilager som förädling lämnar kvar (LOG-06), en gratis planeringsinställning
 
@@ -169,8 +171,9 @@ class World:
     forces: dict = field(default_factory=lambda: dict(START_FORCES))
     revealed: set = field(default_factory=set)
     forest: dict = field(default_factory=dict)
-    nyon_stock: dict = field(default_factory=lambda: {r: 0.0 for r in RESOURCES})
+    remote_stock: dict = field(default_factory=dict)  # lager på andra öar än Hemön
     expedition_left: float = 0.0
+    expedition_target: int = 0  # index i EXPEDITIONS för nästa eller pågående expedition
     boosted: set = field(default_factory=set)
     log: list = field(default_factory=list)
     credited: dict = field(default_factory=lambda: {"U": 0, "B": 0, "G": 0})
@@ -199,12 +202,12 @@ class World:
 
     def factor(self, b):
         site = SITES[b.site]
-        if site.island == "Nyön":
+        if site.island != HOME:
             return 1.0
         return distance_factor(self.depot_distance(b.site), b.road)
 
     def depot_distance(self, site):
-        return min(hexdist(SITES[site], dep) for dep in self.depots("Hemön"))
+        return min(hexdist(SITES[site], dep) for dep in self.depots(HOME))
 
     def pending(self, label):
         return any(p.label == label for p in self.projects)
@@ -239,7 +242,7 @@ class World:
         spec, s = SPECS[kind], SITES[site]
         if site not in self.revealed or spec.site_kind not in s.kinds or self.occupied(site):
             return False
-        if s.island == "Nyön" and kind != "Brygga" and not self.has("Brygga", "Nyön"):
+        if s.island != HOME and kind != "Brygga" and not self.has("Brygga", s.island):
             return False
         if not self.pay(spec.cost, spec.build_power):
             return False
@@ -289,11 +292,12 @@ class World:
         return True
 
     def expedition(self):
-        if not self.has("Brygga") or self.expedition_left or "N0" in self.revealed:
+        if not self.has("Brygga") or self.expedition_left or self.expedition_target >= len(EXPEDITIONS):
             return False
-        if not self.spend("U", self.explore_cost(EXPEDITION_COST)):
+        _, cost, hours, _ = EXPEDITIONS[self.expedition_target]
+        if not self.spend("U", self.explore_cost(cost)):
             return False
-        self.expedition_left = EXPEDITION_HOURS
+        self.expedition_left = hours
         return True
 
     def workday(self, kind, site):
@@ -347,8 +351,11 @@ class World:
         if self.expedition_left:
             self.expedition_left -= 1
             if self.expedition_left == 0:
-                self.revealed.update(EXPEDITION_REVEALS)
-                self.log.append("Expeditionen hittade Nyön")
+                island, _, _, sites = EXPEDITIONS[self.expedition_target]
+                self.expedition_target += 1
+                self.revealed.update(sites)
+                self.remote_stock[island] = {r: 0.0 for r in RESOURCES}
+                self.log.append(f"Expeditionen hittade {island}")
         # Byggen: lediga bybor arbetar.
         labour = float(self.free_villagers())
         while labour > 0 and self.projects:
@@ -368,7 +375,7 @@ class World:
             k = self.factor(b) * (1.5 if b.level == 2 else 1.0) * (
                 1.5 if (b.kind, b.site) in self.boosted else 1.0)
             site = SITES[b.site]
-            out = self.stock if site.island == "Hemön" else self.nyon_stock
+            out = self.stock if site.island == HOME else self.remote_stock[site.island]
             if b.kind == "Fiskebod":
                 self.add(out, "fisk", 1.25 * site.richness * k, cap)
             elif b.kind in ("Åker", "Fårgård"):
@@ -389,12 +396,14 @@ class World:
                 n = min(0.5 * k, max(0.0, self.stock["ull"] - RESERVE) / 2)
                 n = self.add(out, "vadmal", n, cap)
                 self.stock["ull"] -= 2 * n
-        # Sjöväg Nyön → Hemön.
-        if self.has("Brygga", "Nyön") and self.has("Brygga", "Hemön"):
+        # Sjövägar till Hemön, en per ö med brygga i båda ändar.
+        for island, remote in self.remote_stock.items():
+            if not (self.has("Brygga", island) and self.has("Brygga", HOME)):
+                continue
             room = SEA_CAPACITY_PER_DAY / ACTIVE_HOURS
             for r in RESOURCES:
-                moved = self.add(self.stock, r, min(room, self.nyon_stock[r]), cap)
-                self.nyon_stock[r] -= moved
+                moved = self.add(self.stock, r, min(room, remote[r]), cap)
+                remote[r] -= moved
                 room -= moved
 
     @staticmethod
