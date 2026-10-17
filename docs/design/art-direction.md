@@ -1,21 +1,20 @@
 # Art direction v0
 
-> **Status:** [FÖRSLAG] v0.1, väntar på produktägarens val av riktning  
-> **Ärende:** TASK-006 · **Milstolpe:** M0 (förs vidare till art bible i M9) · **PRD:** D-10, D-29, avsnitt 1.3, princip 12, UX-04, UX-05, NFR-03, NFR-13, RST-03, MAP-04, R-08, R-12, O-13  
+> **Status:** [BESLUTAT] v0.2, riktning A med nattvyn från C vald av produktägaren (D-46)  
+> **Ärende:** TASK-006 · **Milstolpe:** M0 (förs vidare till art bible i M9) · **PRD:** D-10, D-29, D-46, avsnitt 1.3, princip 12, UX-04, UX-05, NFR-03, NFR-13, RST-03, MAP-04, R-08, R-12, O-13  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Jämförelse:** [Eirora art direction v0 (Artifact)](https://claude.ai/artifact/VBWXLoy6yaxZxpukWsAg2t), källkod i [art-direction-comparison.html](./art-direction-comparison.html)
 
 Det här dokumentet lägger fram tre riktningar för Eiroras utseende i low-poly 3D med nordiskt mytologiskt tema.
 Varje riktning har kärnidé, moodboard, palett, formspråk, ljusstämningar för gryning, dag, skymning och natt, läsbarhet, tillgänglighet och prestandakonsekvenser.
-Produktägaren väljer riktning; rekommendationen i avsnitt 8 är ett förslag.
+Produktägaren har valt **riktning A, Gryningsdiorama, med nattvyn från riktning C, Norrskensmyt** (D-46); se avsnitt 11.
+Avsnitt 3–8 står kvar som underlag för valet.
 
-## Beslut som söks
+## Beslut
 
-| # | Fråga | Alternativ | Förslag |
+| # | Fråga | Alternativ | Beslut |
 |---|---|---|---|
-| 1 | Vilken riktning blir grund för art bible och M1-prototypens ö? | **A** Gryningsdiorama · **B** Torv och tjära · **C** Norrskensmyt | A |
-| 2 | Ska nattvyn under vilolåset lånas från C om A eller B väljs? | Ja · Nej, följ den valda riktningen | Ja |
-
-Ärendet är klart först när en riktning är vald och valet är dokumenterat i avsnitt 11.
+| 1 | Vilken riktning blir grund för art bible och M1-prototypens ö? | **A** Gryningsdiorama · **B** Torv och tjära · **C** Norrskensmyt | **A** |
+| 2 | Ska nattvyn under vilolåset lånas från C? | Ja · Nej, följ den valda riktningen | **Ja** |
 
 ## Så granskas riktningarna
 
@@ -366,7 +365,7 @@ Siffrorna är startvärden som mäts och fastställs i M1 och M2 (O-13).
 - **Skuggor:** ett ljus med en kaskad och kort räckvidd; lågnivån använder bakade skuggfläckar.
 - **Kvalitetsnivåer:** varje riktning har en lågnivå där de dyraste effekterna har en billigare ersättare enligt avsnitten ovan.
 
-## 8. Rekommendation [FÖRSLAG]
+## 8. Rekommendation (vald, D-46)
 
 **Välj A, Gryningsdiorama, och låna nattvyn från C.**
 
@@ -382,7 +381,7 @@ Om produktägaren hellre prioriterar särprägel framför läsbarhet är C det s
 
 ## 9. Nästa steg efter valet
 
-1. Valet förs in i avsnitt 11 och i PRD:ns beslutslogg.
+1. Valet är infört i avsnitt 11 och i PRD:ns beslutslogg som D-46.
 2. M1-prototypens ö (ROADMAP M1 punkt 2) byggs i den valda riktningen med enkelt dygnsljus.
 3. Paletten och ljusstämningarna läggs som versionerad data, inte i scener (NFR-14).
 4. Prestandabudgeten mäts på produktägarens Android och en lågklassenhet (O-13).
@@ -401,14 +400,29 @@ Om produktägaren hellre prioriterar särprägel framför läsbarhet är C det s
 
 ## 11. Beslut
 
-[ÖPPET] Produktägaren har ännu inte valt riktning.
+**D-46 [BESLUTAT] 2026-10-17:** Eiroras art direction är **riktning A, Gryningsdiorama, med nattvyn från riktning C, Norrskensmyt**.
+
+Det betyder:
+
+- **Grunden är A.**
+  A:s palett, formspråk, polygonbudget och ljusstämningar för gryning, dag och skymning i avsnitt 3 gäller.
+- **Natten är C:s.**
+  Under viloperioden ersätts A:s nattstämning av C:s: zenit `#060A1A`, horisont `#10274A`, måne `#86AEE0` på 38°, himmelsljus `#2E4A78`, stjärnor och dämpat norrsken `#6EF0B4` mot `#9B7BF0`.
+- **Glöden får en plats i A:s värld.**
+  Runglöd `#FFD27A` läggs till i A:s palett som ljusfärg, aldrig som ytfärg.
+  Den syns i runristade gränsstenar och samlingshallens fönster och tänds i skymningen, starkast under natten.
+- **Natten förblir vila.**
+  Norrskenet är dämpat, ligger nära horisonten, rör sig knappt och stängs av med reducerad rörelse (avsnitt 2, princip 3).
+- **Prestanda:** A:s budget gäller hela dygnet.
+  Nattvyns glöd och norrsken renderas med låg bildfrekvens; på lågnivån ersätts bloom av bakade glorior och norrskenet av en målad himmelstextur (avsnitt 5).
+
+Jämförelsen visar den valda kombinationen i en egen rad överst.
+Nästa steg följer avsnitt 9.
 
 ## 12. Olösta frågor
 
-1. Vilken riktning blir grund: A, B eller C?
-2. Ska nattvyn lånas från C om A eller B väljs?
-3. Ska dygnsljuset följa spelarens viloschema (förslaget i avsnitt 2) eller solen på spelarens ort?
-4. Ska kameran sänkas automatiskt till nattvyn när viloperioden börjar, eller ska spelaren behålla spelkameran?
-5. Ska byborna synas som små figurer i världen, trots att de modelleras som arbetsgrupper?
-6. Ska mytologiska väsen (vättar, troll, gudar) synas i världen, eller ska myten bara bäras av form, ornamentik och ljus?
-7. Vilken lågklassenhet ska vara referens för prestandamätningen (O-13)?
+1. Ska dygnsljuset följa spelarens viloschema (förslaget i avsnitt 2) eller solen på spelarens ort?
+2. Ska kameran sänkas automatiskt till nattvyn när viloperioden börjar, eller ska spelaren behålla spelkameran?
+3. Ska byborna synas som små figurer i världen, trots att de modelleras som arbetsgrupper?
+4. Ska mytologiska väsen (vättar, troll, gudar) synas i världen, eller ska myten bara bäras av form, ornamentik och ljus?
+5. Vilken lågklassenhet ska vara referens för prestandamätningen (O-13)?

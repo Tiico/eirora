@@ -85,6 +85,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
 .rowhead .letter { font-family: var(--font-display); font-size: 2rem; line-height: 1; color: var(--accent); }
 .rowhead b { font-family: var(--font-display); font-weight: 400; font-size: 1.15rem; }
 .rowhead small { color: var(--muted); font-size: var(--step--1); line-height: 1.4; }
+.rowhead.chosen b { color: var(--accent); }
 .thumb {
   position: relative; display: block; padding: 0; border: 0; border-radius: 8px; overflow: hidden; cursor: pointer; background: var(--surface-2);
   aspect-ratio: 4 / 3; max-width: 100%; width: 100%;
@@ -178,8 +179,8 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
   <header>
     <span class="eyebrow">Eirora · TASK-006 · Art direction v0</span>
     <h1>Tre ljus över samma ö</h1>
-    <p class="lede">Samma procedurgenererade ö på hexkarta, renderad i low-poly 3D i tre riktningar och fyra ljusstämningar. Klicka på en ruta för att granska den i telefonstorlek, med spelets gränssnitt ovanpå. Nattrutorna visar nattvyn under vilolåset.</p>
-    <span class="decision">Beslut öppet · produktägaren väljer riktning</span>
+    <p class="lede">Samma procedurgenererade ö på hexkarta, renderad i low-poly 3D i tre riktningar och fyra ljusstämningar. Den översta raden visar den valda kombinationen. Klicka på en ruta för att granska den i telefonstorlek, med spelets gränssnitt ovanpå. Nattrutorna visar nattvyn under vilolåset.</p>
+    <span class="decision">Beslutat (D-46) · A Gryningsdiorama med C:s natt</span>
   </header>
 
   <section aria-labelledby="matrix-h">
@@ -239,13 +240,13 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
   </section>
 
   <section class="rec" aria-labelledby="rec-h">
-    <span class="eyebrow">Förslag, inte beslut</span>
-    <h2 id="rec-h">Rekommendation: A, med C:s natt</h2>
+    <span class="eyebrow">Beslutat 2026-10-17 · D-46</span>
+    <h2 id="rec-h">Vald: A, med C:s natt</h2>
     <p>Gryningsdioraman ger den tydligaste hexkartan på en liten skärm, den lägsta prestandakostnaden och den ljusaste spegeln av egenvården. Dess svaghet är att den liknar andra lugna byggspel. Därför föreslås att nattvyn lånas från Norrskensmyten: ett dämpat norrsken och glödande runor när byborna sover, så att vilolåset blir det mest egna ögonblicket i spelet och namnets aurora syns.</p>
     <ol>
-      <li>Välj A, B eller C som grund. Rekommendationen ovan är bara ett förslag.</li>
-      <li>Säg om natten ska lånas från C eller följa den valda riktningen.</li>
-      <li>Valet dokumenteras i art-direction.md och styr M1-prototypens ö.</li>
+      <li>Grunden är A: palett, formspråk och ljus för gryning, dag och skymning.</li>
+      <li>Under viloperioden gäller C:s natt, med runglöd som ljusfärg i A:s värld.</li>
+      <li>Valet styr M1-prototypens ö och byggs ut till art bible i M9.</li>
     </ol>
   </section>
 
@@ -353,6 +354,17 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
       }
     }
   };
+
+  // Vald riktning (D-46): A:s värld med C:s natt.
+  DIRS.V = Object.assign({}, DIRS.A, {
+    letter: "A+C", chosen: true, name: "Vald: A med C:s natt",
+    short: "Beslutat (D-46). Gryningsdioraman på dagen, Norrskensmytens natt under vilolåset.",
+    pal: Object.assign({}, DIRS.A.pal, { "Runglöd": "#FFD27A", "Norrsken": "#6EF0B4" }),
+    extra: Object.assign({}, DIRS.A.extra, { glow: "#FFD27A" }),
+    moods: Object.assign({}, DIRS.A.moods, { natt: Object.assign({}, DIRS.C.moods.natt, {
+      note: "C:s natt över A:s värld: dämpat norrsken, stjärnor och runglöd i samlingshallen när byborna sover. Lugnt och mörkt, men bosättningen syns." }) })
+  });
+  const ORDER = ["V", "A", "B", "C"];
 
   // ---------- Deterministisk ö (samma för alla riktningar) ----------
   const SQ3 = Math.sqrt(3);
@@ -679,7 +691,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     stars = makeStars(); world.add(stars);
     moon = new THREE.Mesh(new THREE.IcosahedronGeometry(3.4, 1), new THREE.MeshBasicMaterial({ color: 0xE4EAF4, fog: false }));
     moon.position.set(-22, 21, -150); world.add(moon);
-    aurora = key === "C" ? makeAurora(D) : null;
+    aurora = D.pal["Norrsken"] ? makeAurora(D) : null;
     if (aurora) world.add(aurora);
     scene.add(world);
   }
@@ -726,24 +738,25 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
   }
 
   // ---------- UI ----------
-  const state = { dir: "A", mood: "gryning", cam: "game", zoom: "normal", grid: false, hud: true, rot: false, angle: -0.25 };
+  const state = { dir: "V", mood: "gryning", cam: "game", zoom: "normal", grid: false, hud: true, rot: false, angle: -0.25 };
   try {
-    const saved = JSON.parse(localStorage.getItem("eirora-ad-v0") || "null");
+    const saved = JSON.parse(localStorage.getItem("eirora-ad-v1") || "null");
     if (saved && DIRS[saved.dir]) Object.assign(state, { dir: saved.dir, mood: saved.mood, cam: saved.cam, zoom: saved.zoom, grid: !!saved.grid, hud: saved.hud !== false });
   } catch (e) { /* lagring saknas: standardläge */ }
-  const save = () => { try { localStorage.setItem("eirora-ad-v0", JSON.stringify(state)); } catch (e) { /* ignoreras */ } };
+  const save = () => { try { localStorage.setItem("eirora-ad-v1", JSON.stringify(state)); } catch (e) { /* ignoreras */ } };
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const $ = s => document.querySelector(s);
   const matrix = $("#matrix"), phone = $("#phone"), hud = $("#hud");
   const thumbs = {};
   matrix.insertAdjacentHTML("beforeend", '<div></div>' + MOODS.map(m => `<div class="colhead">${m.name}</div>`).join(""));
-  Object.entries(DIRS).forEach(([k, D]) => {
-    matrix.insertAdjacentHTML("beforeend", `<div class="rowhead"><span class="letter">${k}</span><b>${D.name}</b><small>${D.short}</small></div>`);
+  ORDER.forEach(k => {
+    const D = DIRS[k];
+    matrix.insertAdjacentHTML("beforeend", `<div class="rowhead${D.chosen ? " chosen" : ""}"><span class="letter">${D.letter || k}</span><b>${D.name}</b><small>${D.short}</small></div>`);
     MOODS.forEach(m => {
       const b = document.createElement("button");
       b.className = "thumb"; b.type = "button"; b.id = `t-${k}-${m.id}`;
-      b.setAttribute("aria-label", `${k} ${D.name}, ${m.name}: granska i telefonstorlek`);
+      b.setAttribute("aria-label", `${D.letter || k} ${D.name}, ${m.name}: granska i telefonstorlek`);
       b.innerHTML = `<span class="ph">Renderar…</span><span class="tag">${m.name}</span>`;
       b.addEventListener("click", () => { Object.assign(state, { dir: k, mood: m.id, cam: m.id === "natt" ? "low" : "game" }); sync(); phone.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" }); });
       matrix.appendChild(b);
@@ -756,7 +769,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     el.innerHTML = items.map(([v, label]) => `<button type="button" data-v="${v}">${label}</button>`).join("");
     el.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state[keyName] = b.dataset.v; sync(); });
   }
-  seg("#seg-dir", Object.entries(DIRS).map(([k, D]) => [k, `${k} · ${D.name}`]), "dir");
+  seg("#seg-dir", ORDER.map(k => [k, DIRS[k].chosen ? "Vald: A + C:s natt" : `${k} · ${DIRS[k].name}`]), "dir");
   seg("#seg-mood", MOODS.map(m => [m.id, m.name.replace(" (vilolås)", "")]), "mood");
   seg("#seg-cam", [["game", "Spelkamera"], ["low", "Nattvy / låg"]], "cam");
   seg("#seg-zoom", [["near", "Nära"], ["normal", "Normal"], ["far", "Översikt"]], "zoom");
@@ -772,7 +785,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
   });
 
   // Riktningskort
-  $("#dirs").innerHTML = Object.entries(DIRS).map(([k, D]) => `
+  $("#dirs").innerHTML = Object.entries(DIRS).filter(([, D]) => !D.chosen).map(([k, D]) => `
     <article class="dir">
       <header><span class="letter">RIKTNING ${k}</span><h3>${D.name}</h3></header>
       <p class="idea">${D.idea}</p>
@@ -800,7 +813,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
 
   function renderNote() {
     const D = DIRS[state.dir], M = D.moods[state.mood], mood = MOODS.find(m => m.id === state.mood).name;
-    $("#mood-note").innerHTML = `<h3>${state.dir} · ${D.name} · ${mood}</h3><p>${M.note}</p>
+    $("#mood-note").innerHTML = `<h3>${D.letter || state.dir} · ${D.name} · ${mood}</h3><p>${M.note}</p>
       <div class="mood-swatches mono">
         <span><i style="background:${M.zen}"></i>Zenit ${M.zen}</span><span><i style="background:${M.hor}"></i>Horisont ${M.hor}</span>
         <span><i style="background:${M.sun}"></i>${state.mood === "natt" ? "Måne" : "Sol"} ${M.sun} · ${M.el}°</span><span><i style="background:${M.hs}"></i>Himmelsljus ${M.hs}</span>
@@ -852,7 +865,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
 
   // ---------- Miniatyrer: rendera alla tolv, en per bildruta så att sidan förblir responsiv ----------
   const jobs = [];
-  Object.keys(DIRS).forEach(k => MOODS.forEach(m => jobs.push([k, m.id])));
+  ORDER.forEach(k => MOODS.forEach(m => jobs.push([k, m.id])));
   function renderThumbs() {
     const job = jobs.shift();
     if (!job) { builtFor = null; phone.appendChild(renderer.domElement); renderView(); return; }
