@@ -112,6 +112,39 @@ public sealed class DayCycleTests
     }
 
     [Fact]
+    public void MovingRestEarlierBetweenTheNewAndOldStartNeverSkipsANight()
+    {
+        // At 21:30 the new start (21:00) has passed but the old one (23:00) has not, so 24 hours later the new
+        // schedule's start lies just before the change takes effect and the old one just after it.
+        var world = World.Create(At("2026-10-14 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-14 21:30", 2));
+        world.Apply("schedule-1", new ChangeRestSchedule(new RestSchedule(21 * 60, 8 * 60)));
+
+        var nights = world.AdvanceTo(At("2026-10-17 12:00", 2)).OfType<DuskFell>().Select(e => Utc(e.UtcSeconds));
+
+        Assert.Equal(
+            ["2026-10-14 21:00", "2026-10-15 21:00", "2026-10-16 19:00"], // 23:00, still 23:00, then 21:00 local.
+            nights);
+    }
+
+    [Fact]
+    public void AScheduleChangeGivesTheSameNightsHowEverTimeIsAdvanced()
+    {
+        // The same change as above, advanced every quarter of an hour (as the economy does) instead of at once.
+        var world = World.Create(At("2026-10-14 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-14 21:30", 2));
+        world.Apply("schedule-1", new ChangeRestSchedule(new RestSchedule(21 * 60, 8 * 60)));
+
+        var nights = new List<string>();
+        for (long t = world.Now.UtcSeconds + 900; t <= At("2026-10-17 12:00", 2).UtcSeconds; t += 900)
+        {
+            nights.AddRange(world.AdvanceTo(new TimeReading(t, Stockholm, 7200)).OfType<DuskFell>().Select(e => Utc(e.UtcSeconds)));
+        }
+
+        Assert.Equal(["2026-10-14 21:00", "2026-10-15 21:00", "2026-10-16 19:00"], nights);
+    }
+
+    [Fact]
     public void AnOngoingRestIsNeverShortened()
     {
         var world = World.Create(At("2026-10-14 23:30", 2), Night);

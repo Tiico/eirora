@@ -82,6 +82,27 @@ public sealed class SelfCareTests
     }
 
     [Fact]
+    public void ACorrectionDownwardsNeverTakesBackMoreThanTheDayGave()
+    {
+        var world = Afternoon();
+        for (int day = 0; day <= 2; day++)
+        {
+            world.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+            Record(world, day, Habit.Steps, ContributionSource.Verified, 20_000);
+        }
+
+        Assert.Equal(400 + (30 / 2), world.Available(Force.Exploration)); // The third day crossed the full-credit cap.
+        world.AdvanceTo(At("2026-10-17 14:00", 2));
+        Record(world, 3, Habit.Steps, ContributionSource.Verified, 20_000);
+        Assert.Equal(415 + (110 / 2), world.Available(Force.Exploration)); // A whole day at half credit gave 55.
+
+        var result = Record(world, 3, Habit.Steps, ContributionSource.Verified, 0);
+
+        Assert.Equal(415, world.Available(Force.Exploration));
+        Assert.Equal(55, Assert.IsType<ForceWithdrawn>(Assert.Single(result.Events)).Amount);
+    }
+
+    [Fact]
     public void DawnCreditsTheBaselineAndSleepTopsItUp()
     {
         var world = Afternoon();

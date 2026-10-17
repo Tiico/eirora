@@ -147,22 +147,34 @@ namespace Eirora.Simulation.Time
 
         /// <summary>
         /// The next rest start at or after now, in UTC, using the offset of the span being advanced.
-        /// A pending schedule takes over for starts at or after its effective time.
         /// </summary>
+        /// <remarks>
+        /// The coming night is anchored to the current schedule's next start. A pending schedule takes over that night
+        /// only if its own start nearest the anchor also lies at or after the effective time; otherwise the current
+        /// schedule rests one more night, so a change never skips a night (D-62). The decision depends on the night,
+        /// not on when it is evaluated, so advancing time in parts gives the same nights (INV-D4).
+        /// </remarks>
         private long NextRestStartUtc(TimeReading span)
         {
             long from = Now.UtcSeconds;
             long start = NextStartUtc(from, span.OffsetSeconds, _schedule);
             if (_pendingSchedule is RestSchedule pending && start >= _pendingEffectiveUtc)
             {
-                _schedule = pending;
-                _pendingSchedule = null;
-                long effectiveFrom = from > _pendingEffectiveUtc ? from : _pendingEffectiveUtc;
-                start = NextStartUtc(effectiveFrom, span.OffsetSeconds, _schedule);
+                long pendingStart = NearestStartUtc(start, span.OffsetSeconds, pending);
+                if (pendingStart >= _pendingEffectiveUtc)
+                {
+                    _schedule = pending;
+                    _pendingSchedule = null;
+                    start = pendingStart > from ? pendingStart : from;
+                }
             }
 
             return start;
         }
+
+        /// <summary>The schedule's start within twelve hours either side of <paramref name="anchorUtc"/>.</summary>
+        private static long NearestStartUtc(long anchorUtc, int offsetSeconds, RestSchedule schedule) =>
+            MostRecentStartLocal(anchorUtc + offsetSeconds + (SecondsPerDay / 2), schedule) - offsetSeconds;
 
         private static long NextStartUtc(long fromUtc, int offsetSeconds, RestSchedule schedule)
         {
