@@ -136,4 +136,44 @@ Skriv inga hälsovärden; källappar, inspelningsmetoder och beteenden räcker.
 
 ## Rapport från riktig enhet
 
-Fylls i av produktägaren efter testet.
+Produktägarens första körning 2026-10-18; slutsatserna står i [ADR-0006](../../docs/adr/0006-own-health-connect-adapter.md).
+Rapporten innehåller inga hälsovärden.
+
+```markdown
+### Eirora HC-spike: rapport (utan hälsovärden)
+
+- Datum: 2026-10-18
+- Telefon: Google Pixel 7, Android 17 (API 37)
+- Health Connect: SDK_AVAILABLE; com.google.android.apps.healthdata 2026.09.03.00.release, com.google.android.healthconnect.controller 17
+- Funktioner: bakgrundsläsning finns, historik finns
+- Beviljat: steg ja, träningspass ja, sömn ja, bakgrundsläsning nej, historik nej
+
+#### Steg
+- Läst intervall: 7 dagar, 1940 poster
+- Äldsta post: 6 dagar gammal
+- Källa com.google.android.apps.fitness: 800 poster; AUTOMATICALLY_RECORDED 800; enhet: PHONE
+- Källa com.android.healthconnect.phone.jab800b2fb50733c8afd9852651374c94: 588 poster; AUTOMATICALLY_RECORDED 588; enhet: PHONE
+- Källa com.heytap.health.international: 552 poster; UNKNOWN 552; enhet: ingen enhet
+- Överlappande par: 2712 mellan olika källor, 595 inom samma källa
+- Dagar med flera källor: 7 av 7; dagar där rå summa är större än Health Connects aggregat: 7
+- Aggregatdagar äldre än 30 dagar: 0
+
+#### Träningspass
+- Inte läst
+
+#### Sömn
+- Läst intervall: 7 dagar, 9 poster
+- Äldsta post: 5 dagar gammal
+- Källa com.heytap.health.international: 9 poster; UNKNOWN 9; enhet: ingen enhet
+- Överlappande par: 0 mellan olika källor, 0 inom samma källa
+- Dagar med flera källor: 0 av 6; dagar där rå summa är större än Health Connects aggregat: 2
+- Aggregatdagar äldre än 30 dagar: 0
+
+#### Bakgrund
+- Inga körningar
+
+#### Ändringar
+- Inte hämtade
+```
+
+Kvar att köra på telefonen: träningspass, 365 dagar, bakgrund och historik (funktionerna finns), ändringar och en natt med bakgrundskörningar.

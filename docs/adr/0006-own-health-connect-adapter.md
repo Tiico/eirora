@@ -7,10 +7,24 @@ Vi valde detta framför HealthBridge (Healthwired Games, Fab och Unity Asset Sto
 
 ## Vad spiken visade
 
-Spiken (`spikes/health-connect/`) kördes på en emulator med Android 14 och Health Connect-modulen 14-10541443, med testdata från två källor som en separat seeder-app skrev (`spikes/health-connect-seeder/`).
-Produktägarens telefon fyller i resten (se [testinstruktionen](../../spikes/health-connect/README.md)).
+Spiken (`spikes/health-connect/`) kördes först på en emulator med Android 14 och Health Connect-modulen 14-10541443, med testdata från två källor som en separat seeder-app skrev (`spikes/health-connect-seeder/`).
+Sedan kördes den på produktägarens Pixel 7 med Android 17 och riktig data (rapporten står i [spikens README](../../spikes/health-connect/README.md#rapport-från-riktig-enhet)).
 
-- **`recordingMethod`, källa och enhet** följer med varje post och går att klassa som verifierat eller egenrapporterat (HLT-08); `UNKNOWN` förekommer i verklig data och måste få en egen regel.
+### På produktägarens telefon
+
+- **Tre källor skriver steg samtidigt:** Google Fit, telefonens inbyggda stegräknare i Health Connect och HeyTap Health (en klockapp).
+  Alla sju dagarna hade flera källor, och rå summa var större än Health Connects aggregat varje dag.
+- **Dubbletter även inom en källa:** utöver 2 712 överlappande par mellan källor fanns 595 par inom samma källa, så inte ens summan per källa går att lita på.
+- **Telefonens egen stegräknare** har källan `com.android.healthconnect.phone.<hash>`, ett namn som är unikt per enhet och inte motsvarar någon app.
+- **`UNKNOWN` är vanligt:** HeyTap Health skriver alla steg och all sömn med `recordingMethod` `UNKNOWN` och utan enhet, trots att datan kommer från en klocka.
+  Klassas `UNKNOWN` som egenrapporterat blir den mest trovärdiga källan egenrapporterad.
+- **Sömn från en enda källa** gav ändå en annan summa än aggregatet två dagar av sex.
+  Det tyder på att aggregatet räknar sömnlängd på annat sätt än sessionens början och slut (till exempel utan vakenfaser) och delar natten vid midnatt.
+- **Bakgrundsläsning och historik** finns i telefonens Health Connect, till skillnad från emulatorns.
+
+### På emulatorn
+
+- **`recordingMethod`, källa och enhet** följer med varje post och går att klassa som verifierat eller egenrapporterat (HLT-08).
   `recordingMethod` anges av appen som skrev posten och kontrolleras inte av plattformen, så klassningen är en förtroendefråga, inte ett bevis.
 - **Dubbletter:** två källor som räknar samma steg ger en naiv summa som är mer än 50 % för hög.
   Health Connects aggregat deduplicerar per tidsintervall efter användarens källprioritet: där poster överlappar vinner den högst prioriterade källan och den andra fyller bara luckorna.
@@ -39,6 +53,8 @@ Produktägarens telefon fyller i resten (se [testinstruktionen](../../spikes/hea
   Utan åtgärd hoppas Kotlin-koden tyst över och bygget lyckas ändå; därför slår en egen `gradleTemplate.properties` på inbyggd Kotlin igen, och bygget underkänns om bryggklassen saknas i APK:n.
   Detta prövas på nytt vid varje Unity-uppgradering.
 - C#-gränssnittet returnerar poster med källa, enhet och `recordingMethod`; klassningen till verifierat eller egenrapporterat görs i C#, så att samma regel gäller för HealthKit och manuell inmatning.
+  Förslag: bara `MANUAL_ENTRY` blir egenrapporterat, eftersom ordlistan definierar egenrapporterat som det hälsokällan markerat som manuellt inmatat; `UNKNOWN` är inte markerat och blir verifierat.
+- Spelet identifierar aldrig källor med fasta paketnamn: telefonens egen stegräknare har ett namn per enhet.
 - Bidrag per spelardygn beräknas med Health Connects aggregat över spelardygnets intervall (deduplicering efter användarens prioritet) i stället för att summera poster (INV-B1).
 - Korrigeringar (HLT-04, INV-B3) läses med ändrings-API:t; eftersom en radering bara har ett id måste klienten minnas vilket intervall varje läst post-id hörde till, utan att spara värdena (HLT-10).
   En ändringstoken gäller i 30 dagar; har den gått ut läses de senaste 30 dagarna om.
