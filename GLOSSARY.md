@@ -31,6 +31,18 @@ _Avoid_: by, stad (som generella termer)
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
 _Avoid_: invånare, befolkning, NPC:er
 
+**Basbehov** (`BasicNeed`):
+Det byborna förbrukar varje spelardygn, i v1 mat; brist stoppar bara tillväxt, aldrig något som redan finns.
+_Avoid_: hunger, underhåll
+
+**Förråd** (`Depot`):
+En byggnad som lagrar resurser och som produktionens avstånd räknas till; en brygga räknas också som förråd för avstånd.
+_Avoid_: lager (om byggnaden), magasin
+
+**Minimilager** (`Reserve`):
+En gratis planeringsinställning som anger hur mycket av en råvara förädlingen alltid lämnar kvar.
+_Avoid_: buffert, spärr
+
 **Långsam process** (`SlowProcess`):
 En naturlig förändring i världen som fortgår även under vilan, till exempel skogsväxt eller mognad.
 _Avoid_: passiv produktion
@@ -61,9 +73,29 @@ _Avoid_: träningspoäng, arbetskraft
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
 _Avoid_: sömnpoäng, vilobonus
 
+**Kartläggning** (`Survey`):
+En handling som kostar Utforskning och visar dolda platser nära bosättningen.
+_Avoid_: scouting, spaning
+
+**Expedition** (`Expedition`):
+En resa från en brygga som kostar Utforskning och efter en tid hittar en ny ö.
+_Avoid_: uppdrag, quest
+
+**Dagsverke** (`Workday`):
+En handling som kostar Gryningskraft och låter en byggnad producera mer under ett spelardygn.
+_Avoid_: boost, buff
+
+**Rusta** (`Rush`):
+En handling som kostar Gryningskraft och lägger extra arbetstimmar på det första bygget i kön.
+_Avoid_: snabba upp, skippa
+
 **Bidrag** (`Contribution`):
 En registrerad mängd egenvård för ett tidsintervall som omvandlas till kraft.
 _Avoid_: belöning, input
+
+**Startkrafter** (`StartingForces`):
+De krafter som finns i en ny världs starttillstånd så att den guidade turen kan spelas utan egenvård; de är inte ett bidrag.
+_Avoid_: bonus, gåva (som term)
 
 **Verifierat bidrag** (`VerifiedContribution`):
 Ett bidrag som operativsystemets hälsokälla registrerat automatiskt.
@@ -86,6 +118,14 @@ _Avoid_: nattlås, sömnlås, paus
 **Gryning** (`Dawn`):
 Övergången när viloperioden slutar och världen öppnar igen.
 _Avoid_: upplåsning, reset
+
+**Nattvy** (`NightView`):
+Det spelaren ser under viloperioden: den sovande världen, när den öppnar och vilka långsamma processer som pågår.
+_Avoid_: låsskärm, pausmeny
+
+**Morgonnotis** (`MorningNotification`):
+Den valfria, tysta notisen vid gryningen när något nytt har hänt i världen; högst en per spelardygn.
+_Avoid_: påminnelse, push
 
 **Spelardygn** (`GameDay`):
 Tiden från en gryning till nästa; enheten som krafter räknas per.
@@ -123,6 +163,14 @@ _Avoid_: spelversion, appversion
 Ett kapitel om ungefär 6–10 veckor som introducerar nya system och mål och avslutas med en milstolpe; inget nollställs.
 _Avoid_: säsong, kampanj, level
 
+**Guidad tur** (`GuidedTour`):
+Första sessionens introduktion där spelaren använder var och en av de tre krafterna en gång.
+_Avoid_: tutorial (om helheten), onboarding (när turen avses)
+
+**Daglig rapport** (`DailyReport`):
+Sammanfattningen som visas första gången spelaren öppnar spelet efter en gryning och täcker allt sedan den senast lästa rapporten.
+_Avoid_: logg, nyhetsflöde, dagbok
+
 ## Socialt
 
 **Grupp** (`Group`):
@@ -132,3 +180,19 @@ _Avoid_: klan, guild, vänlista
 **Gemensamt bygge** (`SharedProject`):
 Ett byggprojekt i arkipelagen som gruppens medlemmar bidrar till tillsammans.
 _Avoid_: monument (som generell term), raid
+
+## Prototyparbete
+
+Processbegrepp för hur prototypen spelas och utvärderas; de har inga kodnamn.
+
+**Prototypdagbok**:
+Produktägarens korta dagliga anteckningar om hur det var att spela prototypen, en kommentar per spelardygn i ett GitHub-ärende per vecka; innehåller aldrig hälsodata.
+_Avoid_: speltestlogg, journal, hälsodagbok
+
+**Veckogenomgång**:
+Det veckovisa tillfälle då prototypdagbokens observationer sorteras och lärdomarna blir ärenden eller designändringar.
+_Avoid_: retro, sprintgranskning
+
+**Lärdom**:
+En observation från prototypspel som ska leda till en ändring eller som belägger en hypotes; får ett ID (`L-nn`) i lärdomsloggen.
+_Avoid_: feedback, insikt, fynd (fynd är expeditionernas resultat)
