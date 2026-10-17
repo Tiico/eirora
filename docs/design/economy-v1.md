@@ -1,11 +1,11 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-004 · **Milstolpe:** M0 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, D-12, D-17, D-34, D-39, O-02  
+> **Ärende:** TASK-004 · **Milstolpe:** M0 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, D-12, D-17, D-34, D-39, D-43–D-45, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
 
-Den första ekonomin för prototypen: 11 byggnader, 7 resurser, recept, logistik och vad krafterna kostar.
+Den första ekonomin för prototypen: 12 byggnader, 7 resurser, recept, logistik och vad krafterna kostar.
 Siffrorna är räknade timme för timme över sju spelardygn i kalkylen ovan, inte uppskattade.
 Kalkylen är ett räkneark i kodform; spelets simulering skrivs i C# i M1.
 Innehållsomfånget (O-02, CIV-09) prövas i prototypen.
@@ -13,7 +13,8 @@ Innehållsomfånget (O-02, CIV-09) prövas i prototypen.
 ## 1. Grundidé
 
 - **Grundtakten kräver inga krafter.**
-  Mat, ved och sten kan alltid produceras utan egenvård, på mer än ett sätt (INV-R4).
+  Mat, ved och sten kan alltid produceras utan egenvård.
+  Mat har två oberoende källor (INV-R4), och ved och sten finns på flera platser.
   Utan egenvård står världen still men förfaller aldrig (D-17).
 - **Krafterna tar de stora stegen.**
   Byggkraft för förädling, hamnar, långhus och uppgraderingar; Utforskning för att hitta nytt; Gryningskraft för att lösa dagens flaskhals.
@@ -42,6 +43,7 @@ Mat har två oberoende källor, så ingen enskild flaskhals kan svälta byborna 
 | Byggnad | Kostnad | Arbete | Byggkraft | Bemanning | Effekt | Plats |
 |---|---|---|---|---|---|---|
 | Långhus | 10 timmer, 15 plank, 10 sten | 40 h | 60 | 0 | +8 bostadsplatser | Land |
+| Stuga | 15 timmer, 5 sten | 32 h | 0 | 0 | +4 bostadsplatser | Land |
 | Förråd | 10 timmer, 5 sten | 16 h | 0 | 1 | Lager 150 per resurs; nav för transport | Land |
 | Fiskebod | 8 timmer | 12 h | 0 | 2 | 1,25 fisk/h | Fiskevatten |
 | Åker | 4 timmer | 8 h | 0 | 2 | 0,5 säd/h dygnet runt; skördas aktiva timmar | Odlingsmark |
@@ -62,6 +64,8 @@ En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 
 - Varje bybo äter 1 mat per spelardygn vid gryningen, fisk först och sedan säd.
 - Mätta bybor ger **+1 bybo** per spelardygn om det finns bostadsplats.
+  Bostad kommer från långhus, som kostar Byggkraft, eller stugor, som bara kostar material och mer arbete (D-43).
+  Tillväxten blockeras alltså aldrig av att spelaren valt bort träning (HLT-01), men träning ger snabbare bostäder.
   Om det också finns 2 vadmal förbrukas de som komfort och ger **+1 bybo till**.
 - Brist på mat eller vadmal stoppar bara tillväxten; ingen bybo, byggnad eller nivå går förlorad (D-39, INV-V3).
 - Lediga bybor bygger med en arbetstimme per bybo och aktiv timme.
@@ -78,7 +82,7 @@ En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 - En väg höjer avståndsklassen ett steg.
 - Ett förråd rymmer 150 av varje resurs.
   Fullt lager stoppar produktionen; inget går förlorat.
-- Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06), annars äter sågverket upp all ved som behövs till byggen.
+- Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen.
 - Sjövägen mellan Hemön och Nyön för 40 enheter per spelardygn, delat mellan alla varor.
 
 ### Logistiska avvägningar
@@ -106,13 +110,14 @@ En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 | Gryningskraft | Rusta | 20 | +8 arbetstimmar på det första bygget i kön |
 
 Planering, bemanning, minimilager och prioriteringar kostar aldrig kraft (D-23).
-Startkrafter från den guidade turen: 100 Utforskning, 100 Byggkraft, 40 Gryningskraft [FÖRSLAG].
+Startkrafter från den guidade turen: 100 Utforskning, 100 Byggkraft, 40 Gryningskraft (D-45).
 
 ### Beslut om var krafterna ska riktas
 
 1. **Byggkraft: sågverk, brygga eller långhus först?**
    Sågverket ger plank till allt annat, bryggan öppnar havet och långhuset ger fler bybor.
-   Alla tre kan inte byggas första veckan med måttlig egenvård.
+   Med måttlig egenvård räcker Byggkraften till alla tre första veckan, men plank och lediga bybor gör att de inte kan byggas samtidigt.
+   Ordningen avgör vad som börjar ge avkastning först.
 2. **Utforskning: närområdet eller en ny ö?**
    Två kartläggningar (180) ger rika platser nära förrådet direkt.
    En expedition (250) ger en ny ö med dubbelt så rika platser, men först efter några dygn och bakom en sjöväg med begränsad kapacitet.
@@ -137,6 +142,7 @@ Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg,
 | Närområdet | måttlig | 19 | 12 | 1 | 208 | 182 | 1 188 | 180/260/410 | 461/110/233 | 0,94 |
 | Havet | måttlig | 19 | 12 | 2 | 15 | 234 | 1 104 | 250/270/280 | 426/100/298 | 0,90 |
 | Naiv | hög | 20 | 9 | 1 | 39 | 162 | 1 014 | 180/150/630 | 520/295/96 | 0,65 |
+| Utan träning | utan träning | 19 | 11 | 1 | 150 | 122 | 1 050 | 180/0/460 | 461/100/224 | 1,04 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 40 | 532 | 0/0/0 | 100/100/310 | – |
 | Ingen spelare | måttlig | 16 | 4 | 1 | 20 | 40 | 532 | 0/0/0 | 551/370/492 | – |
 
@@ -153,6 +159,12 @@ Havet bör dra ifrån andra veckan medan Närområdet har material för fler lå
 **Strategin hinner ikapp (D-34).**
 Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
 Den får ut 0,65 i värde per använd kraft mot 0,90–0,94, alltså 1,4 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+
+**Utan träning (D-43).**
+En spelare som valt bort träning men går och sover måttligt bygger stugor i stället för långhus och använder ingen Byggkraft.
+Världen växer till lika många bybor, 19, men dagsproduktionen blir 122 mot 182–234 med träning, eftersom sågverk, brygga och väveri kräver Byggkraft.
+Träning syns alltså i världen, men befolkningen står aldrig still på grund av en vana som spelaren valt bort.
+Värdet per använd kraft blir högre, 1,04, eftersom stugorna inte räknas som kraftanvändning; måttet jämför bara strategier som använder alla krafter.
 
 ## 8. Sju dygn utan egenvård
 
@@ -174,12 +186,15 @@ Utan spelare och utan egenvård (sista raderna i tabellen ovan):
 2. **Gryningskraften har för få användningar.**
    Två handlingar räcker inte för ett verkligt morgonbeslut varje dag; fler morgondrag behövs, till exempel att flytta bybor mellan arbetsgrupper eller prioritera transporter.
 3. **Ved är grundflaskhalsen.**
-   Utan minimilager stannar allt bygge, så LOG-06 bör flyttas från P1 till P0.
-4. **Bostäder styr tillväxten.**
-   Eftersom långhus kräver Byggkraft står befolkningen still utan träning; det är förenligt med D-17 men ska prövas i prototypen.
+   Utan minimilager stannar allt bygge, därför är LOG-06 flyttat från P1 till P0 (D-44).
+4. **Tillväxttakten styr första veckan, inte bostäderna.**
+   Alla strategier med beslut når 19–20 bybor, eftersom tillväxten är högst ett par bybor per dygn.
+   Valet mellan långhus och stuga (D-43) märks först när bostadstaket nås, vilket prövas med längre körningar i M4.
 
-## 10. Öppna frågor till produktägaren
+## 10. Beslut
 
-1. Ska långhus kräva Byggkraft, så att befolkningstillväxt kräver träning, eller ska de bara kosta material?
-2. Ska LOG-06 (minimilager och prioriteringar) flyttas från P1 till P0?
-3. Är startkrafterna från den guidade turen (100/100/40) rimliga?
+Produktägarens svar på de öppna frågorna i v0.1:
+
+- **D-43:** långhus kräver Byggkraft, men stugan ger bostad för bara material, så tillväxten blockeras aldrig av en bortvald vana.
+- **D-44:** LOG-06 (minimilager och prioriteringar) flyttas från P1 till P0.
+- **D-45:** startkrafterna från den guidade turen är 100 Utforskning, 100 Byggkraft och 40 Gryningskraft.

@@ -8,6 +8,7 @@ Detta är ett räkneark i kodform, inte spelets simulering: den riktiga simuleri
 skrivs i C# med heltal/fixed-point (INV-D3). Kör: python -I economy_v1.py
 """
 
+import sys
 from dataclasses import dataclass, field
 
 DAYS = 7
@@ -86,6 +87,7 @@ class Spec:
 
 SPECS = {
     "Långhus": Spec({"timmer": 10, "plank": 15, "sten": 10}, 40, 60, 0, "land"),
+    "Stuga": Spec({"timmer": 15, "sten": 5}, 32, 0, 0, "land"),  # bostad utan kraft (D-43)
     "Förråd": Spec({"timmer": 10, "sten": 5}, 16, 0, 1, "land"),
     "Fiskebod": Spec({"timmer": 8}, 12, 0, 2, "fiskevatten"),
     "Åker": Spec({"timmer": 4}, 8, 0, 2, "odlingsmark"),
@@ -99,7 +101,7 @@ SPECS = {
 }
 UPGRADE = Spec({"plank": 10, "sten": 5}, 16, 50, 0, "")
 ROAD = Spec({"sten": 2}, 4, 0, 0, "")
-HOUSING = {"Långhus": 8}
+HOUSING = {"Långhus": 8, "Stuga": 4}
 START_HOUSING = 16
 
 # --- Krafter (docs/design/forces.md) ------------------------------------------
@@ -126,6 +128,7 @@ PROFILES = {
     "måttlig": {"U": 86, "G": 92, "B": [100, 0, 90, 0, 80, 0, 0]},
     "hög": {"U": 103, "G": 98, "B": [100, 90, 80, 50, 25, 0, 0]},
     "ingen": {"U": 0, "G": 40, "B": [0] * 7},  # saknad sömndata ger grundnivå
+    "utan träning": {"U": 86, "G": 92, "B": [0] * 7},  # vanan träning bortvald (HLT-01)
 }
 START_FORCES = {"U": 100, "B": 100, "G": 40}  # guidad tur [FÖRSLAG]
 
@@ -490,6 +493,21 @@ def strategy_naive(w: World, day: int):
     w.workday("Huggarkoja", "F1")
 
 
+def strategy_no_training(w: World, day: int):
+    """Utan träning: bara bostäder och produktion som inte kostar Byggkraft (D-43)."""
+    w.survey()
+    w.build("Huggarkoja", "F3")
+    w.build("Stenbrott", "M2")
+    w.build("Stuga", "L1")
+    w.build("Fiskebod", "K2")
+    w.build("Stuga", "L2")
+    w.build("Åker", "O2")
+    w.build("Stuga", "L3")
+    w.workday("Stenbrott", "M2")
+    w.workday("Huggarkoja", "F3")
+    w.rush()
+
+
 def strategy_idle(w: World, day: int):
     """Ingen spelare: inga kommandon alls."""
 
@@ -514,10 +532,12 @@ def run(strategy, profile):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
     runs = [
         ("Närområdet", strategy_land, "måttlig"),
         ("Havet", strategy_sea, "måttlig"),
         ("Naiv", strategy_naive, "hög"),
+        ("Utan träning", strategy_no_training, "utan träning"),
         ("Ingen spelare, ingen egenvård", strategy_idle, "ingen"),
         ("Ingen spelare, måttlig egenvård", strategy_idle, "måttlig"),
     ]
