@@ -39,7 +39,7 @@ En milstolpe som inte klarar sin grind återgår till `IN_PROGRESS` med dokument
 
 | Milstolpe | Namn | Huvudberoende | Status |
 |---|---|---|---|
-| M0 | Kärndesign | Beslut D-01–D-33 | NOT_STARTED |
+| M0 | Kärndesign | Beslut D-01–D-33 | IN_PROGRESS |
 | M1 | Spelbar prototyp i fickan | M0 | NOT_STARTED |
 | M2 | Teknisk grund | M0, lärdomar från M1 | NOT_STARTED |
 | M3 | Världsgenerering | M2 | NOT_STARTED |
