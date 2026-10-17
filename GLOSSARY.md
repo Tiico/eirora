@@ -163,6 +163,10 @@ _Avoid_: säsong, kampanj, level
 Första sessionens introduktion där spelaren använder var och en av de tre krafterna en gång.
 _Avoid_: tutorial (om helheten), onboarding (när turen avses)
 
+**Guiden** (`Guide`):
+Ljusgestalten inspirerad av Eir som leder den guidade turen och syns tydligast i gryningen.
+_Avoid_: maskot, tutor, NPC
+
 **Daglig rapport** (`DailyReport`):
 Sammanfattningen som visas första gången spelaren öppnar spelet efter en gryning och täcker allt sedan den senast lästa rapporten.
 _Avoid_: logg, nyhetsflöde, dagbok

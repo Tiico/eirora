@@ -1,0 +1,509 @@
+<title>Eirora art direction v0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; each direction is a band with a 4-up light strip, then swatches and notes in two columns. */
+:root {
+  --bg: #f2f4f3;
+  --surface: #ffffff;
+  --fg: #1c2427;
+  --muted: #56636a;
+  --line: #d3dbdc;
+  --accent: #2f7482;
+  --font-body: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111719; --surface: #182024; --fg: #e5ecec; --muted: #9aa8ab; --line: #2a3539; --accent: #7cc0c9;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111719; --surface: #182024; --fg: #e5ecec; --muted: #9aa8ab; --line: #2a3539; --accent: #7cc0c9;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 56px;
+}
+header { display: grid; gap: 12px; max-width: 68ch; }
+.eyebrow {
+  font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); font-weight: 600;
+}
+h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.05; margin: 0; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: clamp(24px, 3.2vw, 34px); line-height: 1.1; margin: 0; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+h3 { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; color: var(--muted); font-weight: 600; }
+p { margin: 0; }
+.lead { font-size: 18px; color: var(--muted); }
+.direction { display: grid; gap: 20px; border-top: 1px solid var(--line); padding-top: 28px; }
+.dir-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.dir-head .tag { color: var(--muted); font-size: 17px; }
+.letter {
+  font-family: var(--font-mono); font-size: 13px; color: var(--accent);
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 7px;
+}
+.recommended {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--surface); background: var(--accent); border-radius: 999px; padding: 3px 10px;
+}
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+canvas { display: block; width: 100%; max-width: 100%; aspect-ratio: 16 / 10; border-radius: 6px; background: var(--line); }
+figcaption { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+figcaption span:last-child { font-family: var(--font-mono); font-size: 12px; }
+.details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 40px; }
+.block { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.sw { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px 10px; align-items: center; }
+.chip { width: 28px; height: 28px; border-radius: 50%; grid-row: span 2; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+.sw b { font-weight: 500; font-size: 14px; line-height: 1.2; }
+.sw code { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+li { padding-left: 2px; }
+.pros-cons { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.pros-cons h3 { margin-bottom: 6px; }
+.note { font-size: 14px; color: var(--muted); }
+.shared { display: grid; gap: 16px; border-top: 1px solid var(--line); padding-top: 28px; }
+.shared ul { max-width: 72ch; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+.table-wrap { overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+@media (max-width: 760px) {
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .details, .pros-cons { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Eirora · TASK-006 · M0</span>
+    <h1>Art direction v0</h1>
+    <p class="lead">Tre riktningar för Eiroras värld. Samma ö, samma långhus och samma brygga, i gryning, dag, skymning och natt. Riktning A Gryningsljus är vald, med detaljer från B (D-59); den blir grunden för art bible i M9.</p>
+  </header>
+
+  <main id="directions" style="display:grid;gap:56px"></main>
+
+  <section class="shared" aria-labelledby="cmp">
+    <h2 id="cmp">Jämförelse</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kriterium</th><th>A Gryningsljus</th><th>B Saga</th><th>C Skärgård</th></tr></thead>
+        <tbody>
+          <tr><td>Bär varumärket (Eir + aurora, gryningen som motiv)</td><td>Starkast</td><td>Medel</td><td>Medel</td></tr>
+          <tr><td>Nordisk mytologi</td><td>Medel</td><td>Starkast</td><td>Svagast</td></tr>
+          <tr><td>Läsbarhet på telefon</td><td>God med reglerna nedan</td><td>Svagast (mörkt, mycket dimma)</td><td>Starkast</td></tr>
+          <tr><td>Natten känns trygg (vilan som något positivt)</td><td>Starkast</td><td>Risk: kan kännas hotfull</td><td>God</td></tr>
+          <tr><td>Särskiljer sig från förebilderna</td><td>God</td><td>God</td><td>Svag (nära Islanders och Bad North)</td></tr>
+          <tr><td>Kostnad i prestanda</td><td>Medel (mjuka gradienter, norrsken)</td><td>Hög (dimma och volymljus)</td><td>Låg</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Beslut: <strong>A Gryningsljus</strong>, med C:s krav på tydliga silhuetter och snidade gavlar och guldaccenter från B (D-59). Riktningen bär namnet och gryningen, gör natten varm i stället för mörk och skiljer sig från Islanders och Bad North.</p>
+  </section>
+
+  <section class="shared" aria-labelledby="rules">
+    <h2 id="rules">Gäller alla riktningar</h2>
+    <ul>
+      <li>Varje byggnadstyp har en egen silhuett som går att känna igen i 64 px höjd.</li>
+      <li>Resurser och krafter skiljs åt med form och ikon, inte bara färg (UX-05).</li>
+      <li>Ljuset är en kärnteknik: en riktad ljuskälla, ambient från himlen och en färgtabell per dygnsfas, ingen realtids-GI på mobil.</li>
+      <li>Natten är aldrig svart: lyktor i fönstren och ett svalt måne- eller norrskensljus visar att byn sover tryggt.</li>
+      <li>Low-poly betyder synliga, avsiktliga facetter, inte låg upplösning; inga texturer med brus.</li>
+      <li>Kameran är lutad cirka 50° och visar alltid horisonten i bild på zoomnivån för hela ön.</li>
+      <li>Allt uttrycks som data (paletter, ljustabeller och materialparametrar), inte som handredigerade scener.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const PHASES = [
+    { key: "dawn", name: "Gryning", time: "06:30" },
+    { key: "day", name: "Dag", time: "13:00" },
+    { key: "dusk", name: "Skymning", time: "21:30" },
+    { key: "night", name: "Natt", time: "01:00" },
+  ];
+
+  const DIRECTIONS = [
+    {
+      id: "A", name: "Gryningsljus", recommended: true,
+      tag: "Mjukt, varmt och hoppfullt. Världen som vaknar.",
+      style: { tree: "round", facet: 0.05, shore: "sand", sail: "#efe6d6", aurora: 1, mist: 0, skerries: 0 },
+      mat: {
+        land: "#9db58a", field: "#d9c27a", shore: "#e6d3ae", rock: "#8a93a3", tree: "#5e8c6a", birch: "#ede7dc",
+        house: "#d8c19d", roof: "#7c8893", trim: "#efe8da", sea: "#3e8c99", seaFar: "#86bfc2", wood: "#a88a64",
+      },
+      forces: { Utforskning: "#4ba3b0", Byggkraft: "#d08a4e", Gryningskraft: "#f2a0a8" },
+      light: {
+        dawn: { top: "#7884bf", bottom: "#f6bb9c", sun: [92, 138, 15, "#ffd9ad"], tint: "#ffe6d6" },
+        day: { top: "#8cc4e6", bottom: "#ddeff4", sun: [372, 40, 9, "#fff7de"], tint: "#ffffff" },
+        dusk: { top: "#4a4985", bottom: "#ef916f", sun: [396, 141, 15, "#ff9c5e"], tint: "#ffcfb0" },
+        night: { top: "#111737", bottom: "#2f3c6d", sun: [118, 52, 10, "#e8eeff"], tint: "#59649a", lamp: "#ffc46d" },
+      },
+      shape: [
+        "Avfasade kanter och rundade stenar; inga vassa hörn på det som går att röra.",
+        "Kronor som mjuka mångkanter, björkar med ljusa stammar.",
+        "Ljust trä och gråa spånstak; färgen kommer från ljuset, inte från ytorna.",
+        "Norrsken över natthimlen som riktningens signatur.",
+      ],
+      refs: [
+        "Nikolai Astrup: norskt landskap i morgonljus",
+        "Prins Eugen: svenskt kvällsljus och stillhet",
+        "Tiny Glade och Townscaper: mjuk geometri (endast stämning)",
+      ],
+      pros: ["Bär namnet och gryningen direkt", "Natten blir varm och trygg", "Lugn som passar vila och egenvård"],
+      cons: ["Pastell kan bli otydligt på liten skärm", "Kräver noggrann ljussättning för att inte bli sött"],
+    },
+    {
+      id: "B", name: "Saga", recommended: false,
+      tag: "Mossa, dimma och snidat trä. Myten nära.",
+      style: { tree: "spruce", facet: 0.07, shore: "rock", sail: "#7a3b2e", aurora: 0, mist: 1, skerries: 1 },
+      mat: {
+        land: "#6f8752", field: "#b49a55", shore: "#77736a", rock: "#6e6a63", tree: "#2f4a37", birch: "#cfc9bb",
+        house: "#5a4535", roof: "#6f8a4a", trim: "#d9a441", sea: "#2e5560", seaFar: "#6f9095", wood: "#4d3a2c",
+      },
+      forces: { Utforskning: "#5e9aa0", Byggkraft: "#c29242", Gryningskraft: "#e0b49e" },
+      light: {
+        dawn: { top: "#5b6d79", bottom: "#e4caa2", sun: [92, 140, 14, "#f2d08a"], tint: "#f2e2c6" },
+        day: { top: "#9cb2b7", bottom: "#dbe3dc", sun: [372, 44, 9, "#f4f0dc"], tint: "#f4f6f0" },
+        dusk: { top: "#3d3450", bottom: "#c9845a", sun: [396, 142, 14, "#e8925a"], tint: "#d8a890" },
+        night: { top: "#0a1317", bottom: "#1e3537", sun: [118, 52, 9, "#dde8e0"], tint: "#3f5a5c", lamp: "#e8a94a" },
+      },
+      shape: [
+        "Höga, smala granar i flera våningar; tunga silhuetter.",
+        "Tjärat trä och torvtak; snidade drakhuvuden på gavlarna.",
+        "Dimma i dalar och över vattnet som djup och mystik.",
+        "Guld som enda accent, för det heliga och det upptäckta.",
+      ],
+      refs: [
+        "John Bauer: svensk sagoskog",
+        "Theodor Kittelsen: norsk folktro och natur",
+        "Peder Balke: nordiskt hav i dramatiskt ljus",
+      ],
+      pros: ["Starkast koppling till nordisk mytologi", "Djup och stämning", "Tydlig egen identitet"],
+      cons: ["Mörkt och lågkontrast; svårläst på telefon", "Natten kan kännas hotfull i stället för vilsam", "Dimma kostar prestanda"],
+    },
+    {
+      id: "C", name: "Skärgård", recommended: false,
+      tag: "Klart, krispigt och tydligt. Sommar i skären.",
+      style: { tree: "pine", facet: 0.1, shore: "granite", sail: "#ffffff", aurora: 0.35, mist: 0, skerries: 1 },
+      mat: {
+        land: "#7fa35b", field: "#e0c25a", shore: "#c9a8a0", rock: "#b8968e", tree: "#2f6b47", birch: "#f2f0ea",
+        house: "#a8322d", roof: "#3b3f45", trim: "#f4f2ec", sea: "#1f7fb0", seaFar: "#73b8da", wood: "#8a6b4a",
+      },
+      forces: { Utforskning: "#2e8fd0", Byggkraft: "#e0a030", Gryningskraft: "#f07c8c" },
+      light: {
+        dawn: { top: "#5e7ebf", bottom: "#f7c7a4", sun: [92, 138, 14, "#ffe1b9"], tint: "#ffe9dc" },
+        day: { top: "#3d9be0", bottom: "#cdebfa", sun: [372, 38, 9, "#ffffff"], tint: "#ffffff" },
+        dusk: { top: "#2e3d79", bottom: "#f2a15e", sun: [396, 141, 14, "#ff8c42"], tint: "#ffcaa8" },
+        night: { top: "#08132b", bottom: "#1b3359", sun: [118, 50, 9, "#f2f5ff"], tint: "#4d5f8c", lamp: "#ffd27a" },
+      },
+      shape: [
+        "Plana, skarpa facetter med tydlig skillnad mellan ljus och skugga.",
+        "Falurött med vita knutar; varje byggnad läses på ett ögonblick.",
+        "Rosa granithällar och skär som ramar in havet.",
+        "Raka tallar i en enda triangel.",
+      ],
+      refs: [
+        "Anders Zorn: vatten och sommarljus",
+        "Bruno Liljefors: skärgårdens natur",
+        "Islanders och Bad North: läsbarhet (endast stämning)",
+      ],
+      pros: ["Bäst läsbarhet på telefon", "Billigast att rendera", "Tydligt nordiskt och glatt"],
+      cons: ["Ligger nära Islanders och Bad North", "Svagast koppling till myt och gryning", "Faluröd stuga är en kliché"],
+    },
+  ];
+
+  // --- small utilities ---------------------------------------------------------
+  const rgb = (h) => ({ r: parseInt(h.slice(1, 3), 16), g: parseInt(h.slice(3, 5), 16), b: parseInt(h.slice(5, 7), 16) });
+  const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  const mix = (a, b, t) => { const x = rgb(a), y = rgb(b); return { r: x.r + (y.r - x.r) * t, g: x.g + (y.g - x.g) * t, b: x.b + (y.b - x.b) * t }; };
+  const css = (c, a = 1) => `rgba(${clamp(c.r)},${clamp(c.g)},${clamp(c.b)},${a})`;
+  function rng(seed) {
+    return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+
+  // --- shared geometry (identical for every direction and phase) -------------
+  const W = 480, H = 300, HORIZON = 150;
+  const CX = 240, CY = 184, RX = 152, RY = 50;
+  const R = rng(7);
+  const N = 16;
+  const outer = [], mid = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2, r = 0.84 + R() * 0.18;
+    outer.push([CX + Math.cos(a) * RX * r, CY + Math.sin(a) * RY * r]);
+    const b = ((i + 0.5) / N) * Math.PI * 2, s = 0.52 * (0.9 + R() * 0.2);
+    mid.push([CX + Math.cos(b) * RX * s, CY + Math.sin(b) * RY * s]);
+  }
+  const landOuter = outer.map(([x, y]) => [CX + (x - CX) * 0.9, CY + (y - CY) * 0.9]);
+  const tris = [];
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    tris.push([[CX, CY], mid[i], mid[j]]);
+    tris.push([landOuter[i], landOuter[j], mid[i]]);
+    tris.push([mid[i], landOuter[j], mid[j]]);
+  }
+  const triNoise = tris.map(() => R() * 2 - 1);
+  const triKind = tris.map((t, k) => {
+    const cy = (t[0][1] + t[1][1] + t[2][1]) / 3, cx = (t[0][0] + t[1][0] + t[2][0]) / 3;
+    if (cy < CY - 18 && cx < CX - 30 && R() > 0.35) return "rock";
+    if (cy > CY + 6 && cx < CX - 10 && cx > CX - 110 && k % 3 !== 0) return "field";
+    return "land";
+  });
+  const sea = [];
+  for (let y = HORIZON, row = 0; y < H; y += 12, row++) {
+    for (let x = -40 + (row % 2) * 20; x < W + 40; x += 40) {
+      sea.push({ pts: [[x, y], [x + 40, y], [x + 20, y + 12]], n: R() * 2 - 1 });
+      sea.push({ pts: [[x + 40, y], [x + 60, y + 12], [x + 20, y + 12]], n: R() * 2 - 1 });
+    }
+  }
+  const trees = [];
+  for (let k = 0; k < 60 && trees.length < 22; k++) {
+    const a = R() * Math.PI * 2, r = 0.18 + R() * 0.62;
+    const x = CX + Math.cos(a) * RX * r, y = CY + Math.sin(a) * RY * r;
+    if (x > 250 && x < 330 && y > 152 && y < 200) continue; // longhouse
+    if (x > 188 && x < 228 && y > 180 && y < 214) continue; // hut
+    if (y > CY + 6 && x < CX - 10 && x > CX - 110) continue; // field
+    trees.push({ x, y, birch: R() < 0.25 });
+  }
+  trees.sort((p, q) => p.y - q.y);
+  const skerries = [[70, 214, 16], [412, 236, 22], [432, 228, 10], [120, 262, 12]];
+  const stars = Array.from({ length: 46 }, () => [R() * W, R() * (HORIZON - 20), 0.4 + R() * 0.9]);
+
+  // --- painter -------------------------------------------------------------------
+  function paint(canvas, d, phaseKey) {
+    const L = d.light[phaseKey], st = d.style, m = d.mat;
+    const dpr = 2;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const c = canvas.getContext("2d");
+    c.scale(dpr, dpr);
+    const tint = rgb(L.tint);
+    const [sx, sy, sr, sunCol] = L.sun;
+    const night = phaseKey === "night", day = phaseKey === "day";
+    const sideAmp = day ? 0.06 : 0.12;
+    const sunLeft = sx < CX;
+    const lit = (hex, k = 1) => { const x = rgb(hex); return css({ r: x.r * tint.r / 255 * k, g: x.g * tint.g / 255 * k, b: x.b * tint.b / 255 * k }); };
+    const poly = (pts, fill) => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); c.fillStyle = fill; c.fill(); };
+    const side = (x, s = 1) => 1 + ((x - CX) / RX) * (sunLeft ? -1 : 1) * sideAmp * s;
+
+    // Sky
+    const g = c.createLinearGradient(0, 0, 0, HORIZON);
+    g.addColorStop(0, L.top); g.addColorStop(1, L.bottom);
+    c.fillStyle = g; c.fillRect(0, 0, W, HORIZON + 1);
+    if (night) for (const [x, y, a] of stars) { c.fillStyle = `rgba(255,255,255,${a * 0.7})`; c.fillRect(x, y, 1.2, 1.2); }
+    if (night && st.aurora) {
+      c.save(); c.globalCompositeOperation = "lighter";
+      [["#6ef0b0", 46, 0], ["#b58cff", 30, 1.7], ["#5fd6c8", 62, 3.1]].forEach(([col, base, ph]) => {
+        const grd = c.createLinearGradient(0, base - 10, 0, base + 46);
+        const x = rgb(col);
+        grd.addColorStop(0, css(x, 0)); grd.addColorStop(0.25, css(x, 0.42 * st.aurora)); grd.addColorStop(1, css(x, 0));
+        c.beginPath();
+        for (let px = 0; px <= W; px += 8) { const py = base + Math.sin(px * 0.018 + ph) * 12 + Math.sin(px * 0.05 + ph) * 3; px ? c.lineTo(px, py) : c.moveTo(px, py); }
+        for (let px = W; px >= 0; px -= 8) { const py = base + 44 + Math.sin(px * 0.018 + ph) * 12; c.lineTo(px, py); }
+        c.closePath(); c.fillStyle = grd; c.fill();
+      });
+      c.restore();
+    }
+    // Sun or moon with glow
+    const glow = c.createRadialGradient(sx, sy, 0, sx, sy, sr * (night ? 4 : 6));
+    const sc = rgb(sunCol);
+    glow.addColorStop(0, css(sc, night ? 0.35 : 0.65)); glow.addColorStop(1, css(sc, 0));
+    c.fillStyle = glow; c.fillRect(0, 0, W, HORIZON);
+    if (night) {
+      // Crescent on its own layer so the cut-out shows the sky and aurora behind it.
+      const moon = document.createElement("canvas");
+      moon.width = moon.height = sr * 2 * dpr + 4;
+      const mc = moon.getContext("2d");
+      mc.scale(dpr, dpr);
+      mc.beginPath(); mc.arc(sr + 1, sr + 1, sr, 0, Math.PI * 2); mc.fillStyle = sunCol; mc.fill();
+      mc.globalCompositeOperation = "destination-out";
+      mc.beginPath(); mc.arc(sr + 1 + sr * 0.5, sr + 1 - sr * 0.25, sr * 0.9, 0, Math.PI * 2); mc.fill();
+      c.drawImage(moon, sx - sr - 1, sy - sr - 1, moon.width / dpr, moon.height / dpr);
+    } else {
+      c.beginPath(); c.arc(sx, sy, sr, 0, Math.PI * 2); c.fillStyle = sunCol; c.fill();
+    }
+
+    // Sea
+    for (const t of sea) {
+      const yy = (t.pts[0][1] + t.pts[2][1]) / 2;
+      const base = mix(m.seaFar, m.sea, Math.min(1, (yy - HORIZON) / (H - HORIZON) * 1.6));
+      const k = 1 + t.n * (0.03 + st.facet * 0.4);
+      poly(t.pts, css({ r: base.r * tint.r / 255 * k, g: base.g * tint.g / 255 * k, b: base.b * tint.b / 255 * k }));
+    }
+    // Reflection
+    c.save(); c.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 9; i++) {
+      const y = HORIZON + 4 + i * 7, w = (night ? 14 : 26) - i * 1.6;
+      c.fillStyle = css(sc, (night ? 0.22 : 0.4) * (1 - i / 9));
+      c.fillRect(sx - w / 2 + Math.sin(i * 2.1) * 4, y, Math.max(2, w), 1.6);
+    }
+    c.restore();
+    // Skerries
+    if (st.skerries) for (const [x, y, r] of skerries) {
+      poly([[x - r, y], [x - r * 0.4, y - r * 0.55], [x + r * 0.3, y - r * 0.45], [x + r, y]], lit(m.rock, 1.05));
+      poly([[x - r * 0.4, y - r * 0.55], [x + r * 0.3, y - r * 0.45], [x + r, y], [x, y]], lit(m.rock, 0.82));
+    }
+
+    // Island cliff
+    for (let i = 0; i < N; i++) {
+      const a = outer[i], b = outer[(i + 1) % N];
+      const k = (b[0] - a[0]) > 0 ? (sunLeft ? 0.62 : 0.78) : (sunLeft ? 0.8 : 0.6);
+      poly([a, b, [b[0], b[1] + 16], [a[0], a[1] + 16]], lit(m.rock, k));
+    }
+    // Shore and land facets
+    poly(outer, lit(m.shore, 1));
+    tris.forEach((t, i) => {
+      const cx = (t[0][0] + t[1][0] + t[2][0]) / 3;
+      const col = triKind[i] === "rock" ? m.rock : triKind[i] === "field" ? m.field : m.land;
+      poly(t, lit(col, (1 + triNoise[i] * st.facet) * side(cx)));
+    });
+
+    // Dock and boat
+    poly([[330, 214], [372, 232], [376, 229], [334, 211]], lit(m.wood, 0.95));
+    poly([[372, 240], [404, 240], [398, 248], [378, 248]], lit(m.wood, 0.7));
+    poly([[388, 239], [388, 214], [400, 238]], lit(st.sail, sunLeft ? 0.85 : 1));
+    poly([[387, 239], [387, 218], [377, 238]], lit(st.sail, sunLeft ? 1 : 0.85));
+
+    // Trees and buildings in depth order
+    const things = trees.map((t) => ({ y: t.y, draw: () => tree(t) }));
+    things.push({ y: 178, draw: () => house(286, 178, 1) });
+    things.push({ y: 204, draw: () => house(206, 204, 0.62) });
+    things.sort((a, b) => a.y - b.y).forEach((t) => t.draw());
+
+    function halves(pts, axisX, col, kLit, kShade) {
+      poly(pts, lit(col, kShade));
+      const leftPts = pts.map(([x, y]) => [Math.min(x, axisX), y]);
+      const rightPts = pts.map(([x, y]) => [Math.max(x, axisX), y]);
+      poly(sunLeft ? leftPts : rightPts, lit(col, kLit));
+    }
+    function tree({ x, y, birch }) {
+      const s = 9 + ((y - (CY - RY)) / (2 * RY)) * 7;
+      c.fillStyle = lit(birch ? m.birch : m.wood, birch ? 0.95 : 0.7);
+      c.fillRect(x - 0.8, y - s * 0.55, 1.6, s * 0.55);
+      if (st.tree === "round") {
+        const r = s * (birch ? 0.42 : 0.5), cy = y - s * 0.95, pts = [];
+        for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 - Math.PI / 2; pts.push([x + Math.cos(a) * r, cy + Math.sin(a) * r * 1.1]); }
+        halves(pts, x, birch ? "#a9c27e" : m.tree, 1.12, 0.8);
+      } else if (st.tree === "spruce") {
+        [[1.0, 0, 0.62], [0.78, 0.42, 0.5], [0.56, 0.8, 0.38]].forEach(([h, off, w]) => {
+          const top = y - s * (0.7 + off + h * 0.9), bot = y - s * (0.3 + off);
+          halves([[x, top], [x + s * w, bot], [x - s * w, bot]], x, m.tree, 1.18, 0.78);
+        });
+      } else {
+        halves([[x, y - s * 1.9], [x + s * 0.46, y - s * 0.35], [x - s * 0.46, y - s * 0.35]], x, m.tree, 1.2, 0.72);
+      }
+    }
+    function house(hx, hy, k) {
+      const p = (dx, dy) => [hx + dx * k, hy + dy * k];
+      const wallLit = sunLeft ? 1.02 : 0.86, endLit = sunLeft ? 0.74 : 1.0;
+      poly([p(-18, 0), p(18, 0), p(18, -12), p(-18, -12)], lit(m.house, wallLit));
+      poly([p(18, 0), p(27, -6), p(27, -18), p(18, -12)], lit(m.house, endLit));
+      poly([p(18, -12), p(27, -18), p(22.5, -28)], lit(m.house, endLit * 0.95));
+      poly([p(-21, -11), p(19, -11), p(22.5, -28), p(-17.5, -28)], lit(m.roof, sunLeft ? 1.0 : 0.9));
+      if (d.id === "C") {
+        c.strokeStyle = lit(m.trim, 1); c.lineWidth = 1.1 * k;
+        c.beginPath(); c.moveTo(...p(-18, 0)); c.lineTo(...p(-18, -12)); c.moveTo(...p(18, 0)); c.lineTo(...p(18, -12)); c.moveTo(...p(27, -6)); c.lineTo(...p(27, -18)); c.stroke();
+      }
+      if (d.id === "B") poly([p(22.5, -28), p(25, -33), p(21, -30)], lit(m.trim, 1));
+      const lamp = (night || phaseKey === "dusk") ? (L.lamp || "#ffc46d") : null;
+      [[-11, -8], [5, -8]].forEach(([wx, wy]) => {
+        const [x0, y0] = p(wx, wy);
+        c.fillStyle = lamp || lit(m.roof, 0.6);
+        c.fillRect(x0, y0, 4 * k, 4 * k);
+        if (lamp) {
+          c.save(); c.globalCompositeOperation = "lighter";
+          const gl = c.createRadialGradient(x0 + 2 * k, y0 + 2 * k, 0, x0 + 2 * k, y0 + 2 * k, 16 * k);
+          const lc = rgb(lamp);
+          gl.addColorStop(0, css(lc, night ? 0.5 : 0.25)); gl.addColorStop(1, css(lc, 0));
+          c.fillStyle = gl; c.fillRect(x0 - 16 * k, y0 - 16 * k, 36 * k, 36 * k);
+          c.restore();
+        }
+      });
+      poly([p(-3, 0), p(1, 0), p(1, -8), p(-3, -8)], lit(m.wood, 0.55));
+    }
+
+    // Mist
+    if (st.mist) {
+      const mc = rgb(night ? "#7fa0a0" : phaseKey === "dusk" ? "#d8b49a" : "#e9ece4");
+      [[HORIZON - 8, 26, 0.5], [CY + 6, 30, 0.35]].forEach(([y, h, a]) => {
+        const mg = c.createLinearGradient(0, y, 0, y + h);
+        mg.addColorStop(0, css(mc, 0)); mg.addColorStop(0.5, css(mc, a * (night ? 0.5 : 1))); mg.addColorStop(1, css(mc, 0));
+        c.fillStyle = mg; c.fillRect(0, y, W, h);
+      });
+      if (night) {
+        c.save(); c.globalCompositeOperation = "lighter";
+        [[150, 166], [176, 158], [330, 170]].forEach(([x, y]) => {
+          const wg = c.createRadialGradient(x, y, 0, x, y, 7); wg.addColorStop(0, "rgba(191,245,200,0.8)"); wg.addColorStop(1, "rgba(191,245,200,0)");
+          c.fillStyle = wg; c.fillRect(x - 8, y - 8, 16, 16);
+        });
+        c.restore();
+      }
+    }
+  }
+
+  // --- page --------------------------------------------------------------------
+  const host = document.getElementById("directions");
+  const esc = (s) => s.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+  const MAT_NAMES = { land: "Mark", field: "Åker", shore: "Strand", rock: "Berg", tree: "Barr", birch: "Björk", house: "Vägg", roof: "Tak", trim: "Detalj", sea: "Hav nära", seaFar: "Hav fjärran", wood: "Trä" };
+  for (const d of DIRECTIONS) {
+    const sec = document.createElement("section");
+    sec.className = "direction";
+    sec.id = "riktning-" + d.id;
+    sec.innerHTML = `
+      <div class="dir-head">
+        <span class="letter">${d.id}</span>
+        <h2>${esc(d.name)}</h2>
+        ${d.recommended ? '<span class="recommended">Vald</span>' : ""}
+        <span class="tag">${esc(d.tag)}</span>
+      </div>
+      <div class="strip">${PHASES.map((p) => `
+        <figure>
+          <canvas data-phase="${p.key}" role="img" aria-label="${esc(d.name)}, ${p.name.toLowerCase()}: ön med långhus, brygga och båt"></canvas>
+          <figcaption><span>${p.name}</span><span>${p.time}</span></figcaption>
+        </figure>`).join("")}
+      </div>
+      <div class="details">
+        <div class="block">
+          <h3>Material</h3>
+          <div class="swatches">${Object.entries(d.mat).map(([k, v]) => `
+            <div class="sw"><span class="chip" style="background:${v}"></span><b>${MAT_NAMES[k]}</b><code>${v}</code></div>`).join("")}
+          </div>
+          <h3>Krafter</h3>
+          <div class="swatches">${Object.entries(d.forces).map(([k, v]) => `
+            <div class="sw"><span class="chip" style="background:${v}"></span><b>${k}</b><code>${v}</code></div>`).join("")}
+          </div>
+        </div>
+        <div class="block">
+          <h3>Formspråk</h3>
+          <ul>${d.shape.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>
+          <h3>Referenser för stämning</h3>
+          <ul>${d.refs.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>
+          <div class="pros-cons">
+            <div><h3>Styrkor</h3><ul>${d.pros.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>
+            <div><h3>Risker</h3><ul>${d.cons.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>
+          </div>
+        </div>
+      </div>`;
+    host.appendChild(sec);
+    sec.querySelectorAll("canvas").forEach((cv) => paint(cv, d, cv.dataset.phase));
+  }
+})();
+</script>

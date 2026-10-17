@@ -9,7 +9,7 @@ Varje resa har mål, förutsättningar, steg, gränsfall och de krav och invaria
 Varje steg beskriver vad spelaren ser, gör och känner och vad simuleringen gör.
 
 Texterna i spelet är utkast på svenska och skrivs i *kursiv* eller i skisser; den engelska versionen skrivs parallellt (UX-06).
-Utseende, ljus och guidens gestalt bestäms i art direction (TASK-006) och M9.
+Utseende och ljus följer [art direction](./art-direction.md) (riktning A, D-59); guiden är en ljusgestalt inspirerad av Eir (D-60) och utformas i M9.
 Kraftsiffrorna följer [krafternas regler](./forces.md) exakt.
 Byggnader, resurser och kraftkostnader följer [ekonomi v1](./economy-v1.md), se [beroende till ekonomin](#beroende-till-ekonomi-v1).
 
@@ -463,7 +463,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 - Raderna under *Medan byn sover* visar långsamma processer som pågår just nu i världen (RST-03, INV-T5).
 - Nattens budskap växlar mellan några lugna rader om världen, till exempel *Det är stilla i hamnen.*, aldrig om spelarens sömn eller hälsa.
 - Nattvyn har mörka färger men full textkontrast (UX-05); ljud spelas bara om telefonen inte är tystad och aldrig högre än dagens.
-- Hur norrsken, måne och ljus ser ut avgörs i art direction (TASK-006).
+- Norrsken, måne och ljus följer [art direction](./art-direction.md#ljus-över-dygnet), där norrskenet är riktningens signatur (D-59).
 
 ### Skiss: Daglig rapport
 
@@ -551,4 +551,4 @@ Produktägarens svar på de öppna frågorna i v0.1, loggade i PRD 1.1:
 - **D-57:** molnsparningen innehåller bidrag per spelardygn, end-to-end-krypterade så att servern aldrig kan läsa dem.
 - **D-58:** åldersgränsen 18+ sköts av butikernas åldersklassning, utan egen bekräftelse i spelet.
 
-Kvar att avgöra: **guiden**, vem eller vad som hälsar spelaren välkommen, avgörs med art direction (TASK-006).
+Guiden avgjordes med art direction: en ljusgestalt inspirerad av Eir (D-60).
