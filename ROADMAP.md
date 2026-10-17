@@ -71,9 +71,9 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 5. [UX-resor](./docs/design/ux-journeys.md): första sessionen, återkomst efter 7 dagar, kväll med vilolås.
 6. Art direction: moodboard, palett och ljusstämningar för gryning, dag, skymning och natt i low-poly 3D, förankrade i det nordiska temat (PRD 1.3).
    Se [art-direction.md](./docs/design/art-direction.md).
-7. Kontur för epok 1.
+7. [Kontur för epok 1](./docs/design/epoch-1.md).
 
-**Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction), uppdaterad PRD, GitHub-ärenden för M1.
+**Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction, kontur för epok 1), uppdaterad PRD, GitHub-ärenden för M1.
 
 **Kvalitetsgrind A0:** det går att beskriva en hel dag inklusive vila, med konkreta siffror.
 Inget beslut som blockerar prototypen är öppet.
@@ -148,7 +148,7 @@ Minst två strategier fungerar och ingen dominerar.
 2. Expeditioner som drivs av Utforskning: rutter, fynd, nya öar.
 3. Forskning med minst tre inriktningar.
 4. Guidad tur och löpande introduktion med tutorialelement.
-5. Epok 1 från början till milstolpe.
+5. Epok 1 från början till milstolpe enligt [konturen](./docs/design/epoch-1.md), med forskningens inriktningar och fynden.
 6. Fake health provider för testscenarier: låg, hög, ingen och manuell egenvård.
 7. Återkomst efter frånvaro (O-12).
 
@@ -369,8 +369,8 @@ M2 punkt 1 och 2 (reporstruktur och CI med kodanalys och beroendeskanning) lever
 | [ADR-0003](./docs/adr/0003-rest-lock-is-honest-protection.md) | Vilolåset är ett ärligt skydd, inte fuskskydd | Beslutat |
 | [ADR-0004](./docs/adr/0004-shared-libraries-as-source-packages.md) | De delade biblioteken kompileras från samma källkod av både .NET och Unity | Beslutat |
 | [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
+| [ADR-0006](./docs/adr/0006-saves-are-migrated-snapshots.md) | Versionering av regler, innehåll och sparningar: sparningen är en snapshot som migreras framåt; gamla regler finns bara som frysta byggen | Beslutat |
 | kommande | Kartformat och generatorversion | Inför M3 |
-| kommande | Versionering av regler, innehåll och sparningar ([TASK-017](https://github.com/Tiico/eirora/issues/32)) | Inför M2 |
 | kommande | Hälsoadapter: HealthBridge eller egen (O-08, [TASK-007](https://github.com/Tiico/eirora/issues/8)) | Inför M1/M6 |
 | kommande | Backend-hosting, auth och databas (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Inför M2 |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |

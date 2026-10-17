@@ -198,3 +198,8 @@ Produktägarens svar på de öppna frågorna i v0.1:
 - **D-43:** långhus kräver Byggkraft, men stugan ger bostad för bara material, så tillväxten blockeras aldrig av en bortvald vana.
 - **D-44:** LOG-06 (minimilager och prioriteringar) flyttas från P1 till P0.
 - **D-45:** startkrafterna från den guidade turen är 100 Utforskning, 100 Byggkraft och 40 Gryningskraft.
+
+Senare beslut som berör ekonomin:
+
+- **D-65** (från [epok 1](./epoch-1.md)): brygga och väveri kan byggas med handkraft utan Byggkraft på 7 spelardygn, så att den som valt bort träning också får sjövägar och vadmal.
+  Körningarna ovan räknar utan handkraft.
