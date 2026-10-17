@@ -1,7 +1,7 @@
 # Krafternas regler v1
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, O-01  
+> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, O-01  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Invarianter:** [invariants.md](./invariants.md)
 
 Det här dokumentet bestämmer hur egenvård blir krafter: omvandling, avtagande avkastning, mjuka tak, grundnivå, manuell inmatning och hur mycket som kan sparas.
@@ -129,7 +129,8 @@ När ett förråd är fullt säger spelet det lugnt, utan uppmaning att spendera
 | Träning | Ett pass med starttid och längd | 6 pass |
 | Sömn | Sömnperiod med start och slut, i steg om 15 minuter | 16 h |
 
-- Inmatning kan göras för innevarande och föregående spelardygn.
+- Inmatning kan göras för varje spelardygn sedan senaste besöket, högst sju bakåt, så att den är likvärdig med hälsokällans historik (D-53).
+- Inmatning är tillåten även under viloperioden; krafterna krediteras vid gryningen (D-54, INV-T9).
 - Om samma vana och spelardygn har både data från hälsokällan och egen inmatning gäller det **högre** värdet, inte summan.
   Spelaren kan alltså komplettera en dag då telefonen låg hemma, utan att något räknas två gånger.
 - Manuella pass som överlappar ett registrerat pass i tid slås ihop till ett.

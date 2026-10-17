@@ -93,6 +93,10 @@ _Avoid_: snabba upp, skippa
 En registrerad mängd egenvård för ett tidsintervall som omvandlas till kraft.
 _Avoid_: belöning, input
 
+**Startkrafter** (`StartingForces`):
+De krafter som finns i en ny världs starttillstånd så att den guidade turen kan spelas utan egenvård; de är inte ett bidrag.
+_Avoid_: bonus, gåva (som term)
+
 **Verifierat bidrag** (`VerifiedContribution`):
 Ett bidrag som operativsystemets hälsokälla registrerat automatiskt.
 _Avoid_: äkta bidrag
@@ -114,6 +118,14 @@ _Avoid_: nattlås, sömnlås, paus
 **Gryning** (`Dawn`):
 Övergången när viloperioden slutar och världen öppnar igen.
 _Avoid_: upplåsning, reset
+
+**Nattvy** (`NightView`):
+Det spelaren ser under viloperioden: den sovande världen, när den öppnar och vilka långsamma processer som pågår.
+_Avoid_: låsskärm, pausmeny
+
+**Morgonnotis** (`MorningNotification`):
+Den valfria, tysta notisen vid gryningen när något nytt har hänt i världen; högst en per spelardygn.
+_Avoid_: påminnelse, push
 
 **Spelardygn** (`GameDay`):
 Tiden från en gryning till nästa; enheten som krafter räknas per.
@@ -146,6 +158,14 @@ _Avoid_: minimum, straffnivå
 **Epok** (`Epoch`):
 Ett kapitel om ungefär 6–10 veckor som introducerar nya system och mål och avslutas med en milstolpe; inget nollställs.
 _Avoid_: säsong, kampanj, level
+
+**Guidad tur** (`GuidedTour`):
+Första sessionens introduktion där spelaren använder var och en av de tre krafterna en gång.
+_Avoid_: tutorial (om helheten), onboarding (när turen avses)
+
+**Daglig rapport** (`DailyReport`):
+Sammanfattningen som visas första gången spelaren öppnar spelet efter en gryning och täcker allt sedan den senast lästa rapporten.
+_Avoid_: logg, nyhetsflöde, dagbok
 
 ## Socialt
 
