@@ -91,10 +91,10 @@ Inget beslut som blockerar prototypen är öppet.
 8. Bygg till iOS från Mac i CI för att bekräfta att kedjan fungerar, även utan iPhone.
 9. Mät tidiga prestanda- och batterivärden på produktägarens telefon.
 
-**Artefakter:** installerbar Android-prototyp, dagbok från dagligt spel, device-spike-rapport, lista över designlärdomar.
+**Artefakter:** installerbar Android-prototyp, [prototypdagbok](./docs/design/prototype-diary.md) från dagligt spel, device-spike-rapport, [lista över designlärdomar](./docs/design/prototype-learnings.md).
 
 **Kvalitetsgrind A1:** produktägaren har spelat i minst 14 riktiga dygn.
-Lärdomarna är dokumenterade och återförda till M0-designen.
+Lärdomarna är dokumenterade och återförda till M0-designen enligt [veckogenomgången](./docs/design/prototype-diary.md#5-veckogenomgången).
 Simuleringen är deterministisk i headless-tester.
 
 ### M2 — Teknisk grund
@@ -258,7 +258,7 @@ Testerna stödjer tesen om ett roligt och hälsosamt spel.
 | Ström | Start | Fokus |
 |---|---|---|
 | Speldesign/balans | M0 | Krafter, ekonomi, epoker, grupper |
-| Dagligt prototypspel | M1 | Produktägaren spelar och dokumenterar, kontinuerligt fram till beta |
+| Dagligt prototypspel | M1 | Produktägaren spelar och dokumenterar i [prototypdagboken](./docs/design/prototype-diary.md), kontinuerligt fram till beta |
 | Simulering/backend | M1 | Delad C#-simulering, ASP.NET Core, beständighet |
 | Klient/UX | M1 | Unity, kamera, UI, rapporter |
 | Art/ljud | M0 | Art direction, ljus, assets, musik |
@@ -326,7 +326,7 @@ flowchart TD
 6. **TASK-006 — Art direction v0:** moodboard, palett, ljus över dygnet.
 7. **TASK-007 — Spike för Health Connect** på produktägarens telefon; HealthBridge eller egen adapter (O-08).
 8. **TASK-008 — Unity-prototyp:** ö, ekonomi, krafter, vilolås, rapport.
-9. **TASK-009 — Format för prototypdagbok** och rutin för att återföra lärdomar.
+9. **TASK-009 — Format för prototypdagbok** och rutin för att återföra lärdomar: [prototype-diary.md](./docs/design/prototype-diary.md).
 10. **TASK-010 — Reporstruktur och CI** för Android och iOS.
 
 **Format för backlogpost:** ett GitHub-ärende med Epic, Milstolpe, PRD-referens, Prioritet, Förutsättningar, Beskrivning, Invariant, Acceptanskriterier (Given/When/Then), Testnivå, Integritetspåverkan, Migration och Definition of Done.

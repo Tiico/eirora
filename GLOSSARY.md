@@ -156,3 +156,19 @@ _Avoid_: klan, guild, vänlista
 **Gemensamt bygge** (`SharedProject`):
 Ett byggprojekt i arkipelagen som gruppens medlemmar bidrar till tillsammans.
 _Avoid_: monument (som generell term), raid
+
+## Prototyparbete
+
+Processbegrepp för hur prototypen spelas och utvärderas; de har inga kodnamn.
+
+**Prototypdagbok**:
+Produktägarens korta dagliga anteckningar om hur det var att spela prototypen, en kommentar per spelardygn i ett GitHub-ärende per vecka; innehåller aldrig hälsodata.
+_Avoid_: speltestlogg, journal, hälsodagbok
+
+**Veckogenomgång**:
+Det veckovisa tillfälle då prototypdagbokens observationer sorteras och lärdomarna blir ärenden eller designändringar.
+_Avoid_: retro, sprintgranskning
+
+**Lärdom**:
+En observation från prototypspel som ska leda till en ändring eller som belägger en hypotes; får ett ID (`L-nn`) i lärdomsloggen.
+_Avoid_: feedback, insikt, fynd (fynd är expeditionernas resultat)
