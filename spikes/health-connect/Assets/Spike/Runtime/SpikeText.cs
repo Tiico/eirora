@@ -30,7 +30,7 @@ namespace Eirora.Spike.HealthConnect
         {
             ContributionClass.Verified => "verifierat",
             ContributionClass.SelfReported => "egenrapporterat",
-            _ => "oklassat",
+            _ => contributionClass.ToString(),
         };
 
         public static string SdkStatus(string status) => status switch

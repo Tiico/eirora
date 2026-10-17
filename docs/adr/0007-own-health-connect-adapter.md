@@ -17,7 +17,7 @@ Sedan kördes den på produktägarens Pixel 7 med Android 17 och riktig data (ra
 - **Dubbletter även inom en källa:** utöver 2 712 överlappande par mellan källor fanns 595 par inom samma källa, så inte ens summan per källa går att lita på.
 - **Telefonens egen stegräknare** har källan `com.android.healthconnect.phone.<hash>`, ett namn som är unikt per enhet och inte motsvarar någon app.
 - **`UNKNOWN` är vanligt:** HeyTap Health skriver alla steg och all sömn med `recordingMethod` `UNKNOWN` och utan enhet, trots att datan kommer från en klocka.
-  Klassas `UNKNOWN` som egenrapporterat blir den mest trovärdiga källan egenrapporterad.
+  Klassas `UNKNOWN` som egenrapporterat blir den mest trovärdiga källan egenrapporterad; därför räknas `UNKNOWN` som verifierat (D-68).
 - **Sömn från en enda källa** gav ändå en annan summa än aggregatet två dagar av sex.
   Det tyder på att aggregatet räknar sömnlängd på annat sätt än sessionens början och slut (till exempel utan vakenfaser) och delar natten vid midnatt.
 - **Bakgrundsläsning och historik** finns i telefonens Health Connect, till skillnad från emulatorns.
@@ -53,7 +53,7 @@ Sedan kördes den på produktägarens Pixel 7 med Android 17 och riktig data (ra
   Utan åtgärd hoppas Kotlin-koden tyst över och bygget lyckas ändå; därför slår en egen `gradleTemplate.properties` på inbyggd Kotlin igen, och bygget underkänns om bryggklassen saknas i APK:n.
   Detta prövas på nytt vid varje Unity-uppgradering.
 - C#-gränssnittet returnerar poster med källa, enhet och `recordingMethod`; klassningen till verifierat eller egenrapporterat görs i C#, så att samma regel gäller för HealthKit och manuell inmatning.
-  Förslag: bara `MANUAL_ENTRY` blir egenrapporterat, eftersom ordlistan definierar egenrapporterat som det hälsokällan markerat som manuellt inmatat; `UNKNOWN` är inte markerat och blir verifierat.
+  Bara `MANUAL_ENTRY` blir egenrapporterat, eftersom ordlistan definierar egenrapporterat som det hälsokällan markerat som manuellt inmatat; `UNKNOWN` är inte markerat och blir verifierat (D-68).
 - Spelet identifierar aldrig källor med fasta paketnamn: telefonens egen stegräknare har ett namn per enhet.
 - Bidrag per spelardygn beräknas med Health Connects aggregat över spelardygnets intervall (deduplicering efter användarens prioritet) i stället för att summera poster (INV-B1).
 - Korrigeringar (HLT-04, INV-B3) läses med ändrings-API:t; eftersom en radering bara har ett id måste klienten minnas vilket intervall varje läst post-id hörde till, utan att spara värdena (HLT-10).

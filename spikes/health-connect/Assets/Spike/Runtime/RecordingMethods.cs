@@ -1,16 +1,13 @@
 namespace Eirora.Spike.HealthConnect
 {
-    /// <summary>The spike's proposal for how a record becomes a verified or self-reported contribution (HLT-08).</summary>
+    /// <summary>Whether a record becomes a verified or self-reported contribution (HLT-08, D-68).</summary>
     public enum ContributionClass
     {
-        /// <summary>Verifierat bidrag: recorded by the source automatically or during an active session.</summary>
+        /// <summary>Verifierat bidrag: recorded by the source and not marked as entered by hand, even when the method is unknown.</summary>
         Verified,
 
-        /// <summary>Egenrapporterat bidrag: entered by hand in the source app.</summary>
+        /// <summary>Egenrapporterat bidrag: marked by the source as entered by hand.</summary>
         SelfReported,
-
-        /// <summary>The source did not say. How to classify it is an open question (see the ADR).</summary>
-        Unknown,
     }
 
     /// <summary>Health Connect's Metadata.RECORDING_METHOD_* values.</summary>
@@ -30,11 +27,7 @@ namespace Eirora.Spike.HealthConnect
             _ => method.ToString(),
         };
 
-        public static ContributionClass Classify(int method) => method switch
-        {
-            ActivelyRecorded or AutomaticallyRecorded => ContributionClass.Verified,
-            ManualEntry => ContributionClass.SelfReported,
-            _ => ContributionClass.Unknown,
-        };
+        // D-68: only what the source marks as entered by hand is self-reported. Watch apps write UNKNOWN for real sensor data.
+        public static ContributionClass Classify(int method) => method == ManualEntry ? ContributionClass.SelfReported : ContributionClass.Verified;
     }
 }

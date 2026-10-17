@@ -110,7 +110,7 @@ De krafter som finns i en ny världs starttillstånd så att den guidade turen k
 _Avoid_: bonus, gåva (som term)
 
 **Verifierat bidrag** (`VerifiedContribution`):
-Ett bidrag som operativsystemets hälsokälla registrerat automatiskt.
+Ett bidrag som operativsystemets hälsokälla registrerat utan att det är markerat som manuellt inmatat, även när källan inte anger hur det spelades in (D-68).
 _Avoid_: äkta bidrag
 
 **Egenrapporterat bidrag** (`SelfReportedContribution`):

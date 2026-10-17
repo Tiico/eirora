@@ -41,7 +41,8 @@ namespace Eirora.Spike.HealthConnect.Tests
         [TestCase(RecordingMethods.ActivelyRecorded, ContributionClass.Verified)]
         [TestCase(RecordingMethods.AutomaticallyRecorded, ContributionClass.Verified)]
         [TestCase(RecordingMethods.ManualEntry, ContributionClass.SelfReported)]
-        [TestCase(RecordingMethods.Unknown, ContributionClass.Unknown)]
+        [TestCase(RecordingMethods.Unknown, ContributionClass.Verified)]
+        [TestCase(7, ContributionClass.Verified)]
         public void ClassifiesRecordingMethods(int method, ContributionClass expected)
         {
             Assert.That(RecordingMethods.Classify(method), Is.EqualTo(expected));
