@@ -1,7 +1,7 @@
 # Krafternas regler v1
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34, D-35, D-36, O-01  
+> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, O-01  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Invarianter:** [invariants.md](./invariants.md)
 
 Det här dokumentet bestämmer hur egenvård blir krafter: omvandling, avtagande avkastning, mjuka tak, grundnivå, manuell inmatning och hur mycket som kan sparas.
@@ -23,7 +23,7 @@ Vad krafterna kostar att använda bestäms i ekonomin (TASK-004).
 
 ## 2. Spelardygnet
 
-Krafter räknas per **spelardygn**: från en gryning till nästa.
+Krafter räknas per **spelardygn**: från en gryning till nästa (D-40).
 Spelardygnet följer alltså spelarens eget viloschema, inte midnatt, och fungerar likadant för skiftarbetare.
 
 - Steg och träningspass räknas till det spelardygn de sker i.
@@ -52,7 +52,7 @@ Både Health Connect och HealthKit har en egen datatyp för dem; det verifieras 
 ### Träningspass → Byggkraft (rullande sju spelardygn)
 
 Ett pass är ett pass: intensitet och längd utöver minimigränsen spelar ingen roll.
-Ett pass räknas om det varar **minst 10 minuter**; yoga, stretching och en promenad räknas lika mycket som ett löppass.
+Ett pass räknas om det varar **minst 10 minuter** (D-42); yoga, stretching och en promenad räknas lika mycket som ett löppass.
 
 | Passets ordning inom sju spelardygn | 1 | 2 | 3 | 4 | 5 | 6 och fler |
 |---|---|---|---|---|---|---|
@@ -125,7 +125,7 @@ När ett förråd är fullt säger spelet det lugnt, utan uppmaning att spendera
 
 | Vana | Inmatning | Rimlighetsgräns per spelardygn |
 |---|---|---|
-| Rörelse | Steg, eller aktiva minuter som räknas om med 100 steg per minut [FÖRSLAG] | 60 000 steg |
+| Rörelse | Steg, eller aktiva minuter som räknas om med 100 steg per minut (D-41) | 60 000 steg |
 | Träning | Ett pass med starttid och längd | 6 pass |
 | Sömn | Sömnperiod med start och slut, i steg om 15 minuter | 16 h |
 
@@ -156,8 +156,10 @@ Taken prövas på nytt i M8 tillsammans med reglerna för gemensamma byggen.
 - Sparandets halva tillskott räknas i en fast bråkdel av en kraft så att uppdelningen inte ger avrundningsfel (INV-F8).
 - Konkaviteten i INV-F3 gäller den exakta kurvan; efter avrundning kan den avvika med högst en kraft, men kurvan förblir växande och begränsad.
 
-## 9. Öppna frågor till produktägaren
+## 9. Beslut
 
-1. **Aktiva minuter som rörelse:** ska spelare som inte kan eller vill räkna steg kunna mata in aktiva minuter (100 steg per minut), eller räcker steg och rullstolsskjut?
-2. **Minsta passlängd:** är 10 minuter rätt gräns för att ett träningspass ska räknas?
-3. **Spelardygnet:** är det rätt att krafterna räknas från gryning till gryning i stället för från midnatt till midnatt?
+Produktägarens svar på de öppna frågorna i v0.1:
+
+- **D-40:** krafter räknas per spelardygn, från gryning till gryning.
+- **D-41:** aktiva minuter kan matas in som rörelse, med 100 steg per minut.
+- **D-42:** 10 minuter är minsta passlängd.

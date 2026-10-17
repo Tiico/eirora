@@ -126,7 +126,7 @@ Ett kommando som kostar kraft godkänns bara om saldot räcker, och minskar då 
 
 **INV-F6 Krafter förfaller inte.**
 Ett kraftsaldo minskar aldrig bara för att tiden går.
-Oanvända krafter sparas med ett mjukt tak som bara begränsar nya tillskott (D-35); taket sätts i TASK-003.
+Oanvända krafter sparas med ett mjukt tak som bara begränsar nya tillskott (D-35); taken står i [krafternas regler](./forces.md#5-sparande-d-35).
 *Test:* `saldo(advance(S, Δt)) ≥ saldo(S)`.
 
 **INV-F7 Manuell inmatning är fullvärdig i den egna världen.**
