@@ -2,14 +2,14 @@
 
 En liten Unity-app som läser steg, träningspass och sömn från Health Connect och visar varje post med värde, intervall, källa och `recordingMethod`.
 Den undersöker också dubbletter från flera källor, historik, ändringar och bakgrundsläsning.
-Slutsatserna står i [ADR-0005](../../docs/adr/0005-own-health-connect-adapter.md).
+Slutsatserna står i [ADR-0006](../../docs/adr/0006-own-health-connect-adapter.md).
 
 Spiken är kod att kasta: den ska svara på frågor, inte flyttas in som den är.
 
 ## Varför ett eget Unity-projekt
 
 - Ett eget app-id (`com.eirora.spike.healthconnect`) gör att spiken kan installeras bredvid prototypen utan att skriva över den, och avinstallation tar bort spikens behörigheter och data.
-- Produktionsklienten får inga hälsobehörigheter, ingen minSdk 26 och inga Gradle-ändringar innan ADR-0005 är beslutad; varje deklarerad hälsobehörighet kräver en deklaration i Google Play.
+- Produktionsklienten får inga hälsobehörigheter, ingen minSdk 26 och inga Gradle-ändringar innan ADR-0006 är beslutad; varje deklarerad hälsobehörighet kräver en deklaration i Google Play.
 - Spikens felsöknings-UI och bygginställningar hålls borta från `client/`.
 
 Projektet ingår inte i CI, eftersom Unity-workflowen bara bygger `client/`.
@@ -27,7 +27,7 @@ Projektet ingår inte i CI, eftersom Unity-workflowen bara bygger `client/`.
 | Sökväg | Innehåll |
 |---|---|
 | `Assets/Spike/Plugins/Android/HealthConnectBridge.androidlib/` | Kotlin-adaptern: behörigheter, läsning, aggregat, ändringar och bakgrundsläsning. |
-| `Assets/Plugins/Android/gradleTemplate.properties` | Slår på AGP:s inbyggda Kotlin, som Unity 6.3 stänger av (se ADR-0005). |
+| `Assets/Plugins/Android/gradleTemplate.properties` | Slår på AGP:s inbyggda Kotlin, som Unity 6.3 stänger av (se ADR-0006). |
 | `Assets/Spike/Runtime/` | C#-gränssnittet `IHealthConnectSource`, JNI-implementationen, fejkdata för Editorn, dubblettanalys och UI:t. |
 | `Assets/Spike/Editor/SpikeBuild.cs` | Konfigurerar och bygger APK:n från kod och kontrollerar behörigheter och Kotlin-klasser. |
 | `Assets/Spike/Tests/EditMode/` | Tester av dubblettanalys, JSON-kontraktet med Kotlin, manifestet och rapporten. |
