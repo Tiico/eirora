@@ -96,7 +96,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
   <header>
     <span class="eyebrow">Eirora · TASK-006 · M0</span>
     <h1>Art direction v0</h1>
-    <p class="lead">Tre riktningar för Eiroras värld. Samma ö, samma långhus och samma brygga, i gryning, dag, skymning och natt. Välj en riktning; den blir grunden för art bible i M9.</p>
+    <p class="lead">Tre riktningar för Eiroras värld. Samma ö, samma långhus och samma brygga, i gryning, dag, skymning och natt. Riktning A Gryningsljus är vald, med detaljer från B (D-59); den blir grunden för art bible i M9.</p>
   </header>
 
   <main id="directions" style="display:grid;gap:56px"></main>
@@ -116,7 +116,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
         </tbody>
       </table>
     </div>
-    <p class="note">Rekommendation: <strong>A Gryningsljus</strong>, med C:s krav på tydliga silhuetter. Riktningen bär namnet och gryningen, gör natten varm i stället för mörk och skiljer sig från Islanders och Bad North.</p>
+    <p class="note">Beslut: <strong>A Gryningsljus</strong>, med C:s krav på tydliga silhuetter och snidade gavlar och guldaccenter från B (D-59). Riktningen bär namnet och gryningen, gör natten varm i stället för mörk och skiljer sig från Islanders och Bad North.</p>
   </section>
 
   <section class="shared" aria-labelledby="rules">
@@ -128,6 +128,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
       <li>Natten är aldrig svart: lyktor i fönstren och ett svalt måne- eller norrskensljus visar att byn sover tryggt.</li>
       <li>Low-poly betyder synliga, avsiktliga facetter, inte låg upplösning; inga texturer med brus.</li>
       <li>Kameran är lutad cirka 50° och visar alltid horisonten i bild på zoomnivån för hela ön.</li>
+      <li>Allt uttrycks som data (paletter, ljustabeller och materialparametrar), inte som handredigerade scener.</li>
     </ul>
   </section>
 </div>
@@ -470,7 +471,7 @@ th { font-size: 13px; color: var(--muted); font-weight: 600; }
       <div class="dir-head">
         <span class="letter">${d.id}</span>
         <h2>${esc(d.name)}</h2>
-        ${d.recommended ? '<span class="recommended">Rekommenderas</span>' : ""}
+        ${d.recommended ? '<span class="recommended">Vald</span>' : ""}
         <span class="tag">${esc(d.tag)}</span>
       </div>
       <div class="strip">${PHASES.map((p) => `

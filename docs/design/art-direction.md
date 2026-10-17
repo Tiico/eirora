@@ -1,12 +1,12 @@
 # Art direction v0
 
-> **Status:** [FÖRSLAG] v0.1, väntar på produktägarens val av riktning  
-> **Ärende:** TASK-006 · **Milstolpe:** M0 · **PRD:** UX-04, UX-05, NFR-13, D-10, D-29, avsnitt 1.3  
+> **Status:** [BESLUTAT] riktning A Gryningsljus med detaljer från B (D-59)  
+> **Ärende:** TASK-006 · **Milstolpe:** M0 · **PRD:** UX-04, UX-05, NFR-13, D-10, D-29, D-59, D-60, avsnitt 1.3  
 > **Visuell jämförelse:** [art/directions.html](./art/directions.html) ([publicerad sida](https://claude.ai/artifact/Y1gXP2z4yc5oDrobiawrba)), samma ö i fyra dygnsljus för varje riktning
 
 Tre riktningar för hur Eiroras värld ser ut i low-poly 3D med lutad kamera.
 Alla tre bygger på det nordiska temat (PRD 1.3) och på gryningen som motiv (D-10).
-Produktägaren väljer en riktning; den blir grunden för art bible och produktionsflödet i M9.
+Produktägaren har valt riktning A med detaljer från B (avsnitt *Beslut*); den blir grunden för art bible och produktionsflödet i M9.
 Skisserna på jämförelsesidan är ritade i 2D för att visa palett, ljus och formspråk, inte slutlig kvalitet.
 
 ## Riktningarna i korthet
@@ -103,10 +103,12 @@ B:s snidade gavlar och guldaccenter kan lånas in som detaljer i A för att stä
 
 ## Beslut
 
-*Fylls i när produktägaren har valt riktning.*
+- **D-59: riktning A Gryningsljus.**
+  Från C gäller kravet på tydliga silhuetter och materialkontrast.
+  Från B lånas snidade gavlar och guldaccenten `#d9a441`, som bara används för det heliga och det upptäckta.
+  B:s mörka palett, dimma och volymljus tas inte med.
+- **D-60: guiden är en ljusgestalt inspirerad av Eir.**
+  Den leder den [guidade turen](./ux-journeys.md#resa-1-första-sessionen) och syns tydligast i gryningen.
+  Gestalten utformas i art bible (M9); i prototypen räcker en enkel ljuskälla med text.
 
-## Öppna frågor till produktägaren
-
-1. Vilken riktning väljer du: A, B, C eller A med detaljer från B?
-2. Vem är guiden som hälsar spelaren i första sessionen ([UX-resorna](./ux-journeys.md))?
-   Förslag i riktning A: en ljusgestalt inspirerad av Eir, som syns tydligast i gryningen.
+Riktningarna B och C står kvar ovan som referens för varför valet gjordes.
