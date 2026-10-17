@@ -1,7 +1,7 @@
 # EIRORA — Roadmap till version 1.0
 
-> **Dokumentstatus:** Utkast v0.3 — reviderat efter produktgrillning och namnbeslut  
-> **Datum:** 2026-10-17  
+> **Dokumentstatus:** Utkast v0.4 — nästa uppgifter för M0–M2  
+> **Datum:** 2026-10-18  
 > **Produktkrav:** [PRD.md](./PRD.md) · **Ordlista:** [GLOSSARY.md](./GLOSSARY.md) · **Beslut:** [docs/adr/](./docs/adr/)  
 > **Planeringsprincip:** kvalitetsstyrda milstolpar. **Utvecklingstid är aldrig en faktor** (D-09); genvägar och halvfärdiga system accepteras inte.
 
@@ -330,6 +330,32 @@ flowchart TD
 9. **TASK-009 — Format för prototypdagbok** och rutin för att återföra lärdomar: [prototype-diary.md](./docs/design/prototype-diary.md).
 10. **TASK-010 — Reporstruktur och CI** för Android och iOS.
 
+### Nästa uppgifter
+
+Uppgifterna täcker det som återstår till grind A0 och A1 och hela M2 fram till grind A2.
+Beroendena står som GitHub-beroenden på ärendena; M2-ärenden som bygger på prototypen väntar på TASK-008.
+
+| Uppgift | Milstolpe | Blockeras av |
+|---|---|---|
+| [TASK-011 — Kontur för epok 1](https://github.com/Tiico/eirora/issues/26) | M0 | – |
+| [TASK-012 — Grind A0: en hel dag med siffror](https://github.com/Tiico/eirora/issues/27) | M0 | TASK-011 |
+| [TASK-013 — Hälsodata i prototypen via Health Connect](https://github.com/Tiico/eirora/issues/28) | M1 | TASK-007, TASK-008 |
+| [TASK-014 — Installera och uppdatera utan att världen går förlorad](https://github.com/Tiico/eirora/issues/29) | M1 | TASK-008 |
+| [TASK-015 — Prestanda och batteri på produktägarens telefon](https://github.com/Tiico/eirora/issues/30) | M1 | TASK-008 |
+| [TASK-016 — Grind A1: 14 spelade dygn och lärdomar återförda](https://github.com/Tiico/eirora/issues/31) | M1 | TASK-013, TASK-014 |
+| [TASK-017 — ADR: versionering av regler, innehåll och sparningar](https://github.com/Tiico/eirora/issues/32) | M2 | – |
+| [TASK-018 — ADR: backend-hosting, auth och databas (O-09)](https://github.com/Tiico/eirora/issues/33) | M2 | – |
+| [TASK-019 — Snapshots och replay i simuleringskärnan](https://github.com/Tiico/eirora/issues/34) | M2 | TASK-008, TASK-017 |
+| [TASK-020 — Sparformat med migrationer och lokal persistens](https://github.com/Tiico/eirora/issues/35) | M2 | TASK-017, TASK-019 |
+| [TASK-021 — Determinism: samma replay på klient och server](https://github.com/Tiico/eirora/issues/36) | M2 | TASK-019 |
+| [TASK-022 — Backend-skelett: konto och inloggning](https://github.com/Tiico/eirora/issues/37) | M2 | TASK-018 |
+| [TASK-023 — Molnsparning och konflikter mellan enheter](https://github.com/Tiico/eirora/issues/38) | M2 | TASK-020, TASK-022 |
+| [TASK-024 — Mätbudgetar och målenheter (O-13)](https://github.com/Tiico/eirora/issues/39) | M2 | TASK-015 |
+| [TASK-025 — Varumärkes- och butikskontroll av "Eirora" (O-11)](https://github.com/Tiico/eirora/issues/40) | M2 | – |
+| [TASK-026 — Grind A2: teknisk grund](https://github.com/Tiico/eirora/issues/41) | M2 | TASK-020, TASK-021, TASK-023, TASK-024 |
+
+M2 punkt 1 och 2 (reporstruktur och CI med kodanalys och beroendeskanning) levererades i TASK-010.
+
 **Format för backlogpost:** ett GitHub-ärende med Epic, Milstolpe, PRD-referens, Prioritet, Förutsättningar, Beskrivning, Invariant, Acceptanskriterier (Given/When/Then), Testnivå, Integritetspåverkan, Migration och Definition of Done.
 
 ---
@@ -344,9 +370,9 @@ flowchart TD
 | [ADR-0004](./docs/adr/0004-shared-libraries-as-source-packages.md) | De delade biblioteken kompileras från samma källkod av både .NET och Unity | Beslutat |
 | [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
 | kommande | Kartformat och generatorversion | Inför M3 |
-| kommande | Versionering av regler, innehåll och sparningar | Inför M2 |
-| kommande | Hälsoadapter: HealthBridge eller egen (O-08) | Inför M1/M6 |
-| kommande | Backend-hosting, auth och databas (O-09) | Inför M2 |
+| kommande | Versionering av regler, innehåll och sparningar ([TASK-017](https://github.com/Tiico/eirora/issues/32)) | Inför M2 |
+| kommande | Hälsoadapter: HealthBridge eller egen (O-08, [TASK-007](https://github.com/Tiico/eirora/issues/8)) | Inför M1/M6 |
+| kommande | Backend-hosting, auth och databas (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Inför M2 |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |
 
 ---
@@ -429,3 +455,4 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 | 0.1 | 2026-10-17 | Första planutkast M0–M11 (Arkipelagen). |
 | 0.2 | 2026-10-17 | Verdawn. Ny ordning med tidig prototyp i fickan (M1). Hälsa, vilolås, grupper och arkipelag som kärna. Unity + ASP.NET Core. Visuell kvalitet som egen ström och grind. M0–M12. |
 | 0.3 | 2026-10-17 | Namn Eirora ersätter Verdawn; art direction förankras i det nordiska temat. |
+| 0.4 | 2026-10-18 | Nästa uppgifter TASK-011–026: luckorna till grind A0 och A1 och hela M2 till grind A2. |
