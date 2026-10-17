@@ -17,5 +17,26 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The amount is negative or beyond what the source can plausibly report.</summary>
         AmountOutOfRange,
+
+        /// <summary>The site is hidden, already taken or the wrong kind of land for the building.</summary>
+        SiteUnavailable,
+
+        /// <summary>The store does not hold the materials the work costs.</summary>
+        InsufficientResources,
+
+        /// <summary>The force the command costs is not available (INV-F5).</summary>
+        InsufficientForces,
+
+        /// <summary>There is no suitable building on the site.</summary>
+        NoBuildingThere,
+
+        /// <summary>It is already done, queued or not needed, such as a second upgrade or a road to a building next to the store.</summary>
+        AlreadyDone,
+
+        /// <summary>Every survey area has been surveyed.</summary>
+        NothingLeftToSurvey,
+
+        /// <summary>The building queue is empty.</summary>
+        NothingToRush,
     }
 }
