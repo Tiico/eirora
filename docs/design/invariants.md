@@ -151,6 +151,7 @@ Ett bidrag har exakt en vana, ett tidsintervall och en klassning: verifierat ell
 **INV-B3 Korrigeringar är kompensationshändelser.**
 Sen eller ändrad källdata ger kompensationshändelser, så att summan av bidrag konvergerar till den korrigerade källan.
 En korrigering nedåt klipps vid noll: den gör aldrig ett kraftsaldo negativt och tar aldrig tillbaka något som redan byggts eller upptäckts (D-36).
+Den drar heller aldrig av mer kraft än bidraget faktiskt gav under sparandets tak (D-62).
 *Test:* efter varje sekvens av importer och korrigeringar är bidragssumman lika med källans slutliga värde, och INV-F1 och INV-V1 håller.
 
 **INV-B4 Ingen rådata i tillståndet.**

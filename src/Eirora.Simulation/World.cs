@@ -160,6 +160,7 @@ namespace Eirora.Simulation
             foreach (var (day, habit) in _unreconciled)
             {
                 var (force, expected, credited) = _selfCare.Reconcile(day, habit);
+                long halvesBefore = _forces.Halves(force);
                 if (expected > credited)
                 {
                     int gained = _forces.Credit(force, expected - credited);
@@ -167,9 +168,14 @@ namespace Eirora.Simulation
                 }
                 else if (expected < credited)
                 {
-                    int removed = _forces.Withdraw(force, credited - expected);
+                    // A correction never takes back more than this day and habit actually gave under the soft cap (D-36).
+                    long correction = 2L * (credited - expected), gave = _selfCare.GainedHalves(day, habit);
+                    long limit = correction < gave ? correction : gave;
+                    int removed = _forces.WithdrawHalves(force, limit);
                     _events.Add(new ForceWithdrawn(utcSeconds, force, removed));
                 }
+
+                _selfCare.AddGainedHalves(day, habit, _forces.Halves(force) - halvesBefore);
             }
 
             _unreconciled.Clear();

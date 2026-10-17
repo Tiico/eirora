@@ -147,7 +147,8 @@ namespace Eirora.Simulation.Time
 
         /// <summary>
         /// The next rest start at or after now, in UTC, using the offset of the span being advanced.
-        /// A pending schedule takes over for starts at or after its effective time.
+        /// A pending schedule takes over once both its next start and the current schedule's lie at or after its
+        /// effective time. When only the current one does, it rests one more night, so a change never skips a night.
         /// </summary>
         private long NextRestStartUtc(TimeReading span)
         {
@@ -155,10 +156,13 @@ namespace Eirora.Simulation.Time
             long start = NextStartUtc(from, span.OffsetSeconds, _schedule);
             if (_pendingSchedule is RestSchedule pending && start >= _pendingEffectiveUtc)
             {
-                _schedule = pending;
-                _pendingSchedule = null;
-                long effectiveFrom = from > _pendingEffectiveUtc ? from : _pendingEffectiveUtc;
-                start = NextStartUtc(effectiveFrom, span.OffsetSeconds, _schedule);
+                long pendingStart = NextStartUtc(from, span.OffsetSeconds, pending);
+                if (pendingStart >= _pendingEffectiveUtc)
+                {
+                    _schedule = pending;
+                    _pendingSchedule = null;
+                    start = pendingStart;
+                }
             }
 
             return start;

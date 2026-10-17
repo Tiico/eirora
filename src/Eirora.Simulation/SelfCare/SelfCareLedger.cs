@@ -21,6 +21,9 @@ namespace Eirora.Simulation.SelfCare
         // Force each (day, habit) has been credited so far, before the soft cap.
         private readonly SortedDictionary<(int Day, Habit Habit), int> _credited = new();
 
+        // Half forces each (day, habit) actually added to the balance, after the soft cap (D-36).
+        private readonly SortedDictionary<(int Day, Habit Habit), long> _gainedHalves = new();
+
         public void Record(int day, Habit habit, ContributionSource source, int total) => _totals[(day, habit, source)] = total;
 
         /// <summary>The game days whose force can change when <paramref name="habit"/> changes on <paramref name="day"/>.</summary>
@@ -51,6 +54,12 @@ namespace Eirora.Simulation.SelfCare
         /// <summary>Marks a day's force as already credited, such as the guided tour's Dawn Power on day 0.</summary>
         public void MarkCredited(int day, Habit habit, int amount) => _credited[(day, habit)] = amount;
 
+        /// <summary>The half forces a game day's habit has added to the balance so far.</summary>
+        public long GainedHalves(int day, Habit habit) => _gainedHalves.TryGetValue((day, habit), out long halves) ? halves : 0;
+
+        /// <summary>Adds <paramref name="halves"/> to what a game day's habit has added; negative after a correction.</summary>
+        public void AddGainedHalves(int day, Habit habit, long halves) => _gainedHalves[(day, habit)] = GainedHalves(day, habit) + halves;
+
         public void AppendFingerprint(StringBuilder text)
         {
             text.Append("selfcare:");
@@ -62,6 +71,12 @@ namespace Eirora.Simulation.SelfCare
 
             text.Append("credited:");
             foreach (var entry in _credited)
+            {
+                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
+            }
+
+            text.Append("gained:");
+            foreach (var entry in _gainedHalves)
             {
                 text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
             }
