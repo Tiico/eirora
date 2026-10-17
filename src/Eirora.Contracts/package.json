@@ -1,0 +1,10 @@
+{
+  "name": "com.eirora.contracts",
+  "version": "0.1.0",
+  "displayName": "Eirora Contracts",
+  "description": "Wire contracts shared by the Unity client and the server. Built from the same sources as src/Eirora.Contracts/Eirora.Contracts.csproj.",
+  "unity": "6000.3",
+  "author": {
+    "name": "Eirora"
+  }
+}

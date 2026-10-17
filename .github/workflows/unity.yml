@@ -1,0 +1,174 @@
+# Tests the Unity client and builds it for Android and iOS.
+# Runs on pushes that can change a build (the client or the libraries it compiles) and on demand.
+# Needs the Unity license secrets described in docs/development.md#ci.
+name: Unity
+
+on:
+  push:
+    paths:
+      - client/**
+      - src/Eirora.Simulation/**
+      - src/Eirora.Contracts/**
+      - .github/workflows/unity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+  UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+jobs:
+  license:
+    name: Check Unity license secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail with instructions when a secret is missing
+        run: |
+          missing=""
+          [ -n "$UNITY_LICENSE" ] || missing="$missing UNITY_LICENSE"
+          [ -n "$UNITY_EMAIL" ] || missing="$missing UNITY_EMAIL"
+          [ -n "$UNITY_PASSWORD" ] || missing="$missing UNITY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error title=Unity license secrets missing::Missing:$missing. Add them under Settings > Secrets and variables > Actions, see docs/development.md#ci."
+            exit 1
+          fi
+
+  test:
+    name: Unity tests
+    needs: license
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/cache@v6
+        with:
+          path: client/Library
+          key: unity-library-test-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          restore-keys: unity-library-test-
+
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        with:
+          projectPath: client
+          testMode: all
+          artifactsPath: test-results
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: unity-test-results
+          path: ${{ steps.tests.outputs.artifactsPath }}
+          retention-days: 14
+
+  android:
+    name: Android build
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # The Android editor image and build need more disk than a hosted runner has free by default.
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+
+      - uses: actions/checkout@v7
+        with:
+          # Semantic versioning derives the version and androidVersionCode from git history.
+          fetch-depth: 0
+
+      - uses: actions/cache@v6
+        with:
+          path: client/Library
+          key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          restore-keys: unity-library-android-
+
+      # Without the keystore secrets the APK is signed with Unity's debug key, which is enough to sideload the prototype.
+      - uses: game-ci/unity-builder@v6
+        with:
+          projectPath: client
+          targetPlatform: Android
+          buildName: Eirora
+          androidExportType: androidPackage
+          androidKeystoreName: eirora.keystore
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: eirora-android
+          path: build/Android
+          retention-days: 14
+
+  ios-project:
+    name: iOS Xcode project
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/cache@v6
+        with:
+          path: client/Library
+          key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          restore-keys: unity-library-ios-
+
+      - uses: game-ci/unity-builder@v6
+        with:
+          projectPath: client
+          targetPlatform: iOS
+          buildName: Eirora
+
+      # Artifacts drop file modes; tar keeps the executable bit on the Xcode project's build scripts.
+      - run: tar -czf eirora-ios-xcode.tar.gz -C build iOS
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: eirora-ios-xcode
+          path: eirora-ios-xcode.tar.gz
+          retention-days: 3
+
+  ios:
+    name: iOS build (Xcode on macOS)
+    needs: ios-project
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: eirora-ios-xcode
+
+      - run: mkdir -p build && tar -xzf eirora-ios-xcode.tar.gz -C build
+
+      # Compiles the generated Xcode project for device without signing: proves the iOS chain works before we own an iPhone (D-26).
+      - name: Build with Xcode
+        run: |
+          project="$(find build/iOS -maxdepth 3 -name 'Unity-iPhone.xcodeproj' | head -n 1)"
+          if [ -z "$project" ]; then
+            echo "::error::Unity-iPhone.xcodeproj not found in the iOS build artifact"
+            exit 1
+          fi
+          xcodebuild \
+            -project "$project" \
+            -scheme Unity-iPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build

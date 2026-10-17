@@ -1,0 +1,34 @@
+# Builds and tests the simulation library, contracts and server on every push.
+name: .NET
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build, analyse and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Restore also audits every direct and transitive package for known vulnerabilities (NuGetAudit).
+      - run: dotnet restore Eirora.slnx
+
+      - run: dotnet format Eirora.slnx --no-restore --verify-no-changes
+
+      - run: dotnet build Eirora.slnx --no-restore --configuration Release
+
+      - run: dotnet test --solution Eirora.slnx --no-build --configuration Release

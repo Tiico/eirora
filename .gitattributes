@@ -1,0 +1,27 @@
+* text=auto eol=lf
+
+*.cs diff=csharp
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Unity serialises assets as YAML; merge them with Unity's Smart Merge (UnityYAMLMerge).
+*.unity text merge=unityyamlmerge
+*.prefab text merge=unityyamlmerge
+*.asset text merge=unityyamlmerge
+*.mat text merge=unityyamlmerge
+*.anim text merge=unityyamlmerge
+*.controller text merge=unityyamlmerge
+*.meta text
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.psd binary
+*.fbx binary
+*.blend binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary
+*.otf binary

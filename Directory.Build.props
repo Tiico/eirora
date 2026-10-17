@@ -1,0 +1,17 @@
+<Project>
+  <!-- Shared build settings for every .NET project in the repo. -->
+  <PropertyGroup>
+    <!-- bin/ and obj/ go to artifacts/, so the Unity packages under src/ only contain source. -->
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Fail restore on known vulnerabilities in direct and transitive packages. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+  </PropertyGroup>
+</Project>
