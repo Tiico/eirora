@@ -78,6 +78,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-31 | **Engelska + svenska**, global release; lokalisering byggd för fler språk | [BESLUTAT] |
 | D-32 | Arbetssätt: **kort design, sedan spelbar prototyp** på produktägarens Android som spelas dagligen | [BESLUTAT] |
 | D-33 | Notiser: **få, valbara per typ, aldrig FOMO**; inga under viloperioden | [BESLUTAT] |
+| D-34 | **Strategin kan hinna ikapp egenvården:** inom normalt spann ska måttlig egenvård med god strategi kunna mäta sig med hög egenvård och naiv strategi; vid samma strategi syns mer egenvård alltid i världen | [BESLUTAT] |
+| D-35 | **Oanvända krafter sparas med mjukt tak** och förfaller aldrig | [BESLUTAT] |
+| D-36 | **En korrigering nedåt av ett bidrag klipps vid noll:** kraftsaldot blir aldrig negativt och inget som redan hänt tas tillbaka | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -574,6 +577,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-01–D-09 | 2026-10-17 | Se avsnitt 1.1 | Produktdialog v0.1 |
 | D-03, D-08 | 2026-10-17 | Förtydligade och D-08 upphöjt till BESLUTAT | Produktgrillning |
 | D-10–D-33 | 2026-10-17 | Se avsnitt 1.1 | Produktgrillning |
+| D-34–D-36 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-001 och TASK-002 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
 | — | 2026-10-17 | Serverauktoritet för hela spelet ersatt av lokal värld + server för det delade | ADR-0001 |

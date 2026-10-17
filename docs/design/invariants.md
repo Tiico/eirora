@@ -1,7 +1,7 @@
 # Simuleringsinvarianter
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-002 · **Milstolpe:** M0 · **PRD:** NFR-02, CIV-04, CIV-06, RST-*, HLT-04–10, SOC-04, D-08, D-17, D-22  
+> **Ärende:** TASK-002 · **Milstolpe:** M0 · **PRD:** NFR-02, CIV-04, CIV-06, RST-*, HLT-04–10, SOC-04, D-08, D-17, D-22, D-35, D-36  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md)
 
 Det här är det som **alltid** är sant i simuleringen av en värld, oavsett innehåll, balans eller regelversion.
@@ -124,7 +124,7 @@ Ett kommando som kostar kraft godkänns bara om saldot räcker, och minskar då 
 
 **INV-F6 Krafter förfaller inte.**
 Ett kraftsaldo minskar aldrig bara för att tiden går.
-Ett eventuellt tak för hur mycket som kan sparas begränsar bara nya tillskott [ÖPPET, TASK-003].
+Oanvända krafter sparas med ett mjukt tak som bara begränsar nya tillskott (D-35); taket sätts i TASK-003.
 *Test:* `saldo(advance(S, Δt)) ≥ saldo(S)`.
 
 **INV-F7 Manuell inmatning är fullvärdig i den egna världen.**
@@ -143,7 +143,7 @@ Ett bidrag har exakt en vana, ett tidsintervall och en klassning: verifierat ell
 
 **INV-B3 Korrigeringar är kompensationshändelser.**
 Sen eller ändrad källdata ger kompensationshändelser, så att summan av bidrag konvergerar till den korrigerade källan.
-En korrigering nedåt gör aldrig ett kraftsaldo negativt och tar aldrig tillbaka något som redan byggts eller upptäckts [FÖRSLAG].
+En korrigering nedåt klipps vid noll: den gör aldrig ett kraftsaldo negativt och tar aldrig tillbaka något som redan byggts eller upptäckts (D-36).
 *Test:* efter varje sekvens av importer och korrigeringar är bidragssumman lika med källans slutliga värde, och INV-F1 och INV-V1 håller.
 
 **INV-B4 Ingen rådata i tillståndet.**
@@ -206,8 +206,9 @@ Det dagliga taket för egenrapporterade gruppbidrag är lägre än för verifier
 
 ## Öppna frågor till produktägaren
 
-1. **Sommartid:** räknas viloperiodens 6–10 timmar i lokal tid eller i verklig tid när en övergång infaller under natten? Avgörs i ADR:n för tidsmotorn inför M2/M7.
-2. **Korrigering nedåt (INV-B3):** förslaget är att aldrig låta kraftsaldot bli negativt och aldrig ta tillbaka något som redan har hänt. Alternativet med skuld som betalas av med senare bidrag är mer exakt men känns som straff.
-3. **Rivning:** ska spelaren kunna riva byggnader? I så fall är det det enda undantaget från INV-V1, och det måste vara ett uttryckligt kommando.
-4. **Basbehov (INV-V3):** räcker det att ouppfyllda basbehov bara stoppar tillväxt? Detaljerna avgörs i TASK-004.
-5. **Tak för sparade krafter (INV-F6):** avgörs i TASK-003.
+1. **Sommartid:** räknas viloperiodens 6–10 timmar i lokal tid eller i verklig tid när en övergång infaller under natten?
+   Avgörs i ADR:n för tidsmotorn inför M2/M7.
+2. **Rivning:** ska spelaren kunna riva byggnader?
+   I så fall är det det enda undantaget från INV-V1, och det måste vara ett uttryckligt kommando.
+3. **Basbehov (INV-V3):** räcker det att ouppfyllda basbehov bara stoppar tillväxt?
+   Detaljerna avgörs i TASK-004.
