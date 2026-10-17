@@ -39,14 +39,44 @@ namespace Eirora.Client.App
         /// <summary>Loads the saved world if there is one; returns false on first launch.</summary>
         public bool TryLoad()
         {
+            LoadProblem = null;
             if (_savePath is null || !File.Exists(_savePath))
             {
                 return false;
             }
 
-            _journal = Journal.Load(File.ReadAllText(_savePath));
+            try
+            {
+                _journal = Journal.Load(File.ReadAllText(_savePath));
+            }
+            catch (FormatException problem)
+            {
+                // A journal this build cannot replay, for example from other rules, is never overwritten (TASK-014, ADR-0006).
+                LoadProblem = problem.Message;
+                return false;
+            }
+
             CatchUp();
             return true;
+        }
+
+        /// <summary>Why the saved world could not be loaded, or null when nothing went wrong.</summary>
+        public string? LoadProblem { get; private set; }
+
+        /// <summary>
+        /// Moves a save that could not be loaded aside under a dated name, so a new world can begin without losing it.
+        /// </summary>
+        public string? SetAsideSave()
+        {
+            if (_savePath is null || !File.Exists(_savePath))
+            {
+                return null;
+            }
+
+            string aside = $"{_savePath}.{DateTime.UtcNow:yyyyMMdd-HHmmss}.unreadable";
+            File.Move(_savePath, aside);
+            LoadProblem = null;
+            return aside;
         }
 
         /// <summary>Creates a new world with the chosen rest period (D-50).</summary>

@@ -65,6 +65,14 @@ namespace Eirora.Client
             {
                 Refresh();
             }
+            else if (_session.LoadProblem is not null)
+            {
+                _hud.ShowUnreadableSave(() =>
+                {
+                    _session.SetAsideSave();
+                    _hud.ShowSetup(schedule => _session.Begin(schedule));
+                });
+            }
             else
             {
                 _hud.ShowSetup(schedule => _session.Begin(schedule));

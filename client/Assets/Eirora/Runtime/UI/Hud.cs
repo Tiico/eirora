@@ -107,6 +107,22 @@ namespace Eirora.Client.UI
             });
         }
 
+        /// <summary>
+        /// The saved world cannot be read by this build. Nothing is overwritten; starting anew keeps the old save aside.
+        /// </summary>
+        public void ShowUnreadableSave(System.Action startAnew)
+        {
+            var card = Container("card setup", _middle);
+            Text("setup-title", card, "Din värld väntar");
+            Text("sheet-text", card, "Den här versionen av Eirora kan inte läsa din sparade värld, troligen för att reglerna har ändrats. Världen är kvar och ingenting har skrivits över.");
+            Text("sheet-text", card, "Du kan vänta på en version som kan läsa den, eller börja en ny värld. Den gamla sparas då undan.");
+            Button("button button-wide", card, "Börja en ny värld", () =>
+            {
+                _middle.Remove(card);
+                startAnew();
+            });
+        }
+
         public void Show(World world, IReadOnlyList<GameEvent> sinceDawn)
         {
             _world = world;
