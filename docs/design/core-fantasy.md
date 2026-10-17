@@ -97,7 +97,7 @@ Varje skydd nedan går att verifiera:
 
 ## Hypoteser för prototypen (M1)
 
-Dessa avgörs genom dagligt spel och skrivs in i prototypdagboken (TASK-009):
+Dessa avgörs genom dagligt spel och skrivs in i [prototypdagboken](./prototype-diary.md) (TASK-009); läget per vecka förs i [lärdomsloggen](./prototype-learnings.md):
 
 - **H1 Beslutet är verkligt:** det är sällan uppenbart vart krafterna ska riktas.
 - **H2 Taket känns inte som straff:** en mycket aktiv dag känns bra även när avkastningen avtar.
