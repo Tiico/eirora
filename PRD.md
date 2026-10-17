@@ -153,6 +153,7 @@ Optimera inte ensidigt sessionstid eller retention.
 1. **Egenvård är motorn, strategi är ratten.**
    Egenvården ger krafterna; spelarens beslut om var och hur de används avgör hur bra världen blir.
    Spelet får aldrig reduceras till en stegräknare med dekor.
+   Se [kärnfantasin](./docs/design/core-fantasy.md).
 2. **Passivt som standard:** planera kort, lev livet, återvänd till en meningsfull rapport.
 3. **Vila är en spelregel:** vilolåset är verkligt, gäller alla och presenteras positivt.
 4. **Inga straff för livet:** sjukdom, resor, dålig sömn och frånvaro ger aldrig förlust eller förfall.
