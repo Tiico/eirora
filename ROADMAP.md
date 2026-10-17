@@ -344,7 +344,7 @@ flowchart TD
 | kommande | Tidsmotor, tidszoner och dygnsschema | Inför M2/M7 |
 | kommande | Kartformat och generatorversion | Inför M3 |
 | kommande | Versionering av regler, innehåll och sparningar | Inför M2 |
-| kommande | Hälsoadapter: HealthBridge eller egen (O-08) | Inför M1/M6 |
+| [ADR-0005](./docs/adr/0005-own-health-connect-adapter.md) | Health Connect läses med en egen Kotlin-adapter bakom ett C#-gränssnitt, inte med HealthBridge (O-08) | Förslag, väntar på test på telefon |
 | kommande | Backend-hosting, auth och databas (O-09) | Inför M2 |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |
 

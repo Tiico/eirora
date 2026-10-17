@@ -644,7 +644,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
-| O-08 | Egen native-adapter eller HealthBridge? | Utvärdera mot HLT-04/08 | M1 |
+| O-08 | Egen native-adapter eller HealthBridge? | Förslag: egen adapter ([ADR-0005](./docs/adr/0005-own-health-connect-adapter.md)); avgörs efter test på telefon | M1 |
 | O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |
