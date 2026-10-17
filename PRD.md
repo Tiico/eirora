@@ -84,6 +84,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-37 | **Viloschemat följer lokal tid:** 6–10 h gäller schemat på väggklockan; vid sommartidsövergång kan den verkliga längden bli 5–11 h | [BESLUTAT] |
 | D-38 | **Rivning är ett uttryckligt kommando** med bekräftelse och det enda sättet något i världen kan minska | [BESLUTAT] |
 | D-39 | **Ouppfyllda basbehov stoppar bara tillväxt;** bybor, byggnadsnivåer och grundproduktion minskar aldrig | [BESLUTAT] |
+| D-40 | **Krafter räknas per spelardygn,** från gryning till gryning, inte per kalenderdygn | [BESLUTAT] |
+| D-41 | **Aktiva minuter kan matas in som rörelse** och räknas om med 100 steg per minut, inom samma tak som steg | [BESLUTAT] |
+| D-42 | **Ett träningspass räknas från 10 minuter;** längd och intensitet därutöver spelar ingen roll | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -385,6 +388,8 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 | Träningspass | Byggkraft | Större byggprojekt, uppgraderingar, gemensamma byggen | Ett pass är ett pass; intensitet krävs inte |
 | Sömnlängd | Gryningskraft | Bybornas energi, morgonens planeringsdrag | Mjukt tak ~7–8 h; ingen kvalitetspoäng; saknad data = grundnivå |
 
+Kurvor, tak och sparande står i [krafternas regler](./docs/design/forces.md).
+
 **Ekonomin** (Anno-inspirerad) körs själv i grundtakt: råvaror → förädling → avancerade varor, med lager, arbetskraft och transport.
 Krafterna avgör vilka stora steg som kan tas.
 Resurslager [FÖRSLAG]: basbehov, naturresurser, förädlade varor, avancerade varor, kapaciteter.
@@ -584,6 +589,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-10–D-33 | 2026-10-17 | Se avsnitt 1.1 | Produktgrillning |
 | D-34–D-36 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-001 och TASK-002 |
 | D-37–D-39 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-002 |
+| D-40–D-42 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-003 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
 | — | 2026-10-17 | Serverauktoritet för hela spelet ersatt av lokal värld + server för det delade | ADR-0001 |

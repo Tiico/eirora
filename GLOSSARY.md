@@ -87,6 +87,10 @@ _Avoid_: nattlås, sömnlås, paus
 Övergången när viloperioden slutar och världen öppnar igen.
 _Avoid_: upplåsning, reset
 
+**Spelardygn** (`GameDay`):
+Tiden från en gryning till nästa; enheten som krafter räknas per.
+_Avoid_: dag, kalenderdygn (när spelardygnet avses)
+
 ## Simulering
 
 **Kommando** (`GameCommand`):
