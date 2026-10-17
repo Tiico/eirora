@@ -1,7 +1,7 @@
 # Prototypdagbok och veckogenomgång
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-009 · **Milstolpe:** M1 · **Grind:** A1 · **PRD:** D-32, princip 9 och 11, HLT-10, mål 1–4  
+> **Ärende:** TASK-009 · **Milstolpe:** M1 · **Grind:** A1 · **PRD:** D-32, D-46–D-48, princip 3, 9 och 11, HLT-10, mål 1–4  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Hypoteser:** [core-fantasy.md](./core-fantasy.md#hypoteser-för-prototypen-m1) · **Logg:** [prototype-learnings.md](./prototype-learnings.md)
 
 Under M1 spelar produktägaren prototypen varje dag på sin Android-telefon (D-32).
@@ -13,7 +13,7 @@ Tillsammans är de underlaget för grind A1: minst 14 spelade dygn, med lärdoma
 ## 1. Principer
 
 1. **Under två minuter per dag.**
-   Tre frågor med en mening var och en valfri fri rad.
+   Tre frågor med en mening var, och en valfri fri rad.
    En kort anteckning varje dag är värd mer än en lång anteckning ibland.
 2. **Upplevelse, aldrig hälsodata.**
    Dagboken beskriver hur spelet kändes, inte hur produktägaren levde (avsnitt 2).
@@ -59,7 +59,7 @@ Varje fråga besvaras med en mening; ett streck räcker när inget kommer till e
 |---|---|---|
 | 1 | **Beslutet:** Vilket beslut tänkte du mest på i dag, och var det självklart? | H1 Beslutet är verkligt · mål 1 strategiskt djup |
 | 2 | **Spegeln:** Kändes det som att världen svarade på det du gav dig själv? | H2 Taket känns inte som straff · H3 Spegeln syns · mål 4 |
-| 3 | **Känslan:** Med ett ord, hur kändes det att öppna och att lämna spelet, och varför? | H4 Kort räcker · mål 2–3 · guardrails för stress och skuld |
+| 3 | **Känslan:** Med ett ord, hur kändes det att öppna och att lämna spelet, och varför? | H4 Kort räcker · H5 Vilan känns som en gåva · mål 2–3 · guardrails för stress och skuld |
 | – | **Fritt** (valfritt): allt annat | Buggar, skönhet, idéer, vilolåset, gruppen |
 
 Den fria raden får gärna börja med **Bugg:**, **Fult:**, **Vackert:** eller **Idé:**, så går sorteringen fortare.
@@ -86,7 +86,7 @@ Den som skriver om ett tidigare spelardygn börjar med **Gäller:** och veckodag
 
 ## 4. Var dagboken lagras
 
-**Ett GitHub-ärende per vecka, med en kommentar per spelardygn** [FÖRSLAG].
+**Ett GitHub-ärende per vecka, med en kommentar per spelardygn** (D-46).
 
 | Alternativ | För | Emot |
 |---|---|---|
@@ -108,12 +108,12 @@ Det som ska bestå skrivs ändå in i repot, i [lärdomsloggen](./prototype-lear
 
 ## 5. Veckogenomgången
 
-En gång i veckan, första spelardygnet i den nya veckan [FÖRSLAG], går produktägaren och en agent igenom veckans anteckningar.
+En gång i veckan, första spelardygnet i den nya veckan (D-47), går produktägaren och en agent igenom veckans anteckningar.
 Agenten gör förarbetet och efterarbetet; produktägarens del tar omkring 15 minuter.
 
 1. **Agenten förbereder.**
    Den läser veckans dagboksärende och sorterar varje observation enligt avsnitt 5.1.
-   Förslaget postas som en kommentar i ärendet med antal spelade dygn, läget för hypoteserna H1–H4 och ett föreslaget utfall per observation.
+   Förslaget postas som en kommentar i ärendet med antal spelade dygn, läget för hypoteserna H1–H5 och ett föreslaget utfall per observation.
    Observationer som togs upp förra veckan och fortfarande bevakas finns med.
    Agenten länkar till anteckningarna i stället för att citera dem.
 2. **Produktägaren beslutar.**
@@ -148,7 +148,7 @@ En lärdom blir ett utfall efter sin sort:
 | En regel eller ett system känns fel | Designändring i `docs/design/` och vid behov PRD:n; ett ändrat beslut får ett D-nummer | `ready-for-agent` när riktningen är beslutad, `needs-info` när mer spel behövs |
 | Något ser fel ut eller är svårt att hitta | Ärende för art eller UX | `ready-for-agent` |
 | Kräver produktägarens test på enhet | Ärende till produktägaren | `ready-for-human` |
-| Belägger eller motsäger en hypotes, utan att något ska ändras | Raden för H1–H4 i lärdomsloggen; designändring i [core-fantasy.md](./core-fantasy.md) om en hypotes faller | – |
+| Belägger eller motsäger en hypotes, utan att något ska ändras | Raden för H1–H5 i lärdomsloggen; designändring i [core-fantasy.md](./core-fantasy.md) om en hypotes faller | – |
 
 Varje ärende följer backlogformatet i [ROADMAP.md](../../ROADMAP.md#5-epics-och-första-backlog) och börjar med en rad som pekar på lärdomen och dagboksanteckningen, till exempel `Lärdom L-04 från Prototypdagbok 2026-W43`.
 Ärendet beskriver vad som ska ändras och varför, med ordlistans termer, och upprepar aldrig hälsouppgifter.
@@ -182,9 +182,10 @@ gh issue create --title "Prototypdagbok 2026-W44" --label prototype-diary --body
 Kommandot skapar nästa veckas ärende från mallen utan dess frontmatter.
 Ärenden ur genomgången skapas enligt [docs/agents/issue-tracker.md](../agents/issue-tracker.md).
 
-## 6. Öppna frågor till produktägaren
+## 6. Beslut
 
-1. **Lagring:** är ett ärende per vecka rätt, eller väger versionering i git tyngre än den dagliga tröskeln och risken i git-historiken?
-2. **Veckodag:** passar första spelardygnet i veckan för genomgången, eller en annan dag?
-3. **Ny hypotes:** ska en femte hypotes om vilolåset läggas till i kärnfantasin, till exempel "H5 Vilan känns som en gåva: kvällens stängning upplevs lugn och inte som ett hinder"?
-   Frågan om att lämna spelet fångar den redan delvis.
+Produktägarens svar på de öppna frågorna i v0.1:
+
+- **D-46:** dagboken lagras som ett GitHub-ärende per vecka med en kommentar per spelardygn.
+- **D-47:** veckogenomgången görs första spelardygnet i den nya veckan.
+- **D-48:** kärnfantasin får hypotesen H5 Vilan känns som en gåva, som prövas av fråga 3.

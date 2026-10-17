@@ -21,8 +21,8 @@ Grind A1 kräver minst 14 spelade dygn; de behöver inte vara i följd.
 Hypoteserna kommer från [kärnfantasin](./core-fantasy.md#hypoteser-för-prototypen-m1).
 Läget per vecka är **stöds**, **motsägs** eller **oklart**, med lärdomens ID när det finns en.
 
-| Vecka | H1 Beslutet är verkligt | H2 Taket känns inte som straff | H3 Spegeln syns | H4 Kort räcker |
-|---|---|---|---|---|
+| Vecka | H1 Beslutet är verkligt | H2 Taket känns inte som straff | H3 Spegeln syns | H4 Kort räcker | H5 Vilan känns som en gåva |
+|---|---|---|---|---|---|
 
 ## Lärdomar
 

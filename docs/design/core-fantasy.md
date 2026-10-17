@@ -103,6 +103,7 @@ Dessa avgörs genom dagligt spel och skrivs in i [prototypdagboken](./prototype-
 - **H2 Taket känns inte som straff:** en mycket aktiv dag känns bra även när avkastningen avtar.
 - **H3 Spegeln syns:** spelaren ser skillnad i världen mellan en aktiv och en lugn vecka.
 - **H4 Kort räcker:** 2–5 minuter per dag ger känslan av att ha spelat på riktigt.
+- **H5 Vilan känns som en gåva:** kvällens stängning upplevs lugn och inte som ett hinder (D-48).
 
 ## Beslut
 
