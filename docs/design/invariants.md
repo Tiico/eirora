@@ -111,7 +111,8 @@ Inget kommando växlar krafter mot varandra eller mot resurser, och ingenting ka
 *Test:* den enda händelsetyp som ökar ett kraftsaldo är omvandling av ett bidrag av motsvarande vana.
 
 **INV-F3 Mer egenvård hjälper alltid, men allt mindre.**
-För omvandlingen `f` av en vanas bidrag under en dag gäller att `f` är växande, konkav och begränsad (HLT-05).
+För omvandlingen `f` av en vanas bidrag under ett spelardygn gäller att `f` är växande, konkav och begränsad (HLT-05).
+Konkaviteten gäller den exakta kurvan före avrundning till hela krafter, se [krafternas regler](./forces.md).
 *Test:* `f(x + d) ≥ f(x)`, `f(x + 2d) − f(x + d) ≤ f(x + d) − f(x)` och `f(x) ≤ taket` för alla `x, d ≥ 0`.
 
 **INV-F4 Gryningskraften har ett golv.**
@@ -131,6 +132,10 @@ Oanvända krafter sparas med ett mjukt tak som bara begränsar nya tillskott (D-
 Ett egenrapporterat bidrag ger exakt samma kraft i den egna världen som ett verifierat bidrag av samma storlek (HLT-07, D-18).
 *Test:* `f(verifierat(x)) == f(egenrapporterat(x))`.
 Klassningen påverkar bara gruppbidrag, se INV-G3.
+
+**INV-F8 Uppdelningen spelar ingen roll.**
+Samma bidrag ger samma kraftsaldo oavsett i hur många delar och i vilken ordning de krediteras, så länge inga kommandon kommer emellan.
+*Test:* för varje uppdelning av ett spelardygns bidrag i delmängder ger kreditering i följd samma saldo som kreditering i ett steg, även när sparandets tak nås.
 
 ## 5. Bidrag
 
