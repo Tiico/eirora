@@ -53,7 +53,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton(ExternalProviders.FromConfiguration(builder.Configuration.GetSection("SignIn:Providers")));
 builder.Services.AddScoped<ExternalTokenValidator>();
 builder.Services.AddScoped<AccountService>();
-builder.Services.AddOptions<AppleOptions>().Bind(builder.Configuration.GetSection("SignIn:Apple"));
+builder.Services.AddOptions<AppleOptions>()
+    .Bind(builder.Configuration.GetSection("SignIn:Apple"))
+    .Validate(apple => apple.Timeout > TimeSpan.Zero, "SignIn:Apple:Timeout must be greater than zero.")
+    .Validate(apple => !apple.IsConfigured || apple.HasReadableKey(), "SignIn:Apple:PrivateKey is not an EC private key in PEM.")
+    .ValidateOnStart();
 builder.Services.AddHttpClient<AppleIdClient>((services, http) =>
 {
     http.BaseAddress = new Uri(AppleIdClient.Audience + "/");

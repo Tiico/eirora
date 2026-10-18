@@ -168,27 +168,35 @@ public sealed partial class AccountService(
                 return DeleteResult.AppleConfirmationRequired;
             }
 
-            // Deleting is the player's right, so a failure at Apple is logged and the account is deleted anyway.
-            await apple.RevokeAsync(appleAuthorizationCode, confirmation.Audience, cancellationToken);
+            // From here on the confirmation is spent, so the deletion runs to the end even when the player hangs up;
+            // Apple's own timeout bounds the wait. Deleting is the player's right, so a failure at Apple is logged and the
+            // account is deleted anyway.
+            await apple.RevokeAsync(appleAuthorizationCode, confirmation.Audience);
         }
 
+        await DeleteConfirmedAsync(account);
+        return DeleteResult.Deleted;
+    }
+
+    /// <summary>Deletes an account whose deletion has been confirmed; not cancellable, since the confirmation is spent.</summary>
+    private async Task DeleteConfirmedAsync(Account account)
+    {
         // Through OpenIddict's managers, so that no cached entry keeps an access token valid. Collected first, since
         // deleting while the query is still being read would need a second command on the connection.
-        var subject = accountId.ToString();
-        foreach (var token in await ToListAsync(tokens.FindBySubjectAsync(subject, cancellationToken), cancellationToken))
+        var subject = account.Id.ToString();
+        foreach (var token in await ToListAsync(tokens.FindBySubjectAsync(subject, CancellationToken.None)))
         {
-            await tokens.DeleteAsync(token, cancellationToken);
+            await tokens.DeleteAsync(token, CancellationToken.None);
         }
 
-        foreach (var authorization in await ToListAsync(authorizations.FindBySubjectAsync(subject, cancellationToken), cancellationToken))
+        foreach (var authorization in await ToListAsync(authorizations.FindBySubjectAsync(subject, CancellationToken.None)))
         {
-            await authorizations.DeleteAsync(authorization, cancellationToken);
+            await authorizations.DeleteAsync(authorization, CancellationToken.None);
         }
 
         db.Accounts.Remove(account);
-        await db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(CancellationToken.None);
         LogDeleted(logger);
-        return DeleteResult.Deleted;
     }
 
     private async Task<Guid?> FindAccountIdAsync(ExternalIdentity identity, CancellationToken cancellationToken) =>
@@ -197,10 +205,10 @@ public sealed partial class AccountService(
             .Select(l => (Guid?)l.AccountId)
             .SingleOrDefaultAsync(cancellationToken);
 
-    private static async Task<List<object>> ToListAsync(IAsyncEnumerable<object> source, CancellationToken cancellationToken)
+    private static async Task<List<object>> ToListAsync(IAsyncEnumerable<object> source)
     {
         var list = new List<object>();
-        await foreach (var item in source.WithCancellation(cancellationToken))
+        await foreach (var item in source)
         {
             list.Add(item);
         }
