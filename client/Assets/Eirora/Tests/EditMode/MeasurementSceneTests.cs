@@ -24,10 +24,12 @@ namespace Eirora.Client.Tests
         public void AnUnknownLightStartsNoScene() => Assert.That(MeasurementScene.MomentOf("dusk"), Is.Null);
 
         // The session gives each command a fresh idempotency key, so the used keys differ while the world does not.
+        // The fingerprint writes the used commands last, one "command" line each.
         private static string StateOf(GameSession session)
         {
             string fingerprint = session.World!.Fingerprint();
-            return fingerprint.Substring(0, fingerprint.IndexOf(";commands:", StringComparison.Ordinal));
+            int commands = fingerprint.IndexOf("\ncommand ",StringComparison.Ordinal);
+            return commands < 0 ? fingerprint : fingerprint.Substring(0, commands);
         }
 
         private static GameSession Played(string light)
