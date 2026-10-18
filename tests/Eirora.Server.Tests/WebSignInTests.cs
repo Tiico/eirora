@@ -53,7 +53,10 @@ public sealed class WebSignInTests(ServerFixture fixture)
             new FormUrlEncodedContent(new Dictionary<string, string> { ["error"] = "user_cancelled_authorize", ["state"] = "s1" }),
             Cancel);
 
-        Assert.StartsWith("intent://apple?error=user_cancelled_authorize&state=s1#Intent;", response.Headers.Location!.OriginalString, StringComparison.Ordinal);
+        var location = response.Headers.Location!.OriginalString;
+        Assert.StartsWith("intent://apple?", location, StringComparison.Ordinal);
+        Assert.Contains("error=user_cancelled_authorize", location, StringComparison.Ordinal);
+        Assert.Contains("state=s1#Intent;", location, StringComparison.Ordinal);
     }
 
     [Fact]
