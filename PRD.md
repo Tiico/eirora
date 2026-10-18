@@ -126,6 +126,12 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-79 | **Varje landbricka är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-80 | **En världs karta är en hexskiva med radie 24, 1 801 brickor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-81 | **Prototypens värld behålls:** Hemön och Nyön blir en handgjord karta, och generatorn fyller en gång den del av havet som prototypen aldrig visat ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
+| D-82 | **M0:s designdokument är godkända som v1.0 vid grind A0:** kärnfantasin, invarianterna, krafternas regler, ekonomi v1, epok 1, UX-resorna och prototypdagboken; siffrorna är startvärden som trimmas under O-01 ([gate-a0.md](./docs/design/gate-a0.md)) | [BESLUTAT] |
+| D-83 | **Batteriet mäts med fast ljusstyrka under det aktiva passet,** på produktägarens vanliga nivå som skrivs in i rapporten, och med automatisk ljusstyrka över ett helt spelardygn ([device-measurements.md](./docs/design/device-measurements.md)) | [BESLUTAT] |
+| D-84 | **Dygnsljuset följer spelardygnet, inte solen:** natt under viloperioden, gryning en timme efter den och skymning en timme före ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
+| D-85 | **Byborna syns som små figurer** vid bemannade byggnader under dagen, trots att de modelleras som arbetsgrupper | [BESLUTAT] |
+| D-86 | **I prototypen behåller spelaren spelkameran när viloperioden börjar;** om kameran ska sänkas till nattvyn avgörs i M7 eller M9 | [BESLUTAT] |
+| D-87 | **Vid gryning äter byborna och byn växer före Gryningskraften och bidragen;** stegen påverkar inte varandra, så ordningen ändrar inget utfall ([ux-journeys.md](./docs/design/ux-journeys.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -464,7 +470,7 @@ Byggnader, recept och kraftkostnader står i [ekonomi v1](./docs/design/economy-
 
 - Utan egenvård tillkommer inga krafter, men ekonomin går i grundtakt och långsamma processer fortgår.
 - Inget vissnar, svälter eller förfaller.
-- Återkomsten möts varmt, eventuellt med en liten återstartsbonus [FÖRSLAG], aldrig med skuld.
+- Återkomsten möts varmt, utan återstartsbonus och aldrig med skuld (D-52).
 
 Återkomsten steg för steg: se [UX-resorna](./docs/design/ux-journeys.md#resa-2-återkomst-efter-sju-dagars-frånvaro).
 
@@ -661,6 +667,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
 | D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
+| D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |

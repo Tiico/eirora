@@ -1,6 +1,6 @@
 # Krafternas regler v1
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, D-62, D-63, D-69, D-74, O-01  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Invarianter:** [invariants.md](./invariants.md)
 

@@ -1,6 +1,6 @@
 # Epok 1: Vårdkasen
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-011 · **Milstolpe:** M0 · **PRD:** PRG-02–PRG-05, D-13, D-17, D-34, D-43, HLT-01, HLT-06, MAP-04, EXP-01, RES-01, O-03, D-63–D-67  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Resor:** [ux-journeys.md](./ux-journeys.md)  
 > **Kalkyl:** [models/epoch_1.py](./models/epoch_1.py) (`python -I epoch_1.py`)

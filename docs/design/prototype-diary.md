@@ -1,6 +1,6 @@
 # Prototypdagbok och veckogenomgång
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-009 · **Milstolpe:** M1 · **Grind:** A1 · **PRD:** D-32, D-46–D-48, princip 3, 9 och 11, HLT-10, mål 1–4  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Hypoteser:** [core-fantasy.md](./core-fantasy.md#hypoteser-för-prototypen-m1) · **Logg:** [prototype-learnings.md](./prototype-learnings.md)
 

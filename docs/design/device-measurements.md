@@ -112,4 +112,6 @@ Budgetarna håller skönheten i art direction (NFR-13): om ett mått går över 
 ## 7. Öppna frågor
 
 - Ska batteriet mätas med fast ljusstyrka på en nivå som produktägaren brukar använda, eller med automatisk ljusstyrka som i vardagen?
+  Avgjord: fast ljusstyrka under det aktiva passet, med nivån i rapporten, och automatisk ljusstyrka över ett helt spelardygn (D-83).
 - Behövs en andra, äldre Android-telefon redan i M1, eller räcker produktägarens telefon tills målenheterna bestäms i TASK-024?
+  Avgjord: produktägarens telefon räcker i M1; målenheterna bestäms i TASK-024.
