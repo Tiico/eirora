@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sign-in for Eirora (ADR-0008). Asks for no permissions; Credential Manager and the browser run in their own apps.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Credential Manager brings these for passkeys; Google and Apple sign-in need neither. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
+
+    <queries>
+        <!-- Browsers that can show a Custom Tab, for Sign in with Apple's web flow. -->
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+
+    <application>
+        <!--
+          Opens Apple's sign-in page and receives its answer. The server's callback sends the answer to this package only,
+          as an intent: URL with package=, so no other app that claims the scheme gets it.
+        -->
+        <activity
+            android:name="com.eirora.signin.WebSignInActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="eirora-signin" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -4,6 +4,7 @@
   "references": [
     "Eirora.Client",
     "Eirora.Simulation",
+    "Eirora.Contracts",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner",
     "Unity.RenderPipelines.Core.Runtime",
