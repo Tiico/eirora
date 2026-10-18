@@ -60,6 +60,8 @@ En APK till en Android-telefon byggs lokalt med:
 "C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android
 ```
 
+Bygget får version enligt [Versioner](#versioner) och signeras med prototypens nyckel när den finns i miljön, se [Signering](#signering).
+
 Klienten läser Health Connect med Kotlin-modulen `client/Assets/Eirora/Plugins/Android/HealthConnect.androidlib` ([ADR-0007](./adr/0007-own-health-connect-adapter.md)).
 AGP 9 hoppar tyst över Kotlin-koden om inte `client/Assets/Plugins/Android/gradleTemplate.properties` slår på inbyggd Kotlin, så varje Android-bygge kontrolleras efteråt (`AndroidHealthCheck`): bryggklassen måste finnas i APK:n och appen får bara läsa steg, träningspass och sömn.
 
@@ -85,17 +87,51 @@ När `RulesVersion` höjs läggs en `StateMigration` från den förra versionen 
 Gyllene sparningar ligger i `tests/Eirora.Simulation.Tests/Saving/Golden/`, en per regel- och formatversion, med det fingeravtryck som laddning med aktuell kod ska ge.
 Saknas den aktuella versionens gyllene sparning skapar testerna den och underkänner körningen, så att den granskas och checkas in; förväntade fingeravtryck ändras bara när regler eller migrationer ändras.
 
-Servern startas lokalt med:
+## Servern
+
+Servern behöver PostgreSQL 18, och kontona följer [ADR-0008](./adr/0008-backend-hosting-accounts-and-database.md).
+Lokalt räcker en container:
+
+```bash
+docker run --name eirora-postgres -e POSTGRES_PASSWORD=eirora -p 5432:5432 -d postgres:18.6
+```
+
+```bash
+dotnet user-secrets set ConnectionStrings:Eirora "Host=localhost;Database=eirora;Username=postgres;Password=eirora" --project src/Eirora.Server
+```
+
+Migrationerna körs som ett eget steg, aldrig av servern vid start:
+
+```bash
+dotnet run --project src/Eirora.Server -- migrate
+```
 
 ```bash
 dotnet run --project src/Eirora.Server
 ```
 
+Lokalt signeras token med nycklar som slängs när processen avslutas.
+Inloggning med Apple eller Google kräver att appens klient-id står under `SignIn:Providers:<apple|google>:Audiences` (till exempel med `dotnet user-secrets`); utan dem är leverantören avstängd.
+
+En ändring i datamodellen blir en migration med verktyget i `dotnet-tools.json`; den genererade koden redigeras aldrig för hand:
+
+```bash
+dotnet tool restore
+```
+
+```bash
+dotnet ef migrations add <Namn> --project src/Eirora.Server --output-dir Data/Migrations
+```
+
+Serverns integrationstester startar PostgreSQL med Testcontainers och kräver Docker.
+På en dator utan Docker kan de köras mot en befintlig databas genom att miljövariabeln `EIRORA_TEST_POSTGRES` sätts till en anslutningssträng.
+Hur servern körs på produktägarens server står i [deploy/README.md](../deploy/README.md), och hotmodellen för inloggningen i [docs/security/sign-in-threat-model.md](./security/sign-in-threat-model.md).
+
 ## CI
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning; på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
 | [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/` eller workflowen, samt manuellt | Unity-tester, Android-APK och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
@@ -135,5 +171,32 @@ gh secret set UNITY_PASSWORD
 > Unity har i omgångar begränsat manuell aktivering av Personal-licenser i CI.
 > Om aktiveringen misslyckas trots korrekta secrets krävs Unity Pro eller Plus och `UNITY_SERIAL`, se [GameCI:s aktiveringsguide](https://game.ci/docs/github/activation).
 
-Android-byggen signeras med Unitys debugnyckel tills en egen nyckel finns, vilket räcker för att installera prototypen direkt på telefonen.
-Inför butikssläpp läggs `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` och `ANDROID_KEYALIAS_PASS` in som secrets; workflowen använder dem automatiskt.
+Android-bygget kräver dessutom prototypens signeringsnyckel, se [Signering](#signering).
+
+### Signering
+
+En ny version kan bara installeras över den gamla om båda är signerade med samma nyckel.
+Annars måste appen avinstalleras först, och då raderas världen.
+Därför signeras både CI-byggen och lokala byggen med samma nyckel, och Android-jobbet i CI misslyckas med en instruktion om nyckeln saknas.
+
+Skapa nyckeln och lägg in den som secrets med guiden, som också säger hur den säkerhetskopieras:
+
+```bash
+scripts/create-android-keystore.sh
+```
+
+Guiden sparar nyckeln och lösenordet i `~/eirora-keys/`, aldrig i repot, och sätter `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` och `ANDROID_KEYALIAS_PASS`.
+Ett lokalt bygge använder nyckeln när värdena finns i miljön:
+
+```bash
+set -a; . ~/eirora-keys/android-signing.env; set +a
+```
+
+Utan dem signeras ett lokalt bygge med datorns debugnyckel och kan inte installeras över ett bygge från CI.
+
+### Versioner
+
+Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
+Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
+Klienten sparar journalen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
+En journal från en annan regelversion laddas inte och skrivs aldrig över; appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).

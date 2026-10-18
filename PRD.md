@@ -673,7 +673,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
-| O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |
+| O-11 | Varumärkes- och butikskontroll av "Eirora" | Inget hinder hittat; säkra namnet före butikssidan ([namnkontroll](./docs/research/eirora-name-check.md)) | M2 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
 
 ---

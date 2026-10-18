@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
@@ -71,6 +72,9 @@ namespace Eirora.Client.UI
             parts.Add($"{spec.WorkHours} h arbete");
             return string.Join(" · ", parts);
         }
+
+        /// <summary>Which build this is, so the prototype diary can refer to it (TASK-014).</summary>
+        public static string Build(string appVersion) => $"Version {appVersion} · regelversion {RulesVersion.Current}";
 
         public static string Reason(Rejection rejection) => rejection switch
         {

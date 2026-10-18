@@ -1,0 +1,105 @@
+# The backend on the product owner's server, behind the Traefik that already runs there (ADR-0008).
+# Setup, secrets and updates: deploy/README.md. The same file runs staging as its own project with its own .env.
+name: ${EIRORA_PROJECT:-eirora}
+
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: eirora
+      POSTGRES_USER: eirora
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      # PostgreSQL 18's image keeps its data under a version directory here, so major upgrades can use pg_upgrade.
+      - postgres:/var/lib/postgresql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "pg_isready", "--username=eirora", "--dbname=eirora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Applies the database migrations and exits; the server only starts after it succeeded.
+  migrate:
+    image: ghcr.io/tiico/eirora-server:${EIRORA_VERSION:?set EIRORA_VERSION to the image tag (a commit sha)}
+    command: ["migrate"]
+    secrets:
+      - source: connection_string
+        target: ConnectionStrings__Eirora
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: "no"
+
+  server:
+    image: ghcr.io/tiico/eirora-server:${EIRORA_VERSION:?set EIRORA_VERSION to the image tag (a commit sha)}
+    environment:
+      # Only Traefik reaches the server, so its X-Forwarded headers are trusted.
+      ForwardedHeaders__TrustAll: "true"
+      SignIn__Providers__apple__Audiences__0: ${APPLE_BUNDLE_ID:?}
+      SignIn__Providers__apple__Audiences__1: ${APPLE_SERVICES_ID:?}
+      SignIn__Providers__google__Audiences__0: ${GOOGLE_SERVER_CLIENT_ID:?}
+      SignIn__Providers__google__Audiences__1: ${GOOGLE_IOS_CLIENT_ID:?}
+      SignIn__Apple__TeamId: ${APPLE_TEAM_ID:?}
+      SignIn__Apple__KeyId: ${APPLE_KEY_ID:?}
+    secrets:
+      - source: connection_string
+        target: ConnectionStrings__Eirora
+      - source: apple_private_key
+        target: SignIn__Apple__PrivateKey
+      - source: token_signing_key
+        target: SignIn__TokenSigningKey
+      - source: token_encryption_key
+        target: SignIn__TokenEncryptionKey
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - backend
+      - traefik
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik}
+      traefik.http.services.${EIRORA_PROJECT:-eirora}.loadbalancer.server.port: "8080"
+      traefik.http.services.${EIRORA_PROJECT:-eirora}.loadbalancer.healthcheck.path: /health
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}.rule: Host(`${EIRORA_HOST:?}`)
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      # Sign-in gets its own router with a rate limit per client address (threat model: guessing and flooding).
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.rule: Host(`${EIRORA_HOST:?}`) && PathPrefix(`/connect`)
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.middlewares: ${EIRORA_PROJECT:-eirora}-signin-limit
+      traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.average: "10"
+      traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.period: 1m
+      traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.burst: "20"
+    restart: unless-stopped
+
+networks:
+  # PostgreSQL has no route out and is never published; only the server reaches it.
+  backend:
+    internal: true
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik}
+
+volumes:
+  postgres:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  connection_string:
+    file: ./secrets/connection_string
+  apple_private_key:
+    file: ./secrets/apple_private_key.p8
+  token_signing_key:
+    file: ./secrets/token_signing_key.pem
+  token_encryption_key:
+    file: ./secrets/token_encryption_key

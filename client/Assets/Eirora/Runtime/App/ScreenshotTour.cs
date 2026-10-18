@@ -24,6 +24,8 @@ namespace Eirora.Client.App
 
         public static IEnumerator Run(ClientBootstrap client, string folder)
         {
+            // ScreenCapture resolves a relative path against the player's data folder, not the working directory.
+            folder = Path.GetFullPath(folder);
             Directory.CreateDirectory(folder);
 
             var clock = new FixedClock(At("2026-10-14 14:00"));

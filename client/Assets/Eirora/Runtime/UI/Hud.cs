@@ -110,6 +110,7 @@ namespace Eirora.Client.UI
                 _middle.Remove(card);
                 begin(new RestSchedule(start, duration));
             });
+            Text("build", card, Texts.Build(Application.version));
         }
 
         /// <summary>
@@ -135,6 +136,7 @@ namespace Eirora.Client.UI
                 _middle.Remove(card);
                 startAnew();
             });
+            Text("build", card, Texts.Build(Application.version));
         }
 
         public void Show(World world, IReadOnlyList<GameEvent> sinceDawn)
@@ -492,6 +494,8 @@ namespace Eirora.Client.UI
             {
                 Text("report-line", _sheet, line);
             }
+
+            Text("build", _sheet, Texts.Build(Application.version));
         }
 
         private void Run(GameCommand command)
