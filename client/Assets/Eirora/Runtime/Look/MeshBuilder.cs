@@ -13,6 +13,8 @@ namespace Eirora.Client.Look
         private readonly List<Color> _colors = new();
         private readonly List<int> _triangles = new();
 
+        public int TriangleCount => _triangles.Count / 3;
+
         /// <summary>A convex polygon, wound clockwise when seen from the side it faces.</summary>
         public void Polygon(Color color, params Vector3[] corners)
         {
@@ -84,6 +86,53 @@ namespace Eirora.Client.Look
                 var p0 = baseCenter + new Vector3(Mathf.Cos(a0) * radius, 0f, Mathf.Sin(a0) * radius);
                 var p1 = baseCenter + new Vector3(Mathf.Cos(a1) * radius, 0f, Mathf.Sin(a1) * radius);
                 Polygon(color, p0, apex, p1);
+            }
+        }
+
+        /// <summary>A row of windows on the front (−depth side) of a house standing at <paramref name="center"/>.</summary>
+        public void Windows(Vector3 center, float yaw, float depth, int count, Color color)
+        {
+            var rotation = Quaternion.Euler(0f, yaw, 0f);
+            for (int i = 0; i < count; i++)
+            {
+                float x = (i - ((count - 1) / 2f)) * 0.26f;
+                var w = center + (rotation * new Vector3(x, 0f, (-depth / 2f) - 0.005f)) + (Vector3.up * 0.12f);
+                var right = rotation * new Vector3(0.05f, 0f, 0f);
+                Polygon(color, w - right, w - right + (Vector3.up * 0.1f), w + right + (Vector3.up * 0.1f), w + right);
+            }
+        }
+
+        /// <summary>Another builder's faces, scaled, turned and moved: a kit piece placed in a look.</summary>
+        public void Append(MeshBuilder other, Vector3 at, Quaternion rotation, Vector3 scale)
+        {
+            int start = _vertices.Count;
+            foreach (var vertex in other._vertices)
+            {
+                _vertices.Add(at + (rotation * Vector3.Scale(vertex, scale)));
+            }
+
+            _colors.AddRange(other._colors);
+            foreach (int index in other._triangles)
+            {
+                _triangles.Add(start + index);
+            }
+        }
+
+        /// <summary>
+        /// A model made by hand, split so every face stays flat. Its vertex colours are sRGB, as Blender paints them;
+        /// a model without them takes <paramref name="fallback"/>. The model must be readable (Art/Models sees to it).
+        /// </summary>
+        public void Add(Mesh model, Vector3 at, Quaternion rotation, Vector3 scale, Color fallback)
+        {
+            var vertices = model.vertices;
+            var colors = model.colors;
+            bool painted = colors.Length == vertices.Length;
+            var plain = fallback.linear;
+            foreach (int index in model.triangles)
+            {
+                _triangles.Add(_vertices.Count);
+                _vertices.Add(at + (rotation * Vector3.Scale(vertices[index], scale)));
+                _colors.Add(painted ? colors[index].linear : plain);
             }
         }
 

@@ -105,32 +105,42 @@ namespace Eirora.Client.Look
             yield return new Hex(hex.Q, hex.R + 1);
         }
 
+        /// <summary>The ground of a site: what it offers decides how it looks.</summary>
+        public static Terrain TerrainOf(SiteKind kinds)
+        {
+            if ((kinds & SiteKind.FishingWater) != 0)
+            {
+                return Terrain.ShallowSea;
+            }
+
+            if ((kinds & SiteKind.Forest) != 0)
+            {
+                return Terrain.Forest;
+            }
+
+            if ((kinds & SiteKind.Mountain) != 0)
+            {
+                return Terrain.Mountain;
+            }
+
+            if ((kinds & SiteKind.Farmland) != 0)
+            {
+                return Terrain.Farmland;
+            }
+
+            if ((kinds & SiteKind.Pasture) != 0)
+            {
+                return Terrain.Pasture;
+            }
+
+            return (kinds & SiteKind.HarborSpot) != 0 ? Terrain.Beach : Terrain.Grass;
+        }
+
         private Terrain LandTerrain(Hex hex, int distance)
         {
             if (_sites.TryGetValue(hex, out var site))
             {
-                var kinds = site.Kinds;
-                if ((kinds & SiteKind.Forest) != 0)
-                {
-                    return Terrain.Forest;
-                }
-
-                if ((kinds & SiteKind.Mountain) != 0)
-                {
-                    return Terrain.Mountain;
-                }
-
-                if ((kinds & SiteKind.Farmland) != 0)
-                {
-                    return Terrain.Farmland;
-                }
-
-                if ((kinds & SiteKind.Pasture) != 0)
-                {
-                    return Terrain.Pasture;
-                }
-
-                return (kinds & SiteKind.HarborSpot) != 0 ? Terrain.Beach : Terrain.Grass;
+                return TerrainOf(site.Kinds);
             }
 
             // Scenery: woods near the forest sites, a beach on the outer ring, meadow in between.

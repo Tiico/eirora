@@ -10,14 +10,19 @@ namespace Eirora.Client.Look
     /// <summary>Draws the island and the settlement from the world's state; rebuilt whenever the world changes.</summary>
     public sealed class IslandView
     {
+        /// <summary>How full a forest is drawn where a building or work leaves room for less, until the economy shows its stock.</summary>
+        public const float CrowdedForest = 0.25f;
+
         private readonly IslandMap _map = new();
+        private readonly Looks _looks;
         private readonly GameObject _nyon;
         private readonly MeshFilter _settlement;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
 
-        public IslandView(Transform parent, Material flat, Material glow)
+        public IslandView(Transform parent, Material flat, Material glow, Looks looks)
         {
+            _looks = looks;
             Create("Terrain", parent, flat).sharedMesh = BuildTerrain(nyon: false);
             var nyon = Create("Nyön", parent, flat);
             nyon.sharedMesh = BuildTerrain(nyon: true);
@@ -52,15 +57,17 @@ namespace Eirora.Client.Look
                     continue;
                 }
 
-                if (site is not null && !world.IsRevealed(site.Id))
+                bool fogged = site is not null && !world.IsRevealed(site.Id);
+                var ground = tile.Key.Center() + (Vector3.up * Models.Height(tile.Value));
+                if (fogged)
                 {
-                    Models.Fog(mesh, tile.Key.Center() + (Vector3.up * Models.Height(tile.Value)));
-                    continue;
+                    Models.Fog(mesh, ground);
                 }
 
-                if (tile.Value == Terrain.Forest)
+                if (NatureOf(tile.Value) is NatureKind nature)
                 {
-                    Models.Trees(mesh, tile.Key, occupied.Contains(tile.Key) ? 2 : 6, (tile.Key.Q * 31) + tile.Key.R);
+                    float fullness = nature == NatureKind.Forest && occupied.Contains(tile.Key) ? CrowdedForest : 1f;
+                    _looks.Nature(mesh, lights, nature, fullness, fogged, ground, Seed(tile.Key));
                 }
             }
 
@@ -69,7 +76,7 @@ namespace Eirora.Client.Look
             {
                 var hex = IslandMap.HexOf(building.Site);
                 var c = hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex]));
-                Models.Building(mesh, lights, building.Kind, c, building.Level);
+                _looks.Building(mesh, lights, building.Kind, building.Level, c, Seed(hex));
                 if (building.Staffed && world.Phase == Phase.Active)
                 {
                     Models.Villager(mesh, c + new Vector3(-0.42f, 0f, -0.45f), villager++);
@@ -150,6 +157,16 @@ namespace Eirora.Client.Look
                 Models.Boat(mesh, Vector3.Lerp(from, to, Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
             }
         }
+
+        public static NatureKind? NatureOf(Terrain terrain) => terrain switch
+        {
+            Terrain.Forest => NatureKind.Forest,
+            Terrain.Farmland => NatureKind.Farmland,
+            Terrain.Mountain => NatureKind.Mountain,
+            _ => null,
+        };
+
+        private static int Seed(Hex hex) => (hex.Q * 31) + hex.R;
 
         private static MeshFilter Create(string name, Transform parent, Material material)
         {
