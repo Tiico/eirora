@@ -82,6 +82,15 @@ namespace Eirora.Simulation
         /// <summary>Whole units of a resource in store.</summary>
         public long Stock(Resource resource) => Quantity.Whole(_settlement.Stock(resource));
 
+        /// <summary>Whole units of a resource in store on an island; goods reach home by sea route.</summary>
+        public long Stock(IslandId island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
+
+        /// <summary>Hours the expedition at sea has left with the villagers awake, or 0 when none is out.</summary>
+        public int ExpeditionHoursLeft => _settlement.ExpeditionHoursLeft;
+
+        /// <summary>Whether ships sail between the islands.</summary>
+        public bool SeaRouteOpen => _settlement.SeaRouteOpen;
+
         /// <summary>Whether a site has been found; hidden sites are under the fog (MAP-04).</summary>
         public bool IsRevealed(string siteId) => _settlement.IsRevealed(siteId);
 

@@ -97,4 +97,13 @@ namespace Eirora.Simulation.Events
 
         public IReadOnlyList<string> SiteIds { get; }
     }
+
+    /// <summary>The expedition came home and found new places across the sea (EXP-01, EXP-02).</summary>
+    public sealed class ExpeditionReturned : GameEvent
+    {
+        public ExpeditionReturned(long utcSeconds, IReadOnlyList<string> siteIds)
+            : base(utcSeconds) => SiteIds = siteIds;
+
+        public IReadOnlyList<string> SiteIds { get; }
+    }
 }

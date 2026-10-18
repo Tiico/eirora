@@ -204,7 +204,9 @@ namespace Eirora.Client.UI
             var night = Container("card night", _middle);
             Text("night-title", night, "Byn vilar.");
             Text("night-text", night, $"Världen öppnar klockan {Clock(RestEnd(world))}.");
-            Text("night-text", night, "Medan byn sover mognar säden och skogen växer.");
+            Text("night-text", night, world.ExpeditionHoursLeft > 0
+                ? "Medan byn sover mognar säden, skogen växer och expeditionen ligger för ankar."
+                : "Medan byn sover mognar säden och skogen växer.");
         }
 
         private void ShowBar(World world)
@@ -313,6 +315,12 @@ namespace Eirora.Client.UI
         {
             bool produces = building.Kind is not (BuildingKind.Longhouse or BuildingKind.Cottage or BuildingKind.Storehouse
                 or BuildingKind.Jetty or BuildingKind.Lookout);
+            if (building.Kind == BuildingKind.Jetty)
+            {
+                JettyActions(world, building);
+                return;
+            }
+
             if (!produces)
             {
                 Text("sheet-text", _sheet, building.Kind switch
@@ -344,6 +352,38 @@ namespace Eirora.Client.UI
                 && !world.Projects.Any(p => p.Site == building.Site && p.Kind == ProjectKind.Road))
             {
                 AddAction("Väg till förrådet", "2 sten och 4 h arbete per steg · mer når fram", true, () => Run(new BuildRoad(building.Site.Id)));
+            }
+        }
+
+        /// <summary>The jetty: expeditions from home, the sea route, and Nyön's goods waiting for the ship.</summary>
+        private void JettyActions(World world, Building building)
+        {
+            if (building.Site.Island == IslandId.Nyon)
+            {
+                var waiting = Enum.GetValues(typeof(Resource)).Cast<Resource>()
+                    .Where(r => world.Stock(IslandId.Nyon, r) > 0)
+                    .Select(r => $"{world.Stock(IslandId.Nyon, r)} {Texts.Name(r)}")
+                    .ToList();
+                Text("sheet-text", _sheet, "Skeppen tar Nyöns varor hem, 40 per dygn.");
+                Text("sheet-text", _sheet, waiting.Count == 0 ? "Inget väntar på skeppen just nu." : "Väntar på skeppen: " + string.Join(", ", waiting) + ".");
+                return;
+            }
+
+            if (world.ExpeditionHoursLeft > 0)
+            {
+                Text("sheet-text", _sheet, $"Expeditionen är ute. Om {world.ExpeditionHoursLeft} timmar med vakna bybor är den tillbaka.");
+            }
+            else if (!world.IsRevealed("N0"))
+            {
+                int cost = SendExpedition.Cost(world);
+                AddAction("Skicka expedition", $"{cost} Utforskning · 32 h med vakna bybor · hittar land bortom horisonten",
+                    world.Available(Force.Exploration) >= cost, () => Run(new SendExpedition()));
+            }
+            else
+            {
+                Text("sheet-text", _sheet, world.SeaRouteOpen
+                    ? "Sjövägen till Nyön är öppen. Skeppen tar hem 40 varor per dygn."
+                    : "Nyön är hittad. Bygg en brygga där, så öppnar sjövägen.");
             }
         }
 

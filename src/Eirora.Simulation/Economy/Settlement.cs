@@ -7,13 +7,15 @@ using Eirora.Simulation.Events;
 namespace Eirora.Simulation.Economy
 {
     /// <summary>
-    /// The settlement's economy on the home island (economy-v1.md): stock, villagers, buildings and the building queue.
+    /// The settlement's economy (economy-v1.md): stock on each island, villagers, buildings, the building queue,
+    /// expeditions and the sea route between the islands.
     /// </summary>
     /// <remarks>
     /// The economy moves in quarter-hour ticks at fixed UTC times, so advancing time in parts gives the same world as
     /// advancing at once (INV-D4). Rates are in millionths of a unit per quarter hour (INV-D3).
-    /// Villagers work, build and carry only while awake (INV-T4); fields, sheep and forests grow day and night (INV-T5).
-    /// Nothing is ever lost to time: a full store stops production and missing food only stops growth (D-17, D-39).
+    /// Villagers work, build, carry, sail and explore only while awake (INV-T4); fields, sheep and forests grow day
+    /// and night (INV-T5). Nothing is ever lost to time: a full store stops production and missing food only stops
+    /// growth (D-17, D-39).
     /// </remarks>
     internal sealed class Settlement
     {
@@ -21,19 +23,27 @@ namespace Eirora.Simulation.Economy
 
         private const long WorkPerVillagerPerTick = 250; // Thousandths of a villager-hour.
         private const int StoragePerStorehouse = 150;
+        private const int StorageAtJetty = 150; // A jetty on an island without a storehouse stores goods for the ship.
         private const int ProcessingReserve = 20; // LOG-06 minimum stock left for building (D-44).
         private const int ComfortPerDawn = 2;
         private const int StartingHousing = 16;
         private const long ForestPerTile = 40 * Quantity.PerUnit;
+        private const long SeaRoutePerTick = 625_000; // 40 units a game day over 16 waking hours (economy-v1.md, section 5).
 
         private static readonly int s_resourceCount = Enum.GetValues(typeof(Resource)).Length;
 
-        private readonly long[] _stock = new long[s_resourceCount];
+        private readonly Dictionary<IslandId, long[]> _stores = new()
+        {
+            [IslandId.Home] = new long[s_resourceCount],
+            [IslandId.Nyon] = new long[s_resourceCount],
+        };
+
         private readonly List<Building> _buildings = new();
         private readonly List<Project> _projects = new();
         private readonly SortedDictionary<string, long> _forest = new(StringComparer.Ordinal);
         private readonly SortedSet<string> _revealed = new(StringComparer.Ordinal);
         private readonly Dictionary<string, Site> _sites = new(StringComparer.Ordinal);
+        private long _expeditionLeft;
 
         public Settlement()
         {
@@ -51,10 +61,11 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            _stock[(int)Resource.Fish] = Quantity.Units(30);
-            _stock[(int)Resource.Timber] = Quantity.Units(40);
-            _stock[(int)Resource.Planks] = Quantity.Units(20);
-            _stock[(int)Resource.Stone] = Quantity.Units(20);
+            var home = _stores[IslandId.Home];
+            home[(int)Resource.Fish] = Quantity.Units(30);
+            home[(int)Resource.Timber] = Quantity.Units(40);
+            home[(int)Resource.Planks] = Quantity.Units(20);
+            home[(int)Resource.Stone] = Quantity.Units(20);
             Villagers = 12;
 
             Complete(BuildingKind.Storehouse, _sites[PrototypeIsland.Settlement]);
@@ -71,6 +82,9 @@ namespace Eirora.Simulation.Economy
         public IReadOnlyList<Building> Buildings => _buildings;
 
         public IReadOnlyList<Project> Projects => _projects;
+
+        /// <summary>Hours of travel the expedition at sea has left, or 0 when none is out.</summary>
+        public int ExpeditionHoursLeft => (int)((_expeditionLeft + 999) / 1000);
 
         public int Housing
         {
@@ -103,15 +117,18 @@ namespace Eirora.Simulation.Economy
             }
         }
 
-        public long Stock(Resource resource) => _stock[(int)resource];
+        /// <summary>Stock on the home island, where materials are paid from and villagers eat.</summary>
+        public long Stock(Resource resource) => _stores[IslandId.Home][(int)resource];
+
+        public long Stock(IslandId island, Resource resource) => _stores[island][(int)resource];
 
         public bool IsRevealed(string siteId) => _revealed.Contains(siteId);
 
-        public bool HasBuilt(BuildingKind kind)
+        public bool HasBuilt(BuildingKind kind, IslandId? island = null)
         {
             foreach (var building in _buildings)
             {
-                if (building.Kind == kind)
+                if (building.Kind == kind && (island is null || building.Site.Island == island))
                 {
                     return true;
                 }
@@ -119,6 +136,9 @@ namespace Eirora.Simulation.Economy
 
             return false;
         }
+
+        /// <summary>Whether ships sail between the islands: a jetty stands on each.</summary>
+        public bool SeaRouteOpen => HasBuilt(BuildingKind.Jetty, IslandId.Home) && HasBuilt(BuildingKind.Jetty, IslandId.Nyon);
 
         public Building? BuildingAt(string siteId)
         {
@@ -146,14 +166,21 @@ namespace Eirora.Simulation.Economy
                 return Rejection.SiteUnavailable;
             }
 
+            // Builders reach another island by its jetty, so the jetty comes first there.
+            if (site.Island != IslandId.Home && kind != BuildingKind.Jetty && !HasBuilt(BuildingKind.Jetty, site.Island))
+            {
+                return Rejection.SiteUnavailable;
+            }
+
             return Rejection.None;
         }
 
         public bool CanAfford(IReadOnlyDictionary<Resource, int> cost)
         {
+            var home = _stores[IslandId.Home];
             foreach (var item in cost)
             {
-                if (_stock[(int)item.Key] < Quantity.Units(item.Value))
+                if (home[(int)item.Key] < Quantity.Units(item.Value))
                 {
                     return false;
                 }
@@ -175,24 +202,25 @@ namespace Eirora.Simulation.Economy
             return false;
         }
 
-        /// <summary>Pays and queues the work; the caller has checked the site, cost and forces.</summary>
+        /// <summary>Pays from the home island's store and queues the work; the caller has checked site, cost and forces.</summary>
         public void Queue(ProjectKind kind, BuildingKind building, string siteId, IReadOnlyDictionary<Resource, int> cost, int workHours)
         {
+            var home = _stores[IslandId.Home];
             foreach (var item in cost)
             {
-                _stock[(int)item.Key] -= Quantity.Units(item.Value);
+                home[(int)item.Key] -= Quantity.Units(item.Value);
             }
 
             _projects.Add(new Project(kind, building, _sites[siteId], workHours * 1000L));
         }
 
-        /// <summary>Distance from a site to the nearest storehouse or jetty, in hex steps.</summary>
+        /// <summary>Distance from a site to the nearest storehouse or jetty on the same island, in hex steps.</summary>
         public int DepotDistance(Site site)
         {
             int best = int.MaxValue;
             foreach (var building in _buildings)
             {
-                if (building.Kind is BuildingKind.Storehouse or BuildingKind.Jetty)
+                if (building.Kind is BuildingKind.Storehouse or BuildingKind.Jetty && building.Site.Island == site.Island)
                 {
                     int distance = site.DistanceTo(building.Site);
                     best = distance < best ? distance : best;
@@ -215,6 +243,32 @@ namespace Eirora.Simulation.Economy
             return reveals;
         }
 
+        /// <summary>Whether an expedition can set out: a jetty at home, none at sea, and something left to find.</summary>
+        public Rejection CanSendExpedition()
+        {
+            if (!HasBuilt(BuildingKind.Jetty, IslandId.Home))
+            {
+                return Rejection.NoBuildingThere;
+            }
+
+            if (_expeditionLeft > 0)
+            {
+                return Rejection.AlreadyDone;
+            }
+
+            foreach (var id in PrototypeIsland.ExpeditionReveals)
+            {
+                if (!_revealed.Contains(id))
+                {
+                    return Rejection.None;
+                }
+            }
+
+            return Rejection.NothingLeftToSurvey;
+        }
+
+        public void SendExpedition() => _expeditionLeft = PrototypeIsland.ExpeditionHours * 1000L;
+
         /// <summary>Shortens the first project in the queue by up to <paramref name="hours"/> hours of work.</summary>
         public void Rush(int hours)
         {
@@ -233,20 +287,23 @@ namespace Eirora.Simulation.Economy
 
             Build(utcSeconds, events);
             Produce();
+            Ship();
+            Explore(utcSeconds, events);
         }
 
         /// <summary>Villagers eat, the settlement grows if it can, and today's workdays end.</summary>
         public void Dawn(long utcSeconds, List<GameEvent> events)
         {
+            var home = _stores[IslandId.Home];
             long need = Quantity.Units(Villagers);
-            need -= Take(Resource.Fish, need);
-            need -= Take(Resource.Grain, need);
+            need -= Take(home, Resource.Fish, need);
+            need -= Take(home, Resource.Grain, need);
             bool fed = need == 0;
 
-            bool comfort = fed && _stock[(int)Resource.Wadmal] >= Quantity.Units(ComfortPerDawn);
+            bool comfort = fed && home[(int)Resource.Wadmal] >= Quantity.Units(ComfortPerDawn);
             if (comfort)
             {
-                _stock[(int)Resource.Wadmal] -= Quantity.Units(ComfortPerDawn);
+                home[(int)Resource.Wadmal] -= Quantity.Units(ComfortPerDawn);
             }
 
             int growth = (fed ? 1 : 0) + (comfort ? 1 : 0);
@@ -268,10 +325,14 @@ namespace Eirora.Simulation.Economy
 
         public void AppendFingerprint(StringBuilder text)
         {
-            text.Append("settlement:").Append(Villagers).Append(',').Append(SurveysDone).Append(";stock:");
-            foreach (long amount in _stock)
+            text.Append("settlement:").Append(Villagers).Append(',').Append(SurveysDone).Append(',').Append(_expeditionLeft);
+            foreach (var store in _stores)
             {
-                text.Append(amount).Append(',');
+                text.Append(";stock").Append((int)store.Key).Append(':');
+                foreach (long amount in store.Value)
+                {
+                    text.Append(amount).Append(',');
+                }
             }
 
             text.Append(";buildings:");
@@ -360,7 +421,6 @@ namespace Eirora.Simulation.Economy
 
         private void Produce()
         {
-            long capacity = StorageCapacity();
             foreach (var b in _buildings)
             {
                 if (!b.Staffed)
@@ -368,6 +428,8 @@ namespace Eirora.Simulation.Economy
                     continue;
                 }
 
+                var store = _stores[b.Site.Island];
+                long capacity = StorageCapacity(b.Site.Island);
                 int distance = DistancePercent(b);
                 int level = b.Level == 2 ? 150 : 100;
                 int workday = b.WorkdayToday ? 150 : 100;
@@ -376,64 +438,110 @@ namespace Eirora.Simulation.Economy
                 switch (b.Kind)
                 {
                     case BuildingKind.FishingHut:
-                        Add(Resource.Fish, Scale(312_500, richness, distance, level, workday), capacity);
+                        Add(store, Resource.Fish, Scale(312_500, richness, distance, level, workday), capacity);
                         break;
                     case BuildingKind.Field:
-                        b.Ripe -= Add(Resource.Grain, Min(b.Ripe, Scale(500_000, distance, level, workday)), capacity);
+                        b.Ripe -= Add(store, Resource.Grain, Min(b.Ripe, Scale(500_000, distance, level, workday)), capacity);
                         break;
                     case BuildingKind.SheepFarm:
-                        b.Ripe -= Add(Resource.Wool, Min(b.Ripe, Scale(500_000, distance, level, workday)), capacity);
+                        b.Ripe -= Add(store, Resource.Wool, Min(b.Ripe, Scale(500_000, distance, level, workday)), capacity);
                         break;
                     case BuildingKind.Woodcutter:
                         long rate = Scale(b.Site.ForestTiles >= 2 ? 250_000 : 125_000, richness, distance, level, workday);
-                        _forest[b.Site.Id] -= Add(Resource.Timber, Min(rate, _forest[b.Site.Id]), capacity);
+                        _forest[b.Site.Id] -= Add(store, Resource.Timber, Min(rate, _forest[b.Site.Id]), capacity);
                         break;
                     case BuildingKind.Quarry:
-                        Add(Resource.Stone, Scale(187_500, richness, distance, level, workday), capacity);
+                        Add(store, Resource.Stone, Scale(187_500, richness, distance, level, workday), capacity);
                         break;
                     case BuildingKind.Sawmill:
-                        Process(Resource.Timber, Resource.Planks, Scale(250_000, distance, level, workday), capacity);
+                        Process(store, Resource.Timber, Resource.Planks, Scale(250_000, distance, level, workday), capacity);
                         break;
                     case BuildingKind.Weavery:
-                        Process(Resource.Wool, Resource.Wadmal, Scale(125_000, distance, level, workday), capacity);
+                        Process(store, Resource.Wool, Resource.Wadmal, Scale(125_000, distance, level, workday), capacity);
                         break;
                 }
             }
         }
 
-        /// <summary>Turns two of <paramref name="input"/> into one of <paramref name="output"/>, keeping the reserve.</summary>
-        private void Process(Resource input, Resource output, long rate, long capacity)
+        /// <summary>Ships goods from Nyön home over the sea route, up to its capacity (economy-v1.md, section 5).</summary>
+        private void Ship()
         {
-            long available = _stock[(int)input] - Quantity.Units(ProcessingReserve);
-            long made = Add(output, Min(rate, available > 0 ? available / 2 : 0), capacity);
-            _stock[(int)input] -= 2 * made;
+            if (!SeaRouteOpen)
+            {
+                return;
+            }
+
+            var from = _stores[IslandId.Nyon];
+            var home = _stores[IslandId.Home];
+            long capacity = StorageCapacity(IslandId.Home);
+            long room = SeaRoutePerTick;
+            for (int r = 0; r < s_resourceCount && room > 0; r++)
+            {
+                long moved = Add(home, (Resource)r, Min(room, from[r]), capacity);
+                from[r] -= moved;
+                room -= moved;
+            }
+        }
+
+        private void Explore(long utcSeconds, List<GameEvent> events)
+        {
+            if (_expeditionLeft <= 0)
+            {
+                return;
+            }
+
+            _expeditionLeft -= WorkPerVillagerPerTick;
+            if (_expeditionLeft > 0)
+            {
+                return;
+            }
+
+            _expeditionLeft = 0;
+            foreach (var id in PrototypeIsland.ExpeditionReveals)
+            {
+                _revealed.Add(id);
+            }
+
+            events.Add(new ExpeditionReturned(utcSeconds, PrototypeIsland.ExpeditionReveals));
+        }
+
+        /// <summary>Turns two of <paramref name="input"/> into one of <paramref name="output"/>, keeping the reserve.</summary>
+        private static void Process(long[] store, Resource input, Resource output, long rate, long capacity)
+        {
+            long available = store[(int)input] - Quantity.Units(ProcessingReserve);
+            long made = Add(store, output, Min(rate, available > 0 ? available / 2 : 0), capacity);
+            store[(int)input] -= 2 * made;
         }
 
         /// <summary>Adds up to the store's capacity and returns what fitted; the rest is simply not produced.</summary>
-        private long Add(Resource resource, long amount, long capacity)
+        private static long Add(long[] store, Resource resource, long amount, long capacity)
         {
-            long room = capacity - _stock[(int)resource];
+            long room = capacity - store[(int)resource];
             long added = Min(amount, room > 0 ? room : 0);
-            _stock[(int)resource] += added;
+            store[(int)resource] += added;
             return added;
         }
 
-        private long Take(Resource resource, long wanted)
+        private static long Take(long[] store, Resource resource, long wanted)
         {
-            long taken = Min(wanted, _stock[(int)resource]);
-            _stock[(int)resource] -= taken;
+            long taken = Min(wanted, store[(int)resource]);
+            store[(int)resource] -= taken;
             return taken;
         }
 
-        private long StorageCapacity()
+        private long StorageCapacity(IslandId island)
         {
-            int storehouses = 0;
+            int units = 0;
             foreach (var building in _buildings)
             {
-                storehouses += building.Kind == BuildingKind.Storehouse ? 1 : 0;
+                if (building.Site.Island == island)
+                {
+                    units += building.Kind == BuildingKind.Storehouse ? StoragePerStorehouse : 0;
+                    units += building.Kind == BuildingKind.Jetty && island != IslandId.Home ? StorageAtJetty : 0;
+                }
             }
 
-            return Quantity.Units(StoragePerStorehouse * storehouses);
+            return Quantity.Units(units);
         }
 
         /// <summary>Share of production that reaches the store: 100, 75 or 50 % by distance, one step better with a road.</summary>
