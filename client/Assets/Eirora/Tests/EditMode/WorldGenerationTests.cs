@@ -26,6 +26,15 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void UnityMakesTheSameGeneratedMapAsDotNet()
+        {
+            // procedural-archipelago 1 from seed 20261018 (0x135289a), in maps.txt.
+            var map = WorldGenerators.Get(ProceduralArchipelagoV1.GeneratorId, 1).Generate(20261018);
+
+            Assert.That(map.Hash, Is.EqualTo("676177b153294e50c9a691ae2efcfb1130743740acafe870e76e2f015e36a8c7"));
+        }
+
+        [Test]
         public void UnityMakesTheGoldenPrototypeMap()
         {
             var map = WorldGenerators.Get(PrototypeHome.GeneratorId, PrototypeHome.GeneratorVersion).Generate(0);
