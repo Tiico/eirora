@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Health Connect for Eirora (ADR-0007): read steps, exercise and sleep only, when the player opens the app.
+  Never background reading or history (D-70), never writing. Eirora.Editor.Builds fails the APK if this changes.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+
+    <queries>
+        <!-- Health Connect as an app on Android 13 and lower. -->
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
+    <application>
+        <!-- How Eirora uses the data; Health Connect links here from its permission dialog (Android 13 and lower). -->
+        <activity
+            android:name="com.eirora.health.HealthPrivacyActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- The same explanation on Android 14 and higher. -->
+        <activity-alias
+            android:name="com.eirora.health.ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity="com.eirora.health.HealthPrivacyActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Hosts the Health Connect permission contract, which needs a ComponentActivity. -->
+        <activity
+            android:name="com.eirora.health.HealthPermissionActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>
