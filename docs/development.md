@@ -60,6 +60,8 @@ En APK till en Android-telefon byggs lokalt med:
 "C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android
 ```
 
+Bygget får version enligt [Versioner](#versioner) och signeras med prototypens nyckel när den finns i miljön, se [Signering](#signering).
+
 Klienten läser Health Connect med Kotlin-modulen `client/Assets/Eirora/Plugins/Android/HealthConnect.androidlib` ([ADR-0007](./adr/0007-own-health-connect-adapter.md)).
 AGP 9 hoppar tyst över Kotlin-koden om inte `client/Assets/Plugins/Android/gradleTemplate.properties` slår på inbyggd Kotlin, så varje Android-bygge kontrolleras efteråt (`AndroidHealthCheck`): bryggklassen måste finnas i APK:n och appen får bara läsa steg, träningspass och sömn.
 
@@ -160,5 +162,32 @@ gh secret set UNITY_PASSWORD
 > Unity har i omgångar begränsat manuell aktivering av Personal-licenser i CI.
 > Om aktiveringen misslyckas trots korrekta secrets krävs Unity Pro eller Plus och `UNITY_SERIAL`, se [GameCI:s aktiveringsguide](https://game.ci/docs/github/activation).
 
-Android-byggen signeras med Unitys debugnyckel tills en egen nyckel finns, vilket räcker för att installera prototypen direkt på telefonen.
-Inför butikssläpp läggs `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` och `ANDROID_KEYALIAS_PASS` in som secrets; workflowen använder dem automatiskt.
+Android-bygget kräver dessutom prototypens signeringsnyckel, se [Signering](#signering).
+
+### Signering
+
+En ny version kan bara installeras över den gamla om båda är signerade med samma nyckel.
+Annars måste appen avinstalleras först, och då raderas världen.
+Därför signeras både CI-byggen och lokala byggen med samma nyckel, och Android-jobbet i CI misslyckas med en instruktion om nyckeln saknas.
+
+Skapa nyckeln och lägg in den som secrets med guiden, som också säger hur den säkerhetskopieras:
+
+```bash
+scripts/create-android-keystore.sh
+```
+
+Guiden sparar nyckeln och lösenordet i `~/eirora-keys/`, aldrig i repot, och sätter `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEYALIAS_NAME` och `ANDROID_KEYALIAS_PASS`.
+Ett lokalt bygge använder nyckeln när värdena finns i miljön:
+
+```bash
+set -a; . ~/eirora-keys/android-signing.env; set +a
+```
+
+Utan dem signeras ett lokalt bygge med datorns debugnyckel och kan inte installeras över ett bygge från CI.
+
+### Versioner
+
+Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
+Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
+Klienten sparar journalen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
+En journal från en annan regelversion laddas inte och skrivs aldrig över; appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
