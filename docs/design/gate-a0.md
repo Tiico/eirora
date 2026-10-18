@@ -39,7 +39,16 @@ Varje siffra går att räkna om med kommandona i [avsnitt 1.9](#19-räkna-om-sif
 ### 1.3 Gryning 07:00
 
 Fasen går från `RESTING` via `DAWN` till `ACTIVE`, och det styrs bara av schema och tid (INV-T1, INV-T2).
-Simuleringen krediterar Gryningskraftens grundnivå och fyller på med sömnen, krediterar bidrag från natten (INV-T9), låter byborna äta och låter byn växa.
+Simuleringen låter först byborna äta och byn växa, krediterar sedan Gryningskraftens grundnivå och fyller på med sömnen och krediterar till sist bidragen från natten (D-87, INV-T9).
+Kalkylen krediterar krafterna före måltiden, men stegen påverkar inte varandra, så utfallet blir detsamma.
+
+**Basbehov och bybor.**
+De 16 byborna äter 1 mat var och tar fisk först, så fisken går från 56 till 40 och säden lämnas orörd.
+Byborna är mätta och det finns bostad, så antalet går från 16 till 17.
+Det finns ingen vadmal, så ingen extra bybo tillkommer för komfort.
+Bemanningen fyller 16 platser, och 1 bybo blir över för att bygga (INV-V2).
+
+**Krafterna.**
 
 | Vana | Egenvård | Kurva ([krafternas regler](./forces.md), avsnitt 3) | Kraft | Saldo | Sparandets tak (D-35) |
 |---|---|---|---|---|---|
@@ -55,12 +64,6 @@ Varje vana ger bara sin egen kraft (INV-F2).
 Inmatade och uppmätta bidrag ger samma kraft (INV-F7), och kraften blir densamma oavsett hur bidragen delas upp eller i vilken ordning de kommer (INV-F8, INV-B1).
 Kalkylen krediterar hela dygnets steg och pass redan vid gryningen, medan spelet krediterar dem när datan kommer in under dygnet (se [avsnitt 3](#3-avvikelser-mellan-dokument-och-kalkyl)).
 Det här dygnet påverkar förenklingen inget av världens utfall, vilket varianten med grundnivå i avsnitt 1.8 visar.
-
-**Basbehov och bybor.**
-De 16 byborna äter 1 mat var och tar fisk först, så fisken går från 56 till 40 och säden lämnas orörd.
-Byborna är mätta och det finns bostad, så antalet går från 16 till 17.
-Det finns ingen vadmal, så ingen extra bybo tillkommer för komfort.
-Bemanningen fyller 16 platser, och 1 bybo blir över för att bygga (INV-V2).
 
 **Vad spelaren ser.**
 Spelaren ser en kort gryningsövergång och sedan den dagliga rapporten, *God morgon*.
@@ -145,7 +148,7 @@ Viloperiodens 8 timmar ligger inom 6–10 timmar (INV-T6).
 |---|---|---|
 | Utforskning | 350 + 86: 50 räknas fullt upp till 400 och 36 räknas till hälften, alltså 18 | 418 |
 | Byggkraft | Inget pass i dag ger 0, och vilodagar kostar inget (D-63) | 220 |
-| Gryningskraft | 235 + 92: 65 räknas fullt upp till 300 och 27 räknas till hälften, alltså 13,5 | 313,5 |
+| Gryningskraft | 235 + 92: 65 räknas fullt upp till 300 och 27 räknas till hälften, alltså 13,5; spelet sparar 627 halva krafter och visar 313 (INV-F1) | 313 |
 
 De 17 byborna äter 17 fisk, så fisken går från 60 till 43, och byn växer till 18 bybor.
 Två bybor bemannar den nya fiskeboden, som ger 1,25 × 1,5 × 0,75 ≈ 1,41 fisk per timme.
@@ -155,7 +158,7 @@ En morgonnotis kommer bara om något nytt har hänt, högst en per spelardygn oc
 
 | | Gryning dygn 5 | Skymning dygn 5 | Gryning dygn 6 |
 |---|---|---|---|
-| Krafter | 264 / 200 / 238 → 350 / 280 / 315 | 350 / 220 / 235 | 418 / 220 / 313,5 |
+| Krafter | 264 / 200 / 238 → 350 / 280 / 315 | 350 / 220 / 235 | 418 / 220 / 313 |
 | Bybor | 16 → 17 | 17 | 18 |
 | Byggnader | 10 | 11 | 11 |
 
@@ -262,8 +265,8 @@ Med *blockerar M1* menas att ett M1-ärende (TASK-013, TASK-014, TASK-015 eller 
 | ID | Fråga | Nuvarande förslag | Blockerar M1 | Beslutas | Ärende/ADR |
 |---|---|---|---|---|---|
 | O-01 | Exakta värden för krafter, tak och avtagande avkastning | Startvärdena i forces.md | Nej: `ForceRules.cs` har forces.md:s kurvor och tak; trimningen hör till balansbotarna | M4/M5 | #31 (A1) hänvisar |
-| O-02 | Innehållsomfång: byggnader, resurser, kedjor | Färre men tyngre typer; ekonomi v1 har 12 byggnader och 7 resurser | Nej: prototypen kör ekonomi v1 | M4 (ROADMAP säger M10) | – |
-| O-03 | Antal och innehåll för epoker vid release | 3–4 epoker | Nej: M1 behöver bara epok 1:s första två veckor | M10 (PRD säger M5) | – |
+| O-02 | Innehållsomfång: byggnader, resurser, kedjor | Färre men tyngre typer; ekonomi v1 har 12 byggnader och 7 resurser | Nej: prototypen kör ekonomi v1 | M4 | – |
+| O-03 | Antal och innehåll för epoker vid release | 3–4 epoker | Nej: M1 behöver bara epok 1:s första två veckor | M10 | – |
 | O-04 | Hur arkipelagen komponeras av gruppens världar | Fast havsyta med världarna runt ett gemensamt centrum | Nej: gäller grupper | M8 | #69 förbereder |
 | O-05 | Sjövägar och handel när någon lämnar gruppen | Inga förluster för någon | Nej: gäller grupper | M8 | – |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik och bekvämlighet, aldrig kraft (D-25) | Nej: inga intäkter i prototypen | M10 | – |
@@ -291,6 +294,7 @@ Med *blockerar M1* menas att ett M1-ärende (TASK-013, TASK-014, TASK-015 eller 
 | Plats | Fråga | Blockerar M1 | Beslutas |
 |---|---|---|---|
 | Statusraden i core-fantasy.md, invariants.md, forces.md, economy-v1.md, epoch-1.md, ux-journeys.md och prototype-diary.md | Dokumenten är `[FÖRSLAG] v0.1` och väntar på produktägarens granskning | Ja, formellt: prototypen bygger på dem | A0, förslag 1 |
+| device-measurements.md:3 | Dokumentet är `[FÖRSLAG] v0.1`: metoden är klar, och mätningarna på produktägarens telefon återstår | Nej: mätningarna är själva M1-arbetet i TASK-015, och metodens öppna frågor avgörs i förslag 2 och 3 | M1 ([TASK-015](https://github.com/Tiico/eirora/issues/30)) |
 | device-measurements.md:114 | Batteriet mätt med fast eller automatisk ljusstyrka? | Ja: avgör hur batterimätningen i TASK-015 görs | M1, förslag 2 |
 | device-measurements.md:115 | Behövs en andra, äldre Android-telefon redan i M1? | Nej: M1 mäter bara på produktägarens telefon | M2 (#39) |
 | art-direction.md:40 | Gemensamma principer `[FÖRSLAG]` | Nej: D-61 valde riktningen | M9 |
@@ -319,7 +323,7 @@ Ingen av O-frågorna blockerar prototypen.
 De som gäller M1 är antingen redan avgjorda i koden (O-01:s startvärden) eller handlar om att mäta, inte om att besluta (O-13).
 Två punkter behöver ändå avgöras för att grind A0 ska vara uppfylld och TASK-015 ska kunna slutföras, och en tredje är städning.
 
-**1. Godkänn designdokumenten från M0.**
+**1. Godkänn designdokumenten från M0 och prototypdagboken.**
 Förslag: när grind A0 godkänns ändras statusen för core-fantasy.md, invariants.md, forces.md, economy-v1.md, epoch-1.md, ux-journeys.md och prototype-diary.md från `[FÖRSLAG] v0.1` till godkänd v1.0.
 Siffrorna förblir startvärden under O-01.
 De inbäddade `[FÖRSLAG]` som hör till senare milstolpar står kvar med sin milstolpe.
@@ -351,8 +355,9 @@ Följande skiljer sig ändå mellan text och kalkyl; ingen av punkterna blockera
    Det är en designfråga om avstånd ska kosta något för åkrar, och den avgörs i [TASK-038](https://github.com/Tiico/eirora/issues/88).
 2. **Steg och pass krediteras vid gryningen i kalkylen,** men under dygnet när datan kommer in enligt forces.md.
    Det ändrar inget utfall för dygnet i avsnitt 1.
-3. **Krafternas saldon är decimaltal i kalkylen,** medan INV-F1 kräver heltal eller fast decimal.
-   Värdena stämmer efter avrundning, och C#-simuleringen räknar i fast decimal.
+3. **Krafternas saldon är decimaltal i kalkylen,** medan INV-F1 kräver ett heltal ≥ 0.
+   C#-simuleringen sparar krediten i halva krafter, och saldot som går att spendera avrundas nedåt (`ForceBalances.Available`).
+   Kalkylens 313,5 Gryningskraft i avsnitt 1.8 blir därför 313 i spelet, och kalkylens 232,75 efter sju spelardygn blir 233, som i tabellen.
 4. **Kalkylen prövar bara att lagret inte blir negativt,** inte taket och inte lagren på andra öar, fast economy-v1.md säger att den prövar INV-R1.
 5. **Havet lägger aldrig dagsverke på fårgården,** som economy-v1.md:136 säger, eftersom fårgården inte hinner byggas under veckan.
 

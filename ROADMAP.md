@@ -76,8 +76,8 @@ Art direction pågår från M0 eftersom visuell skönhet är ett kvalitetskrav (
 **Artefakter:** GLOSSARY.md, `docs/design/` (invarianter, krafter, ekonomi v1, UX-resor, art direction, kontur för epok 1), uppdaterad PRD, GitHub-ärenden för M1.
 
 **Kvalitetsgrind A0:** det går att beskriva en hel dag inklusive vila, med konkreta siffror.
-Godkänd 2026-10-18, se [gate-a0.md](./docs/design/gate-a0.md).
 Inget beslut som blockerar prototypen är öppet.
+Godkänd 2026-10-18, se [gate-a0.md](./docs/design/gate-a0.md).
 
 ### M1 — Spelbar prototyp i fickan
 
@@ -133,11 +133,11 @@ Rendering och pathfinding fungerar på målenheter.
 ### M4 — Ekonomi och logistik
 
 1. Byggplacering, bosättningar, uppgraderingar.
-2. Recept, lager, arbetskraft, konsumtion, basbehov utan förfall.
+2. Recept, lager, arbetskraft, konsumtion, basbehov utan förfall; innehållsomfånget för byggnader, resurser och kedjor (O-02).
 3. Långsamma processer.
 4. Vägar, hamnar, sjövägar inom världen, transportkapacitet, flaskhalsdiagnostik.
 5. Konkurrerande investeringar och minst tre scenarier med olika optimala strategier.
-6. Långtidssimulering av ekonomin, med och utan krafter.
+6. Långtidssimulering av ekonomin, med och utan krafter, med balansbotar som trimmar krafternas värden (O-01).
 
 **Kvalitetsgrind A4:** placering och logistik ger tydliga, begripliga effekter.
 Långa frånvaroperioder bryter ingenting.
@@ -145,7 +145,7 @@ Minst två strategier fungerar och ingen dominerar.
 
 ### M5 — Krafter, expeditioner, forskning och första epoken
 
-1. Fullständiga regler för Utforskning, Byggkraft och Gryningskraft med tak och avtagande avkastning.
+1. Fullständiga regler för Utforskning, Byggkraft och Gryningskraft med tak och avtagande avkastning (O-01).
 2. Expeditioner som drivs av Utforskning: rutter, fynd, nya öar.
 3. Forskning med minst tre inriktningar.
 4. Guidad tur och löpande introduktion med tutorialelement.
@@ -217,7 +217,7 @@ Kritiska handlingar går att hitta utan instruktion.
 ### M10 — Epoker, innehåll och intäkter
 
 1. Epoker för release (O-03), med verktyg för att producera nya epoker efter release.
-2. Balansgranskade byggnader, resurser, kedjor, forskningsgrenar och fynd (O-02).
+2. Balansgranskade byggnader, resurser, kedjor, forskningsgrenar och fynd inom omfånget från M4 (O-02).
 3. Historik för världen och arkipelagen.
 4. Innehållsvalidatorer i CI.
 5. Kosmetika, supporter-prenumeration (O-06), serverbaserad köpvalidering, inga reklam-SDK:er.
@@ -475,4 +475,4 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 | 0.3 | 2026-10-17 | Namn Eirora ersätter Verdawn; art direction förankras i det nordiska temat. |
 | 0.4 | 2026-10-18 | Nästa uppgifter TASK-011–026: luckorna till grind A0 och A1 och hela M2 till grind A2. |
 | 0.5 | 2026-10-18 | Uppgifter för M3 TASK-027–036 fram till grind A3. |
-| 0.6 | 2026-10-18 | Grind A0 godkänd: M0 `ACCEPTED`, M1–M3 `IN_PROGRESS`. |
+| 0.6 | 2026-10-18 | Grind A0 godkänd: M0 `ACCEPTED`, M1–M3 `IN_PROGRESS`; O-01 i M4 och M5, O-02 i M4. |
