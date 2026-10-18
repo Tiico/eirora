@@ -95,11 +95,16 @@ namespace Eirora.Editor
                 throw new BuildFailedException($"The keystore {keystore} does not exist.");
             }
 
+            // Everything is read before any setting changes, so a missing variable leaves the project as it was.
+            string keystorePass = Required("EIRORA_ANDROID_KEYSTORE_PASS");
+            string keyaliasName = Required("EIRORA_ANDROID_KEYALIAS_NAME");
+            string keyaliasPass = Required("EIRORA_ANDROID_KEYALIAS_PASS");
+
             PlayerSettings.Android.useCustomKeystore = true;
             PlayerSettings.Android.keystoreName = keystore;
-            PlayerSettings.Android.keystorePass = Required("EIRORA_ANDROID_KEYSTORE_PASS");
-            PlayerSettings.Android.keyaliasName = Required("EIRORA_ANDROID_KEYALIAS_NAME");
-            PlayerSettings.Android.keyaliasPass = Required("EIRORA_ANDROID_KEYALIAS_PASS");
+            PlayerSettings.Android.keystorePass = keystorePass;
+            PlayerSettings.Android.keyaliasName = keyaliasName;
+            PlayerSettings.Android.keyaliasPass = keyaliasPass;
             return true;
         }
 
