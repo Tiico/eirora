@@ -6,16 +6,16 @@ namespace Eirora.Contracts
     /// </summary>
     public sealed class LoginLink
     {
-        public LoginLink(ExternalLogin login, ExternalLogin confirmation)
+        public LoginLink(ExternalLogin? login, ExternalLogin? confirmation)
         {
             Login = login;
             Confirmation = confirmation;
         }
 
-        /// <summary>The login to link.</summary>
-        public ExternalLogin Login { get; }
+        /// <summary>The login to link; null when a request leaves it out, which the server rejects.</summary>
+        public ExternalLogin? Login { get; }
 
-        /// <summary>A sign-in with one of the logins the account already has.</summary>
-        public ExternalLogin Confirmation { get; }
+        /// <summary>A sign-in with one of the logins the account already has; null when a request leaves it out, which the server rejects.</summary>
+        public ExternalLogin? Confirmation { get; }
     }
 }
