@@ -79,10 +79,17 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "12-health-explanation");
             client.Hud.Select(null);
 
-            // Nyön, found by the expedition and joined by the sea route.
+            // The sawmill upgraded on day 4, next to the level-1 storehouse: how a level reads on the island (ADR-0009).
             clock.Current = At("2026-10-23 13:00");
             session.CatchUp();
             client.Refresh();
+            var sawmill = PrototypeIsland.Sites.First(s => s.Id == "E2");
+            client.Focus(IslandMap.HexOf(sawmill).Center);
+            client.Hud.Select(sawmill);
+            yield return Capture(client, folder, "13-upgraded");
+            client.Hud.Select(null);
+
+            // Nyön, found by the expedition and joined by the sea route.
             client.Focus(IslandMap.NyonCentre.Center + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
