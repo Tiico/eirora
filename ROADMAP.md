@@ -243,7 +243,7 @@ Testerna stödjer tesen om ett roligt och hälsosamt spel.
 
 ### M12 — Release 1.0
 
-1. Varumärke, butikssidor, skärmbilder, trailer, supportmaterial.
+1. Varumärke (uppdatera [namnkontrollen](./docs/research/eirora-name-check.md) och säkra namnet, O-11), butikssidor, skärmbilder, trailer, supportmaterial.
 2. Deklarationer för Health Connect och HealthKit, integritetsetiketter, dataskydd.
 3. Oberoende säkerhetsgranskning av hälsodata och gruppflöden.
 4. Katastrofåterställning, migrationstest, rollbackplan.
