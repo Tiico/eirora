@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using System;
 using System.Collections;
 using Eirora.Client.App;
@@ -49,7 +50,7 @@ namespace Eirora.Client
             _hud.SelectionChanged += site => _island.Select(site is null ? null : IslandMap.HexOf(site));
 
             _rig = new CameraRig(_camera, _hud.IsOverInterface);
-            _rig.Tapped += point => _hud.Select(_island.Map.SiteAt(Hex.FromWorld(point)));
+            _rig.Tapped += point => _hud.Select(_island.Map.SiteAt(HexLayout.FromWorld(point)));
 
             string? screenshots = Argument("-eirora-screenshots");
             if (screenshots is not null)

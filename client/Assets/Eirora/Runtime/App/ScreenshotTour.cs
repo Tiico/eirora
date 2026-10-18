@@ -84,13 +84,13 @@ namespace Eirora.Client.App
             session.CatchUp();
             client.Refresh();
             var sawmill = PrototypeIsland.Sites.First(s => s.Id == "E2");
-            client.Focus(IslandMap.HexOf(sawmill).Center);
+            client.Focus(IslandMap.HexOf(sawmill).Center());
             client.Hud.Select(sawmill);
             yield return Capture(client, folder, "13-upgraded");
             client.Hud.Select(null);
 
             // Nyön, found by the expedition and joined by the sea route.
-            client.Focus(IslandMap.NyonCentre.Center + new Vector3(0.9f, 0f, -0.4f));
+            client.Focus(IslandMap.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
             Application.Quit();

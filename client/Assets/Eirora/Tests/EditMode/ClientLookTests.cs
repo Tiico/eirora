@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using System;
 using System.Linq;
 using Eirora.Client.Look;
@@ -80,7 +81,7 @@ namespace Eirora.Client.Tests
             foreach (var site in PrototypeIsland.Sites)
             {
                 var hex = IslandMap.HexOf(site);
-                Assert.That(Hex.FromWorld(hex.Center), Is.EqualTo(hex), site.Id);
+                Assert.That(HexLayout.FromWorld(hex.Center()), Is.EqualTo(hex), site.Id);
             }
         }
 
