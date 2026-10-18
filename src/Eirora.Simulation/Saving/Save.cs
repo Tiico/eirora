@@ -1,0 +1,234 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using Eirora.Simulation.Commands;
+using Eirora.Simulation.Events;
+using Eirora.Simulation.Time;
+
+namespace Eirora.Simulation.Saving
+{
+    /// <summary>
+    /// A world's stored form on the device (GLOSSARY: Sparning, ADR-0006): the snapshot from when the world got its
+    /// current rules version, the journal since then and the latest snapshot, plus the previous segment until the next
+    /// rules change. Loading restores the latest snapshot; the journal lets a migration be redone and conflicts between
+    /// devices be resolved (TASK-023).
+    /// </summary>
+    /// <remarks>
+    /// The bytes are UTF-8 text: a header with the format and a SHA-256 hash of everything after it, then named
+    /// sections, each with its length. A changed or missing byte is caught, so a save cut off mid-write is never
+    /// mistaken for a world. The simulation does no I/O; the client writes the bytes atomically.
+    /// </remarks>
+    public sealed class Save
+    {
+        /// <summary>The save container's format. Bumped when the sections or their encoding change.</summary>
+        public const int FormatVersion = 1;
+
+        private const string Magic = "eirora-save";
+
+        private static readonly UTF8Encoding s_utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+        private readonly SimulationSnapshot _start;
+        private readonly Journal _journal;
+        private readonly Segment? _previous;
+
+        private Save(SimulationSnapshot start, Journal journal, Segment? previous, bool changedOnLoad)
+        {
+            _start = start;
+            _journal = journal;
+            _previous = previous;
+            ChangedOnLoad = changedOnLoad;
+        }
+
+        public World World => _journal.World;
+
+        /// <summary>
+        /// Whether loading changed the save, by a migration to new rules or by taking over a prototype journal, so it
+        /// should be written at once (ADR-0006).
+        /// </summary>
+        public bool ChangedOnLoad { get; }
+
+        /// <summary>Whether a segment under earlier rules is kept, so a faulty migration can be redone.</summary>
+        internal bool HasPreviousSegment => _previous is not null;
+
+        /// <summary>Creates a new world and its save.</summary>
+        public static Save Begin(TimeReading install, RestSchedule restSchedule)
+        {
+            var world = World.Create(install, restSchedule);
+            return new Save(SimulationSnapshot.Take(world), Journal.Continue(world), null, changedOnLoad: false);
+        }
+
+        /// <summary>
+        /// Takes over a prototype journal from M1: it is replayed once, and the created world and the journal become the
+        /// save's first segment (ADR-0006).
+        /// </summary>
+        /// <exception cref="FormatException">The text is not a prototype journal this version can replay.</exception>
+        public static Save FromPrototypeJournal(string text)
+        {
+            var prototype = Journal.Load(text, out var start);
+            return new Save(start, Journal.Resume(prototype.World, prototype.Inputs), null, changedOnLoad: true);
+        }
+
+        /// <summary>Restores the world from its latest snapshot, migrating it to the current rules if needed.</summary>
+        /// <exception cref="SavedByNewerVersionException">A newer app wrote the save.</exception>
+        /// <exception cref="FormatException">The save is damaged or incomplete.</exception>
+        public static Save Load(byte[] bytes) => Load(bytes, Migrations.All);
+
+        internal static Save Load(byte[] bytes, IReadOnlyList<StateMigration> migrations)
+        {
+            var sections = Sections(bytes);
+            var start = Snapshot(sections, "start");
+            string inputs = Section(sections, "inputs");
+            var latest = Snapshot(sections, "latest");
+            Segment? previous = sections.ContainsKey("previous-start")
+                ? new Segment(Snapshot(sections, "previous-start"), Section(sections, "previous-inputs"))
+                : null;
+
+            if (latest.IsFromNewerVersion || start.IsFromNewerVersion)
+            {
+                throw new SavedByNewerVersionException(
+                    $"The save has rules version {latest.Rules} and content version {latest.Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
+            }
+
+            var world = latest.Restore(migrations);
+            if (latest.Rules == RulesVersion.Current)
+            {
+                return new Save(start, Journal.Resume(world, inputs), previous, changedOnLoad: false);
+            }
+
+            // New rules begin a new segment at the migrated snapshot; the one that ended is kept (ADR-0006).
+            return new Save(SimulationSnapshot.Take(world), Journal.Continue(world), new Segment(start, inputs), changedOnLoad: true);
+        }
+
+        /// <summary>Lets simulation time pass and records it as the journal does.</summary>
+        public IReadOnlyList<GameEvent> AdvanceTo(TimeReading reading) => _journal.AdvanceTo(reading);
+
+        /// <summary>Applies a command and records it; a key has no spaces.</summary>
+        public CommandResult Apply(string idempotencyKey, GameCommand command) => _journal.Apply(idempotencyKey, command);
+
+        /// <summary>
+        /// The save as bytes, with a new latest snapshot. The journal records the current time first, so that the
+        /// segment's start and journal always lead exactly to the latest snapshot.
+        /// </summary>
+        public byte[] ToBytes()
+        {
+            _journal.RecordNow();
+            var body = new StringBuilder();
+            AppendSection(body, "start", Text(_start));
+            AppendSection(body, "inputs", _journal.Inputs);
+            AppendSection(body, "latest", Text(SimulationSnapshot.Take(World)));
+            if (_previous is Segment previous)
+            {
+                AppendSection(body, "previous-start", Text(previous.Start));
+                AppendSection(body, "previous-inputs", previous.Inputs);
+            }
+
+            string text = body.ToString();
+            return s_utf8.GetBytes($"{Magic} {FormatVersion.ToString(CultureInfo.InvariantCulture)}\nsha256 {Hash(text)}\n{text}");
+        }
+
+        /// <summary>The world the current segment's start and journal lead to, for checking that they do.</summary>
+        internal World Replay() => Journal.Continue(_start.Restore(), _journal.Inputs).World;
+
+        private static Dictionary<string, string> Sections(byte[] bytes)
+        {
+            if (bytes is null)
+            {
+                throw new ArgumentNullException(nameof(bytes));
+            }
+
+            string text;
+            try
+            {
+                text = s_utf8.GetString(bytes);
+            }
+            catch (ArgumentException e)
+            {
+                throw new FormatException("A save is UTF-8 text.", e);
+            }
+
+            int magicEnd = text.IndexOf('\n');
+            int hashEnd = magicEnd < 0 ? -1 : text.IndexOf('\n', magicEnd + 1);
+            if (hashEnd < 0 || !text.StartsWith(Magic + " ", StringComparison.Ordinal))
+            {
+                throw new FormatException("Not a save.");
+            }
+
+            string version = text.Substring(Magic.Length + 1, magicEnd - Magic.Length - 1);
+            if (!int.TryParse(version, NumberStyles.None, CultureInfo.InvariantCulture, out int format) || format < 1)
+            {
+                throw new FormatException($"'{version}' is not a save format.");
+            }
+
+            if (format > FormatVersion)
+            {
+                throw new SavedByNewerVersionException($"The save has format {format}; this build reads format {FormatVersion}.");
+            }
+
+            string body = text.Substring(hashEnd + 1);
+            if (!string.Equals(text.Substring(magicEnd + 1, hashEnd - magicEnd - 1), "sha256 " + Hash(body), StringComparison.Ordinal))
+            {
+                throw new FormatException("The save does not match its hash; it is damaged or incomplete.");
+            }
+
+            var sections = new Dictionary<string, string>(StringComparer.Ordinal);
+            int at = 0;
+            while (at < body.Length)
+            {
+                int lineEnd = body.IndexOf('\n', at);
+                string[] fields = lineEnd < 0 ? Array.Empty<string>() : body.Substring(at, lineEnd - at).Split(' ');
+                if (fields.Length != 2
+                    || !int.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out int length)
+                    || length > body.Length - lineEnd - 1
+                    || sections.ContainsKey(fields[0]))
+                {
+                    throw new FormatException("The save's sections are broken.");
+                }
+
+                sections.Add(fields[0], body.Substring(lineEnd + 1, length));
+                at = lineEnd + 1 + length;
+            }
+
+            return sections;
+        }
+
+        private static string Section(Dictionary<string, string> sections, string name) =>
+            sections.TryGetValue(name, out string? text) ? text : throw new FormatException($"The save has no '{name}' section.");
+
+        private static SimulationSnapshot Snapshot(Dictionary<string, string> sections, string name) =>
+            SimulationSnapshot.FromBytes(s_utf8.GetBytes(Section(sections, name)));
+
+        private static void AppendSection(StringBuilder body, string name, string text) =>
+            body.Append(name).Append(' ').Append(text.Length.ToString(CultureInfo.InvariantCulture)).Append('\n').Append(text);
+
+        private static string Text(SimulationSnapshot snapshot) => s_utf8.GetString(snapshot.ToBytes());
+
+        private static string Hash(string text)
+        {
+            using var sha256 = SHA256.Create();
+            byte[] hash = sha256.ComputeHash(s_utf8.GetBytes(text));
+            var hex = new StringBuilder(hash.Length * 2);
+            foreach (byte b in hash)
+            {
+                hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return hex.ToString();
+        }
+
+        /// <summary>A snapshot and the inputs recorded after it under the same rules.</summary>
+        private readonly struct Segment
+        {
+            public Segment(SimulationSnapshot start, string inputs)
+            {
+                Start = start;
+                Inputs = inputs;
+            }
+
+            public SimulationSnapshot Start { get; }
+
+            public string Inputs { get; }
+        }
+    }
+}

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Eirora.Client.App;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Simulation;
@@ -114,12 +115,21 @@ namespace Eirora.Client.UI
         /// <summary>
         /// The saved world cannot be read by this build. Nothing is overwritten; starting anew keeps the old save aside.
         /// </summary>
-        public void ShowUnreadableSave(System.Action startAnew)
+        public void ShowUnreadableSave(SaveProblem problem, System.Action startAnew)
         {
             var card = Container("card setup", _middle);
             Text("setup-title", card, "Din värld väntar");
-            Text("sheet-text", card, "Den här versionen av Eirora kan inte läsa din sparade värld, troligen för att reglerna har ändrats. Världen är kvar och ingenting har skrivits över.");
-            Text("sheet-text", card, "Du kan vänta på en version som kan läsa den, eller börja en ny värld. Den gamla sparas då undan.");
+            if (problem == SaveProblem.FromNewerVersion)
+            {
+                Text("sheet-text", card, "Din värld sparades av en nyare version av Eirora. Uppdatera appen för att spela vidare. Världen är kvar och ingenting har skrivits över.");
+                Text("sheet-text", card, "Du kan också börja en ny värld. Den gamla sparas då undan.");
+            }
+            else
+            {
+                Text("sheet-text", card, "Den sparade världen och dess reservkopia kunde inte läsas. De finns kvar på telefonen och ingenting har skrivits över.");
+                Text("sheet-text", card, "Du kan börja en ny värld. Den gamla sparas då undan, så att den kan undersökas.");
+            }
+
             Button("button button-wide", card, "Börja en ny värld", () =>
             {
                 _middle.Remove(card);

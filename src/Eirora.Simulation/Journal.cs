@@ -53,7 +53,13 @@ namespace Eirora.Simulation
 
         /// <summary>Rebuilds a world by replaying a saved prototype journal.</summary>
         /// <exception cref="FormatException">The text is not a journal this version can read.</exception>
-        public static Journal Load(string text)
+        public static Journal Load(string text) => Load(text, out _);
+
+        /// <summary>
+        /// Rebuilds a world from a prototype journal like <see cref="Load(string)"/>, and gives the world as it was
+        /// created, before any input, as <paramref name="start"/>.
+        /// </summary>
+        internal static Journal Load(string text, out SimulationSnapshot start)
         {
             if (text is null)
             {
@@ -79,13 +85,31 @@ namespace Eirora.Simulation
 
             var create = Fields(lines[1]);
             Expect(create, "create", 6);
-            var journal = Start(ParseReading(create, 1), new RestSchedule(Int(create[4]), Int(create[5])));
+            var schedule = new RestSchedule(Int(create[4]), Int(create[5]));
+            if (!schedule.IsValid)
+            {
+                throw new FormatException($"Not a valid rest schedule: '{lines[1]}'.");
+            }
+
+            var journal = Start(ParseReading(create, 1), schedule);
+            start = SimulationSnapshot.Take(journal.World);
             journal.Replay(lines, 2);
             return journal;
         }
 
         /// <summary>Starts recording the inputs to a world from where it is now, such as a restored snapshot.</summary>
         internal static Journal Continue(World world) => new(world, string.Empty);
+
+        /// <summary>
+        /// Goes on recording after <paramref name="inputs"/>, which brought a world to where <paramref name="world"/> is
+        /// now and end with its time (<see cref="RecordNow"/>). Nothing is replayed.
+        /// </summary>
+        internal static Journal Resume(World world, string inputs)
+        {
+            var journal = Continue(world);
+            journal._inputs.Append(inputs);
+            return journal;
+        }
 
         /// <summary>
         /// Continues from <paramref name="start"/> by replaying <paramref name="inputs"/>, which a journal continued from

@@ -134,9 +134,9 @@ namespace Eirora.Client
             {
                 Refresh();
             }
-            else if (_session.LoadProblem is not null)
+            else if (_session.LoadProblem is { } problem)
             {
-                _hud.ShowUnreadableSave(() =>
+                _hud.ShowUnreadableSave(problem, () =>
                 {
                     _session.SetAsideSave();
                     _hud.ShowSetup(schedule => _session.Begin(schedule));
