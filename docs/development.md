@@ -109,16 +109,21 @@ Arkitekturtestet underkänner det som kan skilja mellan körmiljöer eller enhet
 - flyttal och `System.Math`;
 - väggklocka, slump, filer, nätverk, miljövariabler och reflektion (som avslöjar vilken runtime som kör);
 - `string.GetHashCode` och iteration över `Dictionary` och `HashSet`, vars ordning beror på hashning och runtimens implementation;
+- `Keys`, `Values` och nyckel–värde-par genom `IDictionary` och `IReadOnlyDictionary`, med `foreach`, LINQ eller en samling som byggs av dem, eftersom IL inte visar om ordboken bakom är sorterad (gå över en sorterad samling med `foreach`, eller över nycklarna i fast ordning);
 - tal som formateras eller tolkas utan `CultureInfo.InvariantCulture`, och strängjämförelser och sorterade strängsamlingar utan ordinal jämförelse.
 
-Testet kan inte se allt. Det här är också förbjudet men upptäcks bara av jämförelsen nedan och vid granskning:
+Testet kan inte se allt.
+Det här är också förbjudet men upptäcks bara av replay-korpusen nedan och vid granskning:
 
 - ordning som beror på något annat än nycklarna, till exempel sortering med lika nycklar;
-- strängar som byggs med `$"{tal}"` och sedan påverkar tillståndet.
+- en `HashSet` som gås igenom som `IEnumerable<T>` eller `ISet<T>`, till exempel med LINQ, eftersom IL inte visar vilken samling som ligger bakom;
+- strängar som byggs med `$"{tal}"`, som blir `string.Format` med aktuell kultur, och sedan påverkar tillståndet.
 
 Replay-korpusen i `tests/Replays/` är handgjorda fall från UX-resorna och ekonomin plus slumpade sekvenser, som start och indata utan regelversion.
 `ReplayCorpusTests` skriver tillståndets hash för varje replay till `artifacts/determinism/dotnet.txt`, och determinismbygget (IL2CPP för ARM64, paketet `com.eirora.game.determinism`) spelar upp samma korpus på Android.
-Jämför dem på en emulator eller telefon:
+Servern, spelarnas telefoner och emulatorn (en-US) kör i olika kulturer, så `ReplayCorpusTests` spelar också upp korpusen under sv-SE och tr-TR och kräver samma hash som under invariant kultur.
+Med ICU skriver sv-SE minustecken som U+2212, och tr-TR gör om `I` till ett prickfritt `ı`.
+Jämför .NET och IL2CPP på en emulator eller telefon:
 
 ```bash
 "C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.AndroidDeterminism
@@ -129,7 +134,24 @@ scripts/check-determinism.sh
 ```
 
 Skriptet installerar och avinstallerar bara determinismbygget, aldrig spelet.
+Determinismbygget har en egen scen med bara `DeterminismBootstrap`, som `Builds.AndroidDeterminism` gör för bygget och tar bort efteråt; korpusen ligger i `client/Assets/Eirora/Determinism/` bara medan bygget pågår.
+Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `client/Assets/`, `client/Packages/` eller `tests/Replays/`.
+`client/ProjectSettings/` jämförs inte, eftersom bygget självt sparar den efter att APK:n skrivits; bygg om efter en ändring där.
+
+Replays är indata, inte resultat, så de ändras inte när reglerna ändras.
 Saknas en replay i korpusen skapar testet den och underkänner körningen, så att den granskas och checkas in.
+När journalens format för start eller indata ändras går replays inte längre att läsa.
+Ta då bort `tests/Replays/*.replay` och kör `ReplayCorpusTests`, som skriver om hela korpusen från de handgjorda fallen och de fasta fröna för de slumpade sekvenserna; granska och checka in den nya korpusen tillsammans med formatändringen.
+
+Determinism-jobbet i Unity-workflowen bygger determinismbygget och kör skriptet på en Android-emulator.
+Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
+Titta därför på jobbet innan en PR som rör simuleringen mergas.
+Jobbet har ännu inte kört i CI, eftersom Unity-jobben hoppas över så länge Unity-licensen saknas bland hemligheterna.
+Tills det har kört grönt och rött en gång var är de här antagandena otestade:
+
+- att `git rev-list --count HEAD` fungerar i GameCI:s container, där `Builds.CommitCount` hämtar versionen (ett fel om ägarskap, `safe.directory`, stoppar bygget);
+- att emulatorn med API 34 för x86_64 kör ARM64-bygget genom Androids ARM-översättning;
+- att APK:n hamnar i `client/Builds/Android/EiroraDeterminism.apk` när GameCI kör `buildMethod`.
 
 ## Servern
 

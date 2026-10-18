@@ -71,4 +71,32 @@ internal static class ImpureFixture
     }
 
     public static int IteratesDictionaryKeys(Dictionary<string, int> values) => values.Keys.Count(k => k.Length > 1);
+
+    public static int IteratesReadOnlyDictionary(IReadOnlyDictionary<string, int> values)
+    {
+        int sum = 0;
+        foreach (var entry in values)
+        {
+            sum += entry.Value;
+        }
+
+        return sum;
+    }
+
+    public static int IteratesReadOnlyDictionaryValues(IReadOnlyDictionary<string, int> values) => values.Values.Count(v => v > 1);
+
+    public static int QueriesDictionary(Dictionary<string, int> values) => values.Count(entry => entry.Value > 1);
+
+    public static List<KeyValuePair<string, int>> CopiesDictionary(IReadOnlyDictionary<string, int> values) => new(values);
+
+    public static int IteratesSortedDictionary(SortedDictionary<string, int> values)
+    {
+        int sum = 0;
+        foreach (var entry in values)
+        {
+            sum += entry.Value;
+        }
+
+        return sum;
+    }
 }

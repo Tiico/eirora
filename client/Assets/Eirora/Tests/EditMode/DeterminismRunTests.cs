@@ -3,7 +3,6 @@ using System.Linq;
 using Eirora.Client.App;
 using Eirora.Simulation;
 using NUnit.Framework;
-using UnityEngine;
 
 namespace Eirora.Client.Tests
 {
@@ -13,8 +12,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void TheCorpusGivesEachReplaysStateHashInOrdinalOrder()
         {
-            string corpus = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "tests", "Replays"));
-            var replays = Directory.GetFiles(corpus, "*.replay")
+            var replays = Directory.GetFiles(DeterminismRun.CorpusFolder, "*.replay")
                 .Select(path => (Path.GetFileNameWithoutExtension(path), File.ReadAllText(path)))
                 .Reverse()
                 .ToList();

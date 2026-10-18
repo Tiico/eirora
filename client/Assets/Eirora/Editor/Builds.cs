@@ -7,7 +7,9 @@ using Eirora.Client.App;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
 
 namespace Eirora.Editor
@@ -23,6 +25,7 @@ namespace Eirora.Editor
     /// </remarks>
     public static class Builds
     {
+        // Made for the determinism build and deleted after it, so its replays never reach the game (git ignores it).
         private const string DeterminismFolder = "Assets/Eirora/Determinism";
 
         public static void Android()
@@ -54,7 +57,8 @@ namespace Eirora.Editor
 
         /// <summary>
         /// The determinism build (TASK-021): IL2CPP for ARM64 that only plays the replay corpus in tests/Replays and logs
-        /// each state hash (DeterminismRun). It has its own package name, so it never replaces the game on a phone.
+        /// each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
+        /// own package name, so it never replaces the game on a phone.
         /// </summary>
         public static void AndroidDeterminism()
         {
@@ -62,19 +66,31 @@ namespace Eirora.Editor
             var android = NamedBuildTarget.Android;
             string identifier = PlayerSettings.GetApplicationIdentifier(android);
             string productName = PlayerSettings.productName;
+            var openScenes = EditorSceneManager.GetSceneManagerSetup();
             bool succeeded;
             try
             {
                 CopyCorpus(Path.Combine(DeterminismFolder, "Resources", "Replays"));
+                string scene = DeterminismScene();
                 PlayerSettings.SetApplicationIdentifier(android, identifier + ".determinism");
                 PlayerSettings.productName = productName + " determinism";
-                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraDeterminism.apk", "EIRORA_DETERMINISM");
+                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraDeterminism.apk", scene);
             }
             finally
             {
                 PlayerSettings.SetApplicationIdentifier(android, identifier);
                 PlayerSettings.productName = productName;
-                AssetDatabase.DeleteAsset(DeterminismFolder);
+                // An untitled scene cannot be reopened, so an empty one takes its place.
+                if (openScenes.Length > 0 && openScenes.All(s => s.path.Length > 0))
+                {
+                    EditorSceneManager.RestoreSceneManagerSetup(openScenes);
+                }
+                else
+                {
+                    EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                }
+
+                RemoveDeterminismFolder();
                 AssetDatabase.SaveAssets();
             }
 
@@ -84,13 +100,15 @@ namespace Eirora.Editor
         /// <summary>Copies the replays into the project as text assets, only for the determinism build.</summary>
         private static void CopyCorpus(string folder)
         {
-            string corpus = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "tests", "Replays"));
+            string corpus = DeterminismRun.CorpusFolder;
             var replays = Directory.GetFiles(corpus, "*.replay");
             if (replays.Length == 0)
             {
                 throw new BuildFailedException($"There are no replays in {corpus}.");
             }
 
+            // A build that was killed leaves the folder behind, perhaps with replays that are no longer in the corpus.
+            RemoveDeterminismFolder();
             Directory.CreateDirectory(folder);
             foreach (string replay in replays)
             {
@@ -98,6 +116,33 @@ namespace Eirora.Editor
             }
 
             AssetDatabase.Refresh();
+        }
+
+        /// <summary>Saves a scene with nothing but DeterminismBootstrap in it.</summary>
+        private static string DeterminismScene()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                throw new BuildFailedException("The open scenes have unsaved changes.");
+            }
+
+            string path = DeterminismFolder + "/Determinism.unity";
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            SceneManager.MoveGameObjectToScene(new GameObject(nameof(DeterminismBootstrap), typeof(DeterminismBootstrap)), scene);
+            if (!EditorSceneManager.SaveScene(scene, path))
+            {
+                throw new BuildFailedException($"Could not save {path}.");
+            }
+
+            return path;
+        }
+
+        private static void RemoveDeterminismFolder()
+        {
+            if (AssetDatabase.IsValidFolder(DeterminismFolder) && !AssetDatabase.DeleteAsset(DeterminismFolder))
+            {
+                throw new BuildFailedException($"Could not delete {DeterminismFolder}.");
+            }
         }
 
         private static void ExitOnFailure(bool succeeded)
@@ -108,18 +153,22 @@ namespace Eirora.Editor
             }
         }
 
-        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, params string[] defines)
+        /// <summary>Builds the game's scenes, or only the given scene.</summary>
+        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, string? scene = null)
         {
+            if (scene is null)
+            {
+                // The game never carries the replays that a killed determinism build left behind.
+                RemoveDeterminismFolder();
+            }
+
             var options = new BuildPlayerOptions
             {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                scenes = scene is null ? EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray() : new[] { scene },
                 locationPathName = Argument("-buildOutput") ?? defaultOutput,
                 target = target,
                 targetGroup = group,
                 options = BuildOptions.StrictMode,
-
-                // For this build only; the project's own defines stay as they are.
-                extraScriptingDefines = defines,
             };
 
             // The settings are set for this build only, so the project files stay as they are in git.

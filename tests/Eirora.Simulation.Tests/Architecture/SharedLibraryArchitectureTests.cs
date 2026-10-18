@@ -63,6 +63,10 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.SortsStringsByCulture), "culture-dependent System.Collections.Generic.SortedSet`1::.ctor without a comparer")]
     [InlineData(nameof(ImpureFixture.IteratesDictionary), "hash order System.Collections.Generic.Dictionary`2::GetEnumerator")]
     [InlineData(nameof(ImpureFixture.IteratesDictionaryKeys), "hash order System.Collections.Generic.Dictionary`2::get_Keys")]
+    [InlineData(nameof(ImpureFixture.IteratesReadOnlyDictionary), "hash order System.Collections.Generic.IEnumerable`1::GetEnumerator over key-value pairs")]
+    [InlineData(nameof(ImpureFixture.IteratesReadOnlyDictionaryValues), "hash order System.Collections.Generic.IReadOnlyDictionary`2::get_Values")]
+    [InlineData(nameof(ImpureFixture.QueriesDictionary), "hash order System.Linq.Enumerable::Count over key-value pairs")]
+    [InlineData(nameof(ImpureFixture.CopiesDictionary), "hash order System.Collections.Generic.List`1::.ctor over key-value pairs")]
     public void ScannerCatchesWhatDiffersBetweenRuntimesAndDevices(string method, string expectedViolation)
     {
         var violations = ScanFixture();
@@ -74,6 +78,7 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.FormatsNumberInvariantly))]
     [InlineData(nameof(ImpureFixture.FindsCharacterOrdinally))]
     [InlineData(nameof(ImpureFixture.SortsStringsOrdinally))]
+    [InlineData(nameof(ImpureFixture.IteratesSortedDictionary))]
     public void ScannerAllowsInvariantAndOrdinalForms(string method)
     {
         var violations = ScanFixture();

@@ -22,6 +22,9 @@ TestResults/
 /client/*.unityproj
 /client/.vsconfig
 /client/Assets/Plugins/Editor/JetBrains*
+# Made and deleted by the determinism build (Builds.AndroidDeterminism); its replays must never reach the game.
+/client/Assets/Eirora/Determinism/
+/client/Assets/Eirora/Determinism.meta
 
 # Unity spike projects (spikes/*/)
 /spikes/*/[Ll]ibrary/

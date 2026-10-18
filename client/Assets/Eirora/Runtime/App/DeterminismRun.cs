@@ -10,13 +10,18 @@ namespace Eirora.Client.App
 {
     /// <summary>
     /// Plays the replay corpus and reports the state hash of each replay, so that the IL2CPP build on Android can be
-    /// compared with the server's .NET (TASK-021, NFR-02). Built only into the determinism build, which carries the
-    /// corpus under Resources/Replays (Builds.AndroidDeterminism).
+    /// compared with the server's .NET (TASK-021, NFR-02). Only the determinism build runs it (DeterminismBootstrap),
+    /// and only that build carries the corpus under Resources/Replays (Builds.AndroidDeterminism).
     /// </summary>
     public static class DeterminismRun
     {
         /// <summary>Starts every line in the log that scripts/check-determinism.sh reads.</summary>
         public const string Marker = "EIRORA-DETERMINISM";
+
+#if UNITY_EDITOR
+        /// <summary>The replay corpus in the repository (tests/Replays), which the editor copies into the build.</summary>
+        public static string CorpusFolder => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "tests", "Replays"));
+#endif
 
         /// <summary>The state hash of each replay, by name, in ordinal order.</summary>
         public static IReadOnlyList<(string Name, string Hash)> Run(IEnumerable<(string Name, string Replay)> replays) =>

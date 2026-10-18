@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
@@ -58,21 +59,39 @@ public sealed class ReplayCorpusTests
     [Fact]
     public void EveryReplayGivesTheSameStateTwiceAndIsReportedForComparison()
     {
-        var replays = Directory.GetFiles(s_folder, "*.replay").Order(StringComparer.Ordinal).ToList();
+        var replays = Corpus();
         Assert.NotEmpty(replays);
 
         var lines = new StringBuilder();
-        foreach (string path in replays)
+        foreach (var (name, replay) in replays)
         {
-            string replay = File.ReadAllText(path, Encoding.UTF8);
             string hash = Replay.StateHash(replay);
             Assert.Equal(hash, Replay.StateHash(replay));
-            lines.Append(Path.GetFileNameWithoutExtension(path)).Append(' ').Append(hash).Append('\n');
+            lines.Append(name).Append(' ').Append(hash).Append('\n');
         }
 
         string report = Path.Combine(s_root, "artifacts", "determinism");
         Directory.CreateDirectory(report);
         File.WriteAllText(Path.Combine(report, "dotnet.txt"), lines.ToString(), new UTF8Encoding(false));
+    }
+
+    // The server and the players' phones run in different cultures, while the comparison on Android runs in the
+    // emulator's en-US. sv-SE writes a minus sign as U+2212 and tr-TR lower-cases 'I' to a dotless 'ı'.
+    [Theory]
+    [InlineData("sv-SE")]
+    [InlineData("tr-TR")]
+    public void EveryReplayGivesTheSameStateInAnyCulture(string name)
+    {
+        var culture = CultureInfo.GetCultureInfo(name);
+        Assert.True(
+            culture.NumberFormat.NegativeSign != "-" || culture.TextInfo.ToLower('I') != 'i',
+            $"{name} formats like the invariant culture here (no ICU data?), so this test would prove nothing.");
+        var replays = Corpus();
+
+        var invariant = HashesIn(CultureInfo.InvariantCulture, replays);
+        var local = HashesIn(culture, replays);
+
+        Assert.Equal(invariant, local);
     }
 
     // UX journey 1: the first evening, from choosing the rest period to the first dawn.
@@ -211,6 +230,26 @@ public sealed class ReplayCorpusTests
         }
 
         return journal;
+    }
+
+    private static List<(string Name, string Replay)> Corpus() =>
+        Directory.GetFiles(s_folder, "*.replay")
+            .Order(StringComparer.Ordinal)
+            .Select(path => (Path.GetFileNameWithoutExtension(path), File.ReadAllText(path, Encoding.UTF8)))
+            .ToList();
+
+    private static List<string> HashesIn(CultureInfo culture, List<(string Name, string Replay)> replays)
+    {
+        var (current, currentUi) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
+        try
+        {
+            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (culture, culture);
+            return replays.Select(r => $"{r.Name} {Replay.StateHash(r.Replay)}").ToList();
+        }
+        finally
+        {
+            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (current, currentUi);
+        }
     }
 
     private static string RepositoryRoot()

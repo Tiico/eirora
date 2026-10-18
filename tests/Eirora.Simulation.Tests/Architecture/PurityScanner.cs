@@ -97,12 +97,17 @@ internal static class PurityScanner
         ["Compare", "CompareTo", "StartsWith", "EndsWith", "IndexOf", "LastIndexOf", "ToLower", "ToUpper"];
 
     // Enumerations whose order depends on hashing and on the runtime's implementation of the collection.
+    // Through an interface the collection behind it is unknown, so it may be a Dictionary.
     private static readonly HashSet<string> s_hashOrderMembers =
     [
         "System.Collections.Generic.Dictionary`2::GetEnumerator",
         "System.Collections.Generic.Dictionary`2::get_Keys",
         "System.Collections.Generic.Dictionary`2::get_Values",
         "System.Collections.Generic.HashSet`1::GetEnumerator",
+        "System.Collections.Generic.IDictionary`2::get_Keys",
+        "System.Collections.Generic.IDictionary`2::get_Values",
+        "System.Collections.Generic.IReadOnlyDictionary`2::get_Keys",
+        "System.Collections.Generic.IReadOnlyDictionary`2::get_Values",
     ];
 
     // Sorted collections whose default comparer for strings follows the current culture.
@@ -240,6 +245,11 @@ internal static class PurityScanner
             violations.Add($"{where}: hash order {member}");
         }
 
+        if (EnumeratesKeyValuePairs(called))
+        {
+            violations.Add($"{where}: hash order {member} over key-value pairs");
+        }
+
         if (called.Name == ".ctor"
             && s_sortedCollections.Contains(type)
             && called.DeclaringType is GenericInstanceType sorted
@@ -248,6 +258,26 @@ internal static class PurityScanner
         {
             violations.Add($"{where}: culture-dependent {member} without a comparer");
         }
+    }
+
+    /// <summary>
+    /// Key-value pairs come from a dictionary. Enumerated as an <c>IEnumerable&lt;T&gt;</c> (foreach over an interface,
+    /// LINQ, a collection built from them), the IL does not show whether that dictionary is sorted, so only foreach over
+    /// a concrete sorted collection is allowed.
+    /// </summary>
+    private static bool EnumeratesKeyValuePairs(MethodReference called)
+    {
+        const string enumerable = "System.Collections.Generic.IEnumerable`1";
+        var arguments = (called as GenericInstanceMethod)?.GenericArguments ?? Enumerable.Empty<TypeReference>();
+        if (called.DeclaringType is GenericInstanceType declaring)
+        {
+            arguments = arguments.Concat(declaring.GenericArguments);
+        }
+
+        bool pairs = arguments.Any(a => a.GetElementType().FullName == "System.Collections.Generic.KeyValuePair`2");
+        bool enumerates = (called.Name == "GetEnumerator" && called.DeclaringType.GetElementType().FullName == enumerable)
+            || called.Parameters.Any(p => p.ParameterType.GetElementType().FullName == enumerable);
+        return pairs && enumerates;
     }
 
     private static void CheckType(TypeReference type, string where, List<string> violations)

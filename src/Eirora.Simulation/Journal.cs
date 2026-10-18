@@ -52,7 +52,7 @@ namespace Eirora.Simulation
             new(
                 World.Create(install, restSchedule),
                 CurrentHeader + "\n"
-                + $"create {Reading(install)} {restSchedule.StartMinuteOfDay} {restSchedule.DurationMinutes}\n");
+                + $"create {Reading(install)} {Text(restSchedule.StartMinuteOfDay)} {Text(restSchedule.DurationMinutes)}\n");
 
         /// <summary>Rebuilds a world by replaying a saved prototype journal.</summary>
         /// <exception cref="FormatException">The text is not a journal this version can read.</exception>
