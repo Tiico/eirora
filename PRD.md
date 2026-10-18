@@ -116,6 +116,8 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 | D-70 | **Hälsodata läses när spelaren öppnar appen;** spelet begär aldrig bakgrundsbehörighet, och krafterna räknas fram ur hälsokällan vid öppning ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-72 | **Kontot skapas först när spelaren loggar in med Apple eller Google;** dessförinnan finns inget om spelaren på servern, och inga lösenord eller e-postadresser lagras ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
+| D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och spelardygnen före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -476,7 +478,9 @@ Inga medicinska påståenden.
 - **Native-adaptrar:** Health Connect (Kotlin) och HealthKit (Swift) bakom ett gemensamt C#-gränssnitt.
   HealthBridge (Fab) valdes bort mot kraven i HLT-03/04/08/12 ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)).
 - **Backend:** ASP.NET Core för konto, molnsparning, grupper, arkipelag, handel, gemensamma byggen, delade siffror och köpvalidering.
-- **Databas:** [FÖRSLAG] PostgreSQL.
+  En container med Docker Compose på produktägarens server till och med betan, och i Azure Sweden Central från release ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)).
+- **Databas:** PostgreSQL 18 med EF Core-migrationer och krypterad backup hos ett EU-bolag ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)).
+- **Konto:** egna konton i backend med OpenIddict och inloggning med Sign in with Apple eller Google; inga lösenord (D-72).
 - **Karta:** versionerad genereringsmodul utan beroende till Unity.
 
 ### 7.3 Simulering och tid
@@ -644,6 +648,8 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-70–D-71 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor efter Health Connect-spiken i TASK-007 |
 | — | 2026-10-18 | RST-05 ändrat: ingen synk i bakgrunden, hälsodata läses vid öppning | D-70 |
 | — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
+| D-72–D-73 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-018 |
+| — | 2026-10-18 | O-09 avgjord: compose hemma till beta, Azure Sverige vid release, PostgreSQL 18, egna konton med Apple och Google | ADR-0008 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -664,7 +670,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
-| O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-11 | Varumärkes- och butikskontroll av "Eirora" | Kontrollera före butikssida | M2 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
