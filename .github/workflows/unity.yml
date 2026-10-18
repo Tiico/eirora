@@ -83,10 +83,36 @@ jobs:
           haskell: true
           large-packages: false
 
+      # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
+      # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
+      - name: Fail with instructions when the signing key is missing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEYALIAS_NAME: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          ANDROID_KEYALIAS_PASS: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+        run: |
+          missing=""
+          [ -n "$ANDROID_KEYSTORE_BASE64" ] || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$ANDROID_KEYSTORE_PASS" ] || missing="$missing ANDROID_KEYSTORE_PASS"
+          [ -n "$ANDROID_KEYALIAS_NAME" ] || missing="$missing ANDROID_KEYALIAS_NAME"
+          [ -n "$ANDROID_KEYALIAS_PASS" ] || missing="$missing ANDROID_KEYALIAS_PASS"
+          if [ -n "$missing" ]; then
+            echo "::error title=Android signing secrets missing::Missing:$missing. Run scripts/create-android-keystore.sh, see docs/development.md#signering."
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
-          # Semantic versioning derives the version and androidVersionCode from git history.
+          # The version is the number of commits, the same rule as local builds (BuildVersion).
           fetch-depth: 0
+
+      - name: Version from the number of commits
+        id: version
+        run: |
+          commits="$(git rev-list --count HEAD)"
+          echo "name=0.0.$commits" >> "$GITHUB_OUTPUT"
+          echo "code=$commits" >> "$GITHUB_OUTPUT"
 
       - uses: actions/cache@v6
         with:
@@ -94,12 +120,14 @@ jobs:
           key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
           restore-keys: unity-library-android-
 
-      # Without the keystore secrets the APK is signed with Unity's debug key, which is enough to sideload the prototype.
       - uses: game-ci/unity-builder@v6
         with:
           projectPath: client
           targetPlatform: Android
           buildName: Eirora
+          versioning: Custom
+          version: ${{ steps.version.outputs.name }}
+          androidVersionCode: ${{ steps.version.outputs.code }}
           androidExportType: androidPackage
           androidKeystoreName: eirora.keystore
           androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

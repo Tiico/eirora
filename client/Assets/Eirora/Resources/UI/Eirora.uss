@@ -302,6 +302,14 @@
     margin: 6px 0;
 }
 
+/* Which build is running, for the prototype diary (TASK-014). */
+.build {
+    font-size: 22px;
+    color: rgb(104, 101, 117);
+    margin-top: 18px;
+    -unity-text-align: middle-center;
+}
+
 .setup {
     margin-top: 180px;
 }
