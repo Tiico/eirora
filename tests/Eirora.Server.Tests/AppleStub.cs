@@ -25,6 +25,7 @@ public sealed class AppleStub
     public const string GarbledPrefix = "garbled-";
 
     private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+    private readonly ConcurrentDictionary<string, TaskCompletionSource> _reached = new(StringComparer.Ordinal);
 
     public string PrivateKeyPem => _key.ExportPkcs8PrivateKeyPem();
 
@@ -32,7 +33,13 @@ public sealed class AppleStub
 
     public ConcurrentQueue<(string Path, Dictionary<string, string> Form)> Requests { get; } = new();
 
+    /// <summary>Completes once a request with the authorization code has reached Apple.</summary>
+    public Task Reached(string authorizationCode) => Arrival(authorizationCode).Task;
+
     public HttpMessageHandler CreateHandler() => new Handler(this);
+
+    private TaskCompletionSource Arrival(string authorizationCode) =>
+        _reached.GetOrAdd(authorizationCode, _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
 
     private sealed class Handler(AppleStub stub) : HttpMessageHandler
     {
@@ -43,6 +50,7 @@ public sealed class AppleStub
                 .ToDictionary(pair => WebUtility.UrlDecode(pair[0]), pair => WebUtility.UrlDecode(pair[1]));
             stub.Requests.Enqueue((request.RequestUri!.AbsolutePath, form));
             var code = form.GetValueOrDefault("code", "");
+            stub.Arrival(code).TrySetResult();
             if (code.StartsWith(UnreachablePrefix, StringComparison.Ordinal))
             {
                 throw new HttpRequestException("No route to appleid.apple.com.");

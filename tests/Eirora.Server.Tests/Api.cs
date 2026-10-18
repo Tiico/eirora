@@ -54,8 +54,9 @@ public sealed class Api(HttpClient http) : IDisposable
         return await SendAsync(request);
     }
 
-    public async Task<HttpStatusCode> DeleteAccountAsync(string accessToken, ExternalLogin confirmation) =>
-        await SendAsync(Authorized(HttpMethod.Post, "/api/account/deletion", accessToken, confirmation));
+    /// <summary>Deletes the account; cancelling <paramref name="hangUp"/> drops the connection like a player who closes the app.</summary>
+    public async Task<HttpStatusCode> DeleteAccountAsync(string accessToken, ExternalLogin confirmation, CancellationToken? hangUp = null) =>
+        await SendAsync(Authorized(HttpMethod.Post, "/api/account/deletion", accessToken, confirmation), hangUp);
 
     public void Dispose() => http.Dispose();
 
@@ -72,11 +73,11 @@ public sealed class Api(HttpClient http) : IDisposable
             String(root, "error"));
     }
 
-    private async Task<HttpStatusCode> SendAsync(HttpRequestMessage request)
+    private async Task<HttpStatusCode> SendAsync(HttpRequestMessage request, CancellationToken? cancellationToken = null)
     {
         using (request)
         {
-            using var response = await http.SendAsync(request, Cancel);
+            using var response = await http.SendAsync(request, cancellationToken ?? Cancel);
             return response.StatusCode;
         }
     }

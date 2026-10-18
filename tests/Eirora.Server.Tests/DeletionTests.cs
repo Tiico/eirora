@@ -114,10 +114,10 @@ public sealed class DeletionTests(ServerFixture fixture)
     }
 
     [Theory]
-    [InlineData(AppleStub.UnreachablePrefix)]
-    [InlineData(AppleStub.HangingPrefix)]
-    [InlineData(AppleStub.GarbledPrefix)]
-    public async Task TheAccountIsDeletedEvenWhenAppleFails(string failure)
+    [InlineData(AppleStub.UnreachablePrefix, nameof(HttpRequestException))]
+    [InlineData(AppleStub.HangingPrefix, nameof(TaskCanceledException))]
+    [InlineData(AppleStub.GarbledPrefix, nameof(System.Text.Json.JsonException))]
+    public async Task TheAccountIsDeletedEvenWhenAppleFails(string failure, string loggedError)
     {
         using var api = _server.CreateApi();
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
@@ -130,7 +130,46 @@ public sealed class DeletionTests(ServerFixture fixture)
         Assert.Equal(HttpStatusCode.NoContent, status);
         await using var db = fixture.CreateDbContext();
         Assert.False(await db.Accounts.AnyAsync(a => a.Id == accountId, TestContext.Current.CancellationToken));
+        Assert.Contains(_server.Logs, line => line.StartsWith($"Warning {typeof(AppleIdClient).FullName}:", StringComparison.Ordinal)
+            && line.Contains($"({loggedError})", StringComparison.Ordinal));
         Assert.DoesNotContain(code, string.Join('\n', _server.Logs), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheAccountIsDeletedEvenWhenThePlayerHangsUpWhileAppleIsCalled()
+    {
+        using var api = _server.CreateApi();
+        var apple = _server.Providers.SignIn(LoginProviders.Apple);
+        var tokens = await api.SignInAsync(apple);
+        var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
+        var code = AppleStub.HangingPrefix + Guid.NewGuid().ToString("N");
+        using var hangUp = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
+        var deletion = api.DeleteAccountAsync(
+            tokens.Access, _server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin(code), hangUp.Token);
+        await _server.Apple.Reached(code).WaitAsync(TestContext.Current.CancellationToken);
+        await hangUp.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => deletion);
+        Assert.True(await IsDeletedWithinAsync(accountId, TimeSpan.FromSeconds(10)), "The confirmation is spent, so the deletion must finish.");
+    }
+
+    /// <summary>Whether the account is gone in time; a deletion the player hung up on finishes after the request.</summary>
+    private async Task<bool> IsDeletedWithinAsync(Guid accountId, TimeSpan within)
+    {
+        var deadline = DateTime.UtcNow + within;
+        await using var db = fixture.CreateDbContext();
+        while (await db.Accounts.AnyAsync(a => a.Id == accountId, TestContext.Current.CancellationToken))
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                return false;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+        }
+
+        return true;
     }
 
     private async Task AssertAppleClientSecretAsync(string clientSecret)
