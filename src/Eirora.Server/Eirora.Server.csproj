@@ -1,10 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <!-- ASP.NET Core backend skeleton: owns only what is shared between players (ADR-0001). -->
+  <!-- ASP.NET Core backend: owns only what is shared between players (ADR-0001) and the accounts (ADR-0008). -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Eirora.Server</RootNamespace>
+    <UserSecretsId>eirora-server</UserSecretsId>
+    <!-- Published as a container image with the SDK (deploy/README.md); the chiseled image has no shell and no ICU. -->
+    <ContainerRepository>tiico/eirora-server</ContainerRepository>
+    <ContainerFamily>noble-chiseled</ContainerFamily>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <!-- Same EF Core version as the design-time tools, so that projects referencing the server agree on it. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" />
+    <PackageReference Include="OpenIddict.Server.AspNetCore" />
+    <PackageReference Include="OpenIddict.Validation.AspNetCore" />
+    <PackageReference Include="OpenIddict.Validation.ServerIntegration" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Eirora.Contracts\Eirora.Contracts.csproj" />
