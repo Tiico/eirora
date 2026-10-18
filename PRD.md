@@ -2,7 +2,7 @@
 
 > **Dokumentstatus:** Utkast v0.3 — reviderat efter produktgrillning och namnbeslut  
 > **Datum:** 2026-10-17  
-> **Produktnamn:** Eirora (tekniskt projektnamn `eirora`; varumärkes- och butikskontroll återstår, O-11)  
+> **Produktnamn:** Eirora (tekniskt projektnamn `eirora`; inget hinder hittat men namnet är inte låst, säkras i M12, O-11)  
 > **Slogan:** *A world worth growing.*  
 > **Målrelease:** Version 1.0 — fullvärdigt kommersiellt mobilspel, samtidigt på Android och iOS  
 > **Relaterade dokument:** [ROADMAP.md](./ROADMAP.md) · [GLOSSARY.md](./GLOSSARY.md) · [docs/adr/](./docs/adr/)
@@ -661,6 +661,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
 | D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
+| — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -682,7 +683,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
-| O-11 | Varumärkes- och butikskontroll av "Eirora" | Inget hinder hittat; säkra namnet före butikssidan ([namnkontroll](./docs/research/eirora-name-check.md)) | M2 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
 
 ---
