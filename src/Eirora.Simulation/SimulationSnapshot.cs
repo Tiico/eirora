@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation
@@ -93,7 +95,9 @@ namespace Eirora.Simulation
             int format = header.Int();
             if (format != FormatVersion)
             {
-                throw new FormatException($"The snapshot has format {format}; this build reads format {FormatVersion}.");
+                throw format > FormatVersion
+                    ? new SavedByNewerVersionException($"The snapshot has format {format}; this build reads format {FormatVersion}.")
+                    : new FormatException($"The snapshot has format {format}; this build reads format {FormatVersion}.");
             }
 
             header.Expect("rules");
@@ -126,27 +130,35 @@ namespace Eirora.Simulation
             return s_utf8.GetBytes(header.ToString() + _state);
         }
 
-        /// <summary>Rebuilds the world under the current rules and content.</summary>
+        /// <summary>
+        /// Whether this build cannot read the snapshot because a newer app wrote it: a newer format, rules or content.
+        /// Such a snapshot is never overwritten; the player is asked to update (ADR-0006).
+        /// </summary>
+        public bool IsFromNewerVersion =>
+            Format > FormatVersion || Rules > RulesVersion.Current || Content > ContentVersion.Current;
+
+        /// <summary>
+        /// Rebuilds the world under the current rules and content, migrating the state forward from an older rules
+        /// version (ADR-0006). The simulation time stays the same.
+        /// </summary>
         /// <exception cref="FormatException">
-        /// The snapshot needs a migration from another rules version, has content this build lacks, or does not restore
-        /// to the state it holds.
+        /// The snapshot is from a newer version, a migration is missing, or it does not restore to the state it holds.
         /// </exception>
-        public World Restore()
+        public World Restore() => Restore(Migrations.All);
+
+        internal World Restore(IReadOnlyList<StateMigration> migrations)
         {
-            if (Rules != RulesVersion.Current)
+            if (IsFromNewerVersion)
             {
-                throw new FormatException($"The snapshot uses rules version {Rules}; this build runs {RulesVersion.Current}.");
+                throw new SavedByNewerVersionException(
+                    $"The snapshot has rules version {Rules} and content version {Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
             }
 
-            if (Content > ContentVersion.Current)
-            {
-                throw new FormatException($"The snapshot has content version {Content}; this build has {ContentVersion.Current}.");
-            }
-
+            string state = Migrations.ToCurrent(_state, Rules, migrations);
             World world;
             try
             {
-                var reader = new StateReader(_state);
+                var reader = new StateReader(state);
                 world = World.Read(reader);
                 reader.End();
             }
@@ -155,7 +167,7 @@ namespace Eirora.Simulation
                 throw new FormatException("The snapshot holds a state the rules do not allow.", e);
             }
 
-            if (!string.Equals(world.Fingerprint(), _state, StringComparison.Ordinal) || world.Now.UtcSeconds != UtcSeconds)
+            if (!string.Equals(world.Fingerprint(), state, StringComparison.Ordinal) || world.Now.UtcSeconds != UtcSeconds)
             {
                 throw new FormatException("The snapshot does not restore to the state it holds.");
             }
