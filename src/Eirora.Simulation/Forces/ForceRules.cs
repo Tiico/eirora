@@ -52,15 +52,23 @@ namespace Eirora.Simulation.Forces
             sleepMinutes is int minutes ? (int)(DawnPowerNumerator(minutes) / DawnPowerDenominator) : DawnPowerBaseline;
 
         /// <summary>
-        /// Build Power for a game day's workouts, given the sessions in the six game days before it.
-        /// Diminishing returns count per rolling week, so rest days never cost anything.
+        /// Build Power for a game day's workouts (D-63), given the sessions in the six game days before it and the
+        /// Build Power those days gave. A day with workouts tops the rolling week up to the curve for its sessions,
+        /// so each rolling week gives at least that and never more than the cap, rest days never cost anything and
+        /// more training never gives less.
         /// </summary>
-        public static int BuildPower(int sessionsInPreviousSixDays, int sessionsToday)
+        public static int BuildPower(int sessionsInPreviousSixDays, int sessionsToday, int buildPowerInPreviousSixDays)
         {
             RequireNonNegative(sessionsInPreviousSixDays, nameof(sessionsInPreviousSixDays));
             RequireNonNegative(sessionsToday, nameof(sessionsToday));
-            return CumulativeBuildPowerAt(sessionsInPreviousSixDays + (long)sessionsToday)
-                - CumulativeBuildPowerAt(sessionsInPreviousSixDays);
+            RequireNonNegative(buildPowerInPreviousSixDays, nameof(buildPowerInPreviousSixDays));
+            if (sessionsToday == 0)
+            {
+                return 0;
+            }
+
+            int topUp = CumulativeBuildPowerAt(sessionsInPreviousSixDays + (long)sessionsToday) - buildPowerInPreviousSixDays;
+            return topUp > 0 ? topUp : 0;
         }
 
         /// <summary>Whether a workout of <paramref name="durationMinutes"/> counts as a session (D-42).</summary>

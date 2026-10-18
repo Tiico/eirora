@@ -1,0 +1,39 @@
+// Writes known test data to Health Connect on an emulator, so the spike can be verified without a phone.
+// Two flavours are two apps, which Health Connect sees as two data origins: a "watch" and a "phone".
+plugins {
+    id 'com.android.application' version '9.1.1'
+}
+
+android {
+    namespace 'com.eirora.spike.seeder'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+
+    flavorDimensions = ['source']
+    productFlavors {
+        watch {
+            dimension 'source'
+            applicationId 'com.eirora.spike.seeder.watch'
+        }
+        phone {
+            dimension 'source'
+            applicationId 'com.eirora.spike.seeder.phone'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.health.connect:connect-client:1.1.0'
+    implementation 'androidx.activity:activity-ktx:1.13.0'
+}

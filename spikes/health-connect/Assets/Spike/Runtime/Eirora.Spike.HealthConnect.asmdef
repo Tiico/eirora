@@ -1,0 +1,14 @@
+{
+  "name": "Eirora.Spike.HealthConnect",
+  "rootNamespace": "Eirora.Spike.HealthConnect",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
