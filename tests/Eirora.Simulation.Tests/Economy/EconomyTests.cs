@@ -106,6 +106,27 @@ public sealed class EconomyTests
     }
 
     [Fact]
+    public void OnlyProducingBuildingsHaveASecondLevel()
+    {
+        BuildingKind[] producing = [BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.SheepFarm, BuildingKind.Quarry, BuildingKind.Sawmill, BuildingKind.Weavery];
+
+        Assert.All(Enum.GetValues<BuildingKind>(), kind => Assert.Equal(producing.Contains(kind) ? 2 : 1, BuildingSpec.For(kind).MaxLevel));
+    }
+
+    [Fact]
+    public void AnUpgradeStopsAtTheHighestLevel()
+    {
+        var world = Morning();
+        Assert.True(Apply(world, new Upgrade("K1")).Accepted);
+
+        world.AdvanceTo(At("2026-10-16 20:00", 2));
+
+        var hut = world.Buildings.Single(b => b.Site.Id == "K1");
+        Assert.Equal(BuildingSpec.For(hut.Kind).MaxLevel, hut.Level);
+        Assert.Equal(Rejection.AlreadyDone, Apply(world, new Upgrade("K1")).Rejection);
+    }
+
+    [Fact]
     public void ACottageNeedsNoBuildPower()
     {
         var world = Morning();

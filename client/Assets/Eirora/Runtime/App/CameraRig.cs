@@ -11,7 +11,7 @@ namespace Eirora.Client.App
     /// </summary>
     public sealed class CameraRig
     {
-        private const float Pitch = 50f;
+        public const float Pitch = 50f;
         private const float TapMovement = 14f;
         private const float TapSeconds = 0.45f;
         private const float PanLimit = 8f;

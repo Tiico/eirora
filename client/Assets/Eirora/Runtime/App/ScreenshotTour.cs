@@ -30,14 +30,17 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "01-first-launch");
 
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
-            ScriptedWeek.Play(session, clock);
+            foreach (string refusal in ScriptedWeek.Play(session, clock))
+            {
+                Debug.LogError(refusal);
+            }
 
             clock.Current = ScriptedWeek.At("2026-10-21 13:00");
             session.CatchUp();
             client.Refresh();
             yield return Capture(client, folder, "02-day");
 
-            client.Hud.Select(PrototypeIsland.Sites.First(s => s.Id == "L3"));
+            client.Hud.Select(PrototypeIsland.Sites.First(s => s.Id == "O2"));
             yield return Capture(client, folder, "03-site");
 
             client.Hud.Select(PrototypeIsland.Sites.First(s => s.Id == "K1"));
@@ -76,10 +79,17 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "12-health-explanation");
             client.Hud.Select(null);
 
-            // Nyön, found by the expedition and joined by the sea route.
+            // The sawmill upgraded on day 4, next to the level-1 storehouse: how a level reads on the island (ADR-0009).
             clock.Current = ScriptedWeek.At("2026-10-23 13:00");
             session.CatchUp();
             client.Refresh();
+            var sawmill = PrototypeIsland.Sites.First(s => s.Id == "E2");
+            client.Focus(IslandMap.HexOf(sawmill).Center);
+            client.Hud.Select(sawmill);
+            yield return Capture(client, folder, "13-upgraded");
+            client.Hud.Select(null);
+
+            // Nyön, found by the expedition and joined by the sea route.
             client.Focus(IslandMap.NyonCentre.Center + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 

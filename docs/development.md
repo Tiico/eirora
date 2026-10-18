@@ -78,6 +78,15 @@ Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka o
 client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
 ```
 
+Byggnader och natur ritas från Look-assets i `client/Assets/Eirora/Resources/Looks/` ([ADR-0009](./adr/0009-looks-are-a-modular-kit-as-data.md)).
+De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas som PNG i `artifacts/looks/` (renderar, så inte med `-nographics`):
+
+```bash
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -quit -projectPath client -executeMethod Eirora.Editor.LookGallery.Export
+```
+
+Hur en designer arbetar med dem står i [looks.md](./design/looks.md).
+
 Prestanda och batteri mäts på telefonen med mätscenen (`-eirora-measure day|night`) och skriptet i `tools/device-measurements/`, enligt [mätningar på enhet](./design/device-measurements.md).
 
 Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-0006](./adr/0006-saves-are-migrated-snapshots.md)): segmentets start-snapshot, journalen sedan dess och den senaste snapshoten, med en hash över allt, rubriken med formatversionen inräknad.
