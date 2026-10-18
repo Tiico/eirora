@@ -45,7 +45,7 @@ Byggutdata hamnar i `artifacts/`.
 Unity-testerna (EditMode) körs headless:
 
 ```bash
-"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -projectPath client -runTests -testPlatform EditMode -testResults artifacts/unity-editmode.xml
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -projectPath client -runTests -testPlatform EditMode -testResults ../artifacts/unity-editmode.xml
 ```
 
 Projektinställningarna (URP, linjär färgrymd, stående läge, Input System) sätts i kod och kan appliceras igen:

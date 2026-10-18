@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.Economy
 {
@@ -35,33 +35,12 @@ namespace Eirora.Simulation.Economy
         private readonly SortedSet<string> _revealed = new(StringComparer.Ordinal);
         private readonly Dictionary<string, Site> _sites = new(StringComparer.Ordinal);
 
-        public Settlement()
+        private Settlement()
         {
             foreach (var site in PrototypeIsland.Sites)
             {
                 _sites[site.Id] = site;
-                if (!site.Hidden)
-                {
-                    _revealed.Add(site.Id);
-                }
-
-                if (site.ForestTiles > 0)
-                {
-                    _forest[site.Id] = ForestPerTile * site.ForestTiles;
-                }
             }
-
-            _stock[(int)Resource.Fish] = Quantity.Units(30);
-            _stock[(int)Resource.Timber] = Quantity.Units(40);
-            _stock[(int)Resource.Planks] = Quantity.Units(20);
-            _stock[(int)Resource.Stone] = Quantity.Units(20);
-            Villagers = 12;
-
-            Complete(BuildingKind.Storehouse, _sites[PrototypeIsland.Settlement]);
-            Complete(BuildingKind.FishingHut, _sites["K1"]);
-            Complete(BuildingKind.Field, _sites["O1"]);
-            Complete(BuildingKind.Woodcutter, _sites["F1"]);
-            StaffBuildings();
         }
 
         public int Villagers { get; private set; }
@@ -101,6 +80,37 @@ namespace Eirora.Simulation.Economy
 
                 return free;
             }
+        }
+
+        /// <summary>The settlement a new world starts with on the home island.</summary>
+        public static Settlement Found()
+        {
+            var settlement = new Settlement();
+            foreach (var site in PrototypeIsland.Sites)
+            {
+                if (!site.Hidden)
+                {
+                    settlement._revealed.Add(site.Id);
+                }
+
+                if (site.ForestTiles > 0)
+                {
+                    settlement._forest[site.Id] = ForestPerTile * site.ForestTiles;
+                }
+            }
+
+            settlement._stock[(int)Resource.Fish] = Quantity.Units(30);
+            settlement._stock[(int)Resource.Timber] = Quantity.Units(40);
+            settlement._stock[(int)Resource.Planks] = Quantity.Units(20);
+            settlement._stock[(int)Resource.Stone] = Quantity.Units(20);
+            settlement.Villagers = 12;
+
+            settlement.Complete(BuildingKind.Storehouse, settlement._sites[PrototypeIsland.Settlement]);
+            settlement.Complete(BuildingKind.FishingHut, settlement._sites["K1"]);
+            settlement.Complete(BuildingKind.Field, settlement._sites["O1"]);
+            settlement.Complete(BuildingKind.Woodcutter, settlement._sites["F1"]);
+            settlement.StaffBuildings();
+            return settlement;
         }
 
         public long Stock(Resource resource) => _stock[(int)resource];
@@ -266,34 +276,92 @@ namespace Eirora.Simulation.Economy
             StaffBuildings();
         }
 
-        public void AppendFingerprint(StringBuilder text)
+        public void Write(StateWriter writer)
         {
-            text.Append("settlement:").Append(Villagers).Append(',').Append(SurveysDone).Append(";stock:");
-            foreach (long amount in _stock)
+            writer.Line("settlement").Long(Villagers).Long(SurveysDone);
+            for (int i = 0; i < s_resourceCount; i++)
             {
-                text.Append(amount).Append(',');
+                writer.Line("stock").Enum((Resource)i).Long(_stock[i]);
             }
 
-            text.Append(";buildings:");
+            // Buildings and projects keep their order: staffing and the queue follow it.
             foreach (var b in _buildings)
             {
-                text.Append((int)b.Kind).Append('@').Append(b.Site.Id).Append('/').Append(b.Level).Append('/')
-                    .Append(b.Staffed ? 1 : 0).Append(b.HasRoad ? 1 : 0).Append(b.WorkdayToday ? 1 : 0).Append('/').Append(b.Ripe).Append(',');
+                writer.Line("building").Enum(b.Kind).Text(b.Site.Id).Long(b.Level).Bool(b.Staffed).Bool(b.HasRoad).Bool(b.WorkdayToday).Long(b.Ripe);
             }
 
-            text.Append(";projects:");
             foreach (var p in _projects)
             {
-                text.Append((int)p.Kind).Append('/').Append((int)p.Building).Append('@').Append(p.Site.Id).Append('/').Append(p.WorkLeft).Append(',');
+                writer.Line("project").Enum(p.Kind).Enum(p.Building).Text(p.Site.Id).Long(p.WorkLeft);
             }
 
-            text.Append(";forest:");
             foreach (var forest in _forest)
             {
-                text.Append(forest.Key).Append('=').Append(forest.Value).Append(',');
+                writer.Line("forest").Text(forest.Key).Long(forest.Value);
             }
 
-            text.Append(";revealed:").Append(string.Join(",", _revealed)).Append(';');
+            foreach (string siteId in _revealed)
+            {
+                writer.Line("revealed").Text(siteId);
+            }
+        }
+
+        public static Settlement Read(StateReader reader)
+        {
+            var settlement = new Settlement();
+            reader.Expect("settlement");
+            settlement.Villagers = reader.Int();
+            settlement.SurveysDone = reader.Int();
+            if (settlement.SurveysDone < 0 || settlement.SurveysDone > PrototypeIsland.Surveys.Count)
+            {
+                throw new FormatException($"{settlement.SurveysDone} surveys is more than the island has.");
+            }
+
+            for (int i = 0; i < s_resourceCount; i++)
+            {
+                reader.Expect("stock");
+                settlement._stock[i] = reader.Enum<Resource>() == (Resource)i ? reader.Long() : throw new FormatException($"Expected {(Resource)i}.");
+            }
+
+            while (reader.Next("building"))
+            {
+                var building = new Building(reader.Enum<BuildingKind>(), settlement.SiteOf(reader.Text()))
+                {
+                    Level = reader.Int(),
+                    Staffed = reader.Bool(),
+                    HasRoad = reader.Bool(),
+                    WorkdayToday = reader.Bool(),
+                    Ripe = reader.Long(),
+                };
+                settlement._buildings.Add(building);
+            }
+
+            while (reader.Next("project"))
+            {
+                var kind = reader.Enum<ProjectKind>();
+                var building = reader.Enum<BuildingKind>();
+                settlement._projects.Add(new Project(kind, building, settlement.SiteOf(reader.Text()), reader.Long()));
+            }
+
+            while (reader.Next("forest"))
+            {
+                settlement._forest[settlement.SiteOf(reader.Text()).Id] = reader.Long();
+            }
+
+            foreach (var site in PrototypeIsland.Sites)
+            {
+                if ((site.ForestTiles > 0) != settlement._forest.ContainsKey(site.Id))
+                {
+                    throw new FormatException("Every forest site, and only those, has a forest.");
+                }
+            }
+
+            while (reader.Next("revealed"))
+            {
+                settlement._revealed.Add(settlement.SiteOf(reader.Text()).Id);
+            }
+
+            return settlement;
         }
 
         private void GrowSlowProcesses()
@@ -448,6 +516,9 @@ namespace Eirora.Simulation.Economy
 
             return step == 0 ? 100 : step == 1 ? 75 : 50;
         }
+
+        private Site SiteOf(string siteId) =>
+            _sites.TryGetValue(siteId, out var site) ? site : throw new FormatException($"There is no site '{siteId}'.");
 
         private void Complete(BuildingKind kind, Site site) => _buildings.Add(new Building(kind, site));
 

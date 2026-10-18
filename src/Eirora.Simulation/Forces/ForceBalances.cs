@@ -1,5 +1,5 @@
 using System;
-using System.Text;
+using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.Forces
 {
@@ -20,6 +20,8 @@ namespace Eirora.Simulation.Forces
         // Full credit below the first threshold, half credit up to the second (forces.md, section 5).
         private static readonly int[] s_fullCreditBelow = { 400, 600, 300 };
         private static readonly int[] s_halfCreditBelow = { 800, 1_200, 600 };
+
+        private static readonly Force[] s_forces = { Force.Exploration, Force.BuildPower, Force.DawnPower };
 
         private readonly long[] _positions = new long[ForceCount];
 
@@ -105,8 +107,26 @@ namespace Eirora.Simulation.Forces
             return BalanceAt(i, _positions[i]);
         }
 
-        internal void AppendFingerprint(StringBuilder text) =>
-            text.Append("forces:").Append(_positions[0]).Append(',').Append(_positions[1]).Append(',').Append(_positions[2]).Append(';');
+        internal void Write(StateWriter writer)
+        {
+            foreach (var force in s_forces)
+            {
+                writer.Line("force").Enum(force).Long(_positions[Index(force)]);
+            }
+        }
+
+        internal static ForceBalances Read(StateReader reader)
+        {
+            var balances = new ForceBalances();
+            foreach (var force in s_forces)
+            {
+                reader.Expect("force");
+                long position = reader.Enum<Force>() == force ? reader.Long() : throw new FormatException($"Expected {force}.");
+                balances._positions[Index(force)] = position >= 0 ? position : throw new FormatException("A force is never negative.");
+            }
+
+            return balances;
+        }
 
         // The balance in half forces that a position gives; a half force of credit straddling the full threshold
         // counts in full, so crediting from an odd balance below it matches crediting force by force.

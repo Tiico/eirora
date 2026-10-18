@@ -185,6 +185,10 @@ _Avoid_: logg, historik (som är världens berättelse för spelaren)
 Hela en världs tillstånd vid en tidpunkt, märkt med regelversion och innehållsversion.
 _Avoid_: ögonblicksbild, sparfil
 
+**Fingeravtryck** (`Fingerprint`):
+En världs hela tillstånd i kanonisk textform: lika världar har lika fingeravtryck, och det är fingeravtrycket som en snapshot innehåller.
+_Avoid_: kontrollsumma, hash (som snapshoten anger för fingeravtrycket)
+
 **Sparning** (`Save`):
 En världs lagrade form på enheten eller i molnet: den senaste snapshoten och journalen.
 _Avoid_: sparfil, backup
