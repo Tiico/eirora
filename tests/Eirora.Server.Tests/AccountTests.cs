@@ -103,6 +103,22 @@ public sealed class AccountTests(ServerFixture fixture)
     }
 
     [Fact]
+    public async Task AStolenRefreshTokenCannotLinkTheThiefsLoginOrRemoveTheOwners()
+    {
+        using var api = _server.CreateApi();
+        var owner = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var stolen = await api.RefreshAsync(owner.Refresh);
+        var thief = _server.Providers.SignIn(LoginProviders.Apple);
+
+        var linked = await api.LinkAsync(stolen.Access, thief.ToExternalLogin());
+        var removed = await api.UnlinkAsync(stolen.Access, LoginProviders.Google);
+
+        Assert.Equal(HttpStatusCode.BadRequest, linked);
+        Assert.Equal(HttpStatusCode.BadRequest, removed);
+        Assert.Equal([LoginProviders.Google], (await api.GetAccountAsync(stolen.Access)).Account!.Logins.Select(l => l.Provider));
+    }
+
+    [Fact]
     public async Task TheLastLoginCannotBeRemoved()
     {
         using var api = _server.CreateApi();

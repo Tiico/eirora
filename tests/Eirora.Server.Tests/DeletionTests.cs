@@ -113,6 +113,26 @@ public sealed class DeletionTests(ServerFixture fixture)
             && r.Form["client_secret"] == exchange["client_secret"]);
     }
 
+    [Theory]
+    [InlineData(AppleStub.UnreachablePrefix)]
+    [InlineData(AppleStub.HangingPrefix)]
+    [InlineData(AppleStub.GarbledPrefix)]
+    public async Task TheAccountIsDeletedEvenWhenAppleFails(string failure)
+    {
+        using var api = _server.CreateApi();
+        var apple = _server.Providers.SignIn(LoginProviders.Apple);
+        var tokens = await api.SignInAsync(apple);
+        var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
+        var code = failure + Guid.NewGuid().ToString("N");
+
+        var status = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin(code));
+
+        Assert.Equal(HttpStatusCode.NoContent, status);
+        await using var db = fixture.CreateDbContext();
+        Assert.False(await db.Accounts.AnyAsync(a => a.Id == accountId, TestContext.Current.CancellationToken));
+        Assert.DoesNotContain(code, string.Join('\n', _server.Logs), StringComparison.Ordinal);
+    }
+
     private async Task AssertAppleClientSecretAsync(string clientSecret)
     {
         var result = await new JsonWebTokenHandler().ValidateTokenAsync(clientSecret, new TokenValidationParameters

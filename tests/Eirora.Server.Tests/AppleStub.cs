@@ -5,11 +5,24 @@ using System.Security.Cryptography;
 namespace Eirora.Server.Tests;
 
 /// <summary>Sign in with Apple's REST API: records the requests and answers like Apple.</summary>
+/// <remarks>
+/// An authorization code starting with one of the failure prefixes makes the token exchange fail that way, so that tests
+/// sharing the stub can each choose how Apple behaves.
+/// </remarks>
 public sealed class AppleStub
 {
     public const string TeamId = "TEAM123456";
     public const string KeyId = "KEY1234567";
     public const string RefreshToken = "apple-refresh-token";
+
+    /// <summary>Apple cannot be reached.</summary>
+    public const string UnreachablePrefix = "unreachable-";
+
+    /// <summary>Apple never answers.</summary>
+    public const string HangingPrefix = "hanging-";
+
+    /// <summary>Apple answers with something that is not its JSON.</summary>
+    public const string GarbledPrefix = "garbled-";
 
     private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
@@ -29,6 +42,25 @@ public sealed class AppleStub
             var form = body.Split('&').Select(pair => pair.Split('=', 2))
                 .ToDictionary(pair => WebUtility.UrlDecode(pair[0]), pair => WebUtility.UrlDecode(pair[1]));
             stub.Requests.Enqueue((request.RequestUri!.AbsolutePath, form));
+            var code = form.GetValueOrDefault("code", "");
+            if (code.StartsWith(UnreachablePrefix, StringComparison.Ordinal))
+            {
+                throw new HttpRequestException("No route to appleid.apple.com.");
+            }
+
+            if (code.StartsWith(HangingPrefix, StringComparison.Ordinal))
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+
+            if (code.StartsWith(GarbledPrefix, StringComparison.Ordinal))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("<html>Service Unavailable</html>", System.Text.Encoding.UTF8, "application/json"),
+                };
+            }
+
             return request.RequestUri.AbsolutePath switch
             {
                 "/auth/token" => new HttpResponseMessage(HttpStatusCode.OK)
