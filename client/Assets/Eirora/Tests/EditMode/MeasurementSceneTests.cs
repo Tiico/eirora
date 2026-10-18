@@ -28,7 +28,7 @@ namespace Eirora.Client.Tests
         private static string StateOf(GameSession session)
         {
             string fingerprint = session.World!.Fingerprint();
-            int commands = fingerprint.IndexOf("\ncommand ",StringComparison.Ordinal);
+            int commands = fingerprint.IndexOf("\ncommand ", StringComparison.Ordinal);
             return commands < 0 ? fingerprint : fingerprint.Substring(0, commands);
         }
 
