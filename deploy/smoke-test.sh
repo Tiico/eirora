@@ -9,7 +9,7 @@ deploy=$(cd "$(dirname "$0")" && pwd)
 work=$(mktemp -d)
 project=eirora-smoke
 
-cp "$deploy/compose.yaml" "$work/"
+cp "$deploy/compose.yaml" "$deploy/create-secrets.sh" "$work/"
 cd "$work"
 docker tag "$image" ghcr.io/tiico/eirora-server:smoke
 
@@ -27,13 +27,9 @@ GOOGLE_IOS_CLIENT_ID=ios.apps.googleusercontent.com
 EOF
 
 # The steps of "Första gången" in deploy/README.md, with a throwaway key in place of Apple's.
-mkdir -p secrets && chmod 700 secrets
-openssl rand -base64 32 | tr -d '\n' > secrets/postgres_password
-printf 'Host=postgres;Database=eirora;Username=eirora;Password=%s' "$(cat secrets/postgres_password)" > secrets/connection_string
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out secrets/token_signing_key.pem
-openssl rand -base64 32 | tr -d '\n' > secrets/token_encryption_key
+mkdir -p secrets
 openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out secrets/apple_private_key.p8
-chmod 600 secrets/*
+sudo ./create-secrets.sh
 
 docker network create "$project-traefik" > /dev/null
 cleanup() {
