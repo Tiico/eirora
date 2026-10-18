@@ -36,7 +36,7 @@ Kartformat 1 har följande innehåll.
 Det som följer av brickorna sparas inte, eftersom en snapshot aldrig innehåller härledda cachar (ADR-0006):
 - gångbarhet och byggbarhet följer av terräng, höjd och grannar enligt reglerna;
 - fiskevatten är grunt vatten intill land;
-- ett hamnläge är en strand intill grunt vatten som når djupt hav;
+- ett hamnläge är en landbricka utom berg intill grunt vatten som når djupt hav (D-83);
 - farleder och flaskhalsar följer av havsbrickornas sammanhang;
 - krönet är startöns högsta bricka.
 

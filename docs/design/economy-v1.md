@@ -63,7 +63,7 @@ En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 
 ### 3.1 Byggplatser
 
-Varje landbricka är en möjlig byggplats, och vad den duger till följer av terräng och grannar (D-79, [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
+Varje landbricka är en möjlig byggplats, och vad den duger till följer av terräng och grannar (D-79, D-82–D-85, [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
 Det finns inga namngivna platser; kolumnen *Plats* ovan är ett krav på brickan.
 
 | Krav | Brickan | Byggnader |
@@ -253,19 +253,11 @@ Senare beslut som berör ekonomin:
 
 - **D-65** (från [epok 1](./epoch-1.md)): brygga och väveri kan byggas med handkraft utan Byggkraft på 7 spelardygn, så att den som valt bort träning också får sjövägar och vadmal.
   Körningarna ovan räknar utan handkraft.
-- **D-79** (från [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)): varje landbricka är en möjlig byggplats; avsnitt 3.1 är förslaget på hur.
+- **D-79** (från [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)): varje landbricka är en möjlig byggplats; avsnitt 3.1 beskriver hur.
 
-## 11. Öppna frågor i v0.2
+Produktägarens svar på de öppna frågorna i v0.2 (TASK-037):
 
-1. **Fiskeboden på vattnet eller på land?**
-   Förslaget låter fiskeboden stå på pålar i det grunda vattnet, som startbyns fiskebod redan gör, så att ingen byggnad behöver flytta.
-   Alternativet är att den står på en landbricka intill fiskevattnet; då blir fler landbrickor upptagna och startbyns fiskebod står kvar på en bricka som inte längre duger.
-2. **Hamnläge på strand eller på all mark vid vattnet?**
-   ADR-0010 säger *en strand intill grunt vatten som når djupt hav*, men Nyön har ingen strandbricka som når vattnet.
-   Förslaget läser det som varje landbricka utom berg vid stranden; alternativet är att TASK-029 ritar Nyön med en strand.
-3. **Huggarkoja vid skogskanten?**
-   Förslaget låter huggarkojan stå bredvid skogen och nå grannbrickorna, vilket gör närhet till förrådet till ett verkligt val.
-   Alternativet, att den bara står på skog, behåller avvägningen *rikt och långt bort* skarpare men gör placeringen mindre fri.
-4. **Bygga på skog, åker och bete?**
-   Förslaget låter långhus, förråd och andra byggnader stå på vilken landbricka som helst utom berg, även om brickan då inte längre går att hugga, odla eller beta.
-   Alternativet är att de bara får stå på äng och strand.
+- **D-82:** fiskeboden står på pålar i det grunda vattnet, som startbyns fiskebod redan gör, så att ingen byggnad behöver flytta.
+- **D-83:** ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet, eftersom Nyön inte har någon strandbricka som når vattnet.
+- **D-84:** huggarkojan får stå bredvid skogen, så att närheten till förrådet blir ett verkligt val.
+- **D-85:** långhus, förråd och andra byggnader får stå på varje landbricka utom berg, även skog, åker och bete, som då inte längre går att hugga, odla eller beta.
