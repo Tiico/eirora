@@ -3,6 +3,7 @@ using System.Collections;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
@@ -66,6 +67,16 @@ namespace Eirora.Client.App
 
             client.Hud.OpenSelfCare();
             yield return Capture(client, folder, "09-self-care");
+            client.Hud.Select(null);
+
+            // Health Connect on a phone where it is installed but not yet connected (TASK-013).
+            client.UseHealthSource(new FakeHealthSource(new[] { Habit.Steps, Habit.Workouts, Habit.Sleep }));
+            yield return client.Frames(3);
+            client.Hud.OpenSelfCare();
+            yield return Capture(client, folder, "11-health-connect");
+            client.Hud.Select(null);
+            client.Hud.OpenHealthExplanation();
+            yield return Capture(client, folder, "12-health-explanation");
             client.Hud.Select(null);
 
             // Nyön, found by the expedition and joined by the sea route.

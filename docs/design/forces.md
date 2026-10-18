@@ -146,6 +146,8 @@ När ett förråd är fullt säger spelet det lugnt, utan uppmaning att spendera
 - Inmatning är tillåten även under viloperioden; krafterna krediteras vid gryningen (D-54, INV-T9).
 - Om samma vana och spelardygn har både data från hälsokällan och egen inmatning gäller det **högre** värdet, inte summan.
   Spelaren kan alltså komplettera en dag då telefonen låg hemma, utan att något räknas två gånger.
+- Hälsokällans summa består av en verifierad del och den del som källan markerat som manuellt inmatad (D-68).
+  Källan har redan tagit bort dubbletter mellan dem, så de två delarna räknas ihop innan summan jämförs med spelarens egen inmatning.
 - Manuella pass som överlappar ett registrerat pass i tid slås ihop till ett.
 - Formuleringar i UI är neutrala: inmatning är en fullvärdig väg, aldrig ett misstänkt undantag (R-04).
 

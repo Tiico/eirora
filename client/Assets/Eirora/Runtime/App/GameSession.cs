@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+using Eirora.Client.Health;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
@@ -19,6 +21,7 @@ namespace Eirora.Client.App
         private readonly string? _savePath;
         private readonly List<GameEvent> _sinceDawn = new();
         private Journal? _journal;
+        private bool _syncing;
 
         public GameSession(IClock clock, string? savePath)
         {
@@ -108,6 +111,44 @@ namespace Eirora.Client.App
             if (changed)
             {
                 Changed?.Invoke();
+            }
+        }
+
+        /// <summary>
+        /// Reads the health store and records what changed for the last seven game days (D-70). Does nothing without a
+        /// world, a store or access; a read already under way is not started twice.
+        /// </summary>
+        public async Task SyncHealthAsync(HealthSync? sync)
+        {
+            if (sync is null || _journal is null || _syncing)
+            {
+                return;
+            }
+
+            _syncing = true;
+            try
+            {
+                CatchUp();
+                var commands = await sync.CommandsAsync(_journal.World);
+                if (commands.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var command in commands)
+                {
+                    foreach (var gameEvent in _journal.Apply(Guid.NewGuid().ToString("N"), command).Events)
+                    {
+                        Remember(gameEvent);
+                    }
+                }
+
+                Save();
+                Changed?.Invoke();
+            }
+            finally
+            {
+                _syncing = false;
             }
         }
 
