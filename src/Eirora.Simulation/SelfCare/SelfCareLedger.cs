@@ -24,15 +24,37 @@ namespace Eirora.Simulation.SelfCare
         // Half forces each (day, habit) actually added to the balance, after the soft cap (D-36).
         private readonly SortedDictionary<(int Day, Habit Habit), long> _gainedHalves = new();
 
-        public void Record(int day, Habit habit, ContributionSource source, int total) => _totals[(day, habit, source)] = total;
+        // Build Power each game day with workouts is worth, before the soft cap (D-63). Derived from the totals, so it
+        // is not part of the fingerprint; values from _buildPowerStaleFrom on are recomputed before they are read.
+        private readonly SortedDictionary<int, int> _buildPower = new();
+        private int _buildPowerStaleFrom = int.MaxValue;
+
+        public void Record(int day, Habit habit, ContributionSource source, int total)
+        {
+            _totals[(day, habit, source)] = total;
+            if (habit == Habit.Workouts && day < _buildPowerStaleFrom)
+            {
+                _buildPowerStaleFrom = day;
+            }
+        }
 
         /// <summary>The game days whose force can change when <paramref name="habit"/> changes on <paramref name="day"/>.</summary>
-        public static IEnumerable<int> AffectedDays(int day, Habit habit, int currentDay)
+        public IEnumerable<int> AffectedDays(int day, Habit habit, int currentDay)
         {
-            int last = habit == Habit.Workouts ? day + WorkoutWindowDays - 1 : day;
-            for (int d = day; d <= last && d <= currentDay; d++)
+            yield return day;
+            if (habit != Habit.Workouts)
             {
-                yield return d;
+                yield break;
+            }
+
+            // Each day's Build Power depends on what the six days before it gave, so a change can ripple through
+            // every later day with workouts.
+            for (int d = day + 1; d <= currentDay; d++)
+            {
+                if (Sessions(d) > 0)
+                {
+                    yield return d;
+                }
             }
         }
 
@@ -42,7 +64,7 @@ namespace Eirora.Simulation.SelfCare
             int expected = habit switch
             {
                 Habit.Steps => ForceRules.Exploration(Effective(day, Habit.Steps) ?? 0),
-                Habit.Workouts => ForceRules.BuildPower(SessionsBefore(day), Effective(day, Habit.Workouts) ?? 0),
+                Habit.Workouts => BuildPower(day),
                 _ => ForceRules.DawnPower(Effective(day, Habit.Sleep)),
             };
 
@@ -96,15 +118,39 @@ namespace Eirora.Simulation.SelfCare
             return verified > selfReported ? verified : selfReported;
         }
 
-        private int SessionsBefore(int day)
+        private int Sessions(int day) => Effective(day, Habit.Workouts) ?? 0;
+
+        /// <summary>
+        /// The Build Power a game day is worth, computed forwards from the first day that may have changed, since each
+        /// day depends on the six before it.
+        /// </summary>
+        private int BuildPower(int day)
         {
-            int sessions = 0;
-            for (int d = day - WorkoutWindowDays + 1; d < day; d++)
+            for (int d = _buildPowerStaleFrom; d <= day; d++)
             {
-                sessions += Effective(d, Habit.Workouts) ?? 0;
+                int sessionsToday = Sessions(d);
+                if (sessionsToday == 0)
+                {
+                    _buildPower.Remove(d);
+                    continue;
+                }
+
+                int sessionsBefore = 0, buildPowerBefore = 0;
+                for (int before = d - WorkoutWindowDays + 1; before < d; before++)
+                {
+                    sessionsBefore += Sessions(before);
+                    buildPowerBefore += _buildPower.TryGetValue(before, out int gave) ? gave : 0;
+                }
+
+                _buildPower[d] = ForceRules.BuildPower(sessionsBefore, sessionsToday, buildPowerBefore);
             }
 
-            return sessions;
+            if (day >= _buildPowerStaleFrom)
+            {
+                _buildPowerStaleFrom = day + 1;
+            }
+
+            return _buildPower.TryGetValue(day, out int value) ? value : 0;
         }
 
         private static Force ForceOf(Habit habit) => habit switch

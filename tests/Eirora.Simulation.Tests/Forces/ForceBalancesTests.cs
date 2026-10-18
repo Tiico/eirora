@@ -36,6 +36,40 @@ public sealed class ForceBalancesTests
     }
 
     [Fact]
+    public void ACorrectionTakesBackCreditAlongTheSoftCap()
+    {
+        var balances = ForceBalances.GuidedTourStart();
+        balances.Credit(Force.Exploration, 500); // 300 at full credit, then 200 at half credit.
+
+        Assert.Equal(100, balances.Withdraw(Force.Exploration, 200)); // The 200 credited at half credit.
+        Assert.Equal(400, balances.Available(Force.Exploration));
+        Assert.Equal(100, balances.Withdraw(Force.Exploration, 100));
+        Assert.Equal(300, balances.Available(Force.Exploration));
+    }
+
+    [Fact]
+    public void CreditAboveTheHalfCreditCapIsKeptForLaterCorrections()
+    {
+        var balances = ForceBalances.GuidedTourStart();
+        balances.Credit(Force.Exploration, 1_200); // Reaches 800 after 1 100.
+
+        Assert.Equal(0, balances.Withdraw(Force.Exploration, 100));
+        Assert.Equal(800, balances.Available(Force.Exploration));
+    }
+
+    [Fact]
+    public void SpendingLetsTheSoftCapCountFromWhatIsLeft()
+    {
+        var balances = ForceBalances.GuidedTourStart();
+        balances.Credit(Force.Exploration, 1_200);
+
+        Assert.True(balances.TrySpend(Force.Exploration, 500));
+        balances.Credit(Force.Exploration, 150);
+
+        Assert.Equal(300 + 100 + (50 / 2), balances.Available(Force.Exploration));
+    }
+
+    [Fact]
     public void SpendingTakesExactlyTheCostOrNothing()
     {
         var balances = ForceBalances.GuidedTourStart();

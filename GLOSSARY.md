@@ -21,6 +21,10 @@ _Avoid_: delad värld, server, lobby
 En förbindelse över havet mellan två hamnar, inom en värld eller mellan två världar i en arkipelag.
 _Avoid_: handelsrutt (när förbindelsen i sig avses)
 
+**Dimma** (`Fog`):
+Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
+_Avoid_: fog of war, mörker
+
 ## Civilisation och ekonomi
 
 **Bosättning** (`Settlement`):
@@ -46,6 +50,14 @@ _Avoid_: buffert, spärr
 **Långsam process** (`SlowProcess`):
 En naturlig förändring i världen som fortgår även under vilan, till exempel skogsväxt eller mognad.
 _Avoid_: passiv produktion
+
+**Handkraft** (`HandBuild`):
+Att bygga något som annars kostar Byggkraft utan kraft, på en fast tid, så att en bortvald vana aldrig blockerar milstolpen.
+_Avoid_: gratisbygge, långsamt läge
+
+**Runsten** (`RuneStone`):
+Byggnaden där forskningen ristas och där världens historik bevaras.
+_Avoid_: forskningscenter, bibliotek
 
 ## Egenvård och krafter
 
@@ -93,12 +105,16 @@ _Avoid_: snabba upp, skippa
 En registrerad mängd egenvård för ett tidsintervall som omvandlas till kraft.
 _Avoid_: belöning, input
 
+**Läge** (`Position`):
+Allt tillskott en kraft fått före sparandets mjuka tak; saldot följer av läget, och en korrigering flyttar läget tillbaka.
+_Avoid_: råsaldo, dolt saldo
+
 **Startkrafter** (`StartingForces`):
 De krafter som finns i en ny världs starttillstånd så att den guidade turen kan spelas utan egenvård; de är inte ett bidrag.
 _Avoid_: bonus, gåva (som term)
 
 **Verifierat bidrag** (`VerifiedContribution`):
-Ett bidrag som operativsystemets hälsokälla registrerat automatiskt.
+Ett bidrag som operativsystemets hälsokälla registrerat utan att det är markerat som manuellt inmatat, även när källan inte anger hur det spelades in (D-68).
 _Avoid_: äkta bidrag
 
 **Egenrapporterat bidrag** (`SelfReportedContribution`):
@@ -154,14 +170,50 @@ Den neutrala mängd Gryningskraft som ges när sömndata saknas; ingen inloggad 
 _Avoid_: minimum, straffnivå
 
 **Regelversion** (`RulesVersion`):
-Versionen av simuleringens regler; samma starttillstånd, regelversion och kommandon ger alltid samma tillstånd.
+Versionen av simuleringens regler, inklusive hur befintligt innehåll verkar; samma starttillstånd, regelversion och kommandon ger alltid samma tillstånd.
 _Avoid_: spelversion, appversion
+
+**Innehållsversion** (`ContentVersion`):
+Versionen av spelets innehåll (byggnader, recept, resurser, fynd, epoker), som bara ökar när innehåll läggs till.
+_Avoid_: datapaket, innehållsuppdatering (när versionen avses)
+
+**Journal** (`Journal`):
+Den ordnade följden av kommandon och avläsningar som en värld har fått sedan den fick sin regelversion.
+_Avoid_: logg, historik (som är världens berättelse för spelaren)
+
+**Snapshot** (`SimulationSnapshot`):
+Hela en världs tillstånd vid en tidpunkt, märkt med regelversion och innehållsversion.
+_Avoid_: ögonblicksbild, sparfil
+
+**Sparning** (`Save`):
+En världs lagrade form på enheten eller i molnet: den senaste snapshoten och journalen.
+_Avoid_: sparfil, backup
+
+**Migration** (`Migration`):
+Omvandlingen av en snapshot från en regelversion till nästa när appen uppdateras; den ändrar aldrig det som redan hänt.
+_Avoid_: konvertering, uppgradering (när omvandlingen avses)
 
 ## Progression
 
 **Epok** (`Epoch`):
 Ett kapitel om ungefär 6–10 veckor som introducerar nya system och mål och avslutas med en milstolpe; inget nollställs.
 _Avoid_: säsong, kampanj, level
+
+**Milstolpe** (`EpochMilestone`):
+Det som avslutar en epok och som spelaren ser i världen när det nås; i epok 1 att Vårdkasen tänds.
+_Avoid_: bossnivå, slutmål, achievement
+
+**Vårdkase** (`Beacon`):
+Signalelden på Hemöns krön som byggs i tre etapper och vars tändning är epok 1:s milstolpe.
+_Avoid_: fyr, monument
+
+**Forskning** (`Research`):
+Steg för steg i en inriktning som öppnar nya strategier; kostar varor och tid, ingen kraft.
+_Avoid_: teknikträd, uppgradering (när forskning avses)
+
+**Introduktion** (`Introduction`):
+Det korta ögonblick då ett nytt system visas för första gången, när spelaren når dess förutsättning; högst en per spelardygn.
+_Avoid_: tutorial, uppdrag, quest
 
 **Guidad tur** (`GuidedTour`):
 Första sessionens introduktion där spelaren använder var och en av de tre krafterna en gång.
