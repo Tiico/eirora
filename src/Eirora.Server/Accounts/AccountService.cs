@@ -62,8 +62,18 @@ public sealed partial class AccountService(
                 [.. account.Logins.OrderBy(l => l.LinkedAt).Select(l => new LinkedLogin(l.Provider, l.LinkedAt))]);
     }
 
-    public async Task<LinkResult> LinkAsync(Guid accountId, ExternalIdentity identity, CancellationToken cancellationToken)
+    /// <summary>Links a login to the account, after a fresh sign-in with one of the account's own logins.</summary>
+    public async Task<LinkResult> LinkAsync(
+        Guid accountId,
+        ExternalIdentity confirmation,
+        ExternalIdentity identity,
+        CancellationToken cancellationToken)
     {
+        if (await FindAccountIdAsync(confirmation, cancellationToken) != accountId)
+        {
+            return LinkResult.NotThisAccount;
+        }
+
         var owner = await FindAccountIdAsync(identity, cancellationToken);
         if (owner == accountId)
         {
@@ -100,9 +110,19 @@ public sealed partial class AccountService(
         return LinkResult.Linked;
     }
 
-    public async Task<UnlinkResult> UnlinkAsync(Guid accountId, string provider, CancellationToken cancellationToken)
+    /// <summary>Removes the account's login with a provider, after a fresh sign-in with one of the account's own logins.</summary>
+    public async Task<UnlinkResult> UnlinkAsync(
+        Guid accountId,
+        ExternalIdentity confirmation,
+        string provider,
+        CancellationToken cancellationToken)
     {
         var logins = await db.AccountLogins.Where(l => l.AccountId == accountId).ToListAsync(cancellationToken);
+        if (!logins.Any(l => l.Provider == confirmation.Provider && l.Subject == confirmation.Subject))
+        {
+            return UnlinkResult.NotThisAccount;
+        }
+
         var login = logins.SingleOrDefault(l => l.Provider == provider);
         if (login is null)
         {
@@ -201,6 +221,7 @@ public sealed partial class AccountService(
 public enum LinkResult
 {
     Linked,
+    NotThisAccount,
     LinkedToAnotherAccount,
     ProviderAlreadyLinked,
 }
@@ -208,6 +229,7 @@ public enum LinkResult
 public enum UnlinkResult
 {
     Unlinked,
+    NotThisAccount,
     NotLinked,
     LastLogin,
 }

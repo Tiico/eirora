@@ -82,7 +82,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
         var google = _server.Providers.SignIn(LoginProviders.Google);
-        await api.LinkAsync(tokens.Access, google.ToExternalLogin());
+        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), _server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin());
 
         var withGoogle = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
         var withoutCode = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin());

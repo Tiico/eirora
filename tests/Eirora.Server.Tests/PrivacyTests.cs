@@ -16,15 +16,20 @@ public sealed class PrivacyTests(ServerFixture fixture)
         var tokens = await api.SignInAsync(apple);
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id.ToString();
         var google = _server.Providers.SignIn(LoginProviders.Google);
-        await api.LinkAsync(tokens.Access, google.ToExternalLogin());
+        var linkConfirmation = _server.Providers.SignIn(LoginProviders.Apple, apple.Subject);
+        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), linkConfirmation.ToExternalLogin());
+        var removalConfirmation = _server.Providers.SignIn(LoginProviders.Google, google.Subject);
+        await api.UnlinkAsync(tokens.Access, LoginProviders.Google, removalConfirmation.ToExternalLogin());
         await api.SignInAsync(apple);
         var confirmation = _server.Providers.SignIn(LoginProviders.Apple, apple.Subject);
-        await api.DeleteAccountAsync(tokens.Access, confirmation.ToExternalLogin("apple-code-" + Guid.NewGuid().ToString("N")));
+        var code = AppleStub.UnreachablePrefix + Guid.NewGuid().ToString("N");
+        await api.DeleteAccountAsync(tokens.Access, confirmation.ToExternalLogin(code));
 
         string[] secrets =
         [
             apple.Subject, apple.Nonce, apple.IdToken, google.Subject, google.Nonce, google.IdToken,
-            confirmation.IdToken, tokens.Access, tokens.Refresh, accountId,
+            linkConfirmation.IdToken, removalConfirmation.IdToken, confirmation.IdToken, code,
+            tokens.Access, tokens.Refresh, accountId,
         ];
         var logs = string.Join('\n', _server.Logs);
         Assert.All(secrets, secret => Assert.DoesNotContain(secret, logs, StringComparison.Ordinal));
