@@ -1,6 +1,6 @@
 # EIRORA — Roadmap till version 1.0
 
-> **Dokumentstatus:** Utkast v0.4 — nästa uppgifter för M0–M2  
+> **Dokumentstatus:** Utkast v0.5 — uppgifter för M0–M3  
 > **Datum:** 2026-10-18  
 > **Produktkrav:** [PRD.md](./PRD.md) · **Ordlista:** [GLOSSARY.md](./GLOSSARY.md) · **Beslut:** [docs/adr/](./docs/adr/)  
 > **Planeringsprincip:** kvalitetsstyrda milstolpar. **Utvecklingstid är aldrig en faktor** (D-09); genvägar och halvfärdiga system accepteras inte.
@@ -356,6 +356,23 @@ Beroendena står som GitHub-beroenden på ärendena; M2-ärenden som bygger på 
 
 M2 punkt 1 och 2 (reporstruktur och CI med kodanalys och beroendeskanning) levererades i TASK-010.
 
+### Uppgifter för M3
+
+Validatorn kommer före generatorn, så att generatorn byggs mot ett mätbart mål från ekonomi v1 och [epok 1](./docs/design/epoch-1.md).
+
+| Uppgift | Milstolpe | Blockeras av |
+|---|---|---|
+| [TASK-027 — ADR: kartformat och generatorversion](https://github.com/Tiico/eirora/issues/61) | M3 | – |
+| [TASK-028 — Hexgeometri och pathfinding i simuleringen](https://github.com/Tiico/eirora/issues/62) | M3 | – |
+| [TASK-029 — WorldMap-format och WorldGenerator-gränssnitt](https://github.com/Tiico/eirora/issues/63) | M3 | TASK-020, TASK-027, TASK-028 |
+| [TASK-030 — Validator för kartor och bulkvalidering av seeds](https://github.com/Tiico/eirora/issues/64) | M3 | TASK-029 |
+| [TASK-031 — Procedurgenererade ögrupper (generator v1)](https://github.com/Tiico/eirora/issues/65) | M3 | TASK-030 |
+| [TASK-032 — Dimma och upptäckt på kartan](https://github.com/Tiico/eirora/issues/66) | M3 | TASK-029 |
+| [TASK-033 — Den genererade världen i klienten](https://github.com/Tiico/eirora/issues/67) | M3 | TASK-024, TASK-031, TASK-032 |
+| [TASK-034 — Verktyg för att studera seeds och kartor](https://github.com/Tiico/eirora/issues/68) | M3 | TASK-030 |
+| [TASK-035 — Förbered arkipelag och geografisk källa](https://github.com/Tiico/eirora/issues/69) | M3 | TASK-029 |
+| [TASK-036 — Grind A3: världsgenerering](https://github.com/Tiico/eirora/issues/70) | M3 | TASK-026, TASK-031, TASK-033, TASK-035 |
+
 **Format för backlogpost:** ett GitHub-ärende med Epic, Milstolpe, PRD-referens, Prioritet, Förutsättningar, Beskrivning, Invariant, Acceptanskriterier (Given/When/Then), Testnivå, Integritetspåverkan, Migration och Definition of Done.
 
 ---
@@ -371,8 +388,8 @@ M2 punkt 1 och 2 (reporstruktur och CI med kodanalys och beroendeskanning) lever
 | [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
 | [ADR-0006](./docs/adr/0006-saves-are-migrated-snapshots.md) | Versionering av regler, innehåll och sparningar: sparningen är en snapshot som migreras framåt; gamla regler finns bara som frysta byggen | Beslutat |
 | [ADR-0007](./docs/adr/0007-own-health-connect-adapter.md) | Health Connect läses med en egen Kotlin-adapter bakom ett C#-gränssnitt, inte med HealthBridge (O-08, [TASK-007](https://github.com/Tiico/eirora/issues/8)) | Beslutat |
-| kommande | Kartformat och generatorversion | Inför M3 |
-| kommande | Backend-hosting, auth och databas (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Inför M2 |
+| [ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md) | Backend som containrar med PostgreSQL, hemma till beta och i Azure Sverige vid release; egna konton via Apple och Google (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Beslutat |
+| kommande | Kartformat och generatorversion ([TASK-027](https://github.com/Tiico/eirora/issues/61)) | Inför M3 |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |
 
 ---
@@ -456,3 +473,4 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 | 0.2 | 2026-10-17 | Verdawn. Ny ordning med tidig prototyp i fickan (M1). Hälsa, vilolås, grupper och arkipelag som kärna. Unity + ASP.NET Core. Visuell kvalitet som egen ström och grind. M0–M12. |
 | 0.3 | 2026-10-17 | Namn Eirora ersätter Verdawn; art direction förankras i det nordiska temat. |
 | 0.4 | 2026-10-18 | Nästa uppgifter TASK-011–026: luckorna till grind A0 och A1 och hela M2 till grind A2. |
+| 0.5 | 2026-10-18 | Uppgifter för M3 TASK-027–036 fram till grind A3. |

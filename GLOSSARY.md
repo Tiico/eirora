@@ -185,6 +185,10 @@ _Avoid_: logg, historik (som är världens berättelse för spelaren)
 Hela en världs tillstånd vid en tidpunkt, märkt med regelversion och innehållsversion.
 _Avoid_: ögonblicksbild, sparfil
 
+**Fingeravtryck** (`Fingerprint`):
+En världs hela tillstånd i kanonisk textform: lika världar har lika fingeravtryck, och det är fingeravtrycket som en snapshot innehåller.
+_Avoid_: kontrollsumma, hash (som snapshoten anger för fingeravtrycket)
+
 **Sparning** (`Save`):
 En världs lagrade form på enheten eller i molnet: den senaste snapshoten och journalen.
 _Avoid_: sparfil, backup
@@ -226,6 +230,20 @@ _Avoid_: maskot, tutor, NPC
 **Daglig rapport** (`DailyReport`):
 Sammanfattningen som visas första gången spelaren öppnar spelet efter en gryning och täcker allt sedan den senast lästa rapporten.
 _Avoid_: logg, nyhetsflöde, dagbok
+
+## Konto
+
+**Konto** (`Account`):
+Spelarens identitet på servern, som skapas när spelaren första gången loggar in med Apple eller Google; den egna världen kräver aldrig ett konto.
+_Avoid_: profil, användare, inloggning (som är sättet att nå kontot)
+
+**Molnsparning** (`CloudSave`):
+Kontots kopia av världens sparning på servern, uppdelad i en världsdel och en end-to-end-krypterad bidragsdel.
+_Avoid_: backup, synk
+
+**Bidragsnyckel** (`ContributionKey`):
+Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per spelardygn; förloras den går bidragshistoriken förlorad, aldrig världen.
+_Avoid_: lösenord, återställningskod (som är en av nyckelns kopior)
 
 ## Socialt
 

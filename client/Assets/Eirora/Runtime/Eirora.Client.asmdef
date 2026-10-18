@@ -3,7 +3,10 @@
   "rootNamespace": "Eirora.Client",
   "references": [
     "Eirora.Simulation",
-    "Eirora.Contracts"
+    "Eirora.Contracts",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

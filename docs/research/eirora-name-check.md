@@ -206,6 +206,9 @@ Det innebär:
 - Domäner och handtag kan hinna tas av andra; eirora.com och eirora.org är redan tagna.
 - Registerläget åldras, så sökningarna i den här rapporten behöver göras om i M12 innan en ansökan lämnas in.
 - Stegen ovan gäller oförändrat i M12, före den första offentliga butikssidan.
+- Paket-id:t `com.eirora.game` finns redan i Google Plays interna test (D-75), och ett paket-id i Google Play kan inte ändras.
+  Vid ett namnbyte kan namnet i butiken bytas, men id:t ligger kvar och syns i Play-länken; det är kosmetiskt, inte ett hinder.
+  Det interna testet är inte offentligt och räknas inte som butikssida.
 
 ## När en varumärkesjurist bör konsulteras
 

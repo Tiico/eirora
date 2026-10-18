@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Text;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.SelfCare
 {
@@ -24,8 +24,12 @@ namespace Eirora.Simulation.SelfCare
         // Half forces each (day, habit) actually added to the balance, after the soft cap (D-36).
         private readonly SortedDictionary<(int Day, Habit Habit), long> _gainedHalves = new();
 
+        // How many times the force had been spent when each (day, habit) was credited while it held no credit (D-74).
+        private readonly SortedDictionary<(int Day, Habit Habit), long> _spendsAtCredit = new();
+
         // Build Power each game day with workouts is worth, before the soft cap (D-63). Derived from the totals, so it
-        // is not part of the fingerprint; values from _buildPowerStaleFrom on are recomputed before they are read.
+        // is not part of the state that is written; values from _buildPowerStaleFrom on are recomputed before they are
+        // read, which recording the totals again on reading sets up.
         private readonly SortedDictionary<int, int> _buildPower = new();
         private int _buildPowerStaleFrom = int.MaxValue;
 
@@ -79,43 +83,109 @@ namespace Eirora.Simulation.SelfCare
         /// <summary>The half forces a game day's habit has added to the balance so far.</summary>
         public long GainedHalves(int day, Habit habit) => _gainedHalves.TryGetValue((day, habit), out long halves) ? halves : 0;
 
-        /// <summary>Adds <paramref name="halves"/> to what a game day's habit has added; negative after a correction.</summary>
-        public void AddGainedHalves(int day, Habit habit, long halves) => _gainedHalves[(day, habit)] = GainedHalves(day, habit) + halves;
-
-        public void AppendFingerprint(StringBuilder text)
+        /// <summary>
+        /// Adds <paramref name="halves"/> to what a game day's habit has added; negative after a correction. A
+        /// correction before any spending can take back more than the habit added, but never leaves it below zero.
+        /// </summary>
+        public void AddGainedHalves(int day, Habit habit, long halves)
         {
-            text.Append("selfcare:");
-            foreach (var entry in _totals)
-            {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('/')
-                    .Append((int)entry.Key.Source).Append('=').Append(entry.Value).Append(',');
-            }
-
-            text.Append("credited:");
-            foreach (var entry in _credited)
-            {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
-            }
-
-            text.Append("gained:");
-            foreach (var entry in _gainedHalves)
-            {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
-            }
-
-            text.Append(';');
+            long gained = GainedHalves(day, habit) + halves;
+            _gainedHalves[(day, habit)] = gained > 0 ? gained : 0;
         }
 
+        /// <summary>
+        /// Notes that a game day's habit was credited when its force had been spent <paramref name="spends"/> times,
+        /// unless it still holds older credit.
+        /// </summary>
+        public void NoteCredit(int day, Habit habit, long spends) => _spendsAtCredit.TryAdd((day, habit), spends);
+
+        /// <summary>
+        /// Whether the force has been spent since the oldest credit a game day's habit still holds, so that a
+        /// correction can take back no more than the habit added (D-62, D-74). Credit not made through
+        /// <see cref="NoteCredit"/>, such as the guided tour's, counts as spent.
+        /// </summary>
+        public bool SpentSinceCredit(int day, Habit habit, long spends) =>
+            !_spendsAtCredit.TryGetValue((day, habit), out long atCredit) || atCredit != spends;
+
+        /// <summary>Forgets a game day's habit's credit once a correction has taken all of it back.</summary>
+        public void ForgetCredit(int day, Habit habit)
+        {
+            _gainedHalves.Remove((day, habit));
+            _spendsAtCredit.Remove((day, habit));
+        }
+
+        public void Write(StateWriter writer)
+        {
+            foreach (var entry in _totals)
+            {
+                writer.Line("selfcare").Long(entry.Key.Day).Enum(entry.Key.Habit).Enum(entry.Key.Source).Long(entry.Value);
+            }
+
+            foreach (var entry in _credited)
+            {
+                writer.Line("credited").Long(entry.Key.Day).Enum(entry.Key.Habit).Long(entry.Value);
+            }
+
+            foreach (var entry in _gainedHalves)
+            {
+                writer.Line("gained").Long(entry.Key.Day).Enum(entry.Key.Habit).Long(entry.Value);
+            }
+
+            foreach (var entry in _spendsAtCredit)
+            {
+                writer.Line("spends-at-credit").Long(entry.Key.Day).Enum(entry.Key.Habit).Long(entry.Value);
+            }
+        }
+
+        public static SelfCareLedger Read(StateReader reader)
+        {
+            var ledger = new SelfCareLedger();
+            while (reader.Next("selfcare"))
+            {
+                int day = reader.Int();
+                var habit = reader.Enum<Habit>();
+                ledger.Record(day, habit, reader.Enum<ContributionSource>(), reader.Int());
+            }
+
+            while (reader.Next("credited"))
+            {
+                ledger._credited[(reader.Int(), reader.Enum<Habit>())] = reader.Int();
+            }
+
+            while (reader.Next("gained"))
+            {
+                ledger._gainedHalves[(reader.Int(), reader.Enum<Habit>())] = reader.Long();
+            }
+
+            while (reader.Next("spends-at-credit"))
+            {
+                ledger._spendsAtCredit[(reader.Int(), reader.Enum<Habit>())] = reader.Long();
+            }
+
+            return ledger;
+        }
+
+        /// <summary>The total recorded for a game day, habit and source, or null when nothing is recorded.</summary>
+        public int? Total(int day, Habit habit, ContributionSource source) =>
+            _totals.TryGetValue((day, habit, source), out int total) ? total : (int?)null;
+
+        /// <summary>
+        /// The health store's total (its verified and manually entered parts) or the player's own input, whichever is
+        /// higher; never their sum, so a day completed by hand is not counted twice (forces.md, section 6).
+        /// </summary>
         private int? Effective(int day, Habit habit)
         {
-            bool hasVerified = _totals.TryGetValue((day, habit, ContributionSource.Verified), out int verified);
-            bool hasSelfReported = _totals.TryGetValue((day, habit, ContributionSource.SelfReported), out int selfReported);
-            if (!hasVerified && !hasSelfReported)
+            int? verified = Total(day, habit, ContributionSource.Verified);
+            int? storeManual = Total(day, habit, ContributionSource.HealthStoreManualEntry);
+            int? selfReported = Total(day, habit, ContributionSource.SelfReported);
+            if (verified is null && storeManual is null && selfReported is null)
             {
                 return null;
             }
 
-            return verified > selfReported ? verified : selfReported;
+            int store = (verified ?? 0) + (storeManual ?? 0);
+            int own = selfReported ?? 0;
+            return store > own ? store : own;
         }
 
         private int Sessions(int day) => Effective(day, Habit.Workouts) ?? 0;

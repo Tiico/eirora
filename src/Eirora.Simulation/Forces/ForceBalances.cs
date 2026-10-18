@@ -1,5 +1,5 @@
 using System;
-using System.Text;
+using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.Forces
 {
@@ -21,7 +21,12 @@ namespace Eirora.Simulation.Forces
         private static readonly int[] s_fullCreditBelow = { 400, 600, 300 };
         private static readonly int[] s_halfCreditBelow = { 800, 1_200, 600 };
 
+        private static readonly Force[] s_forces = { Force.Exploration, Force.BuildPower, Force.DawnPower };
+
         private readonly long[] _positions = new long[ForceCount];
+
+        // How many times each force has been spent, so that a correction can tell whether its credit was spent since.
+        private readonly long[] _spends = new long[ForceCount];
 
         /// <summary>Starting forces from the guided tour (D-45).</summary>
         public static ForceBalances GuidedTourStart()
@@ -95,8 +100,12 @@ namespace Eirora.Simulation.Forces
             }
 
             _positions[i] = PositionOf(i, halves - (2L * cost));
+            _spends[i]++;
             return true;
         }
+
+        /// <summary>How many times <paramref name="force"/> has been spent (D-74).</summary>
+        internal long Spends(Force force) => _spends[Index(force)];
 
         /// <summary>The balance in half forces, the unit credit is kept in.</summary>
         internal long Halves(Force force)
@@ -105,8 +114,28 @@ namespace Eirora.Simulation.Forces
             return BalanceAt(i, _positions[i]);
         }
 
-        internal void AppendFingerprint(StringBuilder text) =>
-            text.Append("forces:").Append(_positions[0]).Append(',').Append(_positions[1]).Append(',').Append(_positions[2]).Append(';');
+        internal void Write(StateWriter writer)
+        {
+            foreach (var force in s_forces)
+            {
+                writer.Line("force").Enum(force).Long(_positions[Index(force)]).Long(_spends[Index(force)]);
+            }
+        }
+
+        internal static ForceBalances Read(StateReader reader)
+        {
+            var balances = new ForceBalances();
+            foreach (var force in s_forces)
+            {
+                reader.Expect("force");
+                long position = reader.Enum<Force>() == force ? reader.Long() : throw new FormatException($"Expected {force}.");
+                long spends = reader.Long();
+                balances._positions[Index(force)] = position >= 0 ? position : throw new FormatException("A force is never negative.");
+                balances._spends[Index(force)] = spends >= 0 ? spends : throw new FormatException("A force is never spent fewer than zero times.");
+            }
+
+            return balances;
+        }
 
         // The balance in half forces that a position gives; a half force of credit straddling the full threshold
         // counts in full, so crediting from an odd balance below it matches crediting force by force.

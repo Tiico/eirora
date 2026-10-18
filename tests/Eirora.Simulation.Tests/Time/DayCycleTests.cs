@@ -128,6 +128,46 @@ public sealed class DayCycleTests
     }
 
     [Fact]
+    public void AScheduleChangeGivesTheSameNightsHowEverTimeIsAdvanced()
+    {
+        // The same change as above, advanced every quarter of an hour (as the economy does) instead of at once.
+        var world = World.Create(At("2026-10-14 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-14 21:30", 2));
+        world.Apply("schedule-1", new ChangeRestSchedule(new RestSchedule(21 * 60, 8 * 60)));
+
+        var nights = new List<string>();
+        for (long t = world.Now.UtcSeconds + 900; t <= At("2026-10-17 12:00", 2).UtcSeconds; t += 900)
+        {
+            nights.AddRange(world.AdvanceTo(new TimeReading(t, Stockholm, 7200)).OfType<DuskFell>().Select(e => Utc(e.UtcSeconds)));
+        }
+
+        Assert.Equal(["2026-10-14 21:00", "2026-10-15 21:00", "2026-10-16 19:00"], nights);
+    }
+
+    [Fact]
+    public void GameDayZeroStartsAtLocalMidnightAndEachLaterDayAtItsDawn()
+    {
+        var world = World.Create(At("2026-10-14 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-16 12:00", 2));
+
+        Assert.Equal("2026-10-13 22:00", Utc(world.GameDayStartUtc(0)!.Value)); // 00:00 local.
+        Assert.Equal("2026-10-15 05:00", Utc(world.GameDayStartUtc(1)!.Value)); // 07:00 local.
+        Assert.Equal("2026-10-16 05:00", Utc(world.GameDayStartUtc(2)!.Value));
+        Assert.Null(world.GameDayStartUtc(3));
+        Assert.Equal(At("2026-10-14 14:00", 2).UtcSeconds, world.CreatedUtc);
+    }
+
+    [Fact]
+    public void OnlyTheMostRecentGameDayStartsAreKept()
+    {
+        var world = World.Create(At("2026-10-01 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-20 12:00", 2));
+
+        Assert.Null(world.GameDayStartUtc(world.GameDay - 9));
+        Assert.NotNull(world.GameDayStartUtc(world.GameDay - 8));
+    }
+
+    [Fact]
     public void AnOngoingRestIsNeverShortened()
     {
         var world = World.Create(At("2026-10-14 23:30", 2), Night);

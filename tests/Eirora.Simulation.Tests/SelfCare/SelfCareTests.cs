@@ -9,7 +9,7 @@ using static Eirora.Simulation.Tests.TestClock;
 
 namespace Eirora.Simulation.Tests.SelfCare;
 
-/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-69).</summary>
+/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-69, D-74).</summary>
 public sealed class SelfCareTests
 {
     private static int s_key;
@@ -60,6 +60,41 @@ public sealed class SelfCareTests
     }
 
     [Fact]
+    public void TheHealthStoresVerifiedAndManualPartsCountTogether()
+    {
+        var world = Afternoon();
+        Record(world, 0, Habit.Steps, ContributionSource.Verified, 5_000);
+
+        Record(world, 0, Habit.Steps, ContributionSource.HealthStoreManualEntry, 2_500);
+
+        Assert.Equal(100 + ForceRules.Exploration(7_500), world.Available(Force.Exploration));
+    }
+
+    [Fact]
+    public void OwnInputCountsOnlyWhenHigherThanTheHealthStoresTotal()
+    {
+        var world = Afternoon();
+        Record(world, 0, Habit.Steps, ContributionSource.Verified, 5_000);
+        Record(world, 0, Habit.Steps, ContributionSource.HealthStoreManualEntry, 2_500);
+
+        Record(world, 0, Habit.Steps, ContributionSource.SelfReported, 6_000);
+        Assert.Equal(100 + ForceRules.Exploration(7_500), world.Available(Force.Exploration));
+
+        Record(world, 0, Habit.Steps, ContributionSource.SelfReported, 10_000);
+        Assert.Equal(100 + ForceRules.Exploration(10_000), world.Available(Force.Exploration));
+    }
+
+    [Fact]
+    public void TheWorldTellsWhatHasBeenRecorded()
+    {
+        var world = Afternoon();
+        Record(world, 0, Habit.Sleep, ContributionSource.Verified, 420);
+
+        Assert.Equal(420, world.RecordedSelfCare(0, Habit.Sleep, ContributionSource.Verified));
+        Assert.Null(world.RecordedSelfCare(0, Habit.Sleep, ContributionSource.HealthStoreManualEntry));
+    }
+
+    [Fact]
     public void SelfReportedSelfCareGivesTheSameForceAsVerified()
     {
         var verified = Afternoon();
@@ -102,6 +137,25 @@ public sealed class SelfCareTests
         var result = Record(world, 3, Habit.Steps, ContributionSource.Verified, 0);
 
         Assert.Equal(415, world.Available(Force.Exploration));
+        Assert.Equal(55, Assert.IsType<ForceWithdrawn>(Assert.Single(result.Events)).Amount);
+    }
+
+    [Fact]
+    public void ACorrectionAfterSpendingNeverTakesBackMoreThanTheDayGave()
+    {
+        var world = Afternoon();
+        for (int day = 0; day <= 3; day++)
+        {
+            world.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
+            Record(world, day, Habit.Steps, ContributionSource.Verified, 20_000);
+        }
+
+        Assert.Equal(415 + (110 / 2), world.Available(Force.Exploration)); // The fourth day gave 55 at half credit.
+        world.Apply(NextKey(), new Spend(Force.Exploration, 170)); // Under the full-credit cap again.
+
+        var result = Record(world, 3, Habit.Steps, ContributionSource.Verified, 0);
+
+        Assert.Equal(300 - 55, world.Available(Force.Exploration)); // Not 110 at full credit (D-62, D-74).
         Assert.Equal(55, Assert.IsType<ForceWithdrawn>(Assert.Single(result.Events)).Amount);
     }
 
@@ -234,8 +288,7 @@ public sealed class SelfCareTests
             _ => Volume(day, habit) % (12 * 60),
         };
 
-        // Workouts join once a late session can no longer lower the rolling week's Build Power (D-63).
-        var habits = new[] { Habit.Steps, Habit.Sleep };
+        var habits = new[] { Habit.Steps, Habit.Workouts, Habit.Sleep };
         for (int day = 0; day <= 13; day++)
         {
             inOrder.AdvanceTo(At($"2026-10-{14 + day} 14:00", 2));
@@ -295,12 +348,48 @@ public sealed class SelfCareTests
         Assert.Equal(2, result.Events.OfType<ForceWithdrawn>().Count(e => e.Amount == 10));
     }
 
-    [Property(MaxTest = 200)]
-    public bool WorkoutsGiveTheSameBuildPowerInAnyOrder(byte[] sessions, int seed)
+    [Fact]
+    public void LateWorkoutsThatBrieflyCrossTheSoftCapGiveTheSameBuildPowerAsWorkoutsInOrder()
     {
-        var days = Enumerable.Range(0, RecordSelfCare.DaysBack).ToArray();
-        var inOrder = AfterAWeek();
-        var shuffled = AfterAWeek();
+        var inOrder = Afternoon();
+        var late = Afternoon();
+        inOrder.AdvanceTo(At("2026-10-20 12:00", 2));
+        late.AdvanceTo(At("2026-10-20 12:00", 2));
+        for (int day = 0; day <= 6; day++)
+        {
+            Record(inOrder, day, Habit.Workouts, ContributionSource.Verified, day % 2 == 0 ? 1 : 3);
+        }
+
+        // Day 3 is credited over 600 before day 5's correction brings the balance back under it, and is later
+        // taken back at full credit (D-74).
+        foreach (int day in new[] { 5, 3, 2, 6, 4, 0, 1 })
+        {
+            Record(late, day, Habit.Workouts, ContributionSource.Verified, day % 2 == 0 ? 1 : 3);
+        }
+
+        Assert.Equal(100 + 345, inOrder.Available(Force.BuildPower));
+        Assert.Equal(inOrder.Available(Force.BuildPower), late.Available(Force.BuildPower));
+    }
+
+    // A week of workouts in any order gives the same Build Power as in order (D-63), after weeks of training saved
+    // that put the balance under, between or over the soft cap's thresholds (D-69).
+    [Property(MaxTest = 200)]
+    public bool WorkoutsGiveTheSameBuildPowerInAnyOrder(byte[] sessions, byte weeksSaved, int seed)
+    {
+        int firstDay = 7 * (weeksSaved % 6);
+        var days = Enumerable.Range(firstDay, RecordSelfCare.DaysBack).ToArray();
+        var inOrder = Afternoon();
+        var shuffled = Afternoon();
+        for (int day = 0; day <= days[^1]; day++)
+        {
+            inOrder.AdvanceTo(At(Day(day).ToString("yyyy-MM-dd 14:00", CultureInfo.InvariantCulture), 2));
+            shuffled.AdvanceTo(At(Day(day).ToString("yyyy-MM-dd 14:00", CultureInfo.InvariantCulture), 2));
+            if (day < firstDay)
+            {
+                Record(inOrder, day, Habit.Workouts, ContributionSource.Verified, SessionsOn(day));
+                Record(shuffled, day, Habit.Workouts, ContributionSource.Verified, SessionsOn(day));
+            }
+        }
 
         foreach (int day in days)
         {
@@ -315,15 +404,7 @@ public sealed class SelfCareTests
 
         return shuffled.Available(Force.BuildPower) == inOrder.Available(Force.BuildPower);
 
-        // One session a day at most keeps every step under the soft cap, which no order can then cross.
-        int SessionsOn(int day) => day < sessions.Length ? sessions[day] % 2 : 0;
-
-        static World AfterAWeek()
-        {
-            var world = Afternoon();
-            world.AdvanceTo(At("2026-10-20 12:00", 2));
-            return world;
-        }
+        int SessionsOn(int day) => sessions.Length == 0 ? 0 : sessions[day % sessions.Length] % 7;
     }
 
     [Theory]
@@ -400,6 +481,16 @@ public sealed class SelfCareTests
         internal override Rejection Execute(World world)
         {
             return world.TrySpend(force, world.Available(force)) ? Rejection.None : Rejection.AmountOutOfRange;
+        }
+    }
+
+    private sealed class Spend(Force force, int cost) : GameCommand
+    {
+        public override CommandCategory Category => CommandCategory.Gameplay;
+
+        internal override Rejection Execute(World world)
+        {
+            return world.TrySpend(force, cost) ? Rejection.None : Rejection.AmountOutOfRange;
         }
     }
 }

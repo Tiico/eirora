@@ -106,7 +106,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-59 | ~~**Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B~~ | [ERSATT av D-61] |
 | D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
 | D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
-| D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak (förtydligar D-36) | [BESLUTAT] |
+| D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak, för tillskott som gjorts före en senare spendering (förtydligar D-36, avgränsad av D-74) | [BESLUTAT] |
 | D-63 | **Byggkraftens rullande vecka ger kurvans värde:** ett spelardygn med pass ger kurvan för passen under sju spelardygn minus det de sex föregående redan gav, aldrig under noll; mer träning ger aldrig mindre Byggkraft ([epoch-1.md](./docs/design/epoch-1.md#7-byggkraftens-rullande-vecka)) | [BESLUTAT] |
 | D-64 | **Epok 1:s milstolpe är att Vårdkasen tänds,** byggd i tre etapper (grunden, stommen, elden) med egna förutsättningar ([epoch-1.md](./docs/design/epoch-1.md)) | [BESLUTAT] |
 | D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
@@ -116,6 +116,13 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 | D-70 | **Hälsodata läses när spelaren öppnar appen;** spelet begär aldrig bakgrundsbehörighet, och krafterna räknas fram ur hälsokällan vid öppning ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-72 | **Kontot skapas först när spelaren loggar in med Apple eller Google;** dessförinnan finns inget om spelaren på servern, och inga lösenord eller e-postadresser lagras ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
+| D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och spelardygnen före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
+| D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
+| D-75 | **Prototypen når telefonen genom Google Plays interna test:** varje push till `main` som ändrar bygget blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation ([development.md](./docs/development.md#google-play)) | [BESLUTAT] |
+| D-76 | **Google förvarar appens signeringsnyckel (Play App Signing);** prototypens nyckel är uppladdningsnyckel, så en APK från CI eller datorn kan inte installeras över appen från Google Play | [BESLUTAT] |
+| D-77 | **Övergången till Google Play kräver en avinstallation,** innan dagboken börjar; världen från de sidladdade provbyggena följer inte med | [BESLUTAT] |
+| D-78 | **Androids säkerhetskopiering till spelarens eget Google-konto är påslagen** och tar med journalen, så att världen kan följa med till en ny telefon; journalen innehåller bara dygnssummor, aldrig enskilda hälsoposter (HLT-10) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -476,7 +483,9 @@ Inga medicinska påståenden.
 - **Native-adaptrar:** Health Connect (Kotlin) och HealthKit (Swift) bakom ett gemensamt C#-gränssnitt.
   HealthBridge (Fab) valdes bort mot kraven i HLT-03/04/08/12 ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)).
 - **Backend:** ASP.NET Core för konto, molnsparning, grupper, arkipelag, handel, gemensamma byggen, delade siffror och köpvalidering.
-- **Databas:** [FÖRSLAG] PostgreSQL.
+  En container med Docker Compose på produktägarens server till och med betan, och i Azure Sweden Central från release ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)).
+- **Databas:** PostgreSQL 18 med EF Core-migrationer och krypterad backup hos ett EU-bolag ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)).
+- **Konto:** egna konton i backend med OpenIddict och inloggning med Sign in with Apple eller Google; inga lösenord (D-72).
 - **Karta:** versionerad genereringsmodul utan beroende till Unity.
 
 ### 7.3 Simulering och tid
@@ -644,6 +653,10 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-70–D-71 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor efter Health Connect-spiken i TASK-007 |
 | — | 2026-10-18 | RST-05 ändrat: ingen synk i bakgrunden, hälsodata läses vid öppning | D-70 |
 | — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
+| D-72–D-73 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-018 |
+| — | 2026-10-18 | O-09 avgjord: compose hemma till beta, Azure Sverige vid release, PostgreSQL 18, egna konton med Apple och Google | ADR-0008 |
+| D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
+| D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
@@ -665,7 +678,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
-| O-09 | Hosting, auth-leverantör och databas för backend | ASP.NET Core + PostgreSQL | M2 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
 

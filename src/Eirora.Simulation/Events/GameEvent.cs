@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
 
 namespace Eirora.Simulation.Events
@@ -58,5 +60,50 @@ namespace Eirora.Simulation.Events
         public Force Force { get; }
 
         public int Amount { get; }
+    }
+
+    /// <summary>Villagers moved in because they were fed and there was room (economy-v1.md, section 4).</summary>
+    public sealed class VillagersMovedIn : GameEvent
+    {
+        public VillagersMovedIn(long utcSeconds, int count)
+            : base(utcSeconds) => Count = count;
+
+        public int Count { get; }
+    }
+
+    /// <summary>A building, upgrade or road in the queue was finished.</summary>
+    public sealed class ProjectCompleted : GameEvent
+    {
+        public ProjectCompleted(long utcSeconds, ProjectKind kind, BuildingKind building, string siteId)
+            : base(utcSeconds)
+        {
+            Kind = kind;
+            Building = building;
+            SiteId = siteId;
+        }
+
+        public ProjectKind Kind { get; }
+
+        public BuildingKind Building { get; }
+
+        public string SiteId { get; }
+    }
+
+    /// <summary>Surveying lifted the fog from these sites (MAP-04).</summary>
+    public sealed class SitesRevealed : GameEvent
+    {
+        public SitesRevealed(long utcSeconds, IReadOnlyList<string> siteIds)
+            : base(utcSeconds) => SiteIds = siteIds;
+
+        public IReadOnlyList<string> SiteIds { get; }
+    }
+
+    /// <summary>The expedition came home and found new places across the sea (EXP-01, EXP-02).</summary>
+    public sealed class ExpeditionReturned : GameEvent
+    {
+        public ExpeditionReturned(long utcSeconds, IReadOnlyList<string> siteIds)
+            : base(utcSeconds) => SiteIds = siteIds;
+
+        public IReadOnlyList<string> SiteIds { get; }
     }
 }
