@@ -17,6 +17,9 @@ public sealed class AppleOptions
     /// <summary>The private key (.p8) as PEM; in production a secret file (ADR-0008).</summary>
     public string PrivateKey { get; set; } = "";
 
+    /// <summary>How long each call to Apple may take; past it the account is deleted without Apple's confirmation.</summary>
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+
     public bool IsConfigured => TeamId.Length > 0 && KeyId.Length > 0 && PrivateKey.Length > 0;
 }
 
@@ -36,6 +39,10 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
     private static readonly JsonWebTokenHandler s_handler = new();
 
     /// <summary>Revokes the app's access for the Apple ID the code belongs to; returns whether Apple confirmed it.</summary>
+    /// <remarks>
+    /// Never fails because of Apple: an Apple that cannot be reached, does not answer in time or answers garbage is logged
+    /// and reported as not confirmed. Only the caller's own cancellation is thrown.
+    /// </remarks>
     public async Task<bool> RevokeAsync(string authorizationCode, string clientId, CancellationToken cancellationToken)
     {
         if (!options.Value.IsConfigured)
@@ -44,6 +51,20 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
             return false;
         }
 
+        try
+        {
+            return await ExchangeAndRevokeAsync(authorizationCode, clientId, cancellationToken);
+        }
+        catch (Exception e) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The type only: a message may quote Apple's answer, which can hold tokens (NFR-10).
+            LogUnreachable(logger, e.GetType().Name);
+            return false;
+        }
+    }
+
+    private async Task<bool> ExchangeAndRevokeAsync(string authorizationCode, string clientId, CancellationToken cancellationToken)
+    {
         var clientSecret = CreateClientSecret(clientId);
         using var exchange = await http.PostAsync(
             new Uri("auth/token", UriKind.Relative),
@@ -118,4 +139,7 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Sign in with Apple {Step} failed with status {Status}")]
     private static partial void LogFailed(ILogger logger, string step, int status);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Sign in with Apple could not be reached or gave an unexpected answer ({Error})")]
+    private static partial void LogUnreachable(ILogger logger, string error);
 }
