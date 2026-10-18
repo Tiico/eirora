@@ -52,10 +52,10 @@ Det här är redan bestämt och gäller oavsett riktning:
 6. **Skönheten ska hålla på målenheterna.**
    Varje riktning har en lågnivå där dyra effekter ersätts med billigare motsvarigheter utan att stämningen går förlorad.
 
-### Dygnsljuset följer spelardygnet [FÖRSLAG]
+### Dygnsljuset följer spelardygnet [BESLUTAT]
 
 Enligt ordlistan är gryning övergången när viloperioden slutar.
-Därför föreslås att dygnsljuset följer spelarens viloschema i stället för solen på spelarens ort:
+Därför följer dygnsljuset spelarens viloschema i stället för solen på spelarens ort (D-84):
 
 | Ljusstämning | När |
 |---|---|
@@ -429,7 +429,10 @@ Nästa steg följer avsnitt 9.
 ## 12. Olösta frågor
 
 1. Ska dygnsljuset följa spelarens viloschema (förslaget i avsnitt 2) eller solen på spelarens ort?
+   Avgjord: viloschemat (D-84).
 2. Ska kameran sänkas automatiskt till nattvyn när viloperioden börjar, eller ska spelaren behålla spelkameran?
+   I prototypen behålls spelkameran (D-86); frågan avgörs i M7 eller M9.
 3. Ska byborna synas som små figurer i världen, trots att de modelleras som arbetsgrupper?
+   Avgjord: ja, vid bemannade byggnader under dagen (D-85).
 4. Ska mytologiska väsen (vättar, troll, gudar) synas i världen, eller ska myten bara bäras av form, ornamentik och ljus?
 5. Vilken lågklassenhet ska vara referens för prestandamätningen (O-13)?
