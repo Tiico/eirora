@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Text;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.SelfCare
 {
@@ -28,7 +28,8 @@ namespace Eirora.Simulation.SelfCare
         private readonly SortedDictionary<(int Day, Habit Habit), long> _spendsAtCredit = new();
 
         // Build Power each game day with workouts is worth, before the soft cap (D-63). Derived from the totals, so it
-        // is not part of the fingerprint; values from _buildPowerStaleFrom on are recomputed before they are read.
+        // is not part of the state that is written; values from _buildPowerStaleFrom on are recomputed before they are
+        // read, which recording the totals again on reading sets up.
         private readonly SortedDictionary<int, int> _buildPower = new();
         private int _buildPowerStaleFrom = int.MaxValue;
 
@@ -113,34 +114,55 @@ namespace Eirora.Simulation.SelfCare
             _spendsAtCredit.Remove((day, habit));
         }
 
-        public void AppendFingerprint(StringBuilder text)
+        public void Write(StateWriter writer)
         {
-            text.Append("selfcare:");
             foreach (var entry in _totals)
             {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('/')
-                    .Append((int)entry.Key.Source).Append('=').Append(entry.Value).Append(',');
+                writer.Line("selfcare").Long(entry.Key.Day).Enum(entry.Key.Habit).Enum(entry.Key.Source).Long(entry.Value);
             }
 
-            text.Append("credited:");
             foreach (var entry in _credited)
             {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
+                writer.Line("credited").Long(entry.Key.Day).Enum(entry.Key.Habit).Long(entry.Value);
             }
 
-            text.Append("gained:");
             foreach (var entry in _gainedHalves)
             {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
+                writer.Line("gained").Long(entry.Key.Day).Enum(entry.Key.Habit).Long(entry.Value);
             }
 
-            text.Append("spendsAtCredit:");
             foreach (var entry in _spendsAtCredit)
             {
-                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
+                writer.Line("spends-at-credit").Long(entry.Key.Day).Enum(entry.Key.Habit).Long(entry.Value);
+            }
+        }
+
+        public static SelfCareLedger Read(StateReader reader)
+        {
+            var ledger = new SelfCareLedger();
+            while (reader.Next("selfcare"))
+            {
+                int day = reader.Int();
+                var habit = reader.Enum<Habit>();
+                ledger.Record(day, habit, reader.Enum<ContributionSource>(), reader.Int());
             }
 
-            text.Append(';');
+            while (reader.Next("credited"))
+            {
+                ledger._credited[(reader.Int(), reader.Enum<Habit>())] = reader.Int();
+            }
+
+            while (reader.Next("gained"))
+            {
+                ledger._gainedHalves[(reader.Int(), reader.Enum<Habit>())] = reader.Long();
+            }
+
+            while (reader.Next("spends-at-credit"))
+            {
+                ledger._spendsAtCredit[(reader.Int(), reader.Enum<Habit>())] = reader.Long();
+            }
+
+            return ledger;
         }
 
         /// <summary>The total recorded for a game day, habit and source, or null when nothing is recorded.</summary>
