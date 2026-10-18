@@ -9,7 +9,7 @@ using static Eirora.Simulation.Tests.TestClock;
 
 namespace Eirora.Simulation.Tests.SelfCare;
 
-/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-69, D-72).</summary>
+/// <summary>Self-care becomes force (forces.md, INV-B1, INV-F7, INV-T9, D-36, D-53, D-54, D-62, D-69, D-74).</summary>
 public sealed class SelfCareTests
 {
     private static int s_key;
@@ -120,7 +120,7 @@ public sealed class SelfCareTests
 
         var result = Record(world, 3, Habit.Steps, ContributionSource.Verified, 0);
 
-        Assert.Equal(300 - 55, world.Available(Force.Exploration)); // Not 110 at full credit (D-62, D-72).
+        Assert.Equal(300 - 55, world.Available(Force.Exploration)); // Not 110 at full credit (D-62, D-74).
         Assert.Equal(55, Assert.IsType<ForceWithdrawn>(Assert.Single(result.Events)).Amount);
     }
 
@@ -326,7 +326,7 @@ public sealed class SelfCareTests
         }
 
         // Day 3 is credited over 600 before day 5's correction brings the balance back under it, and is later
-        // taken back at full credit (D-72).
+        // taken back at full credit (D-74).
         foreach (int day in new[] { 5, 3, 2, 6, 4, 0, 1 })
         {
             Record(late, day, Habit.Workouts, ContributionSource.Verified, day % 2 == 0 ? 1 : 3);

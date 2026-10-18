@@ -24,7 +24,7 @@ namespace Eirora.Simulation.SelfCare
         // Half forces each (day, habit) actually added to the balance, after the soft cap (D-36).
         private readonly SortedDictionary<(int Day, Habit Habit), long> _gainedHalves = new();
 
-        // How many times the force had been spent when each (day, habit) was credited while it held no credit (D-72).
+        // How many times the force had been spent when each (day, habit) was credited while it held no credit (D-74).
         private readonly SortedDictionary<(int Day, Habit Habit), long> _spendsAtCredit = new();
 
         // Build Power each game day with workouts is worth, before the soft cap (D-63). Derived from the totals, so it
@@ -100,7 +100,7 @@ namespace Eirora.Simulation.SelfCare
 
         /// <summary>
         /// Whether the force has been spent since the oldest credit a game day's habit still holds, so that a
-        /// correction can take back no more than the habit added (D-62, D-72). Credit not made through
+        /// correction can take back no more than the habit added (D-62, D-74). Credit not made through
         /// <see cref="NoteCredit"/>, such as the guided tour's, counts as spent.
         /// </summary>
         public bool SpentSinceCredit(int day, Habit habit, long spends) =>

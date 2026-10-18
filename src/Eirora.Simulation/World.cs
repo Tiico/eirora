@@ -261,7 +261,7 @@ namespace Eirora.Simulation
             else if (expected < credited)
             {
                 // A correction takes back its credit along the soft cap (D-69). Only once the force has been spent
-                // since then is it limited to what this day and habit actually gave (D-62, D-72); before that the
+                // since then is it limited to what this day and habit actually gave (D-62, D-74); before that the
                 // position alone gives the same balance in any order, even when Build Power moves between days.
                 long maxHalves = _selfCare.SpentSinceCredit(day, habit, _forces.Spends(force))
                     ? _selfCare.GainedHalves(day, habit)

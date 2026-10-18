@@ -102,7 +102,7 @@ namespace Eirora.Simulation.Forces
             return true;
         }
 
-        /// <summary>How many times <paramref name="force"/> has been spent (D-72).</summary>
+        /// <summary>How many times <paramref name="force"/> has been spent (D-74).</summary>
         internal long Spends(Force force) => _spends[Index(force)];
 
         /// <summary>The balance in half forces, the unit credit is kept in.</summary>
