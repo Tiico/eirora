@@ -1,7 +1,7 @@
 # Krafternas regler v1
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, D-62, D-63, O-01  
+> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, D-62, D-63, D-69, O-01  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Invarianter:** [invariants.md](./invariants.md)
 
 Det här dokumentet bestämmer hur egenvård blir krafter: omvandling, avtagande avkastning, mjuka tak, grundnivå, manuell inmatning och hur mycket som kan sparas.
@@ -126,6 +126,12 @@ Ett mjukt tak per kraft begränsar bara nya tillskott:
 
 Byggkraft får det högsta taket eftersom den är till för stora projekt som det ska gå att spara ihop till under ett par veckor.
 Gryningskraft får det lägsta eftersom den hör till morgonens planering.
+
+Taket räknas på kraftens **läge**: allt tillskott kraften fått före taket (D-69).
+Saldot följer av läget enligt tabellen, så samma bidrag ger samma saldo oavsett ordning och uppdelning.
+En korrigering nedåt flyttar läget tillbaka och tar därmed tillbaka kraft i samma takt som den gavs, men aldrig mer än bidraget gav (D-62).
+Tillskott över taket syns inte i saldot men finns kvar i läget, så att en senare korrigering tar av dem först.
+Spendering sänker läget till det lägsta som ger saldot som är kvar, så att taket alltid räknas från det som faktiskt är sparat.
 När ett förråd är fullt säger spelet det lugnt, utan uppmaning att spendera (princip 11).
 
 ## 6. Manuell inmatning (HLT-07, D-18)
@@ -160,7 +166,7 @@ Taken prövas på nytt i M8 tillsammans med reglerna för gemensamma byggen.
 
 - All beräkning sker i heltal (INV-D3): kurvorna räknas exakt med gemensam nämnare, och dagens värde per vana avrundas nedåt **en gång** till hela krafter.
 - Tillskott krediteras som skillnaden mellan dagens nya och tidigare värde.
-  Summan blir därför densamma oavsett i vilken ordning och i hur många delar data kommer in (INV-B1).
+  Summan blir därför densamma oavsett i vilken ordning och i hur många delar data kommer in (INV-B1), även över sparandets tak, eftersom taket räknas på läget (D-69).
 - Sparandets halva tillskott räknas i en fast bråkdel av en kraft så att uppdelningen inte ger avrundningsfel (INV-F8).
 - Konkaviteten i INV-F3 gäller den exakta kurvan; efter avrundning kan den avvika med högst en kraft, men kurvan förblir växande och begränsad.
 
@@ -176,3 +182,5 @@ Senare beslut som ändrar reglerna ovan:
 
 - **D-63** (från [epok 1](./epoch-1.md#7-byggkraftens-rullande-vecka)): formeln `G(n + m) − G(n)` gav mindre Byggkraft ju fler pass som gjordes vecka efter vecka, till exempel 0 i veckan med sex pass.
   Den är ersatt av kurvan för passen under sju spelardygn minus det de sex föregående spelardygnen redan gav, aldrig under noll (avsnitt 3).
+- **D-69:** en korrigering nedåt drog av kraft i full takt även när tillskottet gavs till halva, så att ett sent pass över sparandets tak gav en lägre slutsumma än pass i ordning.
+  Taket räknas nu på kraftens läge, se [avsnitt 5](#5-sparande-d-35).

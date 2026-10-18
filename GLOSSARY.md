@@ -105,6 +105,10 @@ _Avoid_: snabba upp, skippa
 En registrerad mängd egenvård för ett tidsintervall som omvandlas till kraft.
 _Avoid_: belöning, input
 
+**Läge** (`Position`):
+Allt tillskott en kraft fått före sparandets mjuka tak; saldot följer av läget, och en korrigering flyttar läget tillbaka.
+_Avoid_: råsaldo, dolt saldo
+
 **Startkrafter** (`StartingForces`):
 De krafter som finns i en ny världs starttillstånd så att den guidade turen kan spelas utan egenvård; de är inte ett bidrag.
 _Avoid_: bonus, gåva (som term)

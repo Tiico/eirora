@@ -157,28 +157,51 @@ namespace Eirora.Simulation
 
         private void ReconcileSelfCare(long utcSeconds)
         {
+            var changes = new List<(int Day, Habit Habit, Force Force, int Expected, int Credited)>(_unreconciled.Count);
             foreach (var (day, habit) in _unreconciled)
             {
                 var (force, expected, credited) = _selfCare.Reconcile(day, habit);
-                long halvesBefore = _forces.Halves(force);
-                if (expected > credited)
-                {
-                    int gained = _forces.Credit(force, expected - credited);
-                    _events.Add(new ForceCredited(utcSeconds, force, gained));
-                }
-                else if (expected < credited)
-                {
-                    // A correction never takes back more than this day and habit actually gave under the soft cap (D-36).
-                    long correction = 2L * (credited - expected), gave = _selfCare.GainedHalves(day, habit);
-                    long limit = correction < gave ? correction : gave;
-                    int removed = _forces.WithdrawHalves(force, limit);
-                    _events.Add(new ForceWithdrawn(utcSeconds, force, removed));
-                }
+                changes.Add((day, habit, force, expected, credited));
+            }
 
-                _selfCare.AddGainedHalves(day, habit, _forces.Halves(force) - halvesBefore);
+            // Credit before correcting, so that a correction takes back from the highest position, where the soft cap
+            // gave least, and a late contribution never makes it reach the D-62 limit.
+            foreach (var change in changes)
+            {
+                if (change.Expected >= change.Credited)
+                {
+                    Settle(change.Day, change.Habit, change.Force, change.Expected, change.Credited, utcSeconds);
+                }
+            }
+
+            foreach (var change in changes)
+            {
+                if (change.Expected < change.Credited)
+                {
+                    Settle(change.Day, change.Habit, change.Force, change.Expected, change.Credited, utcSeconds);
+                }
             }
 
             _unreconciled.Clear();
+        }
+
+        private void Settle(int day, Habit habit, Force force, int expected, int credited, long utcSeconds)
+        {
+            long halvesBefore = _forces.Halves(force);
+            if (expected > credited)
+            {
+                int gained = _forces.Credit(force, expected - credited);
+                _events.Add(new ForceCredited(utcSeconds, force, gained));
+            }
+            else if (expected < credited)
+            {
+                // A correction takes back its credit along the soft cap (D-69), but never more than this day and habit
+                // actually gave (D-62).
+                int removed = _forces.Withdraw(force, credited - expected, _selfCare.GainedHalves(day, habit));
+                _events.Add(new ForceWithdrawn(utcSeconds, force, removed));
+            }
+
+            _selfCare.AddGainedHalves(day, habit, _forces.Halves(force) - halvesBefore);
         }
     }
 }

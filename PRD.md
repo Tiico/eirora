@@ -113,6 +113,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-66 | **Forskning kostar ingen kraft,** bara varor och tid | [BESLUTAT] |
 | D-67 | **Nästa epok börjar vid gryningen efter milstolpen,** utan att något nollställs | [BESLUTAT] |
 | D-68 | **Bara det som är markerat som manuellt inmatat är egenrapporterat:** `MANUAL_ENTRY` i Health Connect, `HKMetadataKeyWasUserEntered` i HealthKit och manuell inmatning i spelet; okänd inspelningsmetod (`UNKNOWN`) räknas som verifierat ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 | D-70 | **Hälsodata läses när spelaren öppnar appen;** spelet begär aldrig bakgrundsbehörighet, och krafterna räknas fram ur hälsokällan vid öppning ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 
@@ -639,6 +640,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-62 | 2026-10-17 | Se avsnitt 1.1 | Granskning av simuleringskärnan i TASK-008 (PR #24) |
 | D-63–D-67 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-011 |
 | D-68 | 2026-10-18 | Se avsnitt 1.1 | Health Connect-spiken på produktägarens telefon i TASK-007 (PR #44) |
+| D-69 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 (PR #48) visade att ett sent pass över sparandets tak gav en annan slutsumma (INV-B1) |
 | D-70–D-71 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor efter Health Connect-spiken i TASK-007 |
 | — | 2026-10-18 | RST-05 ändrat: ingen synk i bakgrunden, hälsodata läses vid öppning | D-70 |
 | — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
