@@ -10,6 +10,9 @@ namespace Eirora.Client.Look
     /// </summary>
     public sealed class Atmosphere
     {
+        /// <summary>Where the sun stands at dawn, by day and at dusk, and the moon at night, with the camera looking north.</summary>
+        public const float East = 110f, South = 170f, West = 250f, Moon = 200f;
+
         private static readonly int s_skyLight = Shader.PropertyToID("_EiroraSkyLight");
         private static readonly int s_groundLight = Shader.PropertyToID("_EiroraGroundLight");
         private static readonly int s_glow = Shader.PropertyToID("_EiroraGlow");
@@ -57,18 +60,7 @@ namespace Eirora.Client.Look
         public void Apply(LightMood mood, float azimuth, Camera camera)
         {
             Mood = mood;
-
-            // The diorama is lit from at least 30° so flat hex tops keep their colour at dawn and dusk, while the low
-            // mood still shows in the sky, the light's colour and a stronger fill from the sky (art-direction.md).
-            float lowSun = 1f - Mathf.InverseLerp(12f, 55f, Mood.Elevation);
-            _sun.transform.rotation = Quaternion.Euler(Mathf.Max(Mood.Elevation, 30f), azimuth, 0f);
-            _sun.color = Mood.Sun;
-            _sun.intensity = Mathf.Lerp(Mathf.Lerp(1.15f, 1.3f, lowSun), 0.32f, Mood.Darkness);
-
-            float fill = Mathf.Lerp(0.55f, 0.8f, lowSun * (1f - Mood.Darkness));
-            Shader.SetGlobalVector(s_skyLight, (Vector4)(Mood.SkyLight.linear * Mathf.Lerp(fill, 0.42f, Mood.Darkness)));
-            Shader.SetGlobalVector(s_groundLight, (Vector4)(Color.Lerp(Palette.Grass, Mood.SkyLight, 0.6f).linear * 0.28f));
-            Shader.SetGlobalFloat(s_glow, Mathf.Lerp(0f, 1.6f, Mathf.Clamp01((Mood.Darkness - 0.15f) / 0.85f)));
+            Light(_sun, mood, azimuth);
             _nightGlow.SetFloat(s_glow, Mood.Darkness * 0.85f);
 
             RenderSettings.fogColor = Mood.Horizon;
@@ -78,13 +70,29 @@ namespace Eirora.Client.Look
             _aurora.enabled = Mood.Darkness > 0.05f;
         }
 
+        /// <summary>Lights the island in a mood: the sun or moon, the fill from the sky and the glow of windows.</summary>
+        /// <remarks>Also lights the look gallery in the editor, so looks are judged in the game's own light.</remarks>
+        public static void Light(Light sun, LightMood mood, float azimuth)
+        {
+            // The diorama is lit from at least 30° so flat hex tops keep their colour at dawn and dusk, while the low
+            // mood still shows in the sky, the light's colour and a stronger fill from the sky (art-direction.md).
+            float lowSun = 1f - Mathf.InverseLerp(12f, 55f, mood.Elevation);
+            sun.transform.rotation = Quaternion.Euler(Mathf.Max(mood.Elevation, 30f), azimuth, 0f);
+            sun.color = mood.Sun;
+            sun.intensity = Mathf.Lerp(Mathf.Lerp(1.15f, 1.3f, lowSun), 0.32f, mood.Darkness);
+
+            float fill = Mathf.Lerp(0.55f, 0.8f, lowSun * (1f - mood.Darkness));
+            Shader.SetGlobalVector(s_skyLight, (Vector4)(mood.SkyLight.linear * Mathf.Lerp(fill, 0.42f, mood.Darkness)));
+            Shader.SetGlobalVector(s_groundLight, (Vector4)(Color.Lerp(Palette.Grass, mood.SkyLight, 0.6f).linear * 0.28f));
+            Shader.SetGlobalFloat(s_glow, Mathf.Lerp(0f, 1.6f, Mathf.Clamp01((mood.Darkness - 0.15f) / 0.85f)));
+        }
+
         /// <summary>
         /// The mood for the world's current moment of its game day, and the sun's compass direction: east at dawn,
         /// south by day and west at dusk, with the camera looking north.
         /// </summary>
         public static (LightMood Mood, float Azimuth) MoodOf(World world)
         {
-            const float East = 110f, South = 170f, West = 250f, Moon = 200f;
             if (world.Phase == Phase.Resting)
             {
                 return (LightMood.Night, Moon);

@@ -43,6 +43,20 @@ dotnet format Eirora.slnx --verify-no-changes
 Varningar är fel, och `dotnet restore` underkänner paket med kända sårbarheter (NuGetAudit).
 Byggutdata hamnar i `artifacts/`.
 
+Prestandan i simuleringen mäts med BenchmarkDotNet i `benchmarks/`.
+CI bygger mätningarna men kör dem inte, eftersom tider på delade maskiner varierar för mycket för att underkänna ett bygge.
+Kör dem i Release när koden de mäter ändras:
+
+```bash
+dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --filter '*'
+```
+
+| Mätning | Budget på en utvecklardator | Senast uppmätt |
+|---|---|---|
+| Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
+
+Budgetarna på telefonen sätts i TASK-024.
+
 Unity-testerna (EditMode) körs headless:
 
 ```bash
@@ -78,9 +92,28 @@ Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka o
 client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
 ```
 
+Byggnader och natur ritas från Look-assets i `client/Assets/Eirora/Resources/Looks/` ([ADR-0009](./adr/0009-looks-are-a-modular-kit-as-data.md)).
+De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas som PNG i `artifacts/looks/` (renderar, så inte med `-nographics`):
+
+```bash
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -quit -projectPath client -executeMethod Eirora.Editor.LookGallery.Export
+```
+
+Hur en designer arbetar med dem står i [looks.md](./design/looks.md).
+
 Prestanda och batteri mäts på telefonen med mätscenen (`-eirora-measure day|night`) och skriptet i `tools/device-measurements/`, enligt [mätningar på enhet](./design/device-measurements.md).
 
-Klienten sparar världen som en journal i `Application.persistentDataPath/world.journal` och spelar upp den vid start ([ADR-0005](./adr/0005-time-arrives-as-readings.md)).
+Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-0006](./adr/0006-saves-are-migrated-snapshots.md)): segmentets start-snapshot, journalen sedan dess och den senaste snapshoten, med en hash över allt, rubriken med formatversionen inräknad.
+Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`.
+Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
+En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
+En journalfil från prototypen i M1 (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
+
+### Migrationer och gyllene sparningar
+
+När `RulesVersion` höjs läggs en `StateMigration` från den förra versionen till i `Migrations.All`; den gör om tillståndstexten till nästa versions, och ett test underkänner en kedja med luckor.
+Gyllene sparningar ligger i `tests/Eirora.Simulation.Tests/Saving/Golden/`, en per regel- och formatversion, med det fingeravtryck som laddning med aktuell kod ska ge.
+Saknas den aktuella versionens gyllene sparning skapar testerna den och underkänner körningen, så att den granskas och checkas in; förväntade fingeravtryck ändras bara när regler eller migrationer ändras.
 
 ## Servern
 
@@ -252,8 +285,8 @@ Utan dem signeras ett lokalt bygge med datorns debugnyckel och kan inte installe
 
 Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
 Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
-Klienten sparar journalen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
-En journal från en annan regelversion laddas inte och skrivs aldrig över; appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
+Klienten sparar världen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
+En sparning från äldre regler migreras; en från en nyare version laddas inte och skrivs aldrig över, och appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
 
 ### Google Play
 
@@ -285,7 +318,7 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
 7. Avinstallera den sidladdade prototypen från telefonen en gång och installera Eirora från Play Store (D-77).
    Byggena hittills har andra signaturer än appen från Google Play, så Android vägrar installera den ena över den andra, och världen från de tidigare byggena försvinner med avinstallationen.
 
-Android säkerhetskopierar appens data, journalen med, till spelarens eget Google-konto som vilken app som helst, så världen kan följa med till en ny telefon (D-78).
+Android säkerhetskopierar appens data, sparningen med, till spelarens eget Google-konto som vilken app som helst, så världen kan följa med till en ny telefon (D-78).
 
 | Fel | Orsak |
 |---|---|

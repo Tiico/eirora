@@ -1,3 +1,5 @@
+using Eirora.Simulation.Map;
+
 namespace Eirora.Simulation.Economy
 {
     /// <summary>A place where one building can stand, with its axial hex coordinates and what grows or lies there.</summary>
@@ -35,13 +37,10 @@ namespace Eirora.Simulation.Economy
         /// <summary>How rich the site is: 150 for rich fishing water, 200 for a stone vein.</summary>
         public int RichnessPercent { get; }
 
-        /// <summary>Hex distance in axial coordinates.</summary>
-        public int DistanceTo(Site other)
-        {
-            int dq = Q - other.Q, dr = R - other.R, ds = dq + dr;
-            return (Abs(dq) + Abs(dr) + Abs(ds)) / 2;
-        }
+        /// <summary>The hex the site lies on.</summary>
+        public Hex Hex => new(Q, R);
 
-        private static int Abs(int value) => value < 0 ? -value : value;
+        /// <summary>The number of hex steps to another site.</summary>
+        public int DistanceTo(Site other) => Hex.DistanceTo(other.Hex);
     }
 }

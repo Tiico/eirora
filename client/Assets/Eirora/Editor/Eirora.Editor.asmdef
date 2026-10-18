@@ -3,6 +3,7 @@
   "rootNamespace": "Eirora.Editor",
   "references": [
     "Eirora.Client",
+    "Eirora.Simulation",
     "Unity.RenderPipelines.Core.Runtime",
     "Unity.RenderPipelines.Universal.Runtime"
   ],

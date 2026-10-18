@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using System;
 using System.Linq;
 using Eirora.Client.Look;
@@ -80,7 +81,41 @@ namespace Eirora.Client.Tests
             foreach (var site in PrototypeIsland.Sites)
             {
                 var hex = IslandMap.HexOf(site);
-                Assert.That(Hex.FromWorld(hex.Center), Is.EqualTo(hex), site.Id);
+                Assert.That(HexLayout.FromWorld(hex.Center()), Is.EqualTo(hex), site.Id);
+            }
+        }
+
+        [Test]
+        public void RedrawingTheIslandReusesItsMeshes()
+        {
+            var world = World.Create(At("2026-10-14 14:00"), s_night);
+            var parent = new GameObject("Island");
+            var flat = new Material(Shader.Find("Eirora/Flat"));
+            var glow = new Material(Shader.Find("Eirora/Glow"));
+            var island = new IslandView(parent.transform, flat, glow, Looks.Load());
+            try
+            {
+                var selected = IslandMap.HexOf(PrototypeIsland.Sites.First());
+                island.Refresh(world);
+                island.Select(selected);
+                int meshes = Resources.FindObjectsOfTypeAll<Mesh>().Length;
+
+                for (int i = 0; i < 5; i++)
+                {
+                    island.Refresh(world);
+                    island.Select(i % 2 == 0 ? null : selected);
+                }
+
+                Assert.That(Resources.FindObjectsOfTypeAll<Mesh>().Length, Is.EqualTo(meshes));
+                var settlement = parent.GetComponentsInChildren<MeshFilter>().Single(f => f.name == "Settlement");
+                Assert.That(settlement.sharedMesh.vertexCount, Is.Positive, "The reused mesh still holds the settlement.");
+            }
+            finally
+            {
+                island.Dispose();
+                UnityEngine.Object.DestroyImmediate(parent);
+                UnityEngine.Object.DestroyImmediate(flat);
+                UnityEngine.Object.DestroyImmediate(glow);
             }
         }
 
