@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.SelfCare;
+using Eirora.Simulation.Serialization;
 using Eirora.Simulation.Time;
 
 namespace Eirora.Simulation
@@ -16,21 +16,21 @@ namespace Eirora.Simulation
     /// </summary>
     public sealed class World
     {
-        private readonly ForceBalances _forces = ForceBalances.GuidedTourStart();
-        private readonly SelfCareLedger _selfCare = new();
-        private readonly Settlement _settlement = new();
+        private readonly ForceBalances _forces;
+        private readonly SelfCareLedger _selfCare;
+        private readonly Settlement _settlement;
         private readonly Dictionary<string, CommandResult> _results = new(StringComparer.Ordinal);
 
         // Self-care changes waiting for dawn (INV-T9): reconciled when the world is next active.
         private readonly SortedSet<(int Day, Habit Habit)> _unreconciled = new();
         private List<GameEvent> _events = new();
 
-        private World(TimeReading install, RestSchedule restSchedule)
+        private World(DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
         {
-            Cycle = DayCycle.Create(install, restSchedule);
-
-            // The guided tour's Dawn Power stands in for the first game day's baseline (D-45).
-            _selfCare.MarkCredited(0, Habit.Sleep, ForceRules.DawnPowerBaseline);
+            Cycle = cycle;
+            _forces = forces;
+            _selfCare = selfCare;
+            _settlement = settlement;
         }
 
         public Phase Phase => Cycle.Phase;
@@ -73,7 +73,11 @@ namespace Eirora.Simulation
                 throw new ArgumentException("The rest schedule must be 6–10 hours and start within the day.", nameof(restSchedule));
             }
 
-            return new World(install, restSchedule);
+            var world = new World(DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found());
+
+            // The guided tour's Dawn Power stands in for the first game day's baseline (D-45).
+            world._selfCare.MarkCredited(0, Habit.Sleep, ForceRules.DawnPowerBaseline);
+            return world;
         }
 
         /// <summary>The whole forces available to direct.</summary>
@@ -163,29 +167,73 @@ namespace Eirora.Simulation
             return _events;
         }
 
-        /// <summary>A canonical text form of the whole state; equal worlds have equal fingerprints (INV-D1).</summary>
+        /// <summary>
+        /// The whole state in its canonical text form; equal worlds have equal fingerprints (INV-D1). It is also the
+        /// state a <see cref="SimulationSnapshot"/> holds.
+        /// </summary>
         public string Fingerprint()
         {
-            var text = new StringBuilder();
-            Cycle.AppendFingerprint(text);
-            _forces.AppendFingerprint(text);
-            _settlement.AppendFingerprint(text);
-            _selfCare.AppendFingerprint(text);
-            text.Append("unreconciled:");
+            var writer = new StateWriter();
+            Write(writer);
+            return writer.ToString();
+        }
+
+        /// <summary>Reads a world written by <see cref="Write"/>.</summary>
+        internal static World Read(StateReader reader)
+        {
+            // In the order Write writes them.
+            var cycle = DayCycle.Read(reader);
+            var forces = ForceBalances.Read(reader);
+            var settlement = Settlement.Read(reader);
+            var selfCare = SelfCareLedger.Read(reader);
+            var world = new World(cycle, forces, selfCare, settlement);
+            while (reader.Next("unreconciled"))
+            {
+                world._unreconciled.Add((reader.Int(), reader.Enum<Habit>()));
+            }
+
+            while (reader.Next("command"))
+            {
+                string key = reader.Text();
+                int count = reader.Int();
+                var events = new List<GameEvent>(count >= 0 ? count : throw new FormatException("An event count is never negative."));
+                for (int i = 0; i < count; i++)
+                {
+                    events.Add(GameEventCodec.Read(reader));
+                }
+
+                world._results.Add(key, new CommandResult(Rejection.None, events));
+            }
+
+            return world;
+        }
+
+        /// <summary>
+        /// Writes the whole state: everything that can change what the world does next, and nothing derived (ADR-0006).
+        /// Used keys keep their outcomes, so a command sent again after loading gets its first result (INV-D6).
+        /// </summary>
+        private void Write(StateWriter writer)
+        {
+            Cycle.Write(writer);
+            _forces.Write(writer);
+            _settlement.Write(writer);
+            _selfCare.Write(writer);
             foreach (var (day, habit) in _unreconciled)
             {
-                text.Append(day).Append('/').Append((int)habit).Append(',');
+                writer.Line("unreconciled").Long(day).Enum(habit);
             }
 
-            text.Append(";commands:");
             var keys = new List<string>(_results.Keys);
             keys.Sort(StringComparer.Ordinal);
-            foreach (var key in keys)
+            foreach (string key in keys)
             {
-                text.Append(key).Append(',');
+                var result = _results[key];
+                writer.Line("command").Text(key).Long(result.Events.Count);
+                foreach (var gameEvent in result.Events)
+                {
+                    GameEventCodec.Write(writer, gameEvent);
+                }
             }
-
-            return text.ToString();
         }
 
         /// <summary>Adds an event to the result of the command or time step being processed.</summary>

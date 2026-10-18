@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.Time
 {
@@ -135,29 +135,67 @@ namespace Eirora.Simulation.Time
             return index >= 0 && index < _dayStarts.Count ? _dayStarts[index] : (long?)null;
         }
 
-        public void AppendFingerprint(StringBuilder text)
+        public void Write(StateWriter writer)
         {
-            text.Append("cycle:").Append(Now.UtcSeconds).Append(',').Append(Now.ZoneId).Append(',').Append(Now.OffsetSeconds)
-                .Append(',').Append((int)Phase).Append(',').Append(GameDay)
-                .Append(',').Append(_schedule.StartMinuteOfDay).Append(',').Append(_schedule.DurationMinutes);
+            writer.Line("cycle").Long(Now.UtcSeconds).Text(Now.ZoneId).Long(Now.OffsetSeconds).Enum(Phase).Long(GameDay)
+                .Long(_schedule.StartMinuteOfDay).Long(_schedule.DurationMinutes);
+            writer.Line("created").Long(CreatedUtc);
+            for (int i = 0; i < _dayStarts.Count; i++)
+            {
+                writer.Line("day-start").Long(_firstStoredDay + i).Long(_dayStarts[i]);
+            }
+
             if (_pendingSchedule is RestSchedule pending)
             {
-                text.Append(",pending:").Append(pending.StartMinuteOfDay).Append(',').Append(pending.DurationMinutes)
-                    .Append(',').Append(_pendingEffectiveUtc);
+                writer.Line("pending-schedule").Long(pending.StartMinuteOfDay).Long(pending.DurationMinutes).Long(_pendingEffectiveUtc);
             }
 
+            // The rest period's end is only kept while resting; the next dusk sets it anew.
             if (Phase == Phase.Resting)
             {
-                text.Append(",rest:").Append(_restEndLocal).Append(',').Append(_restZoneId).Append(',').Append(_restLastOffset);
+                writer.Line("rest").Long(_restEndLocal).Text(_restZoneId).Long(_restLastOffset);
             }
+        }
 
-            text.Append(",created:").Append(CreatedUtc).Append(",days:").Append(_firstStoredDay);
-            foreach (long start in _dayStarts)
+        public static DayCycle Read(StateReader reader)
+        {
+            reader.Expect("cycle");
+            var now = new TimeReading(reader.Long(), reader.Text(), reader.Int());
+            var phase = reader.Enum<Phase>();
+            int gameDay = reader.Int();
+            var cycle = new DayCycle(now, ValidSchedule(reader.Int(), reader.Int())) { Phase = phase, GameDay = gameDay };
+            reader.Expect("created");
+            cycle.CreatedUtc = reader.Long();
+            while (reader.Next("day-start"))
             {
-                text.Append('/').Append(start);
+                int day = reader.Int();
+                if (cycle._dayStarts.Count == 0)
+                {
+                    cycle._firstStoredDay = day;
+                }
+                else if (day != cycle._firstStoredDay + cycle._dayStarts.Count)
+                {
+                    throw new FormatException("Game day starts follow each other day by day.");
+                }
+
+                cycle._dayStarts.Add(reader.Long());
             }
 
-            text.Append(';');
+            if (reader.Next("pending-schedule"))
+            {
+                cycle._pendingSchedule = ValidSchedule(reader.Int(), reader.Int());
+                cycle._pendingEffectiveUtc = reader.Long();
+            }
+
+            if (phase == Phase.Resting)
+            {
+                reader.Expect("rest");
+                cycle._restEndLocal = reader.Long();
+                cycle._restZoneId = reader.Text();
+                cycle._restLastOffset = reader.Int();
+            }
+
+            return cycle;
         }
 
         private void RememberDayStart(long utcSeconds)
@@ -227,6 +265,12 @@ namespace Eirora.Simulation.Time
             long midnight = FloorDiv(local, SecondsPerDay) * SecondsPerDay;
             long start = midnight + (schedule.StartMinuteOfDay * 60L);
             return start > local ? start - SecondsPerDay : start;
+        }
+
+        private static RestSchedule ValidSchedule(int startMinuteOfDay, int durationMinutes)
+        {
+            var schedule = new RestSchedule(startMinuteOfDay, durationMinutes);
+            return schedule.IsValid ? schedule : throw new FormatException("The rest schedule must be 6–10 hours and start within the day.");
         }
 
         private static long FloorDiv(long value, long divisor)
