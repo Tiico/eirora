@@ -48,7 +48,8 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Every push proves the image builds and deploys as deploy/README.md says; only main publishes it, tagged with the commit.
+      # Every push proves the image builds and deploys as deploy/README.md says; only main publishes that same image, tagged
+      # with the commit.
       - name: Build the image
         run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerImageTags=ci
 
@@ -61,4 +62,6 @@ jobs:
 
       - name: Publish the image
         if: github.ref == 'refs/heads/main'
-        run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerRegistry=ghcr.io -p:ContainerImageTags=${{ github.sha }}
+        run: |
+          docker tag tiico/eirora-server:ci ghcr.io/tiico/eirora-server:${{ github.sha }}
+          docker push ghcr.io/tiico/eirora-server:${{ github.sha }}

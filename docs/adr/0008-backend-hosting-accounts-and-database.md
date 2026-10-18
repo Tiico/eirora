@@ -88,8 +88,11 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
 | Lokal utveckling | PostgreSQL i compose på utvecklarens dator | `dotnet user-secrets`; testklienter hos Apple och Google |
 | Test och CI | PostgreSQL 18 i Testcontainers per testkörning | Inga riktiga; tester signerar Apple- och Google-liknande ID-token med egna testnycklar |
 | Staging | Eget compose-projekt på hemmaservern, egen databas | Egna signeringsnycklar och klient-id; aldrig riktiga spelares data |
-| Produktion | Hemmaservern, sedan Azure | Hemma: Docker Compose-secrets som filer som bara root läser; i Azure: Key Vault via managed identity |
+| Produktion | Hemmaservern, sedan Azure | Hemma: Docker Compose-secrets som filer som bara root och den container som läser dem kommer åt; i Azure: Key Vault via managed identity |
 
+- Hemma ägs varje hemlighet av den användare som läser den, med läsrätt bara för ägaren, i en katalog som bara den som driftsätter och root kommer in i.
+  Servern körs som avbildningens icke-root-användare (UID 1654), och Compose utanför Swarm monterar filerna med värdens ägare och rättigheter; PostgreSQL:s lösenord läses som root och ägs av root.
+  _Ändrat 2026-10-18 (#74): beslutet sade först att bara root läser filerna, vilket en server som inte körs som root inte kan starta med._
 - Hemligheterna är OpenIddicts signerings- och krypteringsnycklar, Apples privata nyckel för Sign in with Apple, Googles klient-id, databasens lösenord och pgBackRest-förrådets krypteringsnyckel.
 - Förrådets krypteringsnyckel förvaras också offline i produktägarens lösenordshanterare.
   Utan den är alla backuper oläsbara; utan OpenIddicts nycklar loggas bara alla ut.

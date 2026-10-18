@@ -6,6 +6,7 @@ using Eirora.Simulation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using OpenIddict.Validation.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -23,7 +24,13 @@ builder.Services.AddHealthChecks();
 
 builder.Services.AddDbContext<EiroraDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Eirora"));
+    // Password authentication only: GSS would need Kerberos libraries the chiseled image does not have, and Npgsql would
+    // otherwise try GSS encryption first on every connection.
+    var connectionString = new NpgsqlConnectionStringBuilder(builder.Configuration.GetConnectionString("Eirora"))
+    {
+        GssEncryptionMode = GssEncryptionMode.Disable,
+    };
+    options.UseNpgsql(connectionString.ConnectionString);
     options.UseOpenIddict<Guid>();
 });
 
@@ -91,7 +98,8 @@ app.MapAccountEndpoints();
 
 await app.RunAsync();
 
-// Production signs and encrypts tokens with keys from secrets; elsewhere throwaway keys, so tokens end with the process.
+// The server in production signs and encrypts tokens with keys from secrets; migrate, which issues no tokens, and other
+// environments get throwaway keys, so tokens end with the process.
 static void AddTokenKeys(OpenIddictServerBuilder options, IConfiguration configuration, bool requireKeys)
 {
     var signingKey = configuration["SignIn:TokenSigningKey"];

@@ -17,19 +17,26 @@ docker login ghcr.io --username Tiico
 ## Första gången
 
 1. Kopiera `deploy/` till servern, till exempel `/srv/eirora/`, och skapa `.env` från [.env.example](./.env.example).
-2. Lägg Sign in with Apple-nyckeln från Apple Developer (Certificates, Identifiers & Profiles → Keys) som `secrets/apple_private_key.p8` och dess Key ID i `.env` (katalogen `secrets/` ignoreras av git).
-3. Skapa de övriga hemligheterna och ge dem till containrarna som läser dem:
+2. Skapa katalogen för hemligheterna, stängd för alla utom dig, innan något läggs i den (`secrets/` ignoreras av git):
+
+```bash
+install -d -m 700 secrets
+```
+
+3. Lägg Sign in with Apple-nyckeln från Apple Developer (Certificates, Identifiers & Profiles → Keys) som `secrets/apple_private_key.p8` och dess Key ID i `.env`.
+4. Skapa de övriga hemligheterna och ge dem till containrarna som läser dem:
 
 ```bash
 sudo ./create-secrets.sh
 ```
 
-Compose monterar filhemligheter som de är på värden; `uid`, `gid` och `mode` i `compose.yaml` gäller bara i Swarm.
+Utanför Swarm monterar Compose filhemligheter med samma ägare och rättigheter som filen har på värden, och de går inte att sätta i `compose.yaml`.
 Servern och `migrate` körs som avbildningens icke-root-användare `app` (UID 1654), så skriptet låter den äga sina filer med läsrätt bara för ägaren; lösenordet till PostgreSQL läses som root och ägs av root.
+En användare på värden med UID 1654 kan därför läsa de filerna om den kommer in i `secrets/`; ge ingen användare på värden det UID:t och låt katalogen vara stängd.
 Skriptet behåller hemligheter som redan finns, så det kan köras igen för att laga ägare och rättigheter.
 CI kör de här stegen och `compose.yaml` mot varje ny avbildning ([smoke-test.sh](./smoke-test.sh)).
 
-4. Starta:
+5. Starta:
 
 ```bash
 docker compose --env-file .env up -d

@@ -4,8 +4,10 @@
 # Usage: sudo ./create-secrets.sh, after placing Apple's key as secrets/apple_private_key.p8.
 set -euo pipefail
 
-# Compose mounts file secrets as they are on the host: uid, gid and mode in compose.yaml only apply in Swarm. The server
-# image (noble-chiseled) runs as the non-root user app, so the files the server and migrate read must belong to it.
+# Outside Swarm, Compose mounts file secrets with the host file's owner and mode and does not support setting uid, gid
+# or mode on them. The server image (noble-chiseled) runs as the non-root user app, so the files the server and migrate
+# read must belong to it.
+# 1654 is the UID of app in Microsoft's .NET images; ContainerFamily in src/Eirora.Server/Eirora.Server.csproj picks the image.
 readonly app_uid=1654
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -17,30 +19,38 @@ cd "$(dirname "$0")"
 mkdir -p secrets
 chmod 700 secrets
 
-if [ ! -f secrets/apple_private_key.p8 ]; then
+if [ ! -s secrets/apple_private_key.p8 ]; then
     echo "Place the Sign in with Apple key as secrets/apple_private_key.p8 first (deploy/README.md)." >&2
     exit 1
 fi
 
 # The new files are only readable by root until they are handed over below.
 umask 077
+rm -f secrets/*.new
 
-if [ ! -f secrets/postgres_password ]; then
-    openssl rand -base64 32 | tr -d '\n' > secrets/postgres_password
-fi
+# Writes the output of a command as a secret unless it already exists. The output goes to a temporary file first, so an
+# interrupted run leaves no empty secret behind that the next run would keep.
+create() {
+    local secret=secrets/$1
+    shift
+    if [ ! -s "$secret" ]; then
+        "$@" > "$secret.new"
+        mv "$secret.new" "$secret"
+    fi
+}
 
-if [ ! -f secrets/connection_string ]; then
-    # Password authentication only: GSS would need Kerberos libraries the chiseled image does not have.
-    printf 'Host=postgres;Database=eirora;Username=eirora;GSS Encryption Mode=Disable;Password=%s' "$(cat secrets/postgres_password)" > secrets/connection_string
-fi
+password() {
+    openssl rand -base64 32 | tr -d '\n'
+}
 
-if [ ! -f secrets/token_signing_key.pem ]; then
-    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out secrets/token_signing_key.pem
-fi
+connection_string() {
+    printf 'Host=postgres;Database=eirora;Username=eirora;Password=%s' "$(cat secrets/postgres_password)"
+}
 
-if [ ! -f secrets/token_encryption_key ]; then
-    openssl rand -base64 32 | tr -d '\n' > secrets/token_encryption_key
-fi
+create postgres_password password
+create connection_string connection_string
+create token_signing_key.pem openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072
+create token_encryption_key password
 
 # PostgreSQL's entrypoint reads its password as root before it drops to the postgres user, so root may keep it.
 chown root:root secrets/postgres_password
