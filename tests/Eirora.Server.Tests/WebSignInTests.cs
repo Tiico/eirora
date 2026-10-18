@@ -56,7 +56,8 @@ public sealed class WebSignInTests(ServerFixture fixture)
         var location = response.Headers.Location!.OriginalString;
         Assert.StartsWith("intent://apple?", location, StringComparison.Ordinal);
         Assert.Contains("error=user_cancelled_authorize", location, StringComparison.Ordinal);
-        Assert.Contains("state=s1#Intent;", location, StringComparison.Ordinal);
+        Assert.Contains("state=s1", location, StringComparison.Ordinal);
+        Assert.EndsWith("#Intent;scheme=eirora-signin;package=com.eirora.game;end", location, StringComparison.Ordinal);
     }
 
     [Fact]
