@@ -22,7 +22,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var refreshed = await api.RefreshAsync(tokens.Refresh);
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
 
-        var status = await api.DeleteAccountAsync(refreshed.Access, _server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
+        var status = await api.DeleteAccountAsync(refreshed.Access, _server.Providers.Again(google));
 
         Assert.Equal(HttpStatusCode.NoContent, status);
         await using var db = fixture.CreateDbContext();
@@ -40,7 +40,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var google = _server.Providers.SignIn(LoginProviders.Google);
         var tokens = await api.SignInAsync(google);
 
-        await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
+        await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(google));
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await api.GetAccountAsync(tokens.Access)).Status);
         Assert.Equal("invalid_grant", (await api.RefreshAsync(tokens.Refresh)).Error);
@@ -53,7 +53,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var google = _server.Providers.SignIn(LoginProviders.Google);
         var tokens = await api.SignInAsync(google);
         var deleted = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
-        await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
+        await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(google));
 
         var again = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google, google.Subject));
 
@@ -69,7 +69,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var someoneElse = _server.Providers.SignIn(LoginProviders.Google);
         await api.SignInAsync(someoneElse);
 
-        var status = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Google, someoneElse.Subject).ToExternalLogin());
+        var status = await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(someoneElse));
 
         Assert.Equal(HttpStatusCode.Forbidden, status);
         Assert.Equal(HttpStatusCode.OK, (await api.GetAccountAsync(tokens.Access)).Status);
@@ -82,10 +82,10 @@ public sealed class DeletionTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
         var google = _server.Providers.SignIn(LoginProviders.Google);
-        await api.LinkAsync(tokens.Access, google.ToExternalLogin());
+        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), _server.Providers.Again(apple));
 
-        var withGoogle = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
-        var withoutCode = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin());
+        var withGoogle = await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(google));
+        var withoutCode = await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(apple));
 
         Assert.Equal(HttpStatusCode.BadRequest, withGoogle);
         Assert.Equal(HttpStatusCode.BadRequest, withoutCode);
@@ -100,7 +100,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var tokens = await api.SignInAsync(apple);
         var code = "apple-code-" + Guid.NewGuid().ToString("N");
 
-        var status = await api.DeleteAccountAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin(code));
+        var status = await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(apple, code));
 
         Assert.Equal(HttpStatusCode.NoContent, status);
         var exchange = Assert.Single(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code).Form;
@@ -111,6 +111,64 @@ public sealed class DeletionTests(ServerFixture fixture)
             && r.Form["token"] == AppleStub.RefreshToken
             && r.Form["token_type_hint"] == "refresh_token"
             && r.Form["client_secret"] == exchange["client_secret"]);
+    }
+
+    [Theory]
+    [InlineData(AppleStub.UnreachablePrefix, nameof(HttpRequestException))]
+    [InlineData(AppleStub.HangingPrefix, nameof(TaskCanceledException))]
+    [InlineData(AppleStub.GarbledPrefix, nameof(System.Text.Json.JsonException))]
+    public async Task TheAccountIsDeletedEvenWhenAppleFails(string failure, string loggedError)
+    {
+        using var api = _server.CreateApi();
+        var apple = _server.Providers.SignIn(LoginProviders.Apple);
+        var tokens = await api.SignInAsync(apple);
+        var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
+        var code = failure + Guid.NewGuid().ToString("N");
+
+        var status = await api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(apple, code));
+
+        Assert.Equal(HttpStatusCode.NoContent, status);
+        await using var db = fixture.CreateDbContext();
+        Assert.False(await db.Accounts.AnyAsync(a => a.Id == accountId, TestContext.Current.CancellationToken));
+        Assert.Contains(_server.Logs, line => line.StartsWith($"Warning {typeof(AppleIdClient).FullName}:", StringComparison.Ordinal)
+            && line.Contains($"({loggedError})", StringComparison.Ordinal));
+        Assert.DoesNotContain(code, string.Join('\n', _server.Logs), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheAccountIsDeletedEvenWhenThePlayerHangsUpWhileAppleIsCalled()
+    {
+        using var api = _server.CreateApi();
+        var apple = _server.Providers.SignIn(LoginProviders.Apple);
+        var tokens = await api.SignInAsync(apple);
+        var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
+        var code = AppleStub.HangingPrefix + Guid.NewGuid().ToString("N");
+        using var hangUp = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
+        var deletion = api.DeleteAccountAsync(tokens.Access, _server.Providers.Again(apple, code), hangUp.Token);
+        await _server.Apple.Reached(code).WaitAsync(TestContext.Current.CancellationToken);
+        await hangUp.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => deletion);
+        Assert.True(await IsDeletedWithinAsync(accountId, TimeSpan.FromSeconds(10)), "The confirmation is spent, so the deletion must finish.");
+    }
+
+    /// <summary>Whether the account is gone in time; a deletion the player hung up on finishes after the request.</summary>
+    private async Task<bool> IsDeletedWithinAsync(Guid accountId, TimeSpan within)
+    {
+        var deadline = DateTime.UtcNow + within;
+        await using var db = fixture.CreateDbContext();
+        while (await db.Accounts.AnyAsync(a => a.Id == accountId, TestContext.Current.CancellationToken))
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                return false;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+        }
+
+        return true;
     }
 
     private async Task AssertAppleClientSecretAsync(string clientSecret)
