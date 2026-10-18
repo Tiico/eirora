@@ -348,7 +348,7 @@ Följande skiljer sig ändå mellan text och kalkyl; ingen av punkterna blockera
    I kalkylen växer säd och ull med en fast takt, och faktorerna skalar bara skördetaket, som aldrig nås.
    C#-simuleringen gör likadant (`Settlement.cs`, `Min(b.Ripe, Scale(...))`).
    Kalkylen motsäger också sig själv, eftersom `daily_output()` multiplicerar åker och fårgård med faktorn.
-   Det är en designfråga om avstånd ska kosta något för åkrar, och den hör till balanseringen under O-01.
+   Det är en designfråga om avstånd ska kosta något för åkrar, och den avgörs i [TASK-038](https://github.com/Tiico/eirora/issues/88).
 2. **Steg och pass krediteras vid gryningen i kalkylen,** men under dygnet när datan kommer in enligt forces.md.
    Det ändrar inget utfall för dygnet i avsnitt 1.
 3. **Krafternas saldon är decimaltal i kalkylen,** medan INV-F1 kräver heltal eller fast decimal.
