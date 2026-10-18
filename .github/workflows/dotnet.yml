@@ -48,10 +48,12 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Every push proves the image builds; only main publishes it, tagged with the commit (deploy/README.md).
+      # Every push proves the image builds and deploys as deploy/README.md says; only main publishes it, tagged with the commit.
       - name: Build the image
-        if: github.ref != 'refs/heads/main'
-        run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerArchiveOutputPath=artifacts/eirora-server.tar.gz
+        run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerImageTags=ci
+
+      - name: Smoke-test the deployment
+        run: deploy/smoke-test.sh tiico/eirora-server:ci
 
       - name: Log in to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
