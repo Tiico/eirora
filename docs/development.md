@@ -48,6 +48,31 @@ Unity-testerna (EditMode) körs headless:
 "C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -projectPath client -runTests -testPlatform EditMode -testResults artifacts/unity-editmode.xml
 ```
 
+Projektinställningarna (URP, linjär färgrymd, stående läge, Input System) sätts i kod och kan appliceras igen:
+
+```bash
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -executeMethod Eirora.Editor.ProjectSetup.Apply
+```
+
+En APK till en Android-telefon byggs lokalt med:
+
+```bash
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android
+```
+
+Gränssnittet och dygnsljuset granskas utan telefon med skärmbildsturen.
+Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka och sparar bilder av de viktigaste vyerna:
+
+```bash
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Win64 -executeMethod Eirora.Editor.Builds.Windows
+```
+
+```bash
+client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
+```
+
+Klienten sparar världen som en journal i `Application.persistentDataPath/world.journal` och spelar upp den vid start ([ADR-0005](./adr/0005-time-arrives-as-readings.md)).
+
 Servern startas lokalt med:
 
 ```bash
