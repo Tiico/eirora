@@ -51,9 +51,10 @@ namespace Eirora.Client
             var flat = new Material(Shader.Find("Eirora/Flat"));
             var glow = new Material(Shader.Find("Eirora/Glow"));
             var sky = new Material(Shader.Find("Eirora/Sky"));
-            _island = new IslandView(new GameObject("Island").transform, flat, glow);
+            _island = new IslandView(new GameObject("Island").transform, flat, glow, Looks.Load());
+            StagedLook.Edited += LooksEdited;
             _atmosphere = new Atmosphere(_camera, sun, sky, glow);
-            _atmosphere.Apply(LightMood.Dawn, 110f, _camera);
+            _atmosphere.Apply(LightMood.Dawn, Atmosphere.East, _camera);
 
             var document = gameObject.AddComponent<UIDocument>();
             document.panelSettings = PanelSettings();
@@ -67,6 +68,12 @@ namespace Eirora.Client
             if (screenshots is not null)
             {
                 StartCoroutine(ScreenshotTour.Run(this, screenshots));
+                return;
+            }
+
+            string? measure = Argument("-eirora-measure");
+            if (measure is not null && MeasurementScene.TryBegin(this, measure))
+            {
                 return;
             }
 
@@ -147,9 +154,9 @@ namespace Eirora.Client
             {
                 Refresh();
             }
-            else if (_session.LoadProblem is not null)
+            else if (_session.LoadProblem is { } problem)
             {
-                _hud.ShowUnreadableSave(() =>
+                _hud.ShowUnreadableSave(problem, () =>
                 {
                     _session.SetAsideSave();
                     _hud.ShowSetup(schedule => _session.Begin(schedule));
@@ -215,6 +222,17 @@ namespace Eirora.Client
         }
 
         private void OnApplicationQuit() => _session?.Save();
+
+        private void OnDestroy() => StagedLook.Edited -= LooksEdited;
+
+        /// <summary>A designer changed a look while playing in the editor: show it at once.</summary>
+        private void LooksEdited()
+        {
+            if (_session?.World is not null)
+            {
+                Refresh();
+            }
+        }
 
         private static PanelSettings PanelSettings()
         {

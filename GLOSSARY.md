@@ -21,6 +21,27 @@ _Avoid_: delad värld, server, lobby
 En förbindelse över havet mellan två hamnar, inom en värld eller mellan två världar i en arkipelag.
 _Avoid_: handelsrutt (när förbindelsen i sig avses)
 
+**Karta** (`WorldMap`):
+En världs oföränderliga hexskiva med brickor och öar, skapad en gång när världen skapas och sparad hel ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)).
+Det som förändras på kartan under spelet, som dimma, skog och byggnader, är världens tillstånd.
+_Avoid_: värld (när bara kartan avses), seed
+
+**Bricka** (`HexTile`):
+En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landbricka är en möjlig byggplats (D-79).
+_Avoid_: ruta, cell, plats
+
+**Generator** (`WorldGenerator`):
+Det som skapar en karta, av en källtyp och med en fast generatorversion.
+En låst generatorversion ändras aldrig, och en ny version används bara för nya världar.
+_Avoid_: kartskript
+
+**Seed**:
+Talet som en procedurgenererad karta skapas från; tillsammans med generatorversionen ger det alltid samma karta.
+_Avoid_: frö
+
+**Källtyp** (`sourceType`):
+Var en karta kommer ifrån: procedurgenererad, handgjord eller geografisk.
+
 **Dimma** (`Fog`):
 Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
 _Avoid_: fog of war, mörker
@@ -197,7 +218,11 @@ _Avoid_: kontrollsumma, hash (som snapshoten anger för fingeravtrycket)
 En världs lagrade form på enheten eller i molnet: den senaste snapshoten och journalen.
 _Avoid_: sparfil, backup
 
-**Migration** (`Migration`):
+**Segment**:
+En snapshot och journalen efter den under samma regelversion; sparningen har det pågående segmentet och, fram till nästa regelbyte, det föregående.
+_Avoid_: kapitel, del
+
+**Migration** (`StateMigration`):
 Omvandlingen av en snapshot från en regelversion till nästa när appen uppdateras; den ändrar aldrig det som redan hänt.
 _Avoid_: konvertering, uppgradering (när omvandlingen avses)
 

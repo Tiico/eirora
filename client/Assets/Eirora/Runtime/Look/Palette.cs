@@ -38,6 +38,34 @@ namespace Eirora.Client.Look
         public static readonly Color Panel = Hex(0xFBF7EF);
         public static readonly Color Text = Hex(0x2B2A33);
 
+        /// <summary>Marks a building or nature kind that has no look yet, so it cannot be missed.</summary>
+        public static readonly Color Missing = Hex(0xFF00FF);
+
+        public static Color Of(Swatch swatch) => swatch switch
+        {
+            Swatch.DeepSea => DeepSea,
+            Swatch.ShallowSea => ShallowSea,
+            Swatch.Sand => Sand,
+            Swatch.Grass => Grass,
+            Swatch.Forest => Forest,
+            Swatch.Mountain => Mountain,
+            Swatch.Snow => Snow,
+            Swatch.Fog => Fog,
+            Swatch.FaluRed => FaluRed,
+            Swatch.Birch => Birch,
+            Swatch.Farmland => Farmland,
+            Swatch.Pasture => Pasture,
+            Swatch.Wood => Wood,
+            Swatch.Stone => Stone,
+            Swatch.Wool => Wool,
+            Swatch.RuneGlow => RuneGlow,
+            Swatch.Window => Window,
+            Swatch.Exploration => Exploration,
+            Swatch.DawnPower => DawnPower,
+            Swatch.White => Color.white,
+            _ => Color.black,
+        };
+
         public static Color Hex(int rgb) =>
             new(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
     }

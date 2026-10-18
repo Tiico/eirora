@@ -5,6 +5,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Serialization;
 using Eirora.Simulation.Time;
@@ -132,22 +133,26 @@ public sealed class SimulationSnapshotTests
 
         var newer = text.Replace($"eirora-snapshot {SimulationSnapshot.FormatVersion}\n", $"eirora-snapshot {SimulationSnapshot.FormatVersion + 1}\n", StringComparison.Ordinal);
 
-        Assert.Throws<FormatException>(() => SimulationSnapshot.FromBytes(Encoding.UTF8.GetBytes(newer)));
+        Assert.Throws<SavedByNewerVersionException>(() => SimulationSnapshot.FromBytes(Encoding.UTF8.GetBytes(newer)));
     }
 
     [Theory]
-    [InlineData("rules", 1)] // Needs a migration (TASK-020).
-    [InlineData("rules", -1)] // Older rules need a migration too.
-    [InlineData("content", 1)] // Content this build does not have.
-    public void AnotherRulesVersionOrNewerContentIsReadButNotRestored(string line, int change)
+    [InlineData("rules", 1)]
+    [InlineData("content", 1)]
+    public void NewerRulesOrContentAreReadButNotRestored(string line, int change)
     {
-        var text = Encoding.UTF8.GetString(SimulationSnapshot.Take(World.Create(At("2026-10-14 14:00", 2), Night)).ToBytes());
-        int current = line == "rules" ? RulesVersion.Current : ContentVersion.Current;
+        var snapshot = WithHeaderLine(line, change);
 
-        var other = text.Replace($"\n{line} {current}\n", $"\n{line} {current + change}\n", StringComparison.Ordinal);
-        var snapshot = SimulationSnapshot.FromBytes(Encoding.UTF8.GetBytes(other));
+        Assert.True(snapshot.IsFromNewerVersion);
+        Assert.Throws<SavedByNewerVersionException>(snapshot.Restore);
+    }
 
-        Assert.Equal(current + change, line == "rules" ? snapshot.Rules : snapshot.Content);
+    [Fact]
+    public void OlderRulesWithoutAMigrationAreNotRestored()
+    {
+        var snapshot = WithHeaderLine("rules", -1);
+
+        Assert.Equal(RulesVersion.Current - 1, snapshot.Rules);
         Assert.Throws<FormatException>(snapshot.Restore);
     }
 
@@ -162,6 +167,14 @@ public sealed class SimulationSnapshotTests
     [Fact]
     public void BytesThatAreNotUtf8AreRejected() =>
         Assert.Throws<FormatException>(() => SimulationSnapshot.FromBytes([0x65, 0xFF, 0xFE, 0x0A]));
+
+    private static SimulationSnapshot WithHeaderLine(string line, int change)
+    {
+        var text = Encoding.UTF8.GetString(SimulationSnapshot.Take(World.Create(At("2026-10-14 14:00", 2), Night)).ToBytes());
+        int current = line == "rules" ? RulesVersion.Current : ContentVersion.Current;
+        string changed = text.Replace($"\n{line} {current}\n", $"\n{line} {current + change}\n", StringComparison.Ordinal);
+        return SimulationSnapshot.FromBytes(Encoding.UTF8.GetBytes(changed));
+    }
 
     private static World RoundTrip(World world) => SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore();
 

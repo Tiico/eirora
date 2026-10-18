@@ -2,7 +2,7 @@
 
 > **Dokumentstatus:** Utkast v0.3 — reviderat efter produktgrillning och namnbeslut  
 > **Datum:** 2026-10-17  
-> **Produktnamn:** Eirora (tekniskt projektnamn `eirora`; varumärkes- och butikskontroll återstår, O-11)  
+> **Produktnamn:** Eirora (tekniskt projektnamn `eirora`; inget hinder hittat men namnet är inte låst, säkras i M12, O-11)  
 > **Slogan:** *A world worth growing.*  
 > **Målrelease:** Version 1.0 — fullvärdigt kommersiellt mobilspel, samtidigt på Android och iOS  
 > **Relaterade dokument:** [ROADMAP.md](./ROADMAP.md) · [GLOSSARY.md](./GLOSSARY.md) · [docs/adr/](./docs/adr/)
@@ -119,6 +119,13 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-72 | **Kontot skapas först när spelaren loggar in med Apple eller Google;** dessförinnan finns inget om spelaren på servern, och inga lösenord eller e-postadresser lagras ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
 | D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och spelardygnen före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
 | D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
+| D-75 | **Prototypen når telefonen genom Google Plays interna test:** varje push till `main` som ändrar bygget blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation ([development.md](./docs/development.md#google-play)) | [BESLUTAT] |
+| D-76 | **Google förvarar appens signeringsnyckel (Play App Signing);** prototypens nyckel är uppladdningsnyckel, så en APK från CI eller datorn kan inte installeras över appen från Google Play | [BESLUTAT] |
+| D-77 | **Övergången till Google Play kräver en avinstallation,** innan dagboken börjar; världen från de sidladdade provbyggena följer inte med | [BESLUTAT] |
+| D-78 | **Androids säkerhetskopiering till spelarens eget Google-konto är påslagen** och tar med journalen, så att världen kan följa med till en ny telefon; journalen innehåller bara dygnssummor, aldrig enskilda hälsoposter (HLT-10) | [BESLUTAT] |
+| D-79 | **Varje landbricka är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
+| D-80 | **En världs karta är en hexskiva med radie 24, 1 801 brickor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
+| D-81 | **Prototypens värld behålls:** Hemön och Nyön blir en handgjord karta, och generatorn fyller en gång den del av havet som prototypen aldrig visat ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -652,6 +659,9 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-72–D-73 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-018 |
 | — | 2026-10-18 | O-09 avgjord: compose hemma till beta, Azure Sverige vid release, PostgreSQL 18, egna konton med Apple och Google | ADR-0008 |
 | D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
+| D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
+| D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
+| — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |
@@ -673,7 +683,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
-| O-11 | Varumärkes- och butikskontroll av "Eirora" | Inget hinder hittat; säkra namnet före butikssidan ([namnkontroll](./docs/research/eirora-name-check.md)) | M2 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
 
 ---

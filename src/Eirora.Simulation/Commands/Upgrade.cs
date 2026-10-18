@@ -21,7 +21,7 @@ namespace Eirora.Simulation.Commands
                 return Rejection.NoBuildingThere;
             }
 
-            if (building.Level > 1 || settlement.IsQueued(SiteId, ProjectKind.Upgrade))
+            if (building.Level >= BuildingSpec.For(building.Kind).MaxLevel || settlement.IsQueued(SiteId, ProjectKind.Upgrade))
             {
                 return Rejection.AlreadyDone;
             }

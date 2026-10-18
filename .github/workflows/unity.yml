@@ -1,6 +1,6 @@
-# Tests the Unity client and builds it for Android and iOS.
+# Tests the Unity client, builds it for Android and iOS, and releases main to Google Play's internal test track.
 # Runs on pushes that can change a build (the client or the libraries it compiles) and on demand.
-# Needs the Unity license secrets described in docs/development.md#ci.
+# Needs the Unity license secrets in docs/development.md#ci and, to release from main, those in docs/development.md#google-play.
 name: Unity
 
 on:
@@ -19,7 +19,8 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A release to Google Play that has started is allowed to finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -127,11 +128,15 @@ jobs:
           path: artifacts/determinism
           retention-days: 14
 
+  # Main ships an app bundle to Google Play's internal test track (D-75), so the product owner's phone updates without a
+  # cable and keeps its world; other branches build an APK to sideload.
   android:
     name: Android build
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      RELEASE: ${{ github.ref == 'refs/heads/main' }}
     steps:
       # The Android editor image and build need more disk than a hosted runner has free by default.
       - uses: jlumbroso/free-disk-space@v2
@@ -157,6 +162,16 @@ jobs:
           [ -n "$ANDROID_KEYALIAS_PASS" ] || missing="$missing ANDROID_KEYALIAS_PASS"
           if [ -n "$missing" ]; then
             echo "::error title=Android signing secrets missing::Missing:$missing. Run scripts/create-android-keystore.sh, see docs/development.md#signering."
+            exit 1
+          fi
+
+      - name: Fail with instructions when the Google Play secret is missing
+        if: env.RELEASE == 'true'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error title=Google Play secret missing::Missing: PLAY_SERVICE_ACCOUNT_JSON. See docs/development.md#google-play."
             exit 1
           fi
 
@@ -186,7 +201,7 @@ jobs:
           versioning: Custom
           version: ${{ steps.version.outputs.name }}
           androidVersionCode: ${{ steps.version.outputs.code }}
-          androidExportType: androidPackage
+          androidExportType: ${{ env.RELEASE == 'true' && 'androidAppBundle' || 'androidPackage' }}
           androidKeystoreName: eirora.keystore
           androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
@@ -195,9 +210,22 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: eirora-android
+          name: eirora-android-${{ steps.version.outputs.name }}
           path: build/Android
           retention-days: 14
+
+      # Google Play takes completed releases through its API only after the app's first release has been rolled out by
+      # hand in Play Console (docs/development.md#google-play).
+      - name: Upload to Google Play's internal test track
+        if: env.RELEASE == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.eirora.game
+          releaseFiles: build/Android/*.aab
+          releaseName: ${{ steps.version.outputs.name }}
+          track: internal
+          status: completed
 
   ios-project:
     name: iOS Xcode project
