@@ -1,7 +1,7 @@
 # Krafternas regler v1
 
 > **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, D-62, D-63, D-69, O-01  
+> **Ärende:** TASK-003 · **Milstolpe:** M0 · **PRD:** HLT-05–09, D-15, D-16, D-18, D-34–D-36, D-40–D-42, D-53, D-54, D-62, D-63, D-69, D-74, O-01  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Invarianter:** [invariants.md](./invariants.md)
 
 Det här dokumentet bestämmer hur egenvård blir krafter: omvandling, avtagande avkastning, mjuka tak, grundnivå, manuell inmatning och hur mycket som kan sparas.
@@ -67,7 +67,7 @@ Nästa måndag ger 100, eftersom tisdag till söndag gav 245 och kurvan för vec
 Avtagandet räknas per vecka och inte per dag, så att vilodagar aldrig kostar något: tre pass i veckan ger 78 % av taket, vecka efter vecka.
 Mer träning ger aldrig mindre Byggkraft, och det finns ingen fast veckodag.
 `B` är det som dygnen gav enligt regeln, före sparandets tak (avsnitt 5), så ett fullt förråd ändrar inte vad kommande pass ger.
-Ett pass som kommer in i efterhand räknar om de senare spelardygnen med pass; det de då ger mindre dras av enligt D-36 och D-62.
+Ett pass som kommer in i efterhand räknar om de senare spelardygnen med pass; det de då ger mindre dras av enligt D-36, D-62 och D-74.
 Ett pass som också registreras som promenad ger både Byggkraft och steg; det är två olika vanor.
 
 ### Sömnlängd → Gryningskraft (per spelardygn)
@@ -129,7 +129,9 @@ Gryningskraft får det lägsta eftersom den hör till morgonens planering.
 
 Taket räknas på kraftens **läge**: allt tillskott kraften fått före taket (D-69).
 Saldot följer av läget enligt tabellen, så samma bidrag ger samma saldo oavsett ordning och uppdelning.
-En korrigering nedåt flyttar läget tillbaka och tar därmed tillbaka kraft i samma takt som den gavs, men aldrig mer än bidraget gav (D-62).
+En korrigering nedåt flyttar läget tillbaka och tar därmed tillbaka kraft i samma takt som den gavs.
+Har kraften spenderats sedan bidraget krediterades tar korrigeringen aldrig mer än bidraget gav (D-62, D-74).
+Utan spendering däremellan räcker läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo i vilken ordning pass än kommer.
 Tillskott över taket syns inte i saldot men finns kvar i läget, så att en senare korrigering tar av dem först.
 Spendering sänker läget till det lägsta som ger saldot som är kvar, så att taket alltid räknas från det som faktiskt är sparat.
 När ett förråd är fullt säger spelet det lugnt, utan uppmaning att spendera (princip 11).
@@ -186,3 +188,5 @@ Senare beslut som ändrar reglerna ovan:
   Den är ersatt av kurvan för passen under sju spelardygn minus det de sex föregående spelardygnen redan gav, aldrig under noll (avsnitt 3).
 - **D-69:** en korrigering nedåt drog av kraft i full takt även när tillskottet gavs till halva, så att ett sent pass över sparandets tak gav en lägre slutsumma än pass i ordning.
   Taket räknas nu på kraftens läge, se [avsnitt 5](#5-sparande-d-35).
+- **D-74:** ett sent pass kunde tillfälligt lyfta saldot över sparandets tak, så att spelardygnet räknades ha gett mindre än sitt tillskott, och gränsen i D-62 lämnade sedan kvar kraft när Byggkraften flyttades till andra spelardygn.
+  Gränsen gäller nu bara när kraften har spenderats sedan bidraget krediterades, se [avsnitt 5](#5-sparande-d-35).
