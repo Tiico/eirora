@@ -14,16 +14,16 @@ namespace Eirora.Client.Tests
         {
             var (session, clock) = Begin();
 
-            Assert.That(ScreenshotTour.PlayAWeek(session, clock), Is.Empty);
+            Assert.That(ScriptedWeek.Play(session, clock), Is.Empty);
         }
 
         [Test]
         public void TheTourWeekEndsWithTheUpgradedSawmillAndNyonInUse()
         {
             var (session, clock) = Begin();
-            ScreenshotTour.PlayAWeek(session, clock);
+            ScriptedWeek.Play(session, clock);
 
-            clock.Current = ScreenshotTour.At("2026-10-23 13:00");
+            clock.Current = ScriptedWeek.At("2026-10-23 13:00");
             session.CatchUp();
             var world = session.World!;
 
@@ -38,7 +38,7 @@ namespace Eirora.Client.Tests
 
         private static (GameSession Session, FixedClock Clock) Begin()
         {
-            var clock = new FixedClock(ScreenshotTour.At("2026-10-14 14:00"));
+            var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
             var session = new GameSession(clock, null);
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
             return (session, clock);

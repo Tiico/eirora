@@ -27,29 +27,39 @@ namespace Eirora.Simulation
 
         private static readonly char[] s_lineBreak = { '\n' };
 
-        private readonly StringBuilder _text = new();
+        // The prototype journal's header and create line; empty for a journal that continues from a snapshot.
+        private readonly string _start;
+        private readonly StringBuilder _inputs = new();
         private TimeReading _lastRecorded;
 
-        private Journal(World world, TimeReading install)
+        private Journal(World world, string start)
         {
             World = world;
-            _lastRecorded = install;
+            _start = start;
+            _lastRecorded = world.Now;
         }
 
         public World World { get; }
 
-        /// <summary>Creates a new world and starts its journal.</summary>
-        public static Journal Start(TimeReading install, RestSchedule restSchedule)
-        {
-            var journal = new Journal(World.Create(install, restSchedule), install);
-            journal.Line($"{Header} {FormatVersion} rules {RulesVersion.Current}");
-            journal.Line($"create {Reading(install)} {restSchedule.StartMinuteOfDay} {restSchedule.DurationMinutes}");
-            return journal;
-        }
+        /// <summary>The inputs since the journal began, one per line, without the prototype journal's start.</summary>
+        internal string Inputs => _inputs.ToString();
 
-        /// <summary>Rebuilds a world by replaying a saved journal.</summary>
+        /// <summary>Creates a new world and starts its journal.</summary>
+        public static Journal Start(TimeReading install, RestSchedule restSchedule) =>
+            new(
+                World.Create(install, restSchedule),
+                $"{Header} {FormatVersion} rules {RulesVersion.Current}\n"
+                + $"create {Reading(install)} {restSchedule.StartMinuteOfDay} {restSchedule.DurationMinutes}\n");
+
+        /// <summary>Rebuilds a world by replaying a saved prototype journal.</summary>
         /// <exception cref="FormatException">The text is not a journal this version can read.</exception>
-        public static Journal Load(string text)
+        public static Journal Load(string text) => Load(text, out _);
+
+        /// <summary>
+        /// Rebuilds a world from a prototype journal like <see cref="Load(string)"/>, and gives the world as it was
+        /// created, before any input, as <paramref name="start"/>.
+        /// </summary>
+        internal static Journal Load(string text, out SimulationSnapshot start)
         {
             if (text is null)
             {
@@ -75,35 +85,49 @@ namespace Eirora.Simulation
 
             var create = Fields(lines[1]);
             Expect(create, "create", 6);
-            var journal = Start(ParseReading(create, 1), new RestSchedule(Int(create[4]), Int(create[5])));
-
-            for (int i = 2; i < lines.Length; i++)
+            var schedule = new RestSchedule(Int(create[4]), Int(create[5]));
+            if (!schedule.IsValid)
             {
-                var fields = Fields(lines[i]);
-                switch (fields[0])
-                {
-                    case "time":
-                        Expect(fields, "time", 4);
-                        journal.AdvanceTo(ParseReading(fields, 1));
-                        break;
-                    case "cmd":
-                        if (fields.Length < 3)
-                        {
-                            throw new FormatException($"A command needs a key and a type: '{lines[i]}'.");
-                        }
-
-                        journal.Apply(fields[1], ParseCommand(fields));
-                        break;
-                    default:
-                        throw new FormatException($"Unknown journal line: '{lines[i]}'.");
-                }
+                throw new FormatException($"Not a valid rest schedule: '{lines[1]}'.");
             }
 
+            var journal = Start(ParseReading(create, 1), schedule);
+            start = SimulationSnapshot.Take(journal.World);
+            journal.Replay(lines, 2);
             return journal;
         }
 
-        /// <summary>The journal as text, one input per line.</summary>
-        public string ToText() => _text.ToString();
+        /// <summary>Starts recording the inputs to a world from where it is now, such as a restored snapshot.</summary>
+        internal static Journal Continue(World world) => new(world, string.Empty);
+
+        /// <summary>
+        /// Goes on recording after <paramref name="inputs"/>, which brought a world to where <paramref name="world"/> is
+        /// now and end with its time (<see cref="RecordNow"/>). Nothing is replayed.
+        /// </summary>
+        internal static Journal Resume(World world, string inputs)
+        {
+            var journal = Continue(world);
+            journal._inputs.Append(inputs);
+            return journal;
+        }
+
+        /// <summary>
+        /// Continues from <paramref name="start"/> by replaying <paramref name="inputs"/>, which a journal continued from
+        /// the same world recorded; the journal then holds the same inputs.
+        /// </summary>
+        /// <exception cref="FormatException">The inputs are not journal lines this version can read.</exception>
+        internal static Journal Continue(World start, string inputs)
+        {
+            var journal = Continue(start);
+            journal.Replay(inputs.Split(s_lineBreak, StringSplitOptions.RemoveEmptyEntries), 0);
+            return journal;
+        }
+
+        /// <summary>The prototype journal as text: its start, then one input per line.</summary>
+        public string ToText() => _start + _inputs;
+
+        /// <summary>Records the world's current time, so that replaying the inputs reaches exactly where it is now.</summary>
+        internal void RecordNow() => Record(World.Now);
 
         /// <summary>Advances the world, recording the reading only when the zone or offset changes.</summary>
         public IReadOnlyList<GameEvent> AdvanceTo(TimeReading reading)
@@ -147,7 +171,34 @@ namespace Eirora.Simulation
             _lastRecorded = reading;
         }
 
-        private void Line(string line) => _text.Append(line).Append('\n');
+        private void Line(string line) => _inputs.Append(line).Append('\n');
+
+        private void Replay(string[] lines, int first)
+        {
+            for (int i = first; i < lines.Length; i++)
+            {
+                var fields = Fields(lines[i]);
+                switch (fields[0])
+                {
+                    case "time":
+                        Expect(fields, "time", 4);
+                        var reading = ParseReading(fields, 1);
+                        AdvanceTo(reading);
+                        Record(reading);
+                        break;
+                    case "cmd":
+                        if (fields.Length < 3)
+                        {
+                            throw new FormatException($"A command needs a key and a type: '{lines[i]}'.");
+                        }
+
+                        Apply(fields[1], ParseCommand(fields));
+                        break;
+                    default:
+                        throw new FormatException($"Unknown journal line: '{lines[i]}'.");
+                }
+            }
+        }
 
         private static string Reading(TimeReading reading) =>
             $"{Text(reading.UtcSeconds)} {reading.ZoneId} {Text(reading.OffsetSeconds)}";

@@ -2,17 +2,15 @@ using System.Net;
 using System.Net.Http.Json;
 using Eirora.Contracts;
 using Eirora.Simulation;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Eirora.Server.Tests;
 
-public sealed class ServerEndpointTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public sealed class ServerEndpointTests(ServerFixture fixture)
 {
     [Fact]
     public async Task HealthEndpointReportsHealthy()
     {
-        using var client = factory.CreateClient();
+        using var client = fixture.Server.CreateClient();
 
         using var response = await client.GetAsync(new Uri("/health", UriKind.Relative), TestContext.Current.CancellationToken);
 
@@ -22,7 +20,7 @@ public sealed class ServerEndpointTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task InfoEndpointReportsTheSharedSimulationRulesVersion()
     {
-        using var client = factory.CreateClient();
+        using var client = fixture.Server.CreateClient();
 
         var info = await client.GetFromJsonAsync<ServerInfo>(new Uri("/api/info", UriKind.Relative), TestContext.Current.CancellationToken);
 

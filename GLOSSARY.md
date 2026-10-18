@@ -193,7 +193,11 @@ _Avoid_: kontrollsumma, hash (som snapshoten anger för fingeravtrycket)
 En världs lagrade form på enheten eller i molnet: den senaste snapshoten och journalen.
 _Avoid_: sparfil, backup
 
-**Migration** (`Migration`):
+**Segment**:
+En snapshot och journalen efter den under samma regelversion; sparningen har det pågående segmentet och, fram till nästa regelbyte, det föregående.
+_Avoid_: kapitel, del
+
+**Migration** (`StateMigration`):
 Omvandlingen av en snapshot från en regelversion till nästa när appen uppdateras; den ändrar aldrig det som redan hänt.
 _Avoid_: konvertering, uppgradering (när omvandlingen avses)
 

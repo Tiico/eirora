@@ -25,3 +25,6 @@
 *.mp3 binary
 *.ttf binary
 *.otf binary
+
+# Golden saves are compared byte for byte, so git never converts their line endings (ADR-0006).
+tests/Eirora.Simulation.Tests/Saving/Golden/** -text
