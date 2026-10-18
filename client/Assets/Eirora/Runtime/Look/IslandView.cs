@@ -6,8 +6,11 @@ using UnityEngine;
 
 namespace Eirora.Client.Look
 {
-    /// <summary>Draws the island and the settlement from the world's state; rebuilt whenever the world changes.</summary>
-    public sealed class IslandView
+    /// <summary>
+    /// Draws the island and the settlement from the world's state; rebuilt whenever the world changes, into the same
+    /// meshes each time. Disposing it frees them.
+    /// </summary>
+    public sealed class IslandView : System.IDisposable
     {
         /// <summary>How full a forest is drawn where a building or work leaves room for less, until the economy shows its stock.</summary>
         public const float CrowdedForest = 0.25f;
@@ -18,13 +21,14 @@ namespace Eirora.Client.Look
         private readonly MeshFilter _settlement;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
+        private readonly List<Mesh> _meshes = new();
 
         public IslandView(Transform parent, Material flat, Material glow, Looks looks)
         {
             _looks = looks;
-            Create("Terrain", parent, flat).sharedMesh = BuildTerrain(nyon: false);
+            BuildTerrain(nyon: false).WriteTo(Create("Terrain", parent, flat).sharedMesh);
             var nyon = Create("Nyön", parent, flat);
-            nyon.sharedMesh = BuildTerrain(nyon: true);
+            BuildTerrain(nyon: true).WriteTo(nyon.sharedMesh);
             _nyon = nyon.gameObject;
             _settlement = Create("Settlement", parent, flat);
             _lights = Create("Lights", parent, glow);
@@ -93,8 +97,8 @@ namespace Eirora.Client.Look
             }
 
             SeaRoute(mesh, world);
-            _settlement.sharedMesh = mesh.ToMesh("Settlement");
-            _lights.sharedMesh = lights.ToMesh("Lights");
+            mesh.WriteTo(_settlement.sharedMesh);
+            lights.WriteTo(_lights.sharedMesh);
         }
 
         /// <summary>Marks the selected hex with a glowing rim, or clears the mark.</summary>
@@ -113,10 +117,27 @@ namespace Eirora.Client.Look
                 }
             }
 
-            _selection.sharedMesh = mesh.ToMesh("Selection");
+            mesh.WriteTo(_selection.sharedMesh);
         }
 
-        private Mesh BuildTerrain(bool nyon)
+        public void Dispose()
+        {
+            foreach (var mesh in _meshes)
+            {
+                if (Application.isPlaying)
+                {
+                    Object.Destroy(mesh);
+                }
+                else
+                {
+                    Object.DestroyImmediate(mesh);
+                }
+            }
+
+            _meshes.Clear();
+        }
+
+        private MeshBuilder BuildTerrain(bool nyon)
         {
             var mesh = new MeshBuilder();
             foreach (var tile in _map.Tiles)
@@ -129,7 +150,7 @@ namespace Eirora.Client.Look
                 }
             }
 
-            return mesh.ToMesh(nyon ? "Nyön" : "Terrain");
+            return mesh;
         }
 
         /// <summary>The fairway between the jetties once ships sail, and the expedition's boat while it is out.</summary>
@@ -167,12 +188,15 @@ namespace Eirora.Client.Look
 
         private static int Seed(Hex hex) => (hex.Q * 31) + hex.R;
 
-        private static MeshFilter Create(string name, Transform parent, Material material)
+        private MeshFilter Create(string name, Transform parent, Material material)
         {
             var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(parent, false);
             go.GetComponent<MeshRenderer>().sharedMaterial = material;
-            return go.GetComponent<MeshFilter>();
+            var filter = go.GetComponent<MeshFilter>();
+            filter.sharedMesh = new Mesh { name = name };
+            _meshes.Add(filter.sharedMesh);
+            return filter;
         }
     }
 }

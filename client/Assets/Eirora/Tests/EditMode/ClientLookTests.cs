@@ -84,6 +84,40 @@ namespace Eirora.Client.Tests
             }
         }
 
+        [Test]
+        public void RedrawingTheIslandReusesItsMeshes()
+        {
+            var world = World.Create(At("2026-10-14 14:00"), s_night);
+            var parent = new GameObject("Island");
+            var flat = new Material(Shader.Find("Eirora/Flat"));
+            var glow = new Material(Shader.Find("Eirora/Glow"));
+            var island = new IslandView(parent.transform, flat, glow, Looks.Load());
+            try
+            {
+                var selected = IslandMap.HexOf(PrototypeIsland.Sites.First());
+                island.Refresh(world);
+                island.Select(selected);
+                int meshes = Resources.FindObjectsOfTypeAll<Mesh>().Length;
+
+                for (int i = 0; i < 5; i++)
+                {
+                    island.Refresh(world);
+                    island.Select(i % 2 == 0 ? null : selected);
+                }
+
+                Assert.That(Resources.FindObjectsOfTypeAll<Mesh>().Length, Is.EqualTo(meshes));
+                var settlement = parent.GetComponentsInChildren<MeshFilter>().Single(f => f.name == "Settlement");
+                Assert.That(settlement.sharedMesh.vertexCount, Is.Positive, "The reused mesh still holds the settlement.");
+            }
+            finally
+            {
+                island.Dispose();
+                UnityEngine.Object.DestroyImmediate(parent);
+                UnityEngine.Object.DestroyImmediate(flat);
+                UnityEngine.Object.DestroyImmediate(glow);
+            }
+        }
+
         private static TimeReading At(string local)
         {
             var wallClock = DateTime.ParseExact(local, "yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);

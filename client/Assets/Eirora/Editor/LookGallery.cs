@@ -34,6 +34,7 @@ namespace Eirora.Editor
         };
 
         private readonly Dictionary<(int Look, int Stage), Texture2D> _renders = new();
+        private readonly Dictionary<(int Look, int Stage), int> _triangles = new();
         private LookPreview? _preview;
         private Looks _looks = Looks.Load();
         private List<string> _problems = new();
@@ -103,6 +104,7 @@ namespace Eirora.Editor
         private void Redraw()
         {
             ClearRenders();
+            _triangles.Clear();
             Repaint();
         }
 
@@ -242,7 +244,7 @@ namespace Eirora.Editor
         }
 
         /// <summary>The stage's name, its triangle count against the budget, and anything a designer should know.</summary>
-        private static string Caption(GalleryRow row, StagedLook look, int stage, bool defined)
+        private string Caption(GalleryRow row, StagedLook look, int stage, bool defined)
         {
             string name = row.StageName(stage);
             if (!defined)
@@ -256,10 +258,7 @@ namespace Eirora.Editor
                 name += $" · {current.name}";
             }
 
-            var surfaces = new MeshBuilder();
-            var glows = new MeshBuilder();
-            look.Draw(surfaces, glows, stage, Vector3.zero, seed: 0);
-            int triangles = surfaces.TriangleCount + glows.TriangleCount;
+            int triangles = Triangles(look, stage);
             string count = triangles > look.triangleBudget
                 ? $"<color=#E0457B>{triangles} triangles, over the budget of {look.triangleBudget}</color>"
                 : $"{triangles} / {look.triangleBudget} triangles";
@@ -275,6 +274,22 @@ namespace Eirora.Editor
             }
 
             return $"{name}\n{count}{note}";
+        }
+
+        /// <summary>How many triangles a stage draws, counted once per edit rather than on every repaint.</summary>
+        private int Triangles(StagedLook look, int stage)
+        {
+            var key = (look.GetInstanceID(), stage);
+            if (!_triangles.TryGetValue(key, out int triangles))
+            {
+                var surfaces = new MeshBuilder();
+                var glows = new MeshBuilder();
+                look.Draw(surfaces, glows, stage, Vector3.zero, seed: 0);
+                triangles = surfaces.TriangleCount + glows.TriangleCount;
+                _triangles[key] = triangles;
+            }
+
+            return triangles;
         }
 
         /// <summary>Two looks of the same kind: the game uses only one of them.</summary>

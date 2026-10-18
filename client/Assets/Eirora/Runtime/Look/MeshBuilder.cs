@@ -138,13 +138,21 @@ namespace Eirora.Client.Look
 
         public Mesh ToMesh(string name)
         {
-            var mesh = new Mesh { name = name, indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            var mesh = new Mesh { name = name };
+            WriteTo(mesh);
+            return mesh;
+        }
+
+        /// <summary>Replaces what <paramref name="mesh"/> holds with these faces: a mesh redrawn often is reused, not leaked.</summary>
+        public void WriteTo(Mesh mesh)
+        {
+            mesh.Clear();
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.SetVertices(_vertices);
             mesh.SetColors(_colors);
             mesh.SetTriangles(_triangles, 0);
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
-            return mesh;
         }
 
         public static Vector3[] Rectangle(Vector3 center, float width, float depth, float yaw)
