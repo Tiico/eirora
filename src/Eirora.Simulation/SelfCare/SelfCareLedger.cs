@@ -24,6 +24,9 @@ namespace Eirora.Simulation.SelfCare
         // Half forces each (day, habit) actually added to the balance, after the soft cap (D-36).
         private readonly SortedDictionary<(int Day, Habit Habit), long> _gainedHalves = new();
 
+        // How many times the force had been spent when each (day, habit) was credited while it held no credit (D-74).
+        private readonly SortedDictionary<(int Day, Habit Habit), long> _spendsAtCredit = new();
+
         // Build Power each game day with workouts is worth, before the soft cap (D-63). Derived from the totals, so it
         // is not part of the fingerprint; values from _buildPowerStaleFrom on are recomputed before they are read.
         private readonly SortedDictionary<int, int> _buildPower = new();
@@ -79,8 +82,36 @@ namespace Eirora.Simulation.SelfCare
         /// <summary>The half forces a game day's habit has added to the balance so far.</summary>
         public long GainedHalves(int day, Habit habit) => _gainedHalves.TryGetValue((day, habit), out long halves) ? halves : 0;
 
-        /// <summary>Adds <paramref name="halves"/> to what a game day's habit has added; negative after a correction.</summary>
-        public void AddGainedHalves(int day, Habit habit, long halves) => _gainedHalves[(day, habit)] = GainedHalves(day, habit) + halves;
+        /// <summary>
+        /// Adds <paramref name="halves"/> to what a game day's habit has added; negative after a correction. A
+        /// correction before any spending can take back more than the habit added, but never leaves it below zero.
+        /// </summary>
+        public void AddGainedHalves(int day, Habit habit, long halves)
+        {
+            long gained = GainedHalves(day, habit) + halves;
+            _gainedHalves[(day, habit)] = gained > 0 ? gained : 0;
+        }
+
+        /// <summary>
+        /// Notes that a game day's habit was credited when its force had been spent <paramref name="spends"/> times,
+        /// unless it still holds older credit.
+        /// </summary>
+        public void NoteCredit(int day, Habit habit, long spends) => _spendsAtCredit.TryAdd((day, habit), spends);
+
+        /// <summary>
+        /// Whether the force has been spent since the oldest credit a game day's habit still holds, so that a
+        /// correction can take back no more than the habit added (D-62, D-74). Credit not made through
+        /// <see cref="NoteCredit"/>, such as the guided tour's, counts as spent.
+        /// </summary>
+        public bool SpentSinceCredit(int day, Habit habit, long spends) =>
+            !_spendsAtCredit.TryGetValue((day, habit), out long atCredit) || atCredit != spends;
+
+        /// <summary>Forgets a game day's habit's credit once a correction has taken all of it back.</summary>
+        public void ForgetCredit(int day, Habit habit)
+        {
+            _gainedHalves.Remove((day, habit));
+            _spendsAtCredit.Remove((day, habit));
+        }
 
         public void AppendFingerprint(StringBuilder text)
         {
@@ -99,6 +130,12 @@ namespace Eirora.Simulation.SelfCare
 
             text.Append("gained:");
             foreach (var entry in _gainedHalves)
+            {
+                text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
+            }
+
+            text.Append("spendsAtCredit:");
+            foreach (var entry in _spendsAtCredit)
             {
                 text.Append(entry.Key.Day).Append('/').Append((int)entry.Key.Habit).Append('=').Append(entry.Value).Append(',');
             }
