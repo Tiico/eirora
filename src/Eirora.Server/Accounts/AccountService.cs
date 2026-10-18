@@ -69,7 +69,7 @@ public sealed partial class AccountService(
         ExternalIdentity identity,
         CancellationToken cancellationToken)
     {
-        if (await FindAccountIdAsync(confirmation, cancellationToken) != accountId)
+        if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
         {
             return LinkResult.NotThisAccount;
         }
@@ -111,33 +111,33 @@ public sealed partial class AccountService(
     }
 
     /// <summary>Removes the account's login with a provider, after a fresh sign-in with one of the account's own logins.</summary>
-    public async Task<UnlinkResult> UnlinkAsync(
+    public async Task<RemoveLoginResult> RemoveLoginAsync(
         Guid accountId,
         ExternalIdentity confirmation,
         string provider,
         CancellationToken cancellationToken)
     {
-        var logins = await db.AccountLogins.Where(l => l.AccountId == accountId).ToListAsync(cancellationToken);
-        if (!logins.Any(l => l.Provider == confirmation.Provider && l.Subject == confirmation.Subject))
+        if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
         {
-            return UnlinkResult.NotThisAccount;
+            return RemoveLoginResult.NotThisAccount;
         }
 
+        var logins = await db.AccountLogins.Where(l => l.AccountId == accountId).ToListAsync(cancellationToken);
         var login = logins.SingleOrDefault(l => l.Provider == provider);
         if (login is null)
         {
-            return UnlinkResult.NotLinked;
+            return RemoveLoginResult.NotLinked;
         }
 
         // Signing in with another linked login is how an account is recovered, so the last one only goes with the account.
         if (logins.Count == 1)
         {
-            return UnlinkResult.LastLogin;
+            return RemoveLoginResult.LastLogin;
         }
 
         db.AccountLogins.Remove(login);
         await db.SaveChangesAsync(cancellationToken);
-        return UnlinkResult.Unlinked;
+        return RemoveLoginResult.Removed;
     }
 
     /// <summary>
@@ -156,7 +156,7 @@ public sealed partial class AccountService(
             return DeleteResult.NotFound;
         }
 
-        if (!account.Logins.Any(l => l.Provider == confirmation.Provider && l.Subject == confirmation.Subject))
+        if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
         {
             return DeleteResult.NotThisAccount;
         }
@@ -199,6 +199,13 @@ public sealed partial class AccountService(
         LogDeleted(logger);
     }
 
+    /// <summary>
+    /// Whether a confirming sign-in is one of the account's own logins: the rule that keeps a stolen token, or another
+    /// player's sign-in, from linking, removing a login or deleting the account (threat model).
+    /// </summary>
+    private async Task<bool> IsOwnLoginAsync(Guid accountId, ExternalIdentity confirmation, CancellationToken cancellationToken) =>
+        await FindAccountIdAsync(confirmation, cancellationToken) == accountId;
+
     private async Task<Guid?> FindAccountIdAsync(ExternalIdentity identity, CancellationToken cancellationToken) =>
         await db.AccountLogins
             .Where(l => l.Provider == identity.Provider && l.Subject == identity.Subject)
@@ -234,9 +241,9 @@ public enum LinkResult
     ProviderAlreadyLinked,
 }
 
-public enum UnlinkResult
+public enum RemoveLoginResult
 {
-    Unlinked,
+    Removed,
     NotThisAccount,
     NotLinked,
     LastLogin,

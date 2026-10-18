@@ -47,7 +47,7 @@ public sealed class Api(HttpClient http) : IDisposable
         await SendAsync(Authorized(HttpMethod.Post, "/api/account/logins", accessToken, new { login, confirmation }));
 
     /// <summary>Removes the login with <paramref name="provider"/>, confirmed with a sign-in of the account, or with none.</summary>
-    public async Task<HttpStatusCode> UnlinkAsync(string accessToken, string provider, ExternalLogin? confirmation)
+    public async Task<HttpStatusCode> RemoveLoginAsync(string accessToken, string provider, ExternalLogin? confirmation)
     {
         var request = Authorized(HttpMethod.Post, $"/api/account/logins/{provider}/removal", accessToken);
         request.Content = JsonContent.Create(confirmation);

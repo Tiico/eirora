@@ -57,7 +57,7 @@ public sealed class AccountTests(ServerFixture fixture)
         var account = (await api.GetAccountAsync(tokens.Access)).Account!;
         var google = _server.Providers.SignIn(LoginProviders.Google);
 
-        Assert.Equal(HttpStatusCode.NoContent, await api.LinkAsync(tokens.Access, google.ToExternalLogin(), Again(apple)));
+        Assert.Equal(HttpStatusCode.NoContent, await api.LinkAsync(tokens.Access, google.ToExternalLogin(), _server.Providers.Again(apple)));
         var viaGoogle = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google, google.Subject));
 
         Assert.False(viaGoogle.AccountCreated);
@@ -76,7 +76,7 @@ public sealed class AccountTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
 
-        var status = await api.LinkAsync(tokens.Access, Again(other), Again(apple));
+        var status = await api.LinkAsync(tokens.Access, _server.Providers.Again(other), _server.Providers.Again(apple));
 
         Assert.Equal(HttpStatusCode.Conflict, status);
     }
@@ -88,7 +88,7 @@ public sealed class AccountTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
 
-        var status = await api.LinkAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Apple).ToExternalLogin(), Again(apple));
+        var status = await api.LinkAsync(tokens.Access, _server.Providers.SignIn(LoginProviders.Apple).ToExternalLogin(), _server.Providers.Again(apple));
 
         Assert.Equal(HttpStatusCode.Conflict, status);
     }
@@ -102,7 +102,7 @@ public sealed class AccountTests(ServerFixture fixture)
         var google = _server.Providers.SignIn(LoginProviders.Google);
 
         var status = await api.LinkAsync(
-            tokens.Access, new ExternalLogin(google.Provider, google.IdToken, "fedcba9876543210fedcba9876543210"), Again(apple));
+            tokens.Access, new ExternalLogin(google.Provider, google.IdToken, "fedcba9876543210fedcba9876543210"), _server.Providers.Again(apple));
 
         Assert.Equal(HttpStatusCode.BadRequest, status);
     }
@@ -113,14 +113,14 @@ public sealed class AccountTests(ServerFixture fixture)
         using var api = _server.CreateApi();
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var owner = await api.SignInAsync(apple);
-        await api.LinkAsync(owner.Access, _server.Providers.SignIn(LoginProviders.Google).ToExternalLogin(), Again(apple));
+        await api.LinkAsync(owner.Access, _server.Providers.SignIn(LoginProviders.Google).ToExternalLogin(), _server.Providers.Again(apple));
         var stolen = await api.RefreshAsync(owner.Refresh);
         var thief = _server.Providers.SignIn(LoginProviders.Google);
         await api.SignInAsync(thief);
 
-        Assert.Equal(HttpStatusCode.BadRequest, await api.UnlinkAsync(stolen.Access, LoginProviders.Google, confirmation: null));
-        Assert.Equal(HttpStatusCode.Forbidden, await api.UnlinkAsync(stolen.Access, LoginProviders.Google, Again(thief)));
-        Assert.Equal(HttpStatusCode.Forbidden, await api.UnlinkAsync(stolen.Access, LoginProviders.Apple, Again(thief)));
+        Assert.Equal(HttpStatusCode.BadRequest, await api.RemoveLoginAsync(stolen.Access, LoginProviders.Google, confirmation: null));
+        Assert.Equal(HttpStatusCode.Forbidden, await api.RemoveLoginAsync(stolen.Access, LoginProviders.Google, _server.Providers.Again(thief)));
+        Assert.Equal(HttpStatusCode.Forbidden, await api.RemoveLoginAsync(stolen.Access, LoginProviders.Apple, _server.Providers.Again(thief)));
         Assert.Equal(
             [LoginProviders.Apple, LoginProviders.Google],
             (await api.GetAccountAsync(stolen.Access)).Account!.Logins.Select(l => l.Provider));
@@ -137,8 +137,8 @@ public sealed class AccountTests(ServerFixture fixture)
         await api.SignInAsync(thiefsOtherAccount);
 
         Assert.Equal(HttpStatusCode.BadRequest, await api.LinkAsync(stolen.Access, thief.ToExternalLogin(), confirmation: null));
-        Assert.Equal(HttpStatusCode.Forbidden, await api.LinkAsync(stolen.Access, Again(thief), Again(thiefsOtherAccount)));
-        Assert.Equal(HttpStatusCode.Forbidden, await api.LinkAsync(stolen.Access, Again(thief), Again(thief)));
+        Assert.Equal(HttpStatusCode.Forbidden, await api.LinkAsync(stolen.Access, _server.Providers.Again(thief), _server.Providers.Again(thiefsOtherAccount)));
+        Assert.Equal(HttpStatusCode.Forbidden, await api.LinkAsync(stolen.Access, _server.Providers.Again(thief), _server.Providers.Again(thief)));
         Assert.Equal([LoginProviders.Google], (await api.GetAccountAsync(stolen.Access)).Account!.Logins.Select(l => l.Provider));
     }
 
@@ -149,8 +149,8 @@ public sealed class AccountTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
 
-        Assert.Equal(HttpStatusCode.Conflict, await api.UnlinkAsync(tokens.Access, LoginProviders.Apple, Again(apple)));
-        Assert.Equal(HttpStatusCode.NotFound, await api.UnlinkAsync(tokens.Access, LoginProviders.Google, Again(apple)));
+        Assert.Equal(HttpStatusCode.Conflict, await api.RemoveLoginAsync(tokens.Access, LoginProviders.Apple, _server.Providers.Again(apple)));
+        Assert.Equal(HttpStatusCode.NotFound, await api.RemoveLoginAsync(tokens.Access, LoginProviders.Google, _server.Providers.Again(apple)));
     }
 
     [Fact]
@@ -160,14 +160,11 @@ public sealed class AccountTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
         var google = _server.Providers.SignIn(LoginProviders.Google);
-        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), Again(apple));
+        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), _server.Providers.Again(apple));
 
-        Assert.Equal(HttpStatusCode.NoContent, await api.UnlinkAsync(tokens.Access, LoginProviders.Google, Again(apple)));
+        Assert.Equal(HttpStatusCode.NoContent, await api.RemoveLoginAsync(tokens.Access, LoginProviders.Google, _server.Providers.Again(apple)));
         var viaGoogle = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google, google.Subject));
 
         Assert.True(viaGoogle.AccountCreated);
     }
-
-    /// <summary>A fresh sign-in with the same login, as the client asks for before changing the account.</summary>
-    private ExternalLogin Again(PlayerLogin login) => _server.Providers.SignIn(login.Provider, login.Subject).ToExternalLogin();
 }
