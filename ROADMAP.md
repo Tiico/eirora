@@ -389,7 +389,7 @@ Validatorn kommer före generatorn, så att generatorn byggs mot ett mätbart m�
 | [ADR-0006](./docs/adr/0006-saves-are-migrated-snapshots.md) | Versionering av regler, innehåll och sparningar: sparningen är en snapshot som migreras framåt; gamla regler finns bara som frysta byggen | Beslutat |
 | [ADR-0007](./docs/adr/0007-own-health-connect-adapter.md) | Health Connect läses med en egen Kotlin-adapter bakom ett C#-gränssnitt, inte med HealthBridge (O-08, [TASK-007](https://github.com/Tiico/eirora/issues/8)) | Beslutat |
 | [ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md) | Backend som containrar med PostgreSQL, hemma till beta och i Azure Sverige vid release; egna konton via Apple och Google (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Beslutat |
-| kommande | Kartformat och generatorversion ([TASK-027](https://github.com/Tiico/eirora/issues/61)) | Inför M3 |
+| [ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md) | Kartan är en oföränderlig hexskiva med radie 24 som sparas hel; generatorn körs en gång per värld och hålls fast vid sin version ([TASK-027](https://github.com/Tiico/eirora/issues/61)) | Beslutat |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |
 
 ---
