@@ -23,6 +23,9 @@ namespace Eirora.Simulation.Forces
 
         private readonly long[] _positions = new long[ForceCount];
 
+        // How many times each force has been spent, so that a correction can tell whether its credit was spent since.
+        private readonly long[] _spends = new long[ForceCount];
+
         /// <summary>Starting forces from the guided tour (D-45).</summary>
         public static ForceBalances GuidedTourStart()
         {
@@ -95,8 +98,12 @@ namespace Eirora.Simulation.Forces
             }
 
             _positions[i] = PositionOf(i, halves - (2L * cost));
+            _spends[i]++;
             return true;
         }
+
+        /// <summary>How many times <paramref name="force"/> has been spent (D-72).</summary>
+        internal long Spends(Force force) => _spends[Index(force)];
 
         /// <summary>The balance in half forces, the unit credit is kept in.</summary>
         internal long Halves(Force force)
@@ -106,7 +113,8 @@ namespace Eirora.Simulation.Forces
         }
 
         internal void AppendFingerprint(StringBuilder text) =>
-            text.Append("forces:").Append(_positions[0]).Append(',').Append(_positions[1]).Append(',').Append(_positions[2]).Append(';');
+            text.Append("forces:").Append(_positions[0]).Append(',').Append(_positions[1]).Append(',').Append(_positions[2])
+                .Append("/spends:").Append(_spends[0]).Append(',').Append(_spends[1]).Append(',').Append(_spends[2]).Append(';');
 
         // The balance in half forces that a position gives; a half force of credit straddling the full threshold
         // counts in full, so crediting from an odd balance below it matches crediting force by force.

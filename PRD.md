@@ -106,7 +106,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-59 | ~~**Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B~~ | [ERSATT av D-61] |
 | D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
 | D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
-| D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak (förtydligar D-36) | [BESLUTAT] |
+| D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak, för tillskott som gjorts före en senare spendering (förtydligar D-36, avgränsad av D-72) | [BESLUTAT] |
 | D-63 | **Byggkraftens rullande vecka ger kurvans värde:** ett spelardygn med pass ger kurvan för passen under sju spelardygn minus det de sex föregående redan gav, aldrig under noll; mer träning ger aldrig mindre Byggkraft ([epoch-1.md](./docs/design/epoch-1.md#7-byggkraftens-rullande-vecka)) | [BESLUTAT] |
 | D-64 | **Epok 1:s milstolpe är att Vårdkasen tänds,** byggd i tre etapper (grunden, stommen, elden) med egna förutsättningar ([epoch-1.md](./docs/design/epoch-1.md)) | [BESLUTAT] |
 | D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
@@ -116,6 +116,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 | D-70 | **Hälsodata läses när spelaren öppnar appen;** spelet begär aldrig bakgrundsbehörighet, och krafterna räknas fram ur hälsokällan vid öppning ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-72 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -642,6 +643,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-68 | 2026-10-18 | Se avsnitt 1.1 | Health Connect-spiken på produktägarens telefon i TASK-007 (PR #44) |
 | D-69 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 (PR #48) visade att ett sent pass över sparandets tak gav en annan slutsumma (INV-B1) |
 | D-70–D-71 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor efter Health Connect-spiken i TASK-007 |
+| D-72 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
 | — | 2026-10-18 | RST-05 ändrat: ingen synk i bakgrunden, hälsodata läses vid öppning | D-70 |
 | — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
