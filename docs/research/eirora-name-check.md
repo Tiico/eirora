@@ -1,6 +1,7 @@
 # Namnkontroll av "Eirora"
 
-> **Status:** Underlag, inte beslut · **Datum:** 2026-10-18  
+> **Status:** Underlag · **Datum:** 2026-10-18  
+> **Beslut:** produktägaren skjuter upp säkringen av namnet till M12 (varumärke och butikssidor); namnet är inte låst tills dess (PRD, O-11)  
 > **Ärende:** [TASK-025 (#40)](https://github.com/Tiico/eirora/issues/40) · **Milstolpe:** M2 punkt 8 · **PRD:** D-10, avsnitt 1.3, O-11  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md)
 
@@ -15,6 +16,7 @@ Domänerna eirora.com och eirora.org är registrerade av okänd innehavare och p
 Handtaget "eirora" är upptaget på YouTube, TikTok, Twitch, Facebook och GitHub, oftast av små eller inaktiva konton; "eiroragame" verkar ledigt på de plattformar som gick att kontrollera [16]–[23].
 
 **Rekommendation: säkra namnet.**
+Produktägaren har valt att skjuta upp säkringen till M12, se [Beslut](#beslut).
 Före butikssidan: registrera de lediga domänerna och handtagen "eiroragame", låt en varumärkesjurist titta på EURORA-märkena och lämna in en EU-varumärkesansökan i klass 9 och 41 (och 28 om merchandise är aktuellt) innan butikssidan blir offentlig.
 Detaljer i [Rekommendation](#rekommendation).
 
@@ -194,6 +196,16 @@ Namnet är ändå inte skyddat förrän det är registrerat, .com är upptagen o
 6. **Tidpunkt:** lämna in ansökan innan butikssidan (förregistrering på Google Play eller App Store) blir offentlig, så att ansökningsdagen ligger före första offentliga användningen.
    Enligt Pariskonventionen kan samma prioritetsdag användas för ansökningar i andra länder, till exempel USA och Storbritannien, inom sex månader från EU-ansökan (allmän regel, inte kontrollerad här; bekräfta med jurist).
 7. **Butiksnamn:** använd gärna en undertitel i butikerna, till exempel "Eirora: A world worth growing", så att listningen skiljer sig från de många "Eira"-apparna inom hälsa.
+
+### Beslut
+
+Produktägaren beslutade 2026-10-18 att skjuta upp säkringen till M12, där varumärke och butikssidor ingår.
+Namnet är inte låst; ett byte fram till dess kostar lite, eftersom inget har registrerats eller publicerats under namnet.
+Det innebär:
+
+- Domäner och handtag kan hinna tas av andra; eirora.com och eirora.org är redan tagna.
+- Registerläget åldras, så sökningarna i den här rapporten behöver göras om i M12 innan en ansökan lämnas in.
+- Stegen ovan gäller oförändrat i M12, före den första offentliga butikssidan.
 
 ## När en varumärkesjurist bör konsulteras
 
