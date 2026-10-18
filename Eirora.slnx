@@ -8,6 +8,9 @@
     <Project Path="src/Eirora.Simulation/Eirora.Simulation.csproj" />
     <Project Path="src/Eirora.WorldGeneration/Eirora.WorldGeneration.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Eirora.MapCheck/Eirora.MapCheck.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Eirora.Server.Tests/Eirora.Server.Tests.csproj" />
     <Project Path="tests/Eirora.Simulation.Tests/Eirora.Simulation.Tests.csproj" />
