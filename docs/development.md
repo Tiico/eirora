@@ -15,7 +15,7 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Skript för utvecklare, till exempel [mätningar på enhet](./design/device-measurements.md). Ingår inte i CI. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som inte ingår i CI. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
@@ -123,6 +123,17 @@ En världs karta skapas en gång och sparas hel i sparningen ([ADR-0010](./adr/0
 Generatorerna ligger i `src/Eirora.WorldGeneration`, och `WorldGenerators.All` listar varje version.
 Gyllene kartor ligger i `tests/Eirora.Simulation.Tests/WorldGeneration/Golden/`: `maps.txt` har hashen av kartan som varje generatorversion gör av några fasta seeds, och `prototype-home-1.map` är prototypens handgjorda karta i sin helhet.
 En låst generator ändras aldrig, så en hash som ändras underkänner bygget; en ny generatorversion får sina gyllene kartor skrivna av testerna första gången, för granskning och incheckning.
+
+Validatorn och dess regler beskrivs i [kartvalidering](./design/map-validation.md).
+En karta valideras regel för regel, och tusentals seeds sammanfattas per regel, med:
+
+```bash
+dotnet run --project tools/Eirora.MapCheck -- --seed 42
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator prototype-home --version 1 --from 0 --seeds 10000
+```
 
 ## Servern
 
