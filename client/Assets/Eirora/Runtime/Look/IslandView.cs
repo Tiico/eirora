@@ -1,30 +1,36 @@
 using System.Collections.Generic;
 using System.Linq;
 using Eirora.Simulation;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using UnityEngine;
 
 namespace Eirora.Client.Look
 {
-    /// <summary>Draws the island and the settlement from the world's state; rebuilt whenever the world changes.</summary>
-    public sealed class IslandView
+    /// <summary>
+    /// Draws the island and the settlement from the world's state; rebuilt whenever the world changes, into the same
+    /// meshes each time. Disposing it frees them.
+    /// </summary>
+    public sealed class IslandView : System.IDisposable
     {
         /// <summary>How full a forest is drawn where a building or work leaves room for less, until the economy shows its stock.</summary>
         public const float CrowdedForest = 0.25f;
 
-        private readonly IslandMap _map = new();
+        // Every world is on the prototype's map until generated worlds are drawn (TASK-033).
+        private readonly IslandMap _map = new(PrototypeHome.Map);
         private readonly Looks _looks;
         private readonly GameObject _nyon;
         private readonly MeshFilter _settlement;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
+        private readonly List<Mesh> _meshes = new();
 
         public IslandView(Transform parent, Material flat, Material glow, Looks looks)
         {
             _looks = looks;
-            Create("Terrain", parent, flat).sharedMesh = BuildTerrain(nyon: false);
+            BuildTerrain(nyon: false).WriteTo(Create("Terrain", parent, flat).sharedMesh);
             var nyon = Create("Nyön", parent, flat);
-            nyon.sharedMesh = BuildTerrain(nyon: true);
+            BuildTerrain(nyon: true).WriteTo(nyon.sharedMesh);
             _nyon = nyon.gameObject;
             _settlement = Create("Settlement", parent, flat);
             _lights = Create("Lights", parent, glow);
@@ -50,14 +56,14 @@ namespace Eirora.Client.Look
                 {
                     if (_map.IsLand(tile.Key))
                     {
-                        Models.Fog(mesh, tile.Key.Center);
+                        Models.Fog(mesh, tile.Key.Center());
                     }
 
                     continue;
                 }
 
                 bool fogged = site is not null && !world.IsRevealed(site.Id);
-                var ground = tile.Key.Center + (Vector3.up * Models.Height(tile.Value));
+                var ground = tile.Key.Center() + (Vector3.up * Models.Height(tile.Value));
                 if (fogged)
                 {
                     Models.Fog(mesh, ground);
@@ -74,7 +80,7 @@ namespace Eirora.Client.Look
             foreach (var building in world.Buildings)
             {
                 var hex = IslandMap.HexOf(building.Site);
-                var c = hex.Center + (Vector3.up * Models.Height(_map.Tiles[hex]));
+                var c = hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex]));
                 _looks.Building(mesh, lights, building.Kind, building.Level, c, Seed(hex));
                 if (building.Staffed && world.Phase == Phase.Active)
                 {
@@ -88,13 +94,13 @@ namespace Eirora.Client.Look
                 var hex = IslandMap.HexOf(project.Site);
                 if (project.Kind == Simulation.Economy.ProjectKind.Build)
                 {
-                    Models.Scaffold(mesh, hex.Center + (Vector3.up * Models.Height(_map.Tiles[hex])));
+                    Models.Scaffold(mesh, hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex])));
                 }
             }
 
             SeaRoute(mesh, world);
-            _settlement.sharedMesh = mesh.ToMesh("Settlement");
-            _lights.sharedMesh = lights.ToMesh("Lights");
+            mesh.WriteTo(_settlement.sharedMesh);
+            lights.WriteTo(_lights.sharedMesh);
         }
 
         /// <summary>Marks the selected hex with a glowing rim, or clears the mark.</summary>
@@ -113,10 +119,27 @@ namespace Eirora.Client.Look
                 }
             }
 
-            _selection.sharedMesh = mesh.ToMesh("Selection");
+            mesh.WriteTo(_selection.sharedMesh);
         }
 
-        private Mesh BuildTerrain(bool nyon)
+        public void Dispose()
+        {
+            foreach (var mesh in _meshes)
+            {
+                if (Application.isPlaying)
+                {
+                    Object.Destroy(mesh);
+                }
+                else
+                {
+                    Object.DestroyImmediate(mesh);
+                }
+            }
+
+            _meshes.Clear();
+        }
+
+        private MeshBuilder BuildTerrain(bool nyon)
         {
             var mesh = new MeshBuilder();
             foreach (var tile in _map.Tiles)
@@ -129,14 +152,14 @@ namespace Eirora.Client.Look
                 }
             }
 
-            return mesh.ToMesh(nyon ? "Nyön" : "Terrain");
+            return mesh;
         }
 
         /// <summary>The fairway between the jetties once ships sail, and the expedition's boat while it is out.</summary>
         private static void SeaRoute(MeshBuilder mesh, World world)
         {
-            var from = new Hex(1, 1).Center + new Vector3(1.2f, 0f, 0f);
-            var to = IslandMap.NyonCentre.Center - new Vector3(1.1f, 0f, 0f);
+            var from = new Hex(1, 1).Center() + new Vector3(1.2f, 0f, 0f);
+            var to = IslandMap.NyonCentre.Center() - new Vector3(1.1f, 0f, 0f);
             if (world.SeaRouteOpen)
             {
                 const int Dashes = 14;
@@ -167,12 +190,15 @@ namespace Eirora.Client.Look
 
         private static int Seed(Hex hex) => (hex.Q * 31) + hex.R;
 
-        private static MeshFilter Create(string name, Transform parent, Material material)
+        private MeshFilter Create(string name, Transform parent, Material material)
         {
             var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
             go.transform.SetParent(parent, false);
             go.GetComponent<MeshRenderer>().sharedMaterial = material;
-            return go.GetComponent<MeshFilter>();
+            var filter = go.GetComponent<MeshFilter>();
+            filter.sharedMesh = new Mesh { name = name };
+            _meshes.Add(filter.sharedMesh);
+            return filter;
         }
     }
 }

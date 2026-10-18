@@ -12,6 +12,14 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.eirora.worldgeneration": {
+      "version": "file:../../src/Eirora.WorldGeneration",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.eirora.simulation": "0.1.0"
+      }
+    },
     "com.unity.burst": {
       "version": "1.8.30",
       "depth": 2,

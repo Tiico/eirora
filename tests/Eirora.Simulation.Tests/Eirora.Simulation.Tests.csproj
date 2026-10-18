@@ -19,5 +19,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Eirora.Contracts\Eirora.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Eirora.Simulation\Eirora.Simulation.csproj" />
+    <ProjectReference Include="..\..\src\Eirora.WorldGeneration\Eirora.WorldGeneration.csproj" />
   </ItemGroup>
 </Project>
