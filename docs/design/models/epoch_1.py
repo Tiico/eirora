@@ -15,37 +15,32 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # -I tar bort skriptets katalog
 
 import economy_v1 as ev1  # noqa: E402
-from economy_v1 import ACTIVE_HOURS, SITES, SPECS, Building, Project, Site, Spec, World  # noqa: E402
+from economy_v1 import (  # noqa: E402
+    ACTIVE_HOURS, BEACH, FARMLAND, FOREST, GRASS, NAMES, SPECS, TILES, Building, Project, Spec, World,
+    add_island, pos)
 
 MAX_WEEKS = 20
 WEEK = 7
 
 # --- Nytt innehåll i epok 1 [FÖRSLAG] -------------------------------------------
-# Fler platser på Hemön och Nyön, och Ytterön som andra expeditionens mål.
+# Fler brickor att bygga på, rikt fiskevatten vid Nyön och Ytterön som andra
+# expeditionens mål. Var Ytterön ligger avgör kartgeneratorn (TASK-031); kalkylen
+# lägger en handgjord ö söder om Hemön.
 
-SITES.update({
-    "L4": Site(-2, 1, "Hemön", {"land"}),
-    "L5": Site(1, -2, "Hemön", {"land"}),
-    "L6": Site(-1, -1, "Hemön", {"land"}),
-    "L7": Site(2, 0, "Hemön", {"land"}),
-    "L8": Site(-2, 2, "Hemön", {"land"}),
-    "L9": Site(1, 2, "Hemön", {"land"}),
-    "L10": Site(-3, 1, "Hemön", {"land"}),
-    "L11": Site(-3, 2, "Hemön", {"land"}),
-    "L12": Site(2, -3, "Hemön", {"land"}),
-    "L13": Site(-1, 3, "Hemön", {"land"}),
-    "K3": Site(2, 1, "Hemön", {"kust", "fiskevatten"}),
-    "O3": Site(0, 2, "Hemön", {"odlingsmark"}),
-    "V1": Site(0, -2, "Hemön", {"krön"}),  # Hemöns krön, platsen för Vårdkasen
-    "N3": Site(11, -1, "Nyön", {"land"}, hidden=True),
-    "N4": Site(9, 1, "Nyön", {"kust", "fiskevatten"}, hidden=True, richness=1.5),
-    "Y0": Site(4, 8, "Ytterön", {"kust", "hamnläge", "land"}, hidden=True),
-    "Y1": Site(5, 8, "Ytterön", {"skog"}, hidden=True, forest_tiles=4, richness=1.5),
-    "Y2": Site(4, 9, "Ytterön", {"kust", "fiskevatten"}, hidden=True, richness=2.0),
-    "Y3": Site(3, 9, "Ytterön", {"odlingsmark"}, hidden=True, richness=1.5),
-    "Y4": Site(5, 9, "Ytterön", {"land"}, hidden=True),
+NAMES.update({
+    # Öppen mark för bostäder och runstenen; skogen lämnas åt huggarkojorna.
+    "L4": (-2, 1), "L5": (0, 2), "L6": (-3, 0), "L7": (-1, -2), "L8": (0, -3), "L9": (0, 3),
+    "L10": (2, 1), "L11": (-3, 2), "L12": (2, -3), "L13": (3, -3),
+    "K3": (2, 0), "K4": (-2, 3),  # fiskevatten intill förråden
+    "V1": (0, -2),  # Vårdkasens plats; krönet följer av kartans höjd (ADR-0010)
+    "N3": (10, 0), "N4": (9, 2),
+    "Y0": (4, 8), "Y1": (5, 8), "Y2": (4, 9), "Y3": (3, 9), "Y4": (4, 7),
 })
-ev1.EXPEDITIONS.append(("Ytterön", 400, 48, ["Y0", "Y1", "Y2", "Y3"]))
+TILES[pos("N4")].richness = 1.5
+add_island("Ytterön", {(4, 8): BEACH, (4, 7): GRASS, (3, 8): GRASS, (3, 9): FARMLAND,
+                       (5, 7): FOREST, (5, 8): FOREST, (6, 7): FOREST},
+           richness={(5, 7): 1.5, (5, 8): 1.5, (6, 7): 1.5, (4, 9): 2.0, (3, 9): 1.5})
+ev1.EXPEDITIONS.append(("Ytterön", 400, 48))
 
 # Runstenen: här ristas forskningen, och den bär världens historik (PRG-04).
 # En bybo bemannar den; dagsverke på den snabbar på forskningen som på annan produktion.
@@ -134,6 +129,11 @@ PROFILES = {
 
 # --- Epokens värld ---------------------------------------------------------------
 
+STAFF_ORDER = ["Förråd", "Brygga", "Väveri", "Sågverk", "Runsten", "Fårgård", "Stenbrott",
+               "Huggarkoja", "Åker", "Fiskebod"]
+FOOD_STAFF = ["Förråd", "Åker", "Fiskebod"]
+STAFF_FOOD_FIRST = FOOD_STAFF + [k for k in STAFF_ORDER if k not in FOOD_STAFF]
+
 
 class EpochWorld(World):
     def __init__(self, profile: str, rule: str, hand: bool):
@@ -152,7 +152,13 @@ class EpochWorld(World):
         self.decisions = {}         # vecka → beslut
 
     def staff(self):
+        # Bemanningen är gratis planering (D-23): förädling och nya öar först, mat sist när
+        # lagret räcker. Med byggplatser på brickor finns fler fiskebodar än byn kan bemanna.
+        food_first = self.stock["fisk"] + self.stock["säd"] < 3 * self.villagers
+        order = STAFF_FOOD_FIRST if food_first else STAFF_ORDER
         for b in self.buildings:
+            b.staffed = False
+        for b in sorted(self.buildings, key=lambda b: order.index(b.kind) if b.kind in order else len(order)):
             need = SPECS[b.kind].staff if b.kind in SPECS else 0
             if not b.staffed and need and self.free_villagers() - need >= self.builders:
                 b.staffed = True
@@ -222,7 +228,7 @@ class EpochWorld(World):
         return super().pending(label) or any(p[1] == label for p in self.hand_projects)
 
     def occupied(self, site):
-        return super().occupied(site) or any(p[1].endswith("@" + site) for p in self.hand_projects)
+        return super().occupied(site) or any(p[1].endswith("@" + ev1.tag(pos(site))) for p in self.hand_projects)
 
     def build_kind(self, kind, site, reserve):
         """Bygg med Byggkraft om den räcker utöver det som sparas, annars kanske med handkraft."""
@@ -232,11 +238,11 @@ class EpochWorld(World):
         if self.forces["B"] - spec.build_power >= reserve:
             return self.decide(self.build(kind, site), kind)
         if kind in HAND_DAYS and self.use_hand(spec.build_power, HAND_DAYS[kind], reserve):
-            s = SITES[site]
-            if site not in self.revealed or spec.site_kind not in s.kinds or self.occupied(site):
+            if not self.can_build(kind, site):
                 return False
-            ok = self.by_hand(f"{kind}@{site}", spec.cost,
-                              lambda: (self.buildings.append(Building(kind, site)), self.staff()))
+            p = pos(site)
+            ok = self.by_hand(f"{kind}@{ev1.tag(p)}", spec.cost,
+                              lambda: (self.buildings.append(Building(kind, p)), self.staff()))
             return self.decide(ok, f"{kind} med handkraft")
         return False
 
@@ -271,7 +277,7 @@ class EpochWorld(World):
         def done():
             self.beacon_stage += 1
             if self.beacon_stage == 1:
-                self.buildings.append(Building("Vårdkase", "V1"))
+                self.buildings.append(Building("Vårdkase", pos("V1")))
         if self.forces["B"] >= spec.build_power:
             if not self.pay(spec.cost, spec.build_power):
                 return False
@@ -319,14 +325,14 @@ def strategy(w: EpochWorld, day: int):
     w.build("Förråd", "E1")
     w.decide(w.expedition(), "Expedition")
     # Sjövägar: bryggor på de nya öarna går före sparandet.
-    w.build_kind("Brygga", "N0", 0)
+    w.build_kind("Brygga", "N9", 0)
     w.build_kind("Brygga", "Y0", 0)
     # Vårdkasen så fort nästa etapp går.
     w.build_stage()
     # Bostad: långhus när Byggkraften räcker, annars stuga (D-43).
     if w.housing() - w.villagers < 3:
         for site in ["L1", "L2", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "N3", "Y4"]:
-            if w.occupied(site) or site not in w.revealed:
+            if w.occupied(site) or pos(site) not in w.revealed:
                 continue
             if not w.build_kind("Långhus", site, reserve):
                 w.build("Stuga", site)
@@ -336,7 +342,7 @@ def strategy(w: EpochWorld, day: int):
     w.build("Stenbrott", "N2")
     w.build_kind("Väveri", "L3", reserve)
     # Mat för en växande by.
-    for kind, site in [("Fiskebod", "K2"), ("Åker", "O2"), ("Fiskebod", "N4"), ("Åker", "O3"),
+    for kind, site in [("Fiskebod", "K2"), ("Åker", "O2"), ("Fiskebod", "N4"), ("Fiskebod", "K4"),
                        ("Fiskebod", "K3"), ("Huggarkoja", "Y1"), ("Fiskebod", "Y2"), ("Åker", "Y3")]:
         w.build(kind, site)
     # Forskning när två öar är förbundna.

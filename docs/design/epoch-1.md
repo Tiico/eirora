@@ -1,7 +1,7 @@
 # Epok 1: Vårdkasen
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
-> **Ärende:** TASK-011 · **Milstolpe:** M0 · **PRD:** PRG-02–PRG-05, D-13, D-17, D-34, D-43, HLT-01, HLT-06, MAP-04, EXP-01, RES-01, O-03, D-63–D-67  
+> **Status:** [FÖRSLAG] v0.2, tempot omräknat med byggplatser på brickor (TASK-037), väntar på granskning av produktägaren  
+> **Ärende:** TASK-011, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** PRG-02–PRG-05, D-79, D-13, D-17, D-34, D-43, HLT-01, HLT-06, MAP-04, EXP-01, RES-01, O-03, D-63–D-67  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Resor:** [ux-journeys.md](./ux-journeys.md)  
 > **Kalkyl:** [models/epoch_1.py](./models/epoch_1.py) (`python -I epoch_1.py`)
 
@@ -15,7 +15,7 @@ Innehållet i forskningens inriktningar och fynden avgörs i M5, se [avsnitt 8](
 - **Mål:** att göra den lilla bosättningen på Hemön till en ögrupp, tre öar förbundna med sjövägar, med en by som vet vad den vill bli.
 - **Milstolpe:** *Vårdkasen tänds* på Hemöns krön (D-64).
   Den byggs i tre etapper, grunden, stommen och elden, och varje etapp kräver att ett nytt system har kommit i gång.
-- **Längd:** 6 veckor med hög egenvård, 7 med normal och 8 med enbart manuell inmatning; 11 med låg och 12 utan träning (avsnitt 5).
+- **Längd:** 6 veckor med hög egenvård, 7 med normal och 8 med enbart manuell inmatning; 11 med låg egenvård och 11 utan träning (avsnitt 5).
 - **Inget nollställs** (D-13, PRG-04).
   Vårdkasen står kvar och brinner, och epok 2 börjar nästa gryning (D-67).
 
@@ -92,7 +92,8 @@ Nytt i epoken utöver ekonomi v1 [FÖRSLAG], med siffrorna i kalkylen:
 | Forskningssteg | 20 plank och 10 sten, eller 20 plank och 10 vadmal; tre spelardygn | Inriktningarna avgörs i M5; dagsverke på runstenen snabbar på |
 | Handkraft | Ingen kraft; brygga och väveri 7 spelardygn, etapp 21 spelardygn | Det milstolpen kräver kan byggas utan Byggkraft (D-65) |
 
-Ekonomi v1:s kalkyl ändras inte; motorn är bara generaliserad till flera öar och ger samma siffror.
+Kalkylen bygger på ekonomi v1 med byggplatser på brickor ([ekonomi v1, avsnitt 3.1](./economy-v1.md#31-byggplatser), TASK-037).
+Var Ytterön ligger avgör generatorn (TASK-031); kalkylen lägger en handgjord ö med sju landbrickor söder om Hemön.
 
 ## 5. Tempo
 
@@ -111,30 +112,31 @@ Manuell inmatning ger exakt samma krafter som hälsokällan för samma egenvård
 Profilen *enbart manuell* är därför räknad som en spelare som bara skriver in sina promenader och inte vardagens steg, och som ibland låter sömnen vara.
 Den får halva Utforskningen mot normal, vilket är det som gör den långsammare.
 Byggkraften är räknad med den rättade regeln för den rullande veckan, se [avsnitt 7](#7-byggkraftens-rullande-vecka).
+Kalkylens spelare bemannar förråd, bryggor och förädling före fler fiskebodar så länge maten räcker; bemanningen är gratis planering (D-23).
 
 ### Vecka då spelaren når varje steg
 
 | Profil | Nyön | Sjöväg Nyön | Grunden | Ytterön | Sjöväg Ytterön | Forskning 4 | Innerhavet | 50 bybor | Stommen | Elden, kasen tänds | Bybor | Dagsproduktion |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Hög | 1 | 2 | 3 | 2 | 2 | 4 | 4 | 5 | 5 | **6** (dygn 37) | 64 | 479 |
-| Normal | 1 | 2 | 3 | 2 | 2 | 4 | 4 | 5 | 5 | **7** (dygn 43) | 60 | 455 |
-| Enbart manuell | 2 | 2 | 3 | 3 | 3 | 4 | 8 | 5 | 5 | **8** (dygn 53) | 64 | 498 |
-| Låg | 2 | 2 | 5 | 3 | 3 | 4 | 8 | 5 | 8 | **11** (dygn 76) | 80 | 522 |
-| Utan träning | 1 | 3 | 6 | 2 | 3 | 4 | 4 | 5 | 9 | **12** (dygn 82) | 60 | 431 |
-| Ingen | – | – | – | – | – | – | – | 6 | – | – | 60 | 240 |
+| Hög | 1 | 1 | 2 | 2 | 2 | 3 | 4 | 4 | 4 | **6** (dygn 36) | 72 | 460 |
+| Normal | 1 | 1 | 3 | 2 | 2 | 3 | 4 | 4 | 5 | **7** (dygn 45) | 72 | 460 |
+| Enbart manuell | 2 | 2 | 4 | 3 | 3 | 3 | 8 | 4 | 6 | **8** (dygn 53) | 72 | 551 |
+| Låg | 2 | 2 | 5 | 3 | 4 | 3 | 8 | 4 | 8 | **11** (dygn 74) | 84 | 551 |
+| Utan träning | 1 | 2 | 5 | 2 | 3 | 4 | 4 | 4 | 8 | **11** (dygn 77) | 68 | 460 |
+| Ingen | – | – | – | – | – | – | – | 6 | – | – | 60 | 242 |
 
 *Dagsproduktion* är samma viktade balansmått som i ekonomi v1 och visas aldrig för spelaren.
 
 - **Enbart manuell inmatning når milstolpen vecka 8,** inom 6–10 veckor.
   Det som tar tid är dimman över innerhavet, eftersom promenaderna ger 300 Utforskning i veckan.
 - **Normal och hög egenvård skiljer en vecka.**
-  Hög egenvård når kasen sex dygn tidigare och med fler bybor; mer än så blir det inte, eftersom plank och vadmal till etapperna också tar tid.
+  Hög egenvård når kasen nio dygn tidigare; mer än så blir det inte, eftersom plank och vadmal till etapperna också tar tid.
   Det är D-34 i praktiken: mer egenvård syns alltid, men den köper inte hela epoken.
 - **Låg egenvård når milstolpen senare, utan straff.**
   Inget förfaller under någon körning; kalkylen kontrollerar varje timme att bybor, byggnader, nivåer, upptäckta platser, forskning och etapper aldrig minskar och att inga lager eller saldon blir negativa (HLT-06, INV-V1, INV-R1, INV-F1).
   Den låga profilen bygger alla tre etapperna med handkraft och lägger sin Byggkraft på bryggor, långhus och uppgraderingar.
   När kasen tänds har den en större by än de andra, eftersom byn hunnit växa längre.
-- **Utan träning nås milstolpen vecka 12,** med handkraft för bryggor, väveri och alla tre etapperna (D-65).
+- **Utan träning nås milstolpen vecka 11,** med handkraft för bryggor, väveri och alla tre etapperna (D-65).
   Utan handkraft skulle den spelaren aldrig få en sjöväg till Nyön, och den låga profilen skulle inte nå elden på 20 veckor.
 - **Utan egenvård nås milstolpen inte,** men världen står still utan att förfalla (D-17).
   Byn växer ändå till 60 bybor med stugor, och dagsverket på grundnivån ger ett beslut varje morgon.
@@ -146,17 +148,17 @@ Varje vecka har minst ett beslut om var en kraft ska riktas och minst ett val me
 
 | Vecka | Normal | Enbart manuell | Veckans tunga val |
 |---|---|---|---|
-| 1 | Turen, kartläggning av närområdet och kusten, sågverk, expedition till Nyön | Turen, kartläggning, sågverk; Utforskningen sparas till expeditionen | Närområdet eller havet (ekonomi v1, beslut 1–2) |
-| 2 | Bryggor på Nyön och Ytterön, väveri, Runstenen, expedition till Ytterön, första uppgraderingen | Expedition till Nyön, brygga på Nyön, väveri, Runstenen, första forskningssteget | Byggkraft till sjöväg, väveri eller långhus; forskningens första inriktning |
-| 3 | Grunden, forskningssteg, dimman | Grunden, expedition till Ytterön, långhus | Spara till grunden eller bygga nu |
-| 4 | Forskningssteg, dimman, Byggkraft sparas till stommen | Forskningssteg, dimman | Vilken inriktning; vilka dimbrickor först |
-| 5 | Stommen | Stommen | Plank till stommen, forskning eller uppgraderingar |
-| 6 | Dimman över innerhavet, Byggkraft sparas till elden | Dimman, Byggkraft sparas | Spara till elden eller uppgradera; vilken flaskhals får dagsverket |
+| 1 | Turen, kartläggning av närområdet och kusten, sågverk, väveri, expedition till Nyön och brygga där | Turen, kartläggning, sågverk, väveri, långhus; Utforskningen sparas till expeditionen | Närområdet eller havet (ekonomi v1, beslut 1–2); var förråd och huggarkojor står |
+| 2 | Expedition till Ytterön och brygga där, Runstenen, första forskningssteget | Expedition till Nyön, brygga på Nyön, Runstenen, första forskningssteget, första uppgraderingen | Byggkraft till sjöväg eller långhus; forskningens första inriktning |
+| 3 | Grunden, långhus, forskningssteg, dimman | Expedition till Ytterön, brygga på Ytterön, forskningssteg | Spara till grunden eller bygga nu |
+| 4 | Dimman, Byggkraft sparas till stommen | Grunden, forskningssteg, dimman | Vilken inriktning; vilka dimbrickor först |
+| 5 | Stommen, forskningssteg | Dimman, Byggkraft sparas till stommen | Plank till stommen, forskning eller uppgraderingar |
+| 6 | Dimman över innerhavet, Byggkraft sparas till elden | Stommen, forskningssteg | Spara till elden eller uppgradera; vilken flaskhals får dagsverket |
 | 7 | **Elden: Vårdkasen tänds** | Dimman närmar sig innerhavet | Var dimman lyfts mot innerhavet; fynden avgörs i M5 |
 | 8 | Epok 2 | **Elden: Vårdkasen tänds** | |
 
 Dagsverke och rustning används varje vecka i alla profiler.
-Vecka 6 och 7 för enbart manuell inmatning är de tunnaste: spelaren väntar in Utforskning till dimman.
+Vecka 5 och 7 för enbart manuell inmatning är de tunnaste: spelaren väntar in Utforskning till dimman.
 Fynden i dimman (M5) ska ge just de veckorna egna beslut, se [avsnitt 8](#8-kvar-att-avgöra-i-m5).
 
 ## 6. Efter milstolpen
@@ -186,7 +188,7 @@ I den första veckan ger den rätt summa, men när passen fortsätter vecka efte
 | Regel v0.1, vecka 10 | 100 | 180 | 240 | 200 | 125 | **0** | **0** |
 | Rättad regel, vecka 10 | 100 | 190 | 270 | 320 | 345 | 345 | 345 |
 
-Med regel v0.1 når hög egenvård milstolpen först vecka 11, efter normal egenvård vecka 8.
+Med regel v0.1 når hög egenvård milstolpen först vecka 11, efter normal egenvård vecka 7.
 Produktägaren har valt att rätta regeln (D-63): ett spelardygn med pass ger kurvans värde för passen under de sju senaste spelardygnen, minus den Byggkraft som de sex föregående spelardygnen redan gav, dock aldrig under noll.
 Varje rullande vecka ger då exakt kurvans värde, vilodagar kostar fortfarande inget och det finns ingen fast veckodag.
 Den rättade regeln står i [forces.md](./forces.md#träningspass--byggkraft-rullande-sju-spelardygn) avsnitt 3 och i `ForceRules.BuildPower`.
