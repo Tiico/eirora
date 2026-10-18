@@ -53,6 +53,7 @@ builder.Services.AddSingleton(ExternalProviders.FromConfiguration(builder.Config
 builder.Services.AddScoped<ExternalTokenValidator>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddOptions<AppleOptions>().Bind(builder.Configuration.GetSection("SignIn:Apple"));
+builder.Services.AddOptions<WebSignInOptions>().Bind(builder.Configuration.GetSection("SignIn:Web"));
 builder.Services.AddHttpClient<AppleIdClient>(http => http.BaseAddress = new Uri(AppleIdClient.Audience + "/"));
 builder.Services.AddHostedService<TokenPruning>();
 
@@ -78,6 +79,7 @@ if (args is ["migrate"])
 }
 
 app.UseForwardedHeaders();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -85,6 +87,8 @@ app.MapHealthChecks("/health");
 app.MapGet("/api/info", () => new ServerInfo(RulesVersion.Current));
 app.MapTokenEndpoint();
 app.MapAccountEndpoints();
+app.MapAppleWebCallback();
+app.MapDeletionPage();
 
 await app.RunAsync();
 

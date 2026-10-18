@@ -171,6 +171,14 @@ public sealed partial class AccountService(
         return DeleteResult.Deleted;
     }
 
+    /// <summary>
+    /// Deletes the account a fresh sign-in belongs to, as on the web page where no other session exists (ADR-0008).
+    /// </summary>
+    public async Task<DeleteResult> DeleteByLoginAsync(ExternalIdentity confirmation, string? appleAuthorizationCode, CancellationToken cancellationToken) =>
+        await FindAccountIdAsync(confirmation, cancellationToken) is { } accountId
+            ? await DeleteAsync(accountId, confirmation, appleAuthorizationCode, cancellationToken)
+            : DeleteResult.NotFound;
+
     private async Task<Guid?> FindAccountIdAsync(ExternalIdentity identity, CancellationToken cancellationToken) =>
         await db.AccountLogins
             .Where(l => l.Provider == identity.Provider && l.Subject == identity.Subject)
