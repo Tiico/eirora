@@ -13,8 +13,8 @@ using UnityEngine;
 namespace Eirora.Editor
 {
     /// <summary>
-    /// Fails every Android APK build, local or in CI, whose Health Connect adapter is missing or whose permissions break
-    /// ADR-0007 and D-70: AGP 9 skips the Kotlin sources without any error unless gradle.properties turns built-in
+    /// Fails every Android build, APK or app bundle, local or in CI, whose Health Connect adapter is missing or whose
+    /// permissions break ADR-0007 and D-70: AGP 9 skips the Kotlin sources without any error unless gradle.properties turns built-in
     /// Kotlin on, and the game reads steps, exercise and sleep only, never in the background, never history or writes.
     /// </summary>
     public sealed class AndroidHealthCheck : IPostprocessBuildWithReport
@@ -32,22 +32,22 @@ namespace Eirora.Editor
 
         public void OnPostprocessBuild(BuildReport report)
         {
-            string apk = report.summary.outputPath;
-            if (report.summary.platform != BuildTarget.Android || !apk.EndsWith(".apk", StringComparison.OrdinalIgnoreCase) || !File.Exists(apk))
+            string package = report.summary.outputPath;
+            if (report.summary.platform != BuildTarget.Android || !(IsApk(package) || IsBundle(package)) || !File.Exists(package))
             {
                 return;
             }
 
             var problems = new List<string>();
-            if (!ApkContainsClass(apk, BridgeClass))
+            if (!PackageContainsClass(package, BridgeClass))
             {
-                problems.Add($"{BridgeClass} is not in the APK: the Kotlin sources in HealthConnect.androidlib were not compiled");
+                problems.Add($"{BridgeClass} is not in {Path.GetFileName(package)}: the Kotlin sources in HealthConnect.androidlib were not compiled");
             }
 
-            problems.AddRange(PermissionProblems(ApkPermissions(apk)));
+            problems.AddRange(PermissionProblems(PackagePermissions(package)));
             if (problems.Count > 0)
             {
-                throw new BuildFailedException("The APK breaks Eirora's Health Connect guarantees:\n" + string.Join("\n", problems));
+                throw new BuildFailedException($"{Path.GetFileName(package)} breaks Eirora's Health Connect guarantees:\n" + string.Join("\n", problems));
             }
         }
 
@@ -65,12 +65,15 @@ namespace Eirora.Editor
             }
         }
 
-        /// <summary>Whether any classes*.dex in the APK defines <paramref name="className"/>, by its type descriptor.</summary>
-        public static bool ApkContainsClass(string apk, string className)
+        /// <summary>
+        /// Whether any classes*.dex in the APK, or in any module of the app bundle, defines <paramref name="className"/>,
+        /// by its type descriptor.
+        /// </summary>
+        public static bool PackageContainsClass(string package, string className)
         {
             var descriptor = System.Text.Encoding.ASCII.GetBytes("L" + className.Replace('.', '/') + ";");
-            using var archive = ZipFile.OpenRead(apk);
-            foreach (var entry in archive.Entries.Where(e => e.FullName.StartsWith("classes", StringComparison.Ordinal) && e.FullName.EndsWith(".dex", StringComparison.Ordinal)))
+            using var archive = ZipFile.OpenRead(package);
+            foreach (var entry in archive.Entries.Where(e => e.Name.StartsWith("classes", StringComparison.Ordinal) && e.Name.EndsWith(".dex", StringComparison.Ordinal)))
             {
                 using var stream = entry.Open();
                 using var memory = new MemoryStream();
@@ -84,28 +87,54 @@ namespace Eirora.Editor
             return false;
         }
 
-        /// <summary>The uses-permission names in an APK, read with aapt2 from Unity's Android SDK.</summary>
-        public static IReadOnlyList<string> ApkPermissions(string apk)
+        /// <summary>
+        /// The uses-permission names in an APK, read with aapt2 from Unity's Android SDK, or in an app bundle's base
+        /// manifest, read with the bundletool that Unity's Android support ships.
+        /// </summary>
+        public static IReadOnlyList<string> PackagePermissions(string package)
         {
-            var buildTools = Path.Combine(AndroidExternalToolsSettings.sdkRootPath, "build-tools");
-            var aapt2 = Directory.GetDirectories(buildTools).OrderByDescending(d => d, StringComparer.Ordinal)
-                .Select(d => Path.Combine(d, Application.platform == RuntimePlatform.WindowsEditor ? "aapt2.exe" : "aapt2"))
-                .First(File.Exists);
-            var start = new ProcessStartInfo(aapt2, $"dump permissions \"{apk}\"") { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
-            using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start aapt2");
+            IEnumerable<string> permissions;
+            if (IsBundle(package))
+            {
+                // Prints one permission name per line.
+                var tools = Path.Combine(BuildPipeline.GetPlaybackEngineDirectory(BuildTarget.Android, BuildOptions.None), "Tools");
+                var bundletool = Directory.GetFiles(tools, "bundletool-all-*.jar").OrderByDescending(f => f, StringComparer.Ordinal).First();
+                var java = Path.Combine(AndroidExternalToolsSettings.jdkRootPath, "bin", Application.platform == RuntimePlatform.WindowsEditor ? "java.exe" : "java");
+                permissions = Run(java, $"-jar \"{bundletool}\" dump manifest --bundle \"{package}\" --xpath /manifest/uses-permission/@android:name")
+                    .Select(line => line.Trim())
+                    .Where(line => line.Length > 0);
+            }
+            else
+            {
+                // Lines look like: uses-permission: name='android.permission.health.READ_STEPS'
+                var buildTools = Path.Combine(AndroidExternalToolsSettings.sdkRootPath, "build-tools");
+                var aapt2 = Directory.GetDirectories(buildTools).OrderByDescending(d => d, StringComparer.Ordinal)
+                    .Select(d => Path.Combine(d, Application.platform == RuntimePlatform.WindowsEditor ? "aapt2.exe" : "aapt2"))
+                    .First(File.Exists);
+                permissions = Run(aapt2, $"dump permissions \"{package}\"")
+                    .Where(line => line.StartsWith("uses-permission", StringComparison.Ordinal))
+                    .Select(line => line.Substring(line.IndexOf('\'') + 1).TrimEnd('\r', '\'', ' '));
+            }
+
+            return permissions.OrderBy(p => p, StringComparer.Ordinal).ToList();
+        }
+
+        private static bool IsApk(string path) => path.EndsWith(".apk", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsBundle(string path) => path.EndsWith(".aab", StringComparison.OrdinalIgnoreCase);
+
+        private static string[] Run(string tool, string arguments)
+        {
+            var start = new ProcessStartInfo(tool, arguments) { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
+            using var process = Process.Start(start) ?? throw new InvalidOperationException($"Could not start {tool}");
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
             if (process.ExitCode != 0)
             {
-                throw new InvalidOperationException($"aapt2 exited with {process.ExitCode}");
+                throw new InvalidOperationException($"{Path.GetFileName(tool)} exited with {process.ExitCode}");
             }
 
-            // Lines look like: uses-permission: name='android.permission.health.READ_STEPS'
-            return output.Split('\n')
-                .Where(line => line.StartsWith("uses-permission", StringComparison.Ordinal))
-                .Select(line => line.Substring(line.IndexOf('\'') + 1).TrimEnd('\r', '\'', ' '))
-                .OrderBy(p => p, StringComparer.Ordinal)
-                .ToList();
+            return output.Split('\n');
         }
 
         private static int IndexOf(byte[] haystack, byte[] needle)

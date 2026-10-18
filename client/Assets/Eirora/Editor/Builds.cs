@@ -13,16 +13,36 @@ using Debug = UnityEngine.Debug;
 namespace Eirora.Editor
 {
     /// <summary>
-    /// Local player builds: an Android APK for the product owner's phone and a Windows player for the screenshot tour.
-    /// CI builds with GameCI's default build, but with the same version rule and signing key, so a local APK and a CI
-    /// APK can update each other without losing the world (TASK-014).
+    /// Local player builds: an Android APK for the product owner's phone, the app bundle that Google Play takes, and a
+    /// Windows player for the screenshot tour. CI builds with GameCI's default build, but with the same version rule
+    /// and signing key, so a local APK and a CI APK can update each other without losing the world (TASK-014).
     /// </summary>
     /// <remarks>
     /// Run: Unity -batchmode -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android -buildOutput Builds/Eirora.apk
     /// </remarks>
     public static class Builds
     {
-        public static void Android() => Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.apk");
+        public static void Android()
+        {
+            EditorUserBuildSettings.buildAppBundle = false;
+            Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.apk");
+        }
+
+        /// <summary>
+        /// The app bundle that CI uploads to Google Play from main (D-75), to check locally what Google Play gets.
+        /// </summary>
+        public static void AndroidBundle()
+        {
+            EditorUserBuildSettings.buildAppBundle = true;
+            try
+            {
+                Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.aab");
+            }
+            finally
+            {
+                EditorUserBuildSettings.buildAppBundle = false;
+            }
+        }
 
         public static void Windows() => Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe");
 
