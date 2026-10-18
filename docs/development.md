@@ -79,10 +79,11 @@ client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-f
 
 Prestanda och batteri mäts på telefonen med mätscenen (`-eirora-measure day|night`) och skriptet i `tools/device-measurements/`, enligt [mätningar på enhet](./design/device-measurements.md).
 
-Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-0006](./adr/0006-saves-are-migrated-snapshots.md)): segmentets start-snapshot, journalen sedan dess och den senaste snapshoten, med en hash över allt.
-Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`; är sparningen skadad laddas reservfilen och den skadade läggs undan som `.damaged`.
+Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-0006](./adr/0006-saves-are-migrated-snapshots.md)): segmentets start-snapshot, journalen sedan dess och den senaste snapshoten, med en hash över allt, rubriken med formatversionen inräknad.
+Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`.
+Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
 En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
-En journalfil från prototypen i M1 (`world.journal`) tas över en gång och behålls som `world.journal.taken-over`.
+En journalfil från prototypen i M1 (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
 
 ### Migrationer och gyllene sparningar
 
@@ -201,5 +202,5 @@ Utan dem signeras ett lokalt bygge med datorns debugnyckel och kan inte installe
 
 Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
 Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
-Klienten sparar journalen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
-En journal från en annan regelversion laddas inte och skrivs aldrig över; appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
+Klienten sparar världen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
+En sparning från äldre regler migreras; en från en nyare version laddas inte och skrivs aldrig över, och appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).

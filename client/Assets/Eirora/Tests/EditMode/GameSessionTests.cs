@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using Eirora.Client.App;
 using Eirora.Simulation;
@@ -53,6 +54,24 @@ namespace Eirora.Client.Tests
             Assert.That(second.World!.Fingerprint(), Is.EqualTo(first.World!.Fingerprint()));
         }
 
+        // On the phone File.Replace renames the save to the backup and then the new file to the save, so a crash between
+        // the two leaves only the backup.
+        [Test]
+        public void ASwapCutOffAfterTheSaveBecameTheBackupLoadsTheBackup()
+        {
+            var session = Played();
+            string beforeLastCommand = session.World!.Fingerprint();
+            session.Apply(new Survey());
+            File.Move(SavePath, SavePath + ".tmp");
+
+            var second = Session();
+
+            Assert.That(second.TryLoad(), Is.True);
+            Assert.That(second.World!.Fingerprint(), Is.EqualTo(beforeLastCommand));
+            second.Apply(new Survey());
+            Assert.That(Session().TryLoad(), Is.True);
+        }
+
         [Test]
         public void ADamagedSaveFallsBackToTheBackupAndIsKept()
         {
@@ -76,7 +95,8 @@ namespace Eirora.Client.Tests
         {
             Played();
             string text = File.ReadAllText(SavePath);
-            string newer = "eirora-save 999" + text.Substring(text.IndexOf('\n'));
+            string body = text.Substring(text.IndexOf('\n', text.IndexOf('\n') + 1) + 1);
+            string newer = Sealed("eirora-save 999\n", body);
             File.WriteAllText(SavePath, newer);
 
             var session = Session();
@@ -93,12 +113,50 @@ namespace Eirora.Client.Tests
             var session = Session();
             session.TryLoad();
 
-            string? aside = session.SetAsideSave();
+            var aside = session.SetAsideSave();
             session.Begin(Night);
 
             Assert.That(session.LoadProblem, Is.Null);
-            Assert.That(File.ReadAllText(aside!), Is.EqualTo("not a save"));
+            Assert.That(aside, Has.Count.EqualTo(1));
+            Assert.That(File.ReadAllText(aside[0]), Is.EqualTo("not a save"));
             Assert.That(Session().TryLoad(), Is.True);
+        }
+
+        [Test]
+        public void StartingAnewKeepsAnUnreadableBackupAsideToo()
+        {
+            File.WriteAllText(SavePath, "not a save");
+            File.WriteAllText(SavePath + ".bak", "not a backup");
+            var session = Session();
+            Assert.That(session.TryLoad(), Is.False);
+            Assert.That(session.LoadProblem, Is.EqualTo(SaveProblem.Damaged));
+
+            var aside = session.SetAsideSave();
+            session.Begin(Night);
+            session.Apply(new Workday("O1"));
+
+            Assert.That(aside.Select(File.ReadAllText), Is.EquivalentTo(new[] { "not a save", "not a backup" }));
+        }
+
+        // Taking over writes the save like any other, so a crash mid-write leaves the journal to be taken over again.
+        [Test]
+        public void ATakeOverCutOffMidWriteIsTakenOverAgain()
+        {
+            var journal = Journal.Start(Clock().Now(), Night);
+            journal.Apply("survey", new Survey());
+            File.WriteAllText(Path.Combine(_folder, GameSession.PrototypeJournalFile), journal.ToText());
+            Assert.That(Session().TryLoad(), Is.True);
+            byte[] complete = File.ReadAllBytes(SavePath);
+            File.Delete(SavePath);
+            File.Delete(SavePath + ".bak");
+            File.Move(Path.Combine(_folder, GameSession.PrototypeJournalFile + ".taken-over"), Path.Combine(_folder, GameSession.PrototypeJournalFile));
+            File.WriteAllBytes(SavePath, complete.Take(complete.Length / 2).ToArray());
+
+            var session = Session();
+
+            Assert.That(session.TryLoad(), Is.True);
+            Assert.That(session.World!.Fingerprint(), Is.EqualTo(journal.World.Fingerprint()));
+            Assert.That(Directory.GetFiles(_folder, "*.damaged"), Has.Length.EqualTo(1));
         }
 
         [Test]
@@ -118,7 +176,15 @@ namespace Eirora.Client.Tests
             Assert.That(File.ReadAllText(journalPath + ".taken-over", Encoding.UTF8), Is.EqualTo(journal.ToText()));
         }
 
-        private static FixedClock Clock() => new(new TimeReading(1_792_000_000, "Europe/Stockholm", 7200));
+        /// <summary>A save's frame around <paramref name="body"/>, as a newer app would write it.</summary>
+        private static string Sealed(string header, string body)
+        {
+            using var sha256 = SHA256.Create();
+            byte[] hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(header + body));
+            return $"{header}sha256 {BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant()}\n{body}";
+        }
+
+        private static FixedClock Clock() =>new(new TimeReading(1_792_000_000, "Europe/Stockholm", 7200));
 
         private GameSession Session() => new(Clock(), SavePath);
 

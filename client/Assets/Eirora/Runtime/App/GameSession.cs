@@ -38,8 +38,8 @@ namespace Eirora.Client.App
         private readonly IClock _clock;
         private readonly string? _savePath;
         private readonly List<GameEvent> _sinceDawn = new();
+        private readonly List<string> _unreadable = new();
         private Save? _save;
-        private string? _problemPath;
         private bool _syncing;
 
         /// <param name="savePath">Where the save lives, or null to keep the world in memory only.</param>
@@ -71,19 +71,18 @@ namespace Eirora.Client.App
         public bool TryLoad()
         {
             LoadProblem = null;
-            _problemPath = null;
+            _unreadable.Clear();
             if (_savePath is null)
             {
                 return false;
             }
 
-            if (File.Exists(_savePath))
-            {
-                _save = LoadSave(_savePath);
-            }
-            else if (File.Exists(PrototypeJournalPath))
+            _save = LoadSaveOrBackup();
+            bool takingOver = false;
+            if (_save is null && LoadProblem != SaveProblem.FromNewerVersion && File.Exists(PrototypeJournalPath))
             {
                 _save = TakeOverPrototypeJournal(PrototypeJournalPath!);
+                takingOver = _save is not null;
             }
 
             if (_save is null)
@@ -91,9 +90,17 @@ namespace Eirora.Client.App
                 return false;
             }
 
+            // What could not be read is kept for troubleshooting, out of the way of the next save.
+            SetAside(_unreadable, "damaged");
+            LoadProblem = null;
             if (_save.ChangedOnLoad)
             {
                 Save();
+            }
+
+            if (takingOver)
+            {
+                File.Move(PrototypeJournalPath!, PrototypeJournalPath + ".taken-over");
             }
 
             CatchUp();
@@ -101,19 +108,13 @@ namespace Eirora.Client.App
         }
 
         /// <summary>
-        /// Moves a save that could not be loaded aside under a dated name, so a new world can begin without losing it.
+        /// Moves what could not be loaded aside under dated names, so a new world can begin without losing or
+        /// overwriting it; returns where it went.
         /// </summary>
-        public string? SetAsideSave()
+        public IReadOnlyList<string> SetAsideSave()
         {
-            if (_problemPath is null || !File.Exists(_problemPath))
-            {
-                return null;
-            }
-
-            string aside = $"{_problemPath}.{DateTime.UtcNow:yyyyMMdd-HHmmss}.unreadable";
-            File.Move(_problemPath, aside);
+            var aside = SetAside(_unreadable, "unreadable");
             LoadProblem = null;
-            _problemPath = null;
             return aside;
         }
 
@@ -227,63 +228,72 @@ namespace Eirora.Client.App
         }
 
         /// <summary>
-        /// Loads the save, or its backup when the save is damaged; the damaged save is set aside for troubleshooting.
+        /// Loads the save, or the backup when the save is damaged or missing: on the phone a swap cut off between its two
+        /// renames leaves only the backup. A save from a newer version stops the search, since an older backup would
+        /// later overwrite it. Anything that cannot be read is remembered.
         /// </summary>
-        private Save? LoadSave(string path)
+        private Save? LoadSaveOrBackup()
         {
-            try
+            foreach (string path in new[] { _savePath!, BackupPath! })
             {
-                return Simulation.Saving.Save.Load(File.ReadAllBytes(path));
-            }
-            catch (SavedByNewerVersionException)
-            {
-                return Problem(SaveProblem.FromNewerVersion, path);
-            }
-            catch (FormatException)
-            {
-                string backup = BackupPath!;
-                if (File.Exists(backup))
+                if (!File.Exists(path))
                 {
-                    try
-                    {
-                        var restored = Simulation.Saving.Save.Load(File.ReadAllBytes(backup));
-                        File.Move(path, $"{path}.{DateTime.UtcNow:yyyyMMdd-HHmmss}.damaged");
-                        File.Copy(backup, path);
-                        return restored;
-                    }
-                    catch (FormatException)
-                    {
-                        // Neither can be read; both stay as they are.
-                    }
+                    continue;
                 }
 
-                return Problem(SaveProblem.Damaged, path);
+                try
+                {
+                    return Simulation.Saving.Save.Load(File.ReadAllBytes(path));
+                }
+                catch (SavedByNewerVersionException)
+                {
+                    _unreadable.Add(path);
+                    LoadProblem = SaveProblem.FromNewerVersion;
+                    return null;
+                }
+                catch (FormatException)
+                {
+                    _unreadable.Add(path);
+                    LoadProblem = SaveProblem.Damaged;
+                }
             }
+
+            return null;
         }
 
-        /// <summary>Takes over a prototype journal from M1 once and keeps it under another name (ADR-0006).</summary>
+        /// <summary>
+        /// Replays a prototype journal from M1 (ADR-0006). It is renamed only once the save it became is written, so a
+        /// take-over cut off midway is done again.
+        /// </summary>
         private Save? TakeOverPrototypeJournal(string path)
         {
-            Save save;
             try
             {
-                save = Simulation.Saving.Save.FromPrototypeJournal(File.ReadAllText(path));
+                return Simulation.Saving.Save.FromPrototypeJournal(File.ReadAllText(path));
             }
             catch (FormatException)
             {
-                return Problem(SaveProblem.Damaged, path);
+                _unreadable.Add(path);
+                LoadProblem = SaveProblem.Damaged;
+                return null;
             }
-
-            File.WriteAllBytes(_savePath!, save.ToBytes());
-            File.Move(path, path + ".taken-over");
-            return save;
         }
 
-        private Save? Problem(SaveProblem problem, string path)
+        private static List<string> SetAside(List<string> paths, string reason)
         {
-            LoadProblem = problem;
-            _problemPath = path;
-            return null;
+            var aside = new List<string>();
+            foreach (string path in paths)
+            {
+                if (File.Exists(path))
+                {
+                    string target = $"{path}.{DateTime.UtcNow:yyyyMMdd-HHmmss}.{reason}";
+                    File.Move(path, target);
+                    aside.Add(target);
+                }
+            }
+
+            paths.Clear();
+            return aside;
         }
 
         private void Remember(GameEvent gameEvent)
