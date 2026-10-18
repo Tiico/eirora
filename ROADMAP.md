@@ -371,8 +371,8 @@ M2 punkt 1 och 2 (reporstruktur och CI med kodanalys och beroendeskanning) lever
 | [ADR-0005](./docs/adr/0005-time-arrives-as-readings.md) | Tiden kommer in som avläsningar med tidszon och offset | Beslutat |
 | [ADR-0006](./docs/adr/0006-saves-are-migrated-snapshots.md) | Versionering av regler, innehåll och sparningar: sparningen är en snapshot som migreras framåt; gamla regler finns bara som frysta byggen | Beslutat |
 | [ADR-0007](./docs/adr/0007-own-health-connect-adapter.md) | Health Connect läses med en egen Kotlin-adapter bakom ett C#-gränssnitt, inte med HealthBridge (O-08, [TASK-007](https://github.com/Tiico/eirora/issues/8)) | Beslutat |
+| [ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md) | Backend som containrar med PostgreSQL, hemma till beta och i Azure Sverige vid release; egna konton via Apple och Google (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Beslutat |
 | kommande | Kartformat och generatorversion | Inför M3 |
-| kommande | Backend-hosting, auth och databas (O-09, [TASK-018](https://github.com/Tiico/eirora/issues/33)) | Inför M2 |
 | kommande | Komposition av arkipelag och handelsvalidering (O-04, O-10) | Inför M8 |
 
 ---
