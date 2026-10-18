@@ -4,6 +4,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Serialization;
 using Eirora.Simulation.Time;
@@ -25,13 +26,17 @@ namespace Eirora.Simulation
         private readonly SortedSet<(int Day, Habit Habit)> _unreconciled = new();
         private List<GameEvent> _events = new();
 
-        private World(DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
+        private World(WorldMap map, DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
         {
+            Map = map;
             Cycle = cycle;
             _forces = forces;
             _selfCare = selfCare;
             _settlement = settlement;
         }
+
+        /// <summary>The world's map, made once and never changed (ADR-0010).</summary>
+        public WorldMap Map { get; }
 
         public Phase Phase => Cycle.Phase;
 
@@ -66,14 +71,22 @@ namespace Eirora.Simulation
         /// Creates a world at the end of the guided tour. The rest schedule applies at once, even inside the rest
         /// window (D-50), and game day 0 began at local midnight (D-51).
         /// </summary>
-        public static World Create(TimeReading install, RestSchedule restSchedule)
+        /// <summary>Creates a world on the prototype's map, the only map until world generation (TASK-031).</summary>
+        public static World Create(TimeReading install, RestSchedule restSchedule) => Create(PrototypeHome.Map, install, restSchedule);
+
+        public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule)
         {
+            if (map is null)
+            {
+                throw new ArgumentNullException(nameof(map));
+            }
+
             if (!restSchedule.IsValid)
             {
                 throw new ArgumentException("The rest schedule must be 6–10 hours and start within the day.", nameof(restSchedule));
             }
 
-            var world = new World(DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found());
+            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found());
 
             // The guided tour's Dawn Power stands in for the first game day's baseline (D-45).
             world._selfCare.MarkCredited(0, Habit.Sleep, ForceRules.DawnPowerBaseline);
@@ -178,15 +191,21 @@ namespace Eirora.Simulation
             return writer.ToString();
         }
 
-        /// <summary>Reads a world written by <see cref="Write"/>.</summary>
-        internal static World Read(StateReader reader)
+        /// <summary>Reads a world written by <see cref="Write"/>, on the map its state names.</summary>
+        internal static World Read(StateReader reader, WorldMap map)
         {
             // In the order Write writes them.
+            reader.Expect("map");
+            if (!string.Equals(reader.Text(), map.Hash, StringComparison.Ordinal))
+            {
+                throw new FormatException("The world's state belongs to another map.");
+            }
+
             var cycle = DayCycle.Read(reader);
             var forces = ForceBalances.Read(reader);
             var settlement = Settlement.Read(reader);
             var selfCare = SelfCareLedger.Read(reader);
-            var world = new World(cycle, forces, selfCare, settlement);
+            var world = new World(map, cycle, forces, selfCare, settlement);
             while (reader.Next("unreconciled"))
             {
                 world._unreconciled.Add((reader.Int(), reader.Enum<Habit>()));
@@ -214,6 +233,7 @@ namespace Eirora.Simulation
         /// </summary>
         private void Write(StateWriter writer)
         {
+            writer.Line("map").Text(Map.Hash);
             Cycle.Write(writer);
             _forces.Write(writer);
             _settlement.Write(writer);

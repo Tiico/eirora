@@ -1,18 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Map;
+using Eirora.Simulation.Serialization;
 using Eirora.Simulation.Time;
 
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
-    /// A world's stored form on the device (GLOSSARY: Sparning, ADR-0006): the snapshot from when the world got its
-    /// current rules version, the journal since then and the latest snapshot, plus the previous segment until the next
-    /// rules change. Loading restores the latest snapshot; the journal lets a migration be redone and conflicts between
+    /// A world's stored form on the device (GLOSSARY: Sparning, ADR-0006): the world's map (ADR-0010), the snapshot from
+    /// when the world got its current rules version, the journal since then and the latest snapshot, plus the previous
+    /// segment until the next rules change. Loading restores the latest snapshot; the journal lets a migration be redone and conflicts between
     /// devices be resolved (TASK-023).
     /// </summary>
     /// <remarks>
@@ -25,18 +26,21 @@ namespace Eirora.Simulation.Saving
     public sealed class Save
     {
         /// <summary>The save container's format. Bumped when the sections or their encoding change.</summary>
-        public const int FormatVersion = 1;
+        /// <remarks>Format 2 added the map (TASK-029); a format 1 save is a world on the prototype's map.</remarks>
+        public const int FormatVersion = 2;
 
         private const string Magic = "eirora-save";
 
         private static readonly UTF8Encoding s_utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
+        private readonly WorldMap _map;
         private readonly SimulationSnapshot _start;
         private readonly Journal _journal;
         private readonly Segment? _previous;
 
-        private Save(SimulationSnapshot start, Journal journal, Segment? previous, bool changedOnLoad)
+        private Save(WorldMap map, SimulationSnapshot start, Journal journal, Segment? previous, bool changedOnLoad)
         {
+            _map = map;
             _start = start;
             _journal = journal;
             _previous = previous;
@@ -54,11 +58,14 @@ namespace Eirora.Simulation.Saving
         /// <summary>Whether a segment under earlier rules is kept, so a faulty migration can be redone.</summary>
         internal bool HasPreviousSegment => _previous is not null;
 
-        /// <summary>Creates a new world and its save.</summary>
-        public static Save Begin(TimeReading install, RestSchedule restSchedule)
+        /// <summary>Creates a new world on the prototype's map, and its save.</summary>
+        public static Save Begin(TimeReading install, RestSchedule restSchedule) => Begin(PrototypeHome.Map, install, restSchedule);
+
+        /// <summary>Creates a new world on <paramref name="map"/>, and its save.</summary>
+        public static Save Begin(WorldMap map, TimeReading install, RestSchedule restSchedule)
         {
-            var world = World.Create(install, restSchedule);
-            return new Save(SimulationSnapshot.Take(world), Journal.Continue(world), null, changedOnLoad: false);
+            var world = World.Create(map, install, restSchedule);
+            return new Save(world.Map, SimulationSnapshot.Take(world), Journal.Continue(world), null, changedOnLoad: false);
         }
 
         /// <summary>
@@ -69,7 +76,7 @@ namespace Eirora.Simulation.Saving
         public static Save FromPrototypeJournal(string text)
         {
             var prototype = Journal.Load(text, out var start);
-            return new Save(start, Journal.Resume(prototype.World, prototype.Inputs), null, changedOnLoad: true);
+            return new Save(prototype.World.Map, start, Journal.Resume(prototype.World, prototype.Inputs), null, changedOnLoad: true);
         }
 
         /// <summary>Restores the world from its latest snapshot, migrating it to the current rules if needed.</summary>
@@ -79,7 +86,8 @@ namespace Eirora.Simulation.Saving
 
         internal static Save Load(byte[] bytes, IReadOnlyList<StateMigration> migrations)
         {
-            var sections = Sections(bytes);
+            var sections = Sections(bytes, out int format);
+            var map = format > 1 ? WorldMap.Parse(Section(sections, "map")) : PrototypeHome.Map;
             var start = Snapshot(sections, "start");
             string inputs = Section(sections, "inputs");
             var latest = Snapshot(sections, "latest");
@@ -93,14 +101,14 @@ namespace Eirora.Simulation.Saving
                     $"The save has rules version {latest.Rules} and content version {latest.Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
             }
 
-            var world = latest.Restore(migrations);
+            var world = latest.Restore(map, migrations);
             if (latest.Rules == RulesVersion.Current)
             {
-                return new Save(start, Journal.Resume(world, inputs), previous, changedOnLoad: false);
+                return new Save(map, start, Journal.Resume(world, inputs), previous, changedOnLoad: format != FormatVersion);
             }
 
             // New rules begin a new segment at the migrated snapshot; the one that ended is kept (ADR-0006).
-            return new Save(SimulationSnapshot.Take(world), Journal.Continue(world), new Segment(start, inputs), changedOnLoad: true);
+            return new Save(map, SimulationSnapshot.Take(world), Journal.Continue(world), new Segment(start, inputs), changedOnLoad: true);
         }
 
         /// <summary>Lets simulation time pass and records it as the journal does.</summary>
@@ -117,6 +125,7 @@ namespace Eirora.Simulation.Saving
         {
             _journal.RecordNow();
             var body = new StringBuilder();
+            AppendSection(body, "map", _map.ToText());
             AppendSection(body, "start", Text(_start));
             AppendSection(body, "inputs", _journal.Inputs);
             AppendSection(body, "latest", Text(SimulationSnapshot.Take(World)));
@@ -132,9 +141,9 @@ namespace Eirora.Simulation.Saving
         }
 
         /// <summary>The world the current segment's start and journal lead to, for checking that they do.</summary>
-        internal World Replay() => Journal.Continue(_start.Restore(), _journal.Inputs).World;
+        internal World Replay() => Journal.Continue(_start.Restore(_map), _journal.Inputs).World;
 
-        private static Dictionary<string, string> Sections(byte[] bytes)
+        private static Dictionary<string, string> Sections(byte[] bytes, out int format)
         {
             if (bytes is null)
             {
@@ -167,7 +176,7 @@ namespace Eirora.Simulation.Saving
             }
 
             string version = text.Substring(Magic.Length + 1, magicEnd - Magic.Length - 1);
-            if (!int.TryParse(version, NumberStyles.None, CultureInfo.InvariantCulture, out int format) || format < 1)
+            if (!int.TryParse(version, NumberStyles.None, CultureInfo.InvariantCulture, out format) || format < 1)
             {
                 throw new FormatException($"'{version}' is not a save format.");
             }
@@ -209,18 +218,7 @@ namespace Eirora.Simulation.Saving
 
         private static string Text(SimulationSnapshot snapshot) => s_utf8.GetString(snapshot.ToBytes());
 
-        private static string Hash(string text)
-        {
-            using var sha256 = SHA256.Create();
-            byte[] hash = sha256.ComputeHash(s_utf8.GetBytes(text));
-            var hex = new StringBuilder(hash.Length * 2);
-            foreach (byte b in hash)
-            {
-                hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
-            }
-
-            return hex.ToString();
-        }
+        private static string Hash(string text) => Sha256.Of(text);
 
         /// <summary>A snapshot and the inputs recorded after it under the same rules.</summary>
         private readonly struct Segment

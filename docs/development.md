@@ -9,15 +9,17 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 |---|---|
 | `src/Eirora.Simulation/` | Motoroberoende, deterministisk simuleringskärna (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.simulation`. |
 | `src/Eirora.Contracts/` | Kontrakt mellan klient och server (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.contracts`. |
+| `src/Eirora.WorldGeneration/` | Kartgeneratorerna och deras slumpgenerator (netstandard2.1, C# 9, [ADR-0010](./adr/0010-world-map-format-and-generator-version.md)). Också Unity-paketet `com.eirora.worldgeneration`. |
 | `src/Eirora.Server/` | ASP.NET Core-backend (.NET 10) som äger det delade enligt ADR-0001. |
-| `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen, inklusive arkitekturtestet som håller den ren. |
+| `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen och kartgeneratorerna, inklusive arkitekturtestet som håller dem rena. |
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern. |
+| `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
 | `tools/` | Skript för utvecklare, till exempel [mätningar på enhet](./design/device-measurements.md). Ingår inte i CI. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
-Simuleringen och kontrakten byggs från samma källkod av både .NET och Unity.
+Simuleringen, kartgeneratorerna och kontrakten byggs från samma källkod av både .NET och Unity.
 Därför gäller C# 9 och netstandard2.1 där, och inga Unity-API:er; `dotnet build` och arkitekturtestet underkänner det som inte håller.
 
 ## Förutsättningar
@@ -115,6 +117,13 @@ När `RulesVersion` höjs läggs en `StateMigration` från den förra versionen 
 Gyllene sparningar ligger i `tests/Eirora.Simulation.Tests/Saving/Golden/`, en per regel- och formatversion, med det fingeravtryck som laddning med aktuell kod ska ge.
 Saknas den aktuella versionens gyllene sparning skapar testerna den och underkänner körningen, så att den granskas och checkas in; förväntade fingeravtryck ändras bara när regler eller migrationer ändras.
 
+### Kartor och gyllene kartor
+
+En världs karta skapas en gång och sparas hel i sparningen ([ADR-0010](./adr/0010-world-map-format-and-generator-version.md)).
+Generatorerna ligger i `src/Eirora.WorldGeneration`, och `WorldGenerators.All` listar varje version.
+Gyllene kartor ligger i `tests/Eirora.Simulation.Tests/WorldGeneration/Golden/`: `maps.txt` har hashen av kartan som varje generatorversion gör av några fasta seeds, och `prototype-home-1.map` är prototypens handgjorda karta i sin helhet.
+En låst generator ändras aldrig, så en hash som ändras underkänner bygget; en ny generatorversion får sina gyllene kartor skrivna av testerna första gången, för granskning och incheckning.
+
 ## Servern
 
 Servern behöver PostgreSQL 18, och kontona följer [ADR-0008](./adr/0008-backend-hosting-accounts-and-database.md).
@@ -160,7 +169,7 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning; på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/` eller workflowen, samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
+| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/` eller workflowen, samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
