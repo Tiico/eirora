@@ -1,37 +1,25 @@
-using System;
+using Eirora.Simulation.Map;
 using UnityEngine;
 
 namespace Eirora.Client.Look
 {
-    /// <summary>Axial hex coordinates (q, r) laid out pointy-top on the XZ plane.</summary>
-    public readonly struct Hex : IEquatable<Hex>
+    /// <summary>
+    /// Lays the simulation's hexes out pointy-top on the XZ plane. The geometry itself (distance, neighbours, paths)
+    /// lives in <see cref="Hex"/>, shared with the server (TASK-028); floats appear only here, for the look.
+    /// </summary>
+    public static class HexLayout
     {
         public const float Size = 1f;
         private static readonly float s_sqrt3 = Mathf.Sqrt(3f);
 
-        public Hex(int q, int r)
-        {
-            Q = q;
-            R = r;
-        }
-
-        public int Q { get; }
-
-        public int R { get; }
-
-        public Vector3 Center => new(Size * s_sqrt3 * (Q + (R / 2f)), 0f, -Size * 1.5f * R);
-
-        public int DistanceTo(Hex other)
-        {
-            int dq = Q - other.Q, dr = R - other.R;
-            return (Math.Abs(dq) + Math.Abs(dr) + Math.Abs(dq + dr)) / 2;
-        }
+        /// <summary>The hex's centre on the ground plane.</summary>
+        public static Vector3 Center(this Hex hex) => new(Size * s_sqrt3 * (hex.Q + (hex.R / 2f)), 0f, -Size * 1.5f * hex.R);
 
         /// <summary>The six corners at the given height, clockwise seen from above.</summary>
-        public Vector3[] Corners(float y, float scale = 1f)
+        public static Vector3[] Corners(this Hex hex, float y, float scale = 1f)
         {
             var corners = new Vector3[6];
-            var center = Center;
+            var center = hex.Center();
             for (int i = 0; i < 6; i++)
             {
                 float angle = Mathf.Deg2Rad * (90f - (60f * i));
@@ -48,12 +36,6 @@ namespace Eirora.Client.Look
             float r = -(2f / 3f * point.z) / Size;
             return Round(q, r);
         }
-
-        public bool Equals(Hex other) => Q == other.Q && R == other.R;
-
-        public override bool Equals(object? obj) => obj is Hex other && Equals(other);
-
-        public override int GetHashCode() => (Q * 397) ^ R;
 
         private static Hex Round(float q, float r)
         {

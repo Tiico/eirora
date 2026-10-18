@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using System.Collections.Generic;
 using System.Linq;
 using Eirora.Simulation;
@@ -45,7 +46,7 @@ namespace Eirora.Client.Look
                 {
                     if (_map.IsLand(tile.Key))
                     {
-                        Models.Fog(mesh, tile.Key.Center);
+                        Models.Fog(mesh, tile.Key.Center());
                     }
 
                     continue;
@@ -53,7 +54,7 @@ namespace Eirora.Client.Look
 
                 if (site is not null && !world.IsRevealed(site.Id))
                 {
-                    Models.Fog(mesh, tile.Key.Center + (Vector3.up * Models.Height(tile.Value)));
+                    Models.Fog(mesh, tile.Key.Center() + (Vector3.up * Models.Height(tile.Value)));
                     continue;
                 }
 
@@ -67,7 +68,7 @@ namespace Eirora.Client.Look
             foreach (var building in world.Buildings)
             {
                 var hex = IslandMap.HexOf(building.Site);
-                var c = hex.Center + (Vector3.up * Models.Height(_map.Tiles[hex]));
+                var c = hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex]));
                 Models.Building(mesh, lights, building.Kind, c, building.Level);
                 if (building.Staffed && world.Phase == Phase.Active)
                 {
@@ -81,7 +82,7 @@ namespace Eirora.Client.Look
                 var hex = IslandMap.HexOf(project.Site);
                 if (project.Kind == Simulation.Economy.ProjectKind.Build)
                 {
-                    Models.Scaffold(mesh, hex.Center + (Vector3.up * Models.Height(_map.Tiles[hex])));
+                    Models.Scaffold(mesh, hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex])));
                 }
             }
 
@@ -128,8 +129,8 @@ namespace Eirora.Client.Look
         /// <summary>The fairway between the jetties once ships sail, and the expedition's boat while it is out.</summary>
         private static void SeaRoute(MeshBuilder mesh, World world)
         {
-            var from = new Hex(1, 1).Center + new Vector3(1.2f, 0f, 0f);
-            var to = IslandMap.NyonCentre.Center - new Vector3(1.1f, 0f, 0f);
+            var from = new Hex(1, 1).Center() + new Vector3(1.2f, 0f, 0f);
+            var to = IslandMap.NyonCentre.Center() - new Vector3(1.1f, 0f, 0f);
             if (world.SeaRouteOpen)
             {
                 const int Dashes = 14;

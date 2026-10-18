@@ -43,6 +43,20 @@ dotnet format Eirora.slnx --verify-no-changes
 Varningar är fel, och `dotnet restore` underkänner paket med kända sårbarheter (NuGetAudit).
 Byggutdata hamnar i `artifacts/`.
 
+Prestandan i simuleringen mäts med BenchmarkDotNet i `benchmarks/`.
+CI bygger mätningarna men kör dem inte, eftersom tider på delade maskiner varierar för mycket för att underkänna ett bygge.
+Kör dem i Release när koden de mäter ändras:
+
+```bash
+dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --filter '*'
+```
+
+| Mätning | Budget på en utvecklardator | Senast uppmätt |
+|---|---|---|
+| Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
+
+Budgetarna på telefonen sätts i TASK-024.
+
 Unity-testerna (EditMode) körs headless:
 
 ```bash

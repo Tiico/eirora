@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using System.Collections;
 using System.IO;
 using System.Linq;
@@ -80,7 +81,7 @@ namespace Eirora.Client.App
             clock.Current = ScriptedWeek.At("2026-10-23 13:00");
             session.CatchUp();
             client.Refresh();
-            client.Focus(IslandMap.NyonCentre.Center + new Vector3(0.9f, 0f, -0.4f));
+            client.Focus(IslandMap.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
             Application.Quit();

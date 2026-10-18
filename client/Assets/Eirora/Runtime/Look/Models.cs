@@ -1,4 +1,5 @@
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using UnityEngine;
 
 namespace Eirora.Client.Look
@@ -43,14 +44,14 @@ namespace Eirora.Client.Look
 
             if (terrain == Terrain.Mountain)
             {
-                var c = hex.Center + (Vector3.up * top);
+                var c = hex.Center() + (Vector3.up * top);
                 mesh.Cone(c, 0.8f, 0.9f, 5, Color.Lerp(Palette.Mountain, Color.black, 0.05f), 0.3f);
                 mesh.Cone(c + new Vector3(0.38f, 0f, 0.3f), 0.5f, 0.55f, 5, Palette.Mountain, 1.1f);
                 mesh.Cone(c + (Vector3.up * 0.58f), 0.27f, 0.32f, 5, Palette.Snow, 0.3f);
             }
             else if (terrain == Terrain.Farmland)
             {
-                var c = hex.Center + (Vector3.up * (top + 0.01f));
+                var c = hex.Center() + (Vector3.up * (top + 0.01f));
                 for (int row = -1; row <= 1; row++)
                 {
                     var stripe = MeshBuilder.Rectangle(c + new Vector3(0f, 0f, row * 0.42f), 1.25f, 0.24f, 0f);
@@ -61,7 +62,7 @@ namespace Eirora.Client.Look
 
         public static void Trees(MeshBuilder mesh, Hex hex, int count, int seed)
         {
-            var c = hex.Center;
+            var c = hex.Center();
             for (int i = 0; i < count; i++)
             {
                 float a = (seed * 2.399f) + (i * 2.399f);
