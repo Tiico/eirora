@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # -I tar bort sk
 import economy_v1 as ev1  # noqa: E402
 from economy_v1 import (  # noqa: E402
     ACTIVE_HOURS, BEACH, FARMLAND, FOREST, GRASS, NAMES, SPECS, TILES, Building, Project, Spec, World,
-    add_island, pos)
+    add_island, coord)
 
 MAX_WEEKS = 20
 WEEK = 7
@@ -32,11 +32,11 @@ NAMES.update({
     "L4": (-2, 1), "L5": (0, 2), "L6": (-3, 0), "L7": (-1, -2), "L8": (0, -3), "L9": (0, 3),
     "L10": (2, 1), "L11": (-3, 2), "L12": (2, -3), "L13": (3, -3),
     "K3": (2, 0), "K4": (-2, 3),  # fiskevatten intill förråden
-    "V1": (0, -2),  # Vårdkasens plats; krönet följer av kartans höjd (ADR-0010)
+    "V1": ev1.CREST,  # Vårdkasen står på krönet, startöns enda högsta bricka (D-92)
     "N3": (10, 0), "N4": (9, 2),
     "Y0": (4, 8), "Y1": (5, 8), "Y2": (4, 9), "Y3": (3, 9), "Y4": (4, 7),
 })
-TILES[pos("N4")].richness = 1.5
+TILES[coord("N4")].richness = 1.5
 add_island("Ytterön", {(4, 8): BEACH, (4, 7): GRASS, (3, 8): GRASS, (3, 9): FARMLAND,
                        (5, 7): FOREST, (5, 8): FOREST, (6, 7): FOREST},
            richness={(5, 7): 1.5, (5, 8): 1.5, (6, 7): 1.5, (4, 9): 2.0, (3, 9): 1.5})
@@ -133,6 +133,9 @@ STAFF_ORDER = ["Förråd", "Brygga", "Väveri", "Sågverk", "Runsten", "Fårgår
                "Huggarkoja", "Åker", "Fiskebod"]
 FOOD_STAFF = ["Förråd", "Åker", "Fiskebod"]
 STAFF_FOOD_FIRST = FOOD_STAFF + [k for k in STAFF_ORDER if k not in FOOD_STAFF]
+# Matlager, i spelardygn av basbehov, under vilket bemanningen sätter maten först. Tre dygn räcker
+# för att hinna bemanna om fiskebodar och åkrar innan byborna går hungriga och tillväxten stannar.
+FOOD_DAYS_KEPT = 3
 
 
 class EpochWorld(World):
@@ -154,7 +157,7 @@ class EpochWorld(World):
     def staff(self):
         # Bemanningen är gratis planering (D-23): förädling och nya öar först, mat sist när
         # lagret räcker. Med byggplatser på brickor finns fler fiskebodar än byn kan bemanna.
-        food_first = self.stock["fisk"] + self.stock["säd"] < 3 * self.villagers
+        food_first = self.stock["fisk"] + self.stock["säd"] < FOOD_DAYS_KEPT * self.villagers
         order = STAFF_FOOD_FIRST if food_first else STAFF_ORDER
         for b in self.buildings:
             b.staffed = False
@@ -227,20 +230,20 @@ class EpochWorld(World):
     def pending(self, label):
         return super().pending(label) or any(p[1] == label for p in self.hand_projects)
 
-    def occupied(self, site):
-        return super().occupied(site) or any(p[1].endswith("@" + ev1.tag(pos(site))) for p in self.hand_projects)
+    def occupied(self, tile):
+        return super().occupied(tile) or any(p[1].endswith("@" + ev1.tag(coord(tile))) for p in self.hand_projects)
 
-    def build_kind(self, kind, site, reserve):
+    def build_kind(self, kind, tile, reserve):
         """Bygg med Byggkraft om den räcker utöver det som sparas, annars kanske med handkraft."""
         spec = SPECS[kind]
         if not spec.build_power:
-            return self.build(kind, site)
+            return self.build(kind, tile)
         if self.forces["B"] - spec.build_power >= reserve:
-            return self.decide(self.build(kind, site), kind)
+            return self.decide(self.build(kind, tile), kind)
         if kind in HAND_DAYS and self.use_hand(spec.build_power, HAND_DAYS[kind], reserve):
-            if not self.can_build(kind, site):
+            if not self.can_build(kind, tile):
                 return False
-            p = pos(site)
+            p = coord(tile)
             ok = self.by_hand(f"{kind}@{ev1.tag(p)}", spec.cost,
                               lambda: (self.buildings.append(Building(kind, p)), self.staff()))
             return self.decide(ok, f"{kind} med handkraft")
@@ -277,7 +280,7 @@ class EpochWorld(World):
         def done():
             self.beacon_stage += 1
             if self.beacon_stage == 1:
-                self.buildings.append(Building("Vårdkase", pos("V1")))
+                self.buildings.append(Building("Vårdkase", coord("V1")))
         if self.forces["B"] >= spec.build_power:
             if not self.pay(spec.cost, spec.build_power):
                 return False
@@ -331,40 +334,40 @@ def strategy(w: EpochWorld, day: int):
     w.build_stage()
     # Bostad: långhus när Byggkraften räcker, annars stuga (D-43).
     if w.housing() - w.villagers < 3:
-        for site in ["L1", "L2", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "N3", "Y4"]:
-            if w.occupied(site) or pos(site) not in w.revealed:
+        for tile in ["L1", "L2", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "N3", "Y4"]:
+            if w.occupied(tile) or coord(tile) not in w.revealed:
                 continue
-            if not w.build_kind("Långhus", site, reserve):
-                w.build("Stuga", site)
+            if not w.build_kind("Långhus", tile, reserve):
+                w.build("Stuga", tile)
             break
     # Ull och vadmal för snabbare tillväxt och för Elden.
     w.build("Fårgård", "N1")
     w.build("Stenbrott", "N2")
     w.build_kind("Väveri", "L3", reserve)
     # Mat för en växande by.
-    for kind, site in [("Fiskebod", "K2"), ("Åker", "O2"), ("Fiskebod", "N4"), ("Fiskebod", "K4"),
+    for kind, tile in [("Fiskebod", "K2"), ("Åker", "O2"), ("Fiskebod", "N4"), ("Fiskebod", "K4"),
                        ("Fiskebod", "K3"), ("Huggarkoja", "Y1"), ("Fiskebod", "Y2"), ("Åker", "Y3")]:
-        w.build(kind, site)
+        w.build(kind, tile)
     # Forskning när två öar är förbundna.
     if w.linked("Nyön"):
         w.build("Runsten", "L9")
     # Uppgraderingar med Byggkraft och plank som blir över när nästa etapp är säkrad.
     stage = w.next_stage()
     plank_kept = stage[1].cost.get("plank", 0) if stage else 0
-    for kind, site in [("Sågverk", "E2"), ("Stenbrott", "M2"), ("Fårgård", "N1"), ("Väveri", "L3")]:
+    for kind, tile in [("Sågverk", "E2"), ("Stenbrott", "M2"), ("Fårgård", "N1"), ("Väveri", "L3")]:
         if (w.forces["B"] - ev1.UPGRADE.build_power >= reserve + 60
                 and w.stock["plank"] - ev1.UPGRADE.cost["plank"] >= plank_kept):
-            w.decide(w.upgrade(kind, site), "Uppgradering")
+            w.decide(w.upgrade(kind, tile), "Uppgradering")
     # Forskning är gratis att starta när varorna finns (planering, D-23); fyra steg räcker till Elden.
     if w.research_done < 4 or stage is None:
         w.decide(w.research(), "Forskningssteg")
     # Gryningskraft: dagens flaskhals, forskningen först när den pågår.
-    for kind, site in [("Runsten", "L9"), ("Sågverk", "E2"), ("Stenbrott", "M2"), ("Fårgård", "N1"),
+    for kind, tile in [("Runsten", "L9"), ("Sågverk", "E2"), ("Stenbrott", "M2"), ("Fårgård", "N1"),
                        ("Väveri", "L3")]:
         if kind == "Runsten" and not w.research_left:
             continue
         if w.forces["G"] >= ev1.DAWN_WORKDAY_COST:
-            w.decide(w.workday(kind, site), "Dagsverke")
+            w.decide(w.workday(kind, tile), "Dagsverke")
     if w.forces["G"] >= ev1.DAWN_RUSH_COST:
         w.decide(w.rush(), "Rusta")
     # Utforskning som blir över: dimman bricka för bricka, men spara till nästa expedition.

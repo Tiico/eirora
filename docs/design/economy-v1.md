@@ -1,7 +1,7 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v0.2, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren  
-> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, O-02  
+> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, O-02, O-16  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
 
@@ -41,7 +41,7 @@ Mat har två oberoende källor, så ingen enskild flaskhals kan svälta byborna 
 
 ## 3. Byggnader
 
-| Byggnad | Kostnad | Arbete | Byggkraft | Bemanning | Effekt | Plats |
+| Byggnad | Kostnad | Arbete | Byggkraft | Bemanning | Effekt | Krav |
 |---|---|---|---|---|---|---|
 | Långhus | 10 timmer, 15 plank, 10 sten | 40 h | 60 | 0 | +8 bostadsplatser | Land |
 | Stuga | 15 timmer, 5 sten | 32 h | 0 | 0 | +4 bostadsplatser | Land |
@@ -63,16 +63,17 @@ En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 
 ### 3.1 Byggplatser
 
-Varje landbricka är en möjlig byggplats, och vad den duger till följer av terräng och grannar (D-79, D-82–D-85, [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
-Det finns inga namngivna platser; kolumnen *Plats* ovan är ett krav på brickan.
+Varje landbricka är en möjlig byggplats, och vad den duger till följer av terräng, höjd och grannar (D-79, D-88–D-93, [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
+Det finns inga namngivna platser; kolumnen *Krav* ovan säger vad brickan ska duga till.
 
 | Krav | Brickan | Byggnader |
 |---|---|---|
-| Land | Varje landbricka utom berg | Långhus, stuga, förråd, sågverk, väveri, utkiksvarde |
-| Skog | En landbricka utom berg som har skog på sig eller intill sig | Huggarkoja |
+| Land | Varje landbricka utom berg och krönet | Långhus, stuga, förråd, sågverk, väveri, utkiksvarde |
+| Skog | En landbricka utom berg och krönet med en upptäckt skogsbricka att fälla på eller intill sig | Huggarkoja |
 | Åker | Åkermark | Åker |
 | Bete | Betesmark | Fårgård |
-| Berg | Berg | Stenbrott |
+| Berg | Berg utom krönet | Stenbrott |
+| Krön | Startöns enda högsta bricka | Vårdkase ([epok 1](./epoch-1.md)) |
 | Fiskevatten | Grunt vatten intill land | Fiskebod, på pålar |
 | Hamnläge | En landbricka utom berg intill grunt vatten som når djuphavet | Brygga |
 
@@ -80,25 +81,32 @@ Det finns inga namngivna platser; kolumnen *Plats* ovan är ett krav på brickan
 - Huggarkojan når sin egen bricka och de sex grannarna och fäller de två rikaste skogsbrickorna som har timmer kvar.
   Timret räknas per skogsbricka, så två huggarkojor som når samma skog delar på den.
 - En skogsbricka som en annan byggnad står på fälls inte.
-  Att bygga i skogen är alltså ett val: platsen är fri, men skogen går inte längre att hugga.
-- Rikedomen hör till brickan: stenådern är ett rikt berg och urskogen rika skogsbrickor.
+  Att bygga i skogen är alltså ett val: brickan går att bygga på, men skogen går inte längre att hugga.
+- Skogskravet räknar bara skog som huggarkojan verkligen kan fälla: upptäckta skogsbrickor som ingen annan byggnad står på (D-93).
+  En huggarkoja kan alltså aldrig byggas där den inte ger något, och byggvyn avslöjar aldrig skog under dimman.
+- Rikedomen hör till brickan: stenådern är ett rikt berg, och av urskogens två skogsbrickor är den ena rik.
 - Höjden avgör i v1 bara krönet, där Vårdkasen byggs ([epok 1](./epoch-1.md)).
+  Krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg (D-92).
+  På `prototype-home-1` delar de två bergen (-4,0) och (3,-1) höjd 5; nästa version av kartan höjer det västra berget, så att stenådern förblir stenbrottets.
 - Byggregeln prövas när bygget läggs i kön.
   En byggnad som redan står kvar står kvar även på en bricka som inte längre duger, så regeländringen flyttar ingenting (INV-V1).
 
 Prototypens karta, `prototype-home` med samma land, vatten och terräng som klienten ritar (TASK-029), ger så här många byggplatser:
 
-| Ö | Landbrickor | Land | Skog | Åker | Bete | Berg | Fiskevatten | Hamnläge |
-|---|---|---|---|---|---|---|---|---|
-| Hemön | 46 | 44 | 37 | 2 | 1 | 2 | 35 | 29 |
-| Nyön | 7 | 6 | 6 | 0 | 1 | 1 | 12 | 5 |
+| Ö | Landbrickor | Land | Skog | Åker | Bete | Berg | Krön | Fiskevatten | Hamnläge |
+|---|---|---|---|---|---|---|---|---|---|
+| Hemön | 46 | 44 | 37 | 2 | 1 | 1 | 1 | 35 | 29 |
+| Nyön | 7 | 6 | 6 | 0 | 1 | 1 | 0 | 12 | 5 |
+
+*Skog* räknar brickorna med skog på eller intill sig när hela ön är upptäckt och obebyggd; under spelet duger färre (D-93).
 
 Det som i dag är kuliss blir riktig terräng, och det märks:
 
 - Huggarkojan i startbyn når två skogsbrickor, inte en, och ger 1 timmer/h från början.
-- Den rika skogen öster om byn är en enda skogsbricka och ger 0,5 timmer/h.
-- Nyöns mitt, där prototypen hade sitt hamnläge, når inte vattnet; bryggan byggs på stranden intill betet.
+- Skogen öster om byn, som prototypen räknade som tre skogsbrickor, är en enda skogsbricka och ger 0,5 timmer/h.
+- Nyöns mitt, där prototypen hade sitt hamnläge, är öns enda strand och når inte vattnet; bryggan byggs på en skogsbricka vid vattnet intill betet.
 - Hemön har bara två åkerbrickor och en betesbricka, så maten kommer från fiskevattnet.
+- Hemön har bara ett berg att bryta sten i, stenådern, eftersom det andra berget är krönet.
 
 ## 4. Bybor, basbehov och vila
 
@@ -132,15 +140,16 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 
 1. **Rikt och långt bort, eller fattigt och nära.**
    Rikt fiskevatten tre steg bort ger 1,5 × 75 % = 1,13 gånger en vanlig fiskebod intill förrådet.
-   En huggarkoja mitt i urskogen fäller två rika brickor, 1,25 timmer/h, men står två steg från förrådet och får fram 0,94.
-   Vid skogskanten intill förrådet når den en rik och en vanlig bricka, 1,13 timmer/h, och allt når fram; skogen tar då slut fortare, eftersom den bara når tre skogsbrickor.
-2. **Ett andra förråd eller vägar.**
+2. **Huggarkojan i skogen eller intill förrådet.**
+   I urskogen står huggarkojan på en skogsbricka och tar ingen mark nära förrådet, men den står två steg bort: av 1,13 timmer/h från den rika brickan och en vanlig når 0,84 fram.
+   Vid skogskanten intill förrådet når den samma två brickor och allt når fram, men den tar en bricka som ett långhus eller ett sågverk hade behövt.
+3. **Ett andra förråd eller vägar.**
    Ett förråd i ett produktionskluster lyfter alla byggnader runt omkring på en gång men kostar en bybo i bemanning.
    En väg kostar ingen bemanning men gäller bara en byggnad och kostar 2 sten per bricka.
-3. **Nyöns rikedom eller Hemöns närhet.**
+4. **Nyöns rikedom eller Hemöns närhet.**
    Nyöns stenåder och bete är dubbelt så rika, men allt måste över sjövägen, som bara rymmer 40 enheter per dygn.
-   Bryggan på stranden når bara det ena av dem direkt; det andra står två steg bort och får fram 75 % tills ett förråd byggs mitt på ön.
-4. **Förädling eller byggmaterial.**
+   Bryggan intill betet når bara det ena av dem direkt; stenbrottet står två steg bort och får fram 75 % tills ett förråd byggs mitt på ön.
+5. **Förädling eller byggmaterial.**
    Varje plank kostar två timmer som annars kunde ha blivit ett bygge; minimilagret avgör balansen.
 
 ## 6. Vad krafterna kostar
@@ -164,8 +173,8 @@ Startkrafter från den guidade turen: 100 Utforskning, 100 Byggkraft, 40 Gryning
    Med måttlig egenvård räcker Byggkraften till alla tre första veckan, men plank och lediga bybor gör att de inte kan byggas samtidigt.
    Ordningen avgör vad som börjar ge avkastning först.
 2. **Utforskning: närområdet eller en ny ö?**
-   Två kartläggningar (180) ger rika platser nära förrådet direkt.
-   En expedition (250) ger en ny ö med dubbelt så rika platser, men först efter några dygn och bakom en sjöväg med begränsad kapacitet.
+   Två kartläggningar (180) ger rika brickor nära förrådet direkt.
+   En expedition (250) ger en ny ö med dubbelt så rika brickor, men först efter några dygn och bakom en sjöväg med begränsad kapacitet.
 3. **Gryningskraft: vilken flaskhals i dag?**
    Dagsverke på stenbrottet, sågverket eller fårgården, eller rusta ett långhus, beroende på vad som håller tillbaka världen just nu.
 4. **Spara eller spendera.**
@@ -184,10 +193,10 @@ Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg,
 
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Närområdet | måttlig | 19 | 11 | 1 | 208 | 214 | 1 337 | 180/260/440 | 461/110/229 | 1,05 |
+| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 324 | 180/260/440 | 461/110/229 | 1,04 |
 | Havet | måttlig | 20 | 12 | 2 | 36 | 230 | 1 201 | 250/270/360 | 426/100/260 | 0,90 |
-| Naiv | hög | 21 | 10 | 1 | 19 | 188 | 1 097 | 180/310/630 | 520/135/96 | 0,61 |
-| Utan träning | utan träning | 19 | 11 | 1 | 150 | 130 | 1 066 | 180/0/460 | 461/100/224 | 1,03 |
+| Naiv | hög | 22 | 10 | 1 | 84 | 212 | 1 249 | 180/310/630 | 520/135/96 | 0,75 |
+| Utan träning | utan träning | 19 | 11 | 1 | 150 | 129 | 1 062 | 180/0/460 | 461/100/224 | 1,02 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
 | Ingen spelare | måttlig | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 551/370/492 | – |
 
@@ -198,19 +207,20 @@ Startvärdet är 409.
 **Olika men jämbördiga.**
 Närområdet slutar med ett starkt produktionskluster och ett stort stenlager på en ö.
 Havet slutar med två öar, en sjöväg, en bybo till och högre dagsproduktion, men nästan tomma lager eftersom Nyön precis har kommit i gång.
-Utvecklingsvärdena skiljer sig med 11 %.
+Utvecklingsvärdena skiljer sig med 10 %.
 Havet bör dra ifrån andra veckan medan Närområdet har material för fler långhus; det prövas med längre körningar och balansbotar i M4.
 
 **Strategin hinner ikapp (D-34).**
-Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
-Den får ut 0,61 i värde per använd kraft mot 0,90–1,05, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
-Byggplatser på brickor ökar skillnaden: den naiva strategin bygger där det går, medan de genomtänkta väljer brickor nära förråden.
+Den naiva strategin med hög egenvård slutar under Närområdet men över Havet, båda med måttlig egenvård.
+Den får ut 0,75 i värde per använd kraft mot 0,90–1,04, alltså 1,2 gånger mindre, vilket **inte** uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+Orsaken är kartan, inte reglerna: krönet tar Hemöns vanliga berg (D-92), så det enda berget som duger till stenbrott är stenådern, och dit hittar även den som bygger där det går.
+Startön behöver fler berg att bryta sten i, så att stenådern blir ett val (O-16).
 
 **Utan träning (D-43).**
 En spelare som valt bort träning men går och sover måttligt bygger stugor i stället för långhus och använder ingen Byggkraft.
-Världen växer till lika många bybor, 19, men dagsproduktionen blir 130 mot 214–230 med träning, eftersom sågverk, brygga och väveri kräver Byggkraft.
+Världen växer till lika många bybor, 19, men dagsproduktionen blir 129 mot 213–230 med träning, eftersom sågverk, brygga och väveri kräver Byggkraft.
 Träning syns alltså i världen, men befolkningen står aldrig still på grund av en vana som spelaren valt bort.
-Värdet per använd kraft blir högre, 1,03, eftersom stugorna inte räknas som kraftanvändning; måttet jämför bara strategier som använder alla krafter.
+Värdet per använd kraft blir högre, 1,02, eftersom stugorna inte räknas som kraftanvändning; måttet jämför bara strategier som använder alla krafter.
 
 ## 8. Sju dygn utan egenvård
 
@@ -219,7 +229,7 @@ Utan spelare och utan egenvård (sista raderna i tabellen ovan):
 - Byborna växer från 12 till 16 av egen kraft och stannar vid bostadstaket.
 - Grundtakten (fisk, säd, timmer) fortsätter; långsamma processer fortgår.
 - **Inget förfaller.**
-  Kalkylen kontrollerar varje timme att antalet bybor, byggnader, nivåer och upptäckta platser aldrig minskar och att inga lager eller saldon blir negativa (INV-V1, INV-R1, INV-F1).
+  Kalkylen kontrollerar varje timme att antalet bybor, byggnader, nivåer och upptäckta brickor aldrig minskar och att inga lager eller saldon blir negativa (INV-V1, INV-R1, INV-F1).
 - Gryningskraften växer till 310 på grundnivån, eftersom saknad sömndata ger 40 per spelardygn.
 - Med egenvård men utan beslut händer exakt samma sak i världen; krafterna sparas bara.
   Det är spegeln i praktiken: egenvården ger möjligheter, besluten gör dem till en värld (D-14).
@@ -237,7 +247,8 @@ Utan spelare och utan egenvård (sista raderna i tabellen ovan):
    Alla strategier med beslut når 19–20 bybor, eftersom tillväxten är högst ett par bybor per dygn.
    Valet mellan långhus och stuga (D-43) märks först när bostadstaket nås, vilket prövas med längre körningar i M4.
 5. **Byggplatser på brickor gör placeringen till ett beslut (TASK-037).**
-   Huggarkojan vid skogskanten, förrådet mitt i ett kluster och bryggan på rätt sida av Nyön är val som den naiva strategin missar, och skillnaden mellan genomtänkt och naiv strategi växer från 1,4 till 1,5 gånger.
+   Huggarkojan vid skogskanten, förrådet mitt i ett kluster och bryggan på rätt sida av Nyön är val som den naiva strategin missar.
+   Ändå krymper skillnaden mellan genomtänkt och naiv strategi från 1,4 till 1,2 gånger, eftersom prototypens karta bara har ett berg för stenbrott och det är det rikaste (O-16).
    Startbyns skog ger dubbelt så mycket timmer som förut, eftersom den verkligen har två skogsbrickor; ved är ändå flaskhalsen för sågverket.
    Prototypens karta har bara två åkerbrickor; generatorn (TASK-031) bör ge varje startö mer odlingsmark, så att båda matkällorna går att bygga ut.
 
@@ -257,7 +268,13 @@ Senare beslut som berör ekonomin:
 
 Produktägarens svar på de öppna frågorna i v0.2 (TASK-037):
 
-- **D-82:** fiskeboden står på pålar i det grunda vattnet, som startbyns fiskebod redan gör, så att ingen byggnad behöver flytta.
-- **D-83:** ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet, eftersom Nyön inte har någon strandbricka som når vattnet.
-- **D-84:** huggarkojan får stå bredvid skogen, så att närheten till förrådet blir ett verkligt val.
-- **D-85:** långhus, förråd och andra byggnader får stå på varje landbricka utom berg, även skog, åker och bete, som då inte längre går att hugga, odla eller beta.
+- **D-88:** fiskeboden står på pålar i det grunda vattnet, som startbyns fiskebod redan gör, så att ingen byggnad behöver flytta.
+- **D-89:** ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet, eftersom Nyön inte har någon strandbricka som når vattnet.
+- **D-90:** huggarkojan får stå bredvid skogen, så att närheten till förrådet blir ett verkligt val.
+- **D-91:** långhus, förråd och andra byggnader får stå på varje landbricka utom berg, även skog, åker och bete, som då inte längre går att hugga, odla eller beta.
+- **D-92:** krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg; en karta måste ha en enda sådan bricka, och prototypens karta får en ny version där det västra berget är högst.
+- **D-93:** skogskravet räknar bara upptäckta skogsbrickor som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman och ingen huggarkoja byggs där den inte ger något.
+
+Öppen fråga efter v0.2:
+
+- **O-16:** startön behöver fler berg att bryta sten i än stenådern, annars hittar även en naiv spelare den och kravet i D-34 på 1,3 gånger nås inte; det avgörs i nästa version av prototypens karta och i generatorn (TASK-031).

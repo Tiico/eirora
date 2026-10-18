@@ -126,10 +126,13 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-79 | **Varje landbricka är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-80 | **En världs karta är en hexskiva med radie 24, 1 801 brickor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-81 | **Prototypens värld behålls:** Hemön och Nyön blir en handgjord karta, och generatorn fyller en gång den del av havet som prototypen aldrig visat ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
-| D-82 | **Fiskeboden står på pålar i det grunda vattnet** intill land, inte på en landbricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-83 | **Ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet,** inte bara strand ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-84 | **Huggarkojan får stå bredvid skogen** och fäller skogsbrickorna på och intill sin bricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-85 | **Långhus, förråd och andra byggnader får stå på varje landbricka utom berg,** även skog, åker och bete, som då inte längre går att hugga, odla eller beta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-88 | **Fiskeboden står på pålar i det grunda vattnet** intill land, inte på en landbricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-89 | **Ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet,** inte bara strand ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-90 | **Huggarkojan får stå bredvid skogen** och fäller skogsbrickorna på och intill sin bricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-91 | **Långhus, förråd och andra byggnader får stå på varje landbricka utom berg,** även skog, åker och bete, som då inte längre går att hugga, odla eller beta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-92 | **Krönet är startöns enda högsta bricka och bär bara Vårdkasen,** även när det är ett berg; en karta måste ha en enda sådan bricka, och prototypens karta får en ny version där det västra berget (-4,0) är högst ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md), [ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-93 | **Skogskravet räknar bara skog som huggarkojan kan fälla:** upptäckta skogsbrickor på eller intill brickan som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-94 | **Epok 1:s tempo med byggplatser på brickor är målet:** 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning ([epok 1](./docs/design/epoch-1.md#5-tempo)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -665,7 +668,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
 | D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
-| D-82–D-85 | 2026-10-18 | Se avsnitt 1.1 | Öppna frågor i TASK-037 |
+| D-88–D-94 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
@@ -689,6 +692,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
+| O-16 | Hur många berg att bryta sten i behöver startön, så att stenådern blir ett val och kravet i D-34 nås? | Fler än stenådern; prototypens nästa karta och generatorn ([ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | M3 |
 
 ---
 
