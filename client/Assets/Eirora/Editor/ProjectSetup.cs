@@ -33,6 +33,11 @@ namespace Eirora.Editor
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
 
+            // Health Connect's client library needs Android 8 (API 26) or later (ADR-0007). Unity 6.3 picks up
+            // Assets/Plugins/Android/gradleTemplate.properties, which turns Kotlin on, by its presence alone;
+            // AndroidHealthCheck fails any build where the Kotlin adapter is missing from the APK.
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+
             var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset").Single());
             settings.FindProperty("activeInputHandler").intValue = 1; // Input System only.
             settings.ApplyModifiedPropertiesWithoutUndo();

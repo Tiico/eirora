@@ -19,6 +19,11 @@ namespace Eirora.Simulation.Time
         private const long SecondsPerDay = 24 * 60 * 60;
         private const long ScheduleChangeDelaySeconds = SecondsPerDay;
 
+        // The starts of the most recent game days, enough to read health data for the last seven (D-53).
+        private const int RememberedDays = 9;
+        private readonly List<long> _dayStarts = new();
+        private int _firstStoredDay;
+
         private RestSchedule _schedule;
         private RestSchedule? _pendingSchedule;
         private long _pendingEffectiveUtc;
@@ -39,6 +44,9 @@ namespace Eirora.Simulation.Time
         /// <summary>Game day 0 begins at local midnight on the day the world is created (D-51); each dawn starts the next.</summary>
         public int GameDay { get; private set; }
 
+        /// <summary>When the world was created; self-care from local midnight that day counts (D-51).</summary>
+        public long CreatedUtc { get; private set; }
+
         public RestSchedule Schedule => _schedule;
 
         public RestSchedule? PendingSchedule => _pendingSchedule;
@@ -47,6 +55,8 @@ namespace Eirora.Simulation.Time
         public static DayCycle Create(TimeReading install, RestSchedule schedule)
         {
             var cycle = new DayCycle(install, schedule);
+            cycle.CreatedUtc = install.UtcSeconds;
+            cycle._dayStarts.Add((FloorDiv(install.LocalSeconds, SecondsPerDay) * SecondsPerDay) - install.OffsetSeconds);
             long start = MostRecentStartLocal(install.LocalSeconds, schedule);
             if (install.LocalSeconds < start + (schedule.DurationMinutes * 60L))
             {
@@ -109,12 +119,20 @@ namespace Eirora.Simulation.Time
                     Now = new TimeReading(end, target.ZoneId, target.OffsetSeconds);
                     Phase = Phase.Active;
                     GameDay++;
+                    RememberDayStart(end);
                     events.Add(new DawnBroke(end, GameDay));
                     onDawn(end);
                 }
             }
 
             Now = target;
+        }
+
+        /// <summary>When a recent game day began: local midnight for day 0, otherwise its dawn; null if too old.</summary>
+        public long? GameDayStartUtc(int day)
+        {
+            int index = day - _firstStoredDay;
+            return index >= 0 && index < _dayStarts.Count ? _dayStarts[index] : (long?)null;
         }
 
         public void AppendFingerprint(StringBuilder text)
@@ -133,7 +151,23 @@ namespace Eirora.Simulation.Time
                 text.Append(",rest:").Append(_restEndLocal).Append(',').Append(_restZoneId).Append(',').Append(_restLastOffset);
             }
 
+            text.Append(",created:").Append(CreatedUtc).Append(",days:").Append(_firstStoredDay);
+            foreach (long start in _dayStarts)
+            {
+                text.Append('/').Append(start);
+            }
+
             text.Append(';');
+        }
+
+        private void RememberDayStart(long utcSeconds)
+        {
+            _dayStarts.Add(utcSeconds);
+            if (_dayStarts.Count > RememberedDays)
+            {
+                _dayStarts.RemoveAt(0);
+                _firstStoredDay++;
+            }
         }
 
         private void BeginRest(TimeReading at, long startLocal)

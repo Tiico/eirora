@@ -145,6 +145,29 @@ public sealed class DayCycleTests
     }
 
     [Fact]
+    public void GameDayZeroStartsAtLocalMidnightAndEachLaterDayAtItsDawn()
+    {
+        var world = World.Create(At("2026-10-14 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-16 12:00", 2));
+
+        Assert.Equal("2026-10-13 22:00", Utc(world.GameDayStartUtc(0)!.Value)); // 00:00 local.
+        Assert.Equal("2026-10-15 05:00", Utc(world.GameDayStartUtc(1)!.Value)); // 07:00 local.
+        Assert.Equal("2026-10-16 05:00", Utc(world.GameDayStartUtc(2)!.Value));
+        Assert.Null(world.GameDayStartUtc(3));
+        Assert.Equal(At("2026-10-14 14:00", 2).UtcSeconds, world.CreatedUtc);
+    }
+
+    [Fact]
+    public void OnlyTheMostRecentGameDayStartsAreKept()
+    {
+        var world = World.Create(At("2026-10-01 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-20 12:00", 2));
+
+        Assert.Null(world.GameDayStartUtc(world.GameDay - 9));
+        Assert.NotNull(world.GameDayStartUtc(world.GameDay - 8));
+    }
+
+    [Fact]
     public void AnOngoingRestIsNeverShortened()
     {
         var world = World.Create(At("2026-10-14 23:30", 2), Night);

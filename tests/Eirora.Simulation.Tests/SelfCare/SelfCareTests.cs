@@ -60,6 +60,41 @@ public sealed class SelfCareTests
     }
 
     [Fact]
+    public void TheHealthStoresVerifiedAndManualPartsCountTogether()
+    {
+        var world = Afternoon();
+        Record(world, 0, Habit.Steps, ContributionSource.Verified, 5_000);
+
+        Record(world, 0, Habit.Steps, ContributionSource.HealthStoreManualEntry, 2_500);
+
+        Assert.Equal(100 + ForceRules.Exploration(7_500), world.Available(Force.Exploration));
+    }
+
+    [Fact]
+    public void OwnInputCountsOnlyWhenHigherThanTheHealthStoresTotal()
+    {
+        var world = Afternoon();
+        Record(world, 0, Habit.Steps, ContributionSource.Verified, 5_000);
+        Record(world, 0, Habit.Steps, ContributionSource.HealthStoreManualEntry, 2_500);
+
+        Record(world, 0, Habit.Steps, ContributionSource.SelfReported, 6_000);
+        Assert.Equal(100 + ForceRules.Exploration(7_500), world.Available(Force.Exploration));
+
+        Record(world, 0, Habit.Steps, ContributionSource.SelfReported, 10_000);
+        Assert.Equal(100 + ForceRules.Exploration(10_000), world.Available(Force.Exploration));
+    }
+
+    [Fact]
+    public void TheWorldTellsWhatHasBeenRecorded()
+    {
+        var world = Afternoon();
+        Record(world, 0, Habit.Sleep, ContributionSource.Verified, 420);
+
+        Assert.Equal(420, world.RecordedSelfCare(0, Habit.Sleep, ContributionSource.Verified));
+        Assert.Null(world.RecordedSelfCare(0, Habit.Sleep, ContributionSource.HealthStoreManualEntry));
+    }
+
+    [Fact]
     public void SelfReportedSelfCareGivesTheSameForceAsVerified()
     {
         var verified = Afternoon();
