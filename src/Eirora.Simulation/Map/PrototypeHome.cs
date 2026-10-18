@@ -8,7 +8,8 @@ namespace Eirora.Simulation.Map
     /// The prototype's handmade map, <c>prototype-home</c> version 1: Hemön with its sites and Nyön across the sea to the
     /// east, exactly as the client drew them in M1, so every world from the prototype keeps what it has seen (D-81,
     /// ADR-0010). What was scenery around the sites, such as woods and beaches, is now real terrain. Beyond the sea the
-    /// prototype drew, the map is deep sea until generator v1 fills it once (TASK-031).
+    /// prototype drew, the map is deep sea until generator v1 fills it once (TASK-031). Two things differ from M1's
+    /// picture, so the map passes the validator: a bay where ships land at Nyön's harbour, and a single crest.
     /// </summary>
     /// <remarks>Never change this map: every world made before world generation is on it, and its hash is in their state.</remarks>
     public static class PrototypeHome
@@ -28,8 +29,15 @@ namespace Eirora.Simulation.Map
 
         public static readonly Hex NyonCentre = new(10, 0);
 
-        /// <summary>Nyön's land: one ring around its harbour and stone vein.</summary>
+        /// <summary>Nyön's land: one ring around its harbour, except the bay west of it where ships land.</summary>
         public const int NyonRadius = 1;
+
+        /// <summary>The bay facing Hemön that makes Nyön's harbour site a harbour spot (map-validation.md).</summary>
+        public static readonly Hex NyonBay = new(9, 0);
+
+        /// <summary>Hemön's crest, where the Vårdkase stands: the western mountain, a step above the stone vein.</summary>
+        public const string CrestSite = "M1";
+        public const int CrestHeight = 6;
 
         /// <summary>The sea the prototype drew around Nyön; it overlaps Hemön's, so one sea joins the islands.</summary>
         public const int NyonSeaRadius = 7;
@@ -101,7 +109,7 @@ namespace Eirora.Simulation.Map
                     Set(map, hex, LandTerrain(hex, distance, sites));
                     land.Add(hex);
                 }
-                else if (hex.DistanceTo(NyonCentre) <= NyonRadius)
+                else if (hex.DistanceTo(NyonCentre) <= NyonRadius && hex != NyonBay)
                 {
                     Set(map, hex, LandTerrain(hex, 0, sites)); // A small green island, not a sandbank.
                     land.Add(hex);
@@ -120,7 +128,8 @@ namespace Eirora.Simulation.Map
             foreach (var site in PrototypeIsland.Sites)
             {
                 var hex = site.Hex;
-                map.Set(hex, map.TerrainAt(hex), Height(map.TerrainAt(hex)), site.RichnessPercent);
+                int height = site.Id == CrestSite ? CrestHeight : Height(map.TerrainAt(hex));
+                map.Set(hex, map.TerrainAt(hex), height, site.RichnessPercent);
             }
 
             map.AddIsland(Home, Hex.Origin);

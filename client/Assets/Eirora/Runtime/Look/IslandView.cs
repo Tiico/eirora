@@ -155,14 +155,19 @@ namespace Eirora.Client.Look
             return mesh;
         }
 
+        /// <summary>How far a hex's side lies from its centre (half the width of a pointy-top hex), plus a sliver.</summary>
+        private const float Shore = 0.9f;
+
         /// <summary>The fairway between the jetties once ships sail, and the expedition's boat while it is out.</summary>
         private static void SeaRoute(MeshBuilder mesh, World world)
         {
-            var from = new Hex(1, 1).Center() + new Vector3(1.2f, 0f, 0f);
-            var to = IslandMap.NyonCentre.Center() - new Vector3(1.1f, 0f, 0f);
+            // From shore to shore: Hemön's harbour and Nyön's, across the bay that faces Hemön.
+            var shore = new Vector3(Shore, 0f, 0f);
+            var from = new Hex(1, 1).Center() + shore;
+            var to = IslandMap.NyonCentre.Center() - shore;
             if (world.SeaRouteOpen)
             {
-                const int Dashes = 14;
+                const int Dashes = 15; // Odd, so the line starts and ends with a dash at the shores.
                 for (int i = 0; i < Dashes; i += 2)
                 {
                     var a = Vector3.Lerp(from, to, i / (float)Dashes) + (Vector3.up * 0.01f);

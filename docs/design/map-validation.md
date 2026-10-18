@@ -45,13 +45,12 @@ Kartan sparar bara terräng, höjd och rikedom; resten följer av brickorna (`Ma
 
 ## Hemön i dag
 
-Prototypens handgjorda karta godkänns inte, och rapporten säger varför:
+Prototypens handgjorda karta klarar alla regler utom `second-island`: Ytterön, den andra expeditionens ö, kommer med generatorn som fyller havet runt Hemön (TASK-031).
+Nyön ligger 9 steg till sjöss från Hemöns hamnlägen, och krönet är det västra berget (M1) med höjd 6.
 
-- Nyöns hamnläge ligger mitt på ön, utan vatten intill, så inget skepp kan lägga till där (`islands-have-harbours`, `islands-reachable`).
-- Hemöns två berg är lika höga, så krönet är inte entydigt (`crest`).
-- Utan ett hamnläge på Nyön och utan Ytterön finns ingen ö för expeditionerna (`first-island`, `second-island`).
-
-Det spelar ingen roll för prototypens ekonomi, som har egna platser tills TASK-037, men generatorn som fyller havet runt Hemön (TASK-031) måste ta hänsyn till det.
+Validatorn visade två fel i den första versionen av kartan, som rättades innan någon värld sparades med den:
+Nyöns hamnläge låg mitt på ön, utan vatten intill, och Hemöns två berg var lika höga.
+Nu har Nyön en vik väster om hamnläget, mot Hemön, och det västra berget är ett steg högre än stenådern.
 
 ## Bulkkörning
 
