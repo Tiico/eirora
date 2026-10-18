@@ -389,7 +389,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
    - *Gör:* *Lägg till egenvård → Rörelse → 30 aktiva minuter*.
    - *Ser:* *Sparat. Det blir kraft när byn vaknar.*
    - *Simuleringen:* bidraget, 3 000 steg enligt D-41, hör till det pågående spelardygnet och krediteras senast vid gryningen (INV-T9).
-     Det är ett bidrag, inte ett spelpåverkande kommando; under vilan har manuell inmatning samma villkor som bakgrundssynken (RST-05, HLT-07, D-54).
+     Det är ett bidrag, inte ett spelpåverkande kommando; under vilan har manuell inmatning samma villkor som hälsodata som läses när appen öppnas (RST-05, HLT-07, D-54, D-70).
 6. **23:12 Ändrar viloperioden.**
    - *Gör:* *Inställningar → Viloperiod*, flyttar till 22:30–06:30.
    - *Ser:* *Den nya tiden gäller från söndag kväll klockan 22:30. I natt och i morgon natt vilar byn som vanligt, 23–07.*
@@ -431,7 +431,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 | Planera: prioriteringar, bemanning, minimilager, vägar | Nej; planering är gratis men ändrar världen | RST-02 |
 | Handel, hälsningar och andra gruppåtgärder | Nej; servern nekar | RST-02 |
 | Ta emot gruppens interaktioner | Köas till gryningen | RST-11 |
-| Synka egenvård i bakgrunden | Ja; krafter vid gryningen | RST-05, INV-T9 |
+| Läsa egenvård från hälsokällan när appen öppnas | Ja; krafter vid gryningen | RST-05, D-70, INV-T9 |
 | Skriva in egenvård | Ja; krafter vid gryningen | HLT-07, D-54 |
 | Ändra viloperioden | Ja; gäller efter 24 h | RST-09, INV-T7 |
 | Inställningar, tillgänglighet, integritet, hjälp, konto, radering | Ja | RST-07 |

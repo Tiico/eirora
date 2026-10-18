@@ -46,11 +46,19 @@ public sealed class ForceRulesTests
     [InlineData(5, 345)]
     [InlineData(14, 345)]
     public void AWeekOfWorkoutsAccumulatesWithDiminishingReturns(int sessions, int expected) =>
-        Assert.Equal(expected, ForceRules.BuildPower(0, sessions));
+        Assert.Equal(expected, ForceRules.BuildPower(0, sessions, 0));
 
     [Fact]
     public void EachGameDayIsCreditedAgainstThePreviousSix() =>
-        Assert.Equal(90, ForceRules.BuildPower(sessionsInPreviousSixDays: 1, sessionsToday: 1));
+        Assert.Equal(90, ForceRules.BuildPower(sessionsInPreviousSixDays: 1, sessionsToday: 1, buildPowerInPreviousSixDays: 100));
+
+    [Fact]
+    public void AWorkoutTopsTheRollingWeekUpToTheCurve() =>
+        Assert.Equal(100, ForceRules.BuildPower(sessionsInPreviousSixDays: 5, sessionsToday: 1, buildPowerInPreviousSixDays: 245));
+
+    [Fact]
+    public void AWeekThatAlreadyGaveMoreThanTheCurveGivesNothingMore() =>
+        Assert.Equal(0, ForceRules.BuildPower(sessionsInPreviousSixDays: 1, sessionsToday: 1, buildPowerInPreviousSixDays: 345));
 
     [Theory]
     [InlineData(9, false)]
@@ -68,8 +76,9 @@ public sealed class ForceRulesTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.Exploration(-1));
         Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.DawnPower(-1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.BuildPower(-1, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.BuildPower(0, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.BuildPower(-1, 0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.BuildPower(0, -1, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ForceRules.BuildPower(0, 0, -1));
     }
 
     // INV-F3: more self-care always helps, but less and less, up to a cap.
@@ -116,16 +125,24 @@ public sealed class ForceRulesTests
     public bool LoggedSleepNeverGivesLessThanMissingData(NonNegativeInt minutes) =>
         ForceRules.DawnPower(Scale(minutes.Get, MaxSleepMinutes)) >= ForceRules.DawnPower(null);
 
-    // Workouts: rest days never cost anything, and a rolling week never exceeds the cap.
+    // Workouts (D-63): rest days never cost anything, a rolling week ending in a workout gives at least the curve for
+    // its sessions and never more than the cap, and more training never gives less.
 
     [Property]
-    public bool ARestDayGivesNothingAndTakesNothing(NonNegativeInt previous) =>
-        ForceRules.BuildPower(previous.Get, 0) == 0;
+    public bool ARestDayGivesNothingAndTakesNothing(NonNegativeInt previous, NonNegativeInt gave) =>
+        ForceRules.BuildPower(previous.Get, 0, gave.Get) == 0;
 
     [Property]
-    public bool BuildPowerWithinAWeekNeverExceedsTheCap(NonNegativeInt previous, NonNegativeInt today) =>
-        ForceRules.BuildPower(0, previous.Get) + ForceRules.BuildPower(previous.Get, today.Get)
-            <= ForceRules.BuildPowerWeeklyCap;
+    public bool AWorkoutBringsTheRollingWeekToTheCurveButNeverOverTheCap(NonNegativeInt previous, PositiveInt today, NonNegativeInt gave)
+    {
+        int gaveBefore = Scale(gave.Get, ForceRules.BuildPowerWeeklyCap);
+        int week = gaveBefore + ForceRules.BuildPower(previous.Get, today.Get, gaveBefore);
+        return week >= ForceRules.BuildPower(0, previous.Get + today.Get, 0) && week <= ForceRules.BuildPowerWeeklyCap;
+    }
+
+    [Property]
+    public bool MoreTrainingNeverGivesLess(NonNegativeInt previous, NonNegativeInt today, NonNegativeInt gave) =>
+        ForceRules.BuildPower(previous.Get, today.Get + 1, gave.Get) >= ForceRules.BuildPower(previous.Get, today.Get, gave.Get);
 
     private static int Scale(int value, int max) => value % (max + 1);
 
