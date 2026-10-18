@@ -106,7 +106,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-59 | ~~**Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B~~ | [ERSATT av D-61] |
 | D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
 | D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
-| D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak (förtydligar D-36) | [BESLUTAT] |
+| D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak, för tillskott som gjorts före en senare spendering (förtydligar D-36, avgränsad av D-74) | [BESLUTAT] |
 | D-63 | **Byggkraftens rullande vecka ger kurvans värde:** ett spelardygn med pass ger kurvan för passen under sju spelardygn minus det de sex föregående redan gav, aldrig under noll; mer träning ger aldrig mindre Byggkraft ([epoch-1.md](./docs/design/epoch-1.md#7-byggkraftens-rullande-vecka)) | [BESLUTAT] |
 | D-64 | **Epok 1:s milstolpe är att Vårdkasen tänds,** byggd i tre etapper (grunden, stommen, elden) med egna förutsättningar ([epoch-1.md](./docs/design/epoch-1.md)) | [BESLUTAT] |
 | D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
@@ -118,6 +118,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-72 | **Kontot skapas först när spelaren loggar in med Apple eller Google;** dessförinnan finns inget om spelaren på servern, och inga lösenord eller e-postadresser lagras ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
 | D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och spelardygnen före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
+| D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -650,6 +651,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | — | 2026-10-18 | O-08 avgjord: egen Kotlin-adapter för Health Connect, inte HealthBridge | ADR-0007 |
 | D-72–D-73 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-018 |
 | — | 2026-10-18 | O-09 avgjord: compose hemma till beta, Azure Sverige vid release, PostgreSQL 18, egna konton med Apple och Google | ADR-0008 |
+| D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
 | — | 2026-10-17 | Princip "strategi först" ersatt av "egenvård är motorn, strategi är ratten" | D-14 |

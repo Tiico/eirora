@@ -85,6 +85,15 @@ namespace Eirora.Simulation
         /// <summary>Whole units of a resource in store on an island; goods reach home by sea route.</summary>
         public long Stock(IslandId island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
 
+        /// <summary>When the world was created (D-51).</summary>
+        public long CreatedUtc => Cycle.CreatedUtc;
+
+        /// <summary>When a recent game day began, for reading health data per game day (D-40, D-71); null if too old.</summary>
+        public long? GameDayStartUtc(int day) => Cycle.GameDayStartUtc(day);
+
+        /// <summary>What has been recorded for a game day, habit and source, so the client records only changes.</summary>
+        public int? RecordedSelfCare(int day, Habit habit, ContributionSource source) => _selfCare.Total(day, habit, source);
+
         /// <summary>Hours the expedition at sea has left with the villagers awake, or 0 when none is out.</summary>
         public int ExpeditionHoursLeft => _settlement.ExpeditionHoursLeft;
 
@@ -229,7 +238,7 @@ namespace Eirora.Simulation
             }
 
             // Credit before correcting, so that a correction takes back from the highest position, where the soft cap
-            // gave least, and a late contribution never makes it reach the D-62 limit.
+            // gave least.
             foreach (var change in changes)
             {
                 if (change.Expected >= change.Credited)
@@ -254,18 +263,27 @@ namespace Eirora.Simulation
             long halvesBefore = _forces.Halves(force);
             if (expected > credited)
             {
+                _selfCare.NoteCredit(day, habit, _forces.Spends(force));
                 int gained = _forces.Credit(force, expected - credited);
                 _events.Add(new ForceCredited(utcSeconds, force, gained));
             }
             else if (expected < credited)
             {
-                // A correction takes back its credit along the soft cap (D-69), but never more than this day and habit
-                // actually gave (D-62).
-                int removed = _forces.Withdraw(force, credited - expected, _selfCare.GainedHalves(day, habit));
+                // A correction takes back its credit along the soft cap (D-69). Only once the force has been spent
+                // since then is it limited to what this day and habit actually gave (D-62, D-74); before that the
+                // position alone gives the same balance in any order, even when Build Power moves between days.
+                long maxHalves = _selfCare.SpentSinceCredit(day, habit, _forces.Spends(force))
+                    ? _selfCare.GainedHalves(day, habit)
+                    : long.MaxValue;
+                int removed = _forces.Withdraw(force, credited - expected, maxHalves);
                 _events.Add(new ForceWithdrawn(utcSeconds, force, removed));
             }
 
             _selfCare.AddGainedHalves(day, habit, _forces.Halves(force) - halvesBefore);
+            if (expected == 0)
+            {
+                _selfCare.ForgetCredit(day, habit);
+            }
         }
     }
 }
