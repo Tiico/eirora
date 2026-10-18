@@ -57,6 +57,12 @@ namespace Eirora.Client
                 return;
             }
 
+            string? measure = Argument("-eirora-measure");
+            if (measure is not null && MeasurementScene.TryBegin(this, measure))
+            {
+                return;
+            }
+
 #if UNITY_ANDROID && !UNITY_EDITOR
             _healthSource = new AndroidHealthSource();
             _healthSync = new HealthSync(_healthSource);
