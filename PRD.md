@@ -126,6 +126,12 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-79 | **Varje landbricka är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-80 | **En världs karta är en hexskiva med radie 24, 1 801 brickor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-81 | **Prototypens värld behålls:** Hemön och Nyön blir en handgjord karta, och generatorn fyller en gång den del av havet som prototypen aldrig visat ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
+| D-82 | **M0:s designdokument och prototypdagboken är godkända som v1.0 vid grind A0:** kärnfantasin, invarianterna, krafternas regler, ekonomi v1, epok 1 och UX-resorna från M0, och prototypdagboken för M1 och grind A1; siffrorna är startvärden som trimmas under O-01 ([gate-a0.md](./docs/design/gate-a0.md)) | [BESLUTAT] |
+| D-83 | **Batteriet mäts med fast ljusstyrka under det aktiva passet,** på produktägarens vanliga nivå som skrivs in i rapporten, och med automatisk ljusstyrka över ett helt spelardygn ([device-measurements.md](./docs/design/device-measurements.md)) | [BESLUTAT] |
+| D-84 | **Dygnsljuset följer spelardygnet, inte solen:** natt under viloperioden, gryning en timme efter den och skymning en timme före ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
+| D-85 | **Byborna syns som små figurer** vid bemannade byggnader under dagen, trots att de modelleras som arbetsgrupper | [BESLUTAT] |
+| D-86 | **I prototypen behåller spelaren spelkameran när viloperioden börjar;** om kameran ska sänkas till nattvyn avgörs i M7 eller M9 | [BESLUTAT] |
+| D-87 | **Vid gryning äter byborna och byn växer före Gryningskraften och bidragen;** stegen påverkar inte varandra, så ordningen ändrar inget utfall ([ux-journeys.md](./docs/design/ux-journeys.md)) | [BESLUTAT] |
 | D-88 | **Fiskeboden står på pålar i det grunda vattnet** intill land, inte på en landbricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
 | D-89 | **Ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet,** inte bara strand ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
 | D-90 | **Huggarkojan får stå bredvid skogen** och fäller skogsbrickorna på och intill sin bricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
@@ -471,7 +477,7 @@ Byggnader, recept och kraftkostnader står i [ekonomi v1](./docs/design/economy-
 
 - Utan egenvård tillkommer inga krafter, men ekonomin går i grundtakt och långsamma processer fortgår.
 - Inget vissnar, svälter eller förfaller.
-- Återkomsten möts varmt, eventuellt med en liten återstartsbonus [FÖRSLAG], aldrig med skuld.
+- Återkomsten möts varmt, utan återstartsbonus och aldrig med skuld (D-52).
 
 Återkomsten steg för steg: se [UX-resorna](./docs/design/ux-journeys.md#resa-2-återkomst-efter-sju-dagars-frånvaro).
 
@@ -668,7 +674,9 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-74 | 2026-10-18 | Se avsnitt 1.1 | Egenskapstestet för D-63 utan gräns för antalet pass visade att gränsen i D-62 gav en annan slutsumma när ett sent pass tillfälligt lyfte saldot över sparandets tak (INV-B1) |
 | D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
+| D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
 | D-88–D-94 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
+| — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
 | — | 2026-10-17 | Kampanjbågen (PRG-01 v0.1) ersatt av epoker utan slut | D-13 |
@@ -681,17 +689,17 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 
 ### Öppna frågor
 
-| ID | Fråga | Utgångspunkt | Beslutas före |
+| ID | Fråga | Utgångspunkt | Beslutas i |
 |---|---|---|---|
-| O-01 | Exakta värden för krafter, tak och avtagande avkastning | Prototyp med riktiga steg | M1/M5 |
+| O-01 | Exakta värden för krafter, tak och avtagande avkastning | Prototyp med riktiga steg | M4/M5 |
 | O-02 | Innehållsomfång: byggnader, resurser, kedjor | Färre men tyngre typer | M4 |
-| O-03 | Antal och innehåll för epoker vid release | Minst 3–4 epoker? | M5 |
+| O-03 | Antal och innehåll för epoker vid release | Minst 3–4 epoker? | M10 |
 | O-04 | Hur komponeras arkipelagen av gruppens världar? | Fast havsyta, världar placeras runt ett gemensamt centrum | M8 |
 | O-05 | Vad händer med sjövägar och handel när någon lämnar gruppen? | Inga förluster för någon | M8 |
 | O-06 | Innehåll i supporter-prenumerationen | Kosmetik + bekvämlighet, aldrig kraft | M10 |
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
-| O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M1/M2 |
+| O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M2 |
 | O-16 | Hur många berg att bryta sten i behöver startön, så att stenådern blir ett val och kravet i D-34 nås? | Fler än stenådern; prototypens nästa karta och generatorn ([ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | M3 |
 
 ---

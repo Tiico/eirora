@@ -1,8 +1,13 @@
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Eirora.Simulation;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.Build;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Eirora.Client.Tests
 {
@@ -68,6 +73,25 @@ namespace Eirora.Client.Tests
 
             Assert.That(android, Is.EqualTo("com.eirora.game"));
             Assert.That(ios, Is.EqualTo(android));
+        }
+
+        [Test]
+        public void CommittedRenderSettingsAreTheOnesUrpWritesWhenItRenders()
+        {
+            // URP sets the active quality level's MSAA to the pipeline's when it starts, and both light flags every
+            // frame, so any other committed value is rewritten whenever the editor runs with graphics. Read the files,
+            // not the settings in memory, which URP may already have changed.
+            var pipeline = (UniversalRenderPipelineAsset)GraphicsSettings.defaultRenderPipeline;
+            var graphics = File.ReadAllText("ProjectSettings/GraphicsSettings.asset");
+            var quality = File.ReadAllText("ProjectSettings/QualitySettings.asset");
+            var antiAliasing = Regex.Matches(quality, @"^\s+antiAliasing: (\d+)\s*$", RegexOptions.Multiline)
+                .Select(match => int.Parse(match.Groups[1].Value))
+                .ToList();
+
+            Assert.That(graphics, Does.Match(@"m_LightsUseLinearIntensity: 1\s"));
+            Assert.That(graphics, Does.Match(@"m_LightsUseColorTemperature: 1\s"));
+            Assert.That(antiAliasing, Has.Count.EqualTo(QualitySettings.names.Length));
+            Assert.That(antiAliasing, Is.All.EqualTo(pipeline.msaaSampleCount));
         }
     }
 }

@@ -1,6 +1,6 @@
 # Epok 1: Vårdkasen
 
-> **Status:** [FÖRSLAG] v0.2, tempot omräknat med byggplatser på brickor (TASK-037), väntar på granskning av produktägaren  
+> **Status:** [FÖRSLAG] v1.1, tempot omräknat med byggplatser på brickor (TASK-037), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
 > **Ärende:** TASK-011, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** PRG-02–PRG-05, D-79, D-92, D-94, D-13, D-17, D-34, D-43, HLT-01, HLT-06, MAP-04, EXP-01, RES-01, O-03, D-63–D-67  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Resor:** [ux-journeys.md](./ux-journeys.md)  
 > **Kalkyl:** [models/epoch_1.py](./models/epoch_1.py) (`python -I epoch_1.py`)
@@ -217,9 +217,9 @@ Produktägarens svar på de öppna frågorna i v0.1:
 - **D-66:** forskning kostar ingen kraft, bara varor och tid.
 - **D-67:** nästa epok börjar vid gryningen efter milstolpen, utan att något nollställs.
 
-Produktägarens svar på de öppna frågorna i v0.2 (TASK-037):
+Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 
 - **D-92:** Vårdkasen står på krönet, startöns enda högsta bricka, även när det är ett berg, och krönet bär inget annat ([ekonomi v1, avsnitt 3.1](./economy-v1.md#31-byggplatser)).
   I kalkylen är krönet det västra berget (-4,0), som nästa version av prototypens karta gör högst.
-- **D-94:** tempot med byggplatser på brickor godtas som mål: 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning, mot 12 utan träning i v0.1.
+- **D-94:** tempot med byggplatser på brickor godtas som mål: 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning, mot 12 utan träning i v1.0.
   Det är det tempot som TASK-037 prövar mot.

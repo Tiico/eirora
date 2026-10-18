@@ -263,9 +263,10 @@ public sealed class SaveTests
 
         public override string Migrate(string state)
         {
-            int cycleEnd = state.IndexOf('\n');
-            string createdUtc = state.Split(' ')[1];
-            return state[..(cycleEnd + 1)] + $"created {createdUtc}\n" + state[(cycleEnd + 1)..];
+            var lines = state.Split('\n').ToList();
+            int cycle = lines.FindIndex(l => l.StartsWith("cycle ", StringComparison.Ordinal));
+            lines.Insert(cycle + 1, $"created {lines[cycle].Split(' ')[1]}");
+            return string.Join("\n", lines);
         }
     }
 }

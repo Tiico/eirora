@@ -251,7 +251,7 @@ PROFILES = {
     "ingen": {"U": 0, "G": 40, "B": [0] * 7},  # saknad sömndata ger grundnivå
     "utan träning": {"U": 86, "G": 92, "B": [0] * 7},  # vanan träning bortvald (HLT-01)
 }
-START_FORCES = {"U": 100, "B": 100, "G": 40}  # guidad tur [FÖRSLAG]
+START_FORCES = {"U": 100, "B": 100, "G": 40}  # guidad tur (D-45)
 
 DAWN_WORKDAY_COST = 30   # Dagsverke: +50 % för en byggnad i ett spelardygn
 DAWN_RUSH_COST = 20      # Rusta: +8 arbetstimmar på ett bygge

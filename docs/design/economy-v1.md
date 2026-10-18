@@ -1,6 +1,6 @@
 # Ekonomi v1
 
-> **Status:** [FÖRSLAG] v0.2, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren  
+> **Status:** [FÖRSLAG] v1.1, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
 > **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, O-02, O-16  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
@@ -266,7 +266,7 @@ Senare beslut som berör ekonomin:
   Körningarna ovan räknar utan handkraft.
 - **D-79** (från [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)): varje landbricka är en möjlig byggplats; avsnitt 3.1 beskriver hur.
 
-Produktägarens svar på de öppna frågorna i v0.2 (TASK-037):
+Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 
 - **D-88:** fiskeboden står på pålar i det grunda vattnet, som startbyns fiskebod redan gör, så att ingen byggnad behöver flytta.
 - **D-89:** ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet, eftersom Nyön inte har någon strandbricka som når vattnet.
@@ -275,6 +275,6 @@ Produktägarens svar på de öppna frågorna i v0.2 (TASK-037):
 - **D-92:** krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg; en karta måste ha en enda sådan bricka, och prototypens karta får en ny version där det västra berget är högst.
 - **D-93:** skogskravet räknar bara upptäckta skogsbrickor som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman och ingen huggarkoja byggs där den inte ger något.
 
-Öppen fråga efter v0.2:
+Öppen fråga efter v1.1:
 
 - **O-16:** startön behöver fler berg att bryta sten i än stenådern, annars hittar även en naiv spelare den och kravet i D-34 på 1,3 gånger nås inte; det avgörs i nästa version av prototypens karta och i generatorn (TASK-031).

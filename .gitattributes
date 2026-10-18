@@ -28,3 +28,6 @@
 
 # Golden saves are compared byte for byte, so git never converts their line endings (ADR-0006).
 tests/Eirora.Simulation.Tests/Saving/Golden/** -text
+
+# Golden maps are compared byte for byte too (ADR-0010).
+tests/Eirora.Simulation.Tests/WorldGeneration/Golden/** -text

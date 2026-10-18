@@ -39,7 +39,7 @@ sequenceDiagram
 | Återspelning | En uppsnappad ID-token skickas igen | Varje ID-token accepteras en gång (hash sparas till `exp`), och bara tillsammans med den nonce vars hash den bär | `AnInterceptedIdTokenCannotBeUsedASecondTime`, `ATokenIsOnlyAcceptedWithTheNonceItWasRequestedWith` |
 | Behörighet (IDOR) | En spelare når någon annans konto med sin token | Ingen route tar ett konto-id; kontot är alltid tokenens `sub` | `AnotherPlayersTokenOnlyEverReachesThatPlayersOwnAccount` |
 | Kontoövertagande | En stulen refresh-token används | Refresh-token roteras vid varje användning, och en återanvänd token spärrar kedjan; utloggning återkallar den | `RefreshingGivesNewTokensForTheSameAccount`, `SigningOutRevokesTheRefreshToken` |
-| Kontoövertagande | Någon med en upplåst telefon raderar kontot eller kopplar in sin egen inloggning | Radering och koppling kräver en färsk inloggning med leverantören; radering med en av kontots egna inloggningar | `DeletionIsConfirmedWithALoginOfThisAccount`, `LinkingRequiresAValidSignIn` |
+| Kontoövertagande | Någon med en stulen access- eller refresh-token kopplar in sin egen inloggning, kopplar bort spelarens eller raderar kontot | Koppling, bortkoppling och radering kräver var och en en färsk inloggning med en av kontots egna inloggningar; en token räcker aldrig. Svagt skydd mot en upplåst telefon, se accepterade risker | `LinkingRequiresAFreshSignInWithALoginOfTheAccount`, `AStolenRefreshTokenCannotRemoveTheOwnersLogins`, `DeletionIsConfirmedWithALoginOfThisAccount` |
 | Kontoövertagande | Någon kopplar in en inloggning som tillhör ett annat konto och slår ihop dem | Konton slås aldrig ihop; en inloggning tillhör högst ett konto | `ALoginOfAnotherAccountCannotBeLinked` |
 | Informationsläckage | Token, nonce eller identifierare hamnar i loggar | Loggar anger bara skäl, aldrig värden; OpenIddict loggar från nivå Warning | `LogsNeverContainTokensNoncesOrIdentifiers` |
 | Informationsläckage | Databasen läcker | Ingen e-post, inget namn och inga lösenord; refresh-token lagras inte i klartext; disken är krypterad (ADR-0008) | `TheAccountHoldsNoNameEmailOrProviderIdentifier` |
@@ -51,9 +51,13 @@ sequenceDiagram
 
 - **Leverantören är ankaret.** Den som tar över spelarens Apple- eller Google-konto tar också över Eirora-kontot.
   Vi lägger ingen egen andra faktor ovanpå, eftersom kontot inte har något ekonomiskt värde utöver kosmetika och molnsparningen.
+- **En upplåst telefon skyddar vi bara svagt.** Den färska inloggningen som koppling, bortkoppling och radering kräver är med Google oftast ett enda tryck i kontoväljaren.
+  Den som håller spelarens upplåsta telefon kan alltså ändra eller radera kontot; skyddet där är telefonens skärmlås, och kravet på färsk inloggning riktar sig mot stulna token.
 - **Access-token gäller i 15 minuter** efter en utloggning på en annan enhet; bara radering stoppar dem omedelbart.
 - **Återanvänd refresh-token inom 30 sekunder** godtas, så att en mobil som tappade svaret kan försöka igen (OpenIddicts standard).
 - **Apple nere vid radering:** kontot raderas ändå och felet loggas; spelarens rätt att radera väger tyngre än återkallelsen hos Apple.
+  Varje anrop till Apple får ta högst 10 sekunder (`SignIn:Apple:Timeout`), så att raderingen inte hänger (`TheAccountIsDeletedEvenWhenAppleFails`).
+  En bekräftad radering slutförs även om spelaren stänger appen medan Apple anropas, eftersom bekräftelsen redan är förbrukad (`TheAccountIsDeletedEvenWhenThePlayerHangsUpWhileAppleIsCalled`).
 
 ## Kvar till kommande ärenden
 

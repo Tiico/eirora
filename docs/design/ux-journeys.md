@@ -1,6 +1,6 @@
 # UX-resor
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-005 · **Milstolpe:** M0 · **PRD:** UX-02, UX-03, UX-05, UX-07, RST-01–RST-11, PRG-01, HLT-03, HLT-07, HLT-12, D-17, D-22, D-33, D-37, D-45, D-49–D-58  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)
 
@@ -406,10 +406,10 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
    - *Känner:* lugn; spelet dömer inte.
    - *Simuleringen:* inget; att titta är alltid tillåtet.
 9. **07:00 Gryning.**
-   - *Simuleringen:* fasen går till `DAWN` och sedan `ACTIVE`, i denna ordning [FÖRSLAG]:
-     1. Gryningskraftens grundnivå krediteras, och sömn som redan synkats fyller på upp till kurvans värde ([forces.md](./forces.md#2-spelardygnet)).
-     2. Bidrag som kommit in under vilan krediteras (INV-T9).
-     3. Byborna äter och byn växer enligt ekonomins regler.
+   - *Simuleringen:* fasen går till `DAWN` och sedan `ACTIVE`, i denna ordning (D-87):
+     1. Byborna äter och byn växer enligt ekonomins regler.
+     2. Gryningskraftens grundnivå krediteras, och sömn som redan synkats fyller på upp till kurvans värde ([forces.md](./forces.md#2-spelardygnet)).
+     3. Bidrag som kommit in under vilan krediteras (INV-T9).
      4. Den dagliga rapporten byggs.
      5. Morgonnotisen skickas om något nytt har hänt.
    - *Ser, på låsskärmen:* *Byn har vaknat. Expeditionen har siktat land i nordväst.*
@@ -507,7 +507,7 @@ Kvällspromenaden från steg 5 ingår i stegen.
 - **Appen i bakgrunden vid 23:00:** nästa öppning visar nattvyn direkt, med en kort övertoning.
 - **Spelaren lägger sig tidigare:** stänger bara appen; byborna arbetar till 23:00 som vanligt.
 - **Skiftarbete,** till exempel viloperiod 08–16: samma resa på andra klockslag, och nattvyn visas under viloperioden oavsett tid på dygnet.
-  Hur världens dygnsljus följer schemat avgörs i art direction (TASK-006).
+  Världens dygnsljus följer schemat, inte solen (D-84).
 - **Övergång till sommartid eller normaltid under natten:** byn vilar till 07:00 lokal tid, även om vilan då blir 7 eller 9 verkliga timmar (D-37, INV-T6).
 - **Tidszonsbyte under vilan,** till exempel en flygresa: pågående vila ändras inte (INV-T8).
   Öppningstiden visas i den nya lokala tiden: *Världen öppnar klockan 8 (lokal tid).*

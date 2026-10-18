@@ -72,12 +72,17 @@ namespace Eirora.Editor
             pipeline.supportsCameraOpaqueTexture = false;
             EditorUtility.SetDirty(pipeline);
 
+            // URP writes the light settings every frame and the active quality level's MSAA when it starts, so an editor
+            // with graphics would rewrite any other committed value. Linear intensity follows the linear colour space.
             GraphicsSettings.defaultRenderPipeline = pipeline;
+            GraphicsSettings.lightsUseLinearIntensity = true;
+            GraphicsSettings.lightsUseColorTemperature = true;
             int current = QualitySettings.GetQualityLevel();
             for (int level = 0; level < QualitySettings.names.Length; level++)
             {
                 QualitySettings.SetQualityLevel(level, applyExpensiveChanges: false);
                 QualitySettings.renderPipeline = pipeline;
+                QualitySettings.antiAliasing = pipeline.msaaSampleCount;
             }
 
             QualitySettings.SetQualityLevel(current, applyExpensiveChanges: false);

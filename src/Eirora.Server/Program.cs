@@ -5,6 +5,7 @@ using Eirora.Server.SignIn;
 using Eirora.Simulation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Validation.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -52,8 +53,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton(ExternalProviders.FromConfiguration(builder.Configuration.GetSection("SignIn:Providers")));
 builder.Services.AddScoped<ExternalTokenValidator>();
 builder.Services.AddScoped<AccountService>();
-builder.Services.AddOptions<AppleOptions>().Bind(builder.Configuration.GetSection("SignIn:Apple"));
-builder.Services.AddHttpClient<AppleIdClient>(http => http.BaseAddress = new Uri(AppleIdClient.Audience + "/"));
+builder.Services.AddOptions<AppleOptions>()
+    .Bind(builder.Configuration.GetSection("SignIn:Apple"))
+    .Validate(apple => apple.Timeout > TimeSpan.Zero, "SignIn:Apple:Timeout must be greater than zero.")
+    .Validate(apple => !apple.IsConfigured || apple.HasReadableKey(), "SignIn:Apple:PrivateKey is not an EC private key in PEM.")
+    .ValidateOnStart();
+builder.Services.AddHttpClient<AppleIdClient>((services, http) =>
+{
+    http.BaseAddress = new Uri(AppleIdClient.Audience + "/");
+    http.Timeout = services.GetRequiredService<IOptions<AppleOptions>>().Value.Timeout;
+});
 builder.Services.AddHostedService<TokenPruning>();
 
 // Behind Traefik, which terminates TLS; the server is only reachable through it (deploy/compose.yaml).
