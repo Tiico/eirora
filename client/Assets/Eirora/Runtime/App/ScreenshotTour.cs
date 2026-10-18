@@ -1,11 +1,8 @@
-using System;
 using System.Collections;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
-using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -20,22 +17,20 @@ namespace Eirora.Client.App
     /// <remarks>Run a player with: -eirora-screenshots &lt;folder&gt;. It quits when done.</remarks>
     internal static class ScreenshotTour
     {
-        private const string Zone = "Europe/Stockholm";
-
         public static IEnumerator Run(ClientBootstrap client, string folder)
         {
             Directory.CreateDirectory(folder);
 
-            var clock = new FixedClock(At("2026-10-14 14:00"));
+            var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
             var session = new GameSession(clock, null);
             client.Begin(session);
             yield return client.Frames(5);
             yield return Capture(client, folder, "01-first-launch");
 
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
-            PlayAWeek(session, clock);
+            ScriptedWeek.Play(session, clock);
 
-            clock.Current = At("2026-10-21 13:00");
+            clock.Current = ScriptedWeek.At("2026-10-21 13:00");
             session.CatchUp();
             client.Refresh();
             yield return Capture(client, folder, "02-day");
@@ -47,17 +42,17 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "04-building");
             client.Hud.Select(null);
 
-            clock.Current = At("2026-10-21 22:20");
+            clock.Current = ScriptedWeek.At("2026-10-21 22:20");
             session.CatchUp();
             client.Refresh();
             yield return Capture(client, folder, "05-dusk");
 
-            clock.Current = At("2026-10-22 01:00");
+            clock.Current = ScriptedWeek.At("2026-10-22 01:00");
             session.CatchUp();
             client.Refresh();
             yield return Capture(client, folder, "06-night");
 
-            clock.Current = At("2026-10-22 07:20");
+            clock.Current = ScriptedWeek.At("2026-10-22 07:20");
             session.CatchUp();
             client.Refresh();
             yield return Capture(client, folder, "07-dawn");
@@ -80,7 +75,7 @@ namespace Eirora.Client.App
             client.Hud.Select(null);
 
             // Nyön, found by the expedition and joined by the sea route.
-            clock.Current = At("2026-10-23 13:00");
+            clock.Current = ScriptedWeek.At("2026-10-23 13:00");
             session.CatchUp();
             client.Refresh();
             client.Focus(IslandMap.NyonCentre.Center + new Vector3(0.9f, 0f, -0.4f));
@@ -89,46 +84,11 @@ namespace Eirora.Client.App
             Application.Quit();
         }
 
-        private static void PlayAWeek(GameSession session, FixedClock clock)
-        {
-            for (int day = 0; day < 7; day++)
-            {
-                clock.Current = At($"2026-10-{15 + day} 08:00");
-                session.CatchUp();
-                int today = session.World!.GameDay;
-                session.Apply(new RecordSelfCare(today, Habit.Steps, ContributionSource.Verified, 6_000 + (day * 900)));
-                session.Apply(new RecordSelfCare(today, Habit.Sleep, ContributionSource.Verified, 420));
-                session.Apply(new RecordSelfCare(today, Habit.Workouts, ContributionSource.Verified, day % 2));
-                foreach (var command in Plan(day))
-                {
-                    session.Apply(command);
-                }
-            }
-        }
-
-        private static GameCommand[] Plan(int day) => day switch
-        {
-            0 => new GameCommand[] { new Survey(), new Build(BuildingKind.Woodcutter, "F3"), new Build(BuildingKind.Quarry, "M2"), new Build(BuildingKind.Jetty, "H1"), new Workday("K1") },
-            1 => new GameCommand[] { new Build(BuildingKind.Sawmill, "E2"), new Build(BuildingKind.Storehouse, "E1"), new Rush() },
-            2 => new GameCommand[] { new Build(BuildingKind.Longhouse, "L1"), new Workday("M2") },
-            3 => new GameCommand[] { new Build(BuildingKind.Cottage, "L2"), new SendExpedition() },
-            4 => new GameCommand[] { new Survey(), new Build(BuildingKind.FishingHut, "K2"), new Upgrade("E2") },
-            5 => new GameCommand[] { new Build(BuildingKind.Jetty, "N0"), new Build(BuildingKind.Lookout, "S") },
-            _ => new GameCommand[] { new Build(BuildingKind.Jetty, "N0"), new Build(BuildingKind.SheepFarm, "N1"), new Build(BuildingKind.Quarry, "N2") },
-        };
-
         private static IEnumerator Capture(ClientBootstrap client, string folder, string name)
         {
             yield return client.Frames(3);
             ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + ".png"));
             yield return client.Frames(3);
-        }
-
-        private static TimeReading At(string local)
-        {
-            var wallClock = DateTime.ParseExact(local, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-            var moment = new DateTimeOffset(wallClock, TimeSpan.FromHours(2));
-            return new TimeReading(moment.ToUnixTimeSeconds(), Zone, 7200);
         }
     }
 }
