@@ -62,9 +62,10 @@ En APK till en Android-telefon byggs lokalt med:
 ```
 
 Bygget får version enligt [Versioner](#versioner) och signeras med prototypens nyckel när den finns i miljön, se [Signering](#signering).
+`Eirora.Editor.Builds.AndroidBundle` bygger i stället den `.aab` som CI laddar upp till Google Play, se [Google Play](#google-play).
 
 Klienten läser Health Connect med Kotlin-modulen `client/Assets/Eirora/Plugins/Android/HealthConnect.androidlib` ([ADR-0007](./adr/0007-own-health-connect-adapter.md)).
-AGP 9 hoppar tyst över Kotlin-koden om inte `client/Assets/Plugins/Android/gradleTemplate.properties` slår på inbyggd Kotlin, så varje Android-bygge kontrolleras efteråt (`AndroidHealthCheck`): bryggklassen måste finnas i APK:n och appen får bara läsa steg, träningspass och sömn.
+AGP 9 hoppar tyst över Kotlin-koden om inte `client/Assets/Plugins/Android/gradleTemplate.properties` slår på inbyggd Kotlin, så varje Android-bygge kontrolleras efteråt (`AndroidHealthCheck`): bryggklassen måste finnas i APK:n eller app-paketet och appen får bara läsa steg, träningspass och sömn.
 
 Gränssnittet och dygnsljuset granskas utan telefon med skärmbildsturen.
 Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka och sparar bilder av de viktigaste vyerna:
@@ -136,10 +137,10 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning; på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/` eller workflowen, samt manuellt | Unity-tester, Android-APK och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. |
+| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/` eller workflowen, samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
-APK:n och Xcode-projektet laddas upp som artefakter på körningen.
+Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
 
 ### Secrets
 
@@ -182,6 +183,7 @@ Android-bygget kräver dessutom prototypens signeringsnyckel, se [Signering](#si
 En ny version kan bara installeras över den gamla om båda är signerade med samma nyckel.
 Annars måste appen avinstalleras först, och då raderas världen.
 Därför signeras både CI-byggen och lokala byggen med samma nyckel, och Android-jobbet i CI misslyckas med en instruktion om nyckeln saknas.
+För appen från Google Play är nyckeln en uppladdningsnyckel: Google signerar om varje version med appens egen signeringsnyckel, så en APK från CI eller datorn kan inte installeras över appen från Google Play (D-76).
 
 Skapa nyckeln och lägg in den som secrets med guiden, som också säger hur den säkerhetskopieras:
 
@@ -204,3 +206,43 @@ Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commit
 Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
 Klienten sparar världen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
 En sparning från äldre regler migreras; en från en nyare version laddas inte och skrivs aldrig över, och appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
+
+### Google Play
+
+Telefonen får nya versioner genom Google Plays interna test (D-75).
+Varje push till `main` som ändrar bygget blir ett app-paket som Unity-workflowen signerar med uppladdningsnyckeln och släpper i det interna testet.
+Play Store uppdaterar sedan appen som vilken app som helst, utan kabel och utan avinstallation, och världen finns kvar.
+Versionen i appen är samma som versionens namn i Play Console och i artefakten `eirora-android-<version>` på körningen.
+
+Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till en agent.
+
+1. Skapa nyckeln med guiden under [Signering](#signering) om den inte redan finns.
+2. Skapa appen **Eirora** i [Play Console](https://play.google.com/console) och låt Google skapa och förvara appens signeringsnyckel (Play App Signing, D-76).
+   Nyckeln från guiden blir uppladdningsnyckel och kan bytas ut via Play Console om den försvinner.
+3. Fyll i **Appinnehåll**: integritetspolicy, dataskydd och deklarationen för Health Connect-behörigheterna.
+   Appen läser steg, träningspass och sömn när spelaren öppnar den, för spelets krafter, och skickar inga hälsodata till någon server (HLT-10).
+   Google släpper ingen version med Health Connect-behörigheter förrän deklarationen är godkänd.
+4. Lägg till ditt Google-konto som testare under **Testa → Internt test → Testare**, öppna länken för att gå med på telefonen och godkänn.
+5. Skapa ett tjänstkonto i Google Cloud med en JSON-nyckel och bjud in dess e-postadress under **Användare och behörigheter** i Play Console, med behörighet att släppa till testspår för Eirora.
+   Lägg in nyckeln och radera sedan JSON-filen från datorn:
+
+   ```bash
+   gh secret set PLAY_SERVICE_ACCOUNT_JSON < play-service-account.json
+   ```
+
+6. Kör Unity-workflowen på `main` under **Actions → Unity → Run workflow**.
+   Google tar inte emot en färdig version via API:t förrän appens första version är släppt, så uppladdningen misslyckas den här gången.
+   Ladda ner artefakten från körningen, ladda upp `.aab`-filen under **Internt test → Skapa ny version** och släpp den.
+   Från och med nästa push till `main` sköter workflowen uppladdningen.
+7. Avinstallera den sidladdade prototypen från telefonen en gång och installera Eirora från Play Store (D-77).
+   Byggena hittills har andra signaturer än appen från Google Play, så Android vägrar installera den ena över den andra, och världen från de tidigare byggena försvinner med avinstallationen.
+
+Android säkerhetskopierar appens data, sparningen med, till spelarens eget Google-konto som vilken app som helst, så världen kan följa med till en ny telefon (D-78).
+
+| Fel | Orsak |
+|---|---|
+| `Google Play secret missing` | `PLAY_SERVICE_ACCOUNT_JSON` saknas; jobbet stoppar innan något byggs. |
+| `Only releases with status draft may be created on draft app` | Appens första version är inte släppt för hand än, se steg 6. |
+| `Version code N has already been used` | Samma commit byggdes två gånger; nästa commit på `main` får ett högre nummer. |
+| Play Store erbjuder ingen uppdatering | Nya versioner i internt test syns oftast inom några minuter; sök igen under **Hantera appar och enheter**. |
+| Play Store kan inte installera appen | En APK från CI eller datorn är installerad; se steg 7. |
