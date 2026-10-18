@@ -206,7 +206,11 @@ namespace Eirora.Client
 
         private void OnApplicationQuit() => _session?.Save();
 
-        private void OnDestroy() => StagedLook.Edited -= LooksEdited;
+        private void OnDestroy()
+        {
+            StagedLook.Edited -= LooksEdited;
+            _island?.Dispose();
+        }
 
         /// <summary>A designer changed a look while playing in the editor: show it at once.</summary>
         private void LooksEdited()
