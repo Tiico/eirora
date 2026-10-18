@@ -30,7 +30,8 @@ if [ ! -f secrets/postgres_password ]; then
 fi
 
 if [ ! -f secrets/connection_string ]; then
-    printf 'Host=postgres;Database=eirora;Username=eirora;Password=%s' "$(cat secrets/postgres_password)" > secrets/connection_string
+    # Password authentication only: GSS would need Kerberos libraries the chiseled image does not have.
+    printf 'Host=postgres;Database=eirora;Username=eirora;GSS Encryption Mode=Disable;Password=%s' "$(cat secrets/postgres_password)" > secrets/connection_string
 fi
 
 if [ ! -f secrets/token_signing_key.pem ]; then
