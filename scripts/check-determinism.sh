@@ -21,6 +21,14 @@ timeout_seconds="${DETERMINISM_TIMEOUT:-600}"
 mkdir -p "$out"
 rm -f "$out/dotnet.txt" "$out/android.txt"
 
+# An APK older than the simulation or the corpus would compare yesterday's code.
+[[ -f "$apk" ]] || { echo "::error::$apk does not exist; build it with Eirora.Editor.Builds.AndroidDeterminism."; exit 1; }
+newer="$(find "$root/src/Eirora.Simulation" "$root/tests/Replays" -type f \( -name '*.cs' -o -name '*.replay' \) -newer "$apk" | head -n 1)"
+if [[ -n "$newer" ]]; then
+  echo "::error::$apk is older than $newer; build it again."
+  exit 1
+fi
+
 echo "Hashing the corpus with .NET..."
 dotnet test --project "$root/tests/Eirora.Simulation.Tests" --filter-class "*ReplayCorpusTests" >/dev/null
 [[ -s "$out/dotnet.txt" ]] || { echo "::error::.NET wrote no hashes to $out/dotnet.txt"; exit 1; }
@@ -37,7 +45,7 @@ echo "Playing the corpus in the IL2CPP build on $("$adb" get-serialno)..."
 
 "$adb" install -r "$apk" >/dev/null
 "$adb" logcat -c
-"$adb" shell monkey -p "$package" -c android.intent.category.LAUNCHER 1 >/dev/null
+"$adb" shell monkey -p "$package" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
 
 for ((second = 0; second < timeout_seconds; second += 2)); do
   log="$("$adb" logcat -d -s Unity)"
