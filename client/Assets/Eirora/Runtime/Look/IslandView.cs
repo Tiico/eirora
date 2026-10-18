@@ -1,7 +1,7 @@
-using Eirora.Simulation.Map;
 using System.Collections.Generic;
 using System.Linq;
 using Eirora.Simulation;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using UnityEngine;
 
@@ -13,7 +13,8 @@ namespace Eirora.Client.Look
         /// <summary>How full a forest is drawn where a building or work leaves room for less, until the economy shows its stock.</summary>
         public const float CrowdedForest = 0.25f;
 
-        private readonly IslandMap _map = new();
+        // Every world is on the prototype's map until generated worlds are drawn (TASK-033).
+        private readonly IslandMap _map = new(PrototypeHome.Map);
         private readonly Looks _looks;
         private readonly GameObject _nyon;
         private readonly MeshFilter _settlement;

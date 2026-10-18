@@ -1,9 +1,9 @@
-using Eirora.Simulation.Map;
 using System;
 using System.Linq;
 using Eirora.Client.Look;
 using Eirora.Simulation;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
 using UnityEditor;
@@ -66,7 +66,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void FishingWaterIsWaterAndEveryOtherPlaceIsLand()
         {
-            var map = new IslandMap();
+            var map = new IslandMap(PrototypeHome.Map);
 
             foreach (var site in PrototypeIsland.Sites)
             {

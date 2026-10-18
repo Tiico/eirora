@@ -5,6 +5,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Serialization;
@@ -123,7 +124,7 @@ public sealed class SimulationSnapshotTests
 
         var changed = Reseal(header, state.Replace(original, replacement, StringComparison.Ordinal));
 
-        Assert.Throws<FormatException>(() => SimulationSnapshot.FromBytes(changed).Restore());
+        Assert.Throws<FormatException>(() => SimulationSnapshot.FromBytes(changed).Restore(PrototypeHome.Map));
     }
 
     [Fact]
@@ -144,7 +145,7 @@ public sealed class SimulationSnapshotTests
         var snapshot = WithHeaderLine(line, change);
 
         Assert.True(snapshot.IsFromNewerVersion);
-        Assert.Throws<SavedByNewerVersionException>(snapshot.Restore);
+        Assert.Throws<SavedByNewerVersionException>(() => snapshot.Restore(PrototypeHome.Map));
     }
 
     [Fact]
@@ -153,7 +154,7 @@ public sealed class SimulationSnapshotTests
         var snapshot = WithHeaderLine("rules", -1);
 
         Assert.Equal(RulesVersion.Current - 1, snapshot.Rules);
-        Assert.Throws<FormatException>(snapshot.Restore);
+        Assert.Throws<FormatException>(() => snapshot.Restore(PrototypeHome.Map, Array.Empty<StateMigration>()));
     }
 
     [Theory]
@@ -176,7 +177,7 @@ public sealed class SimulationSnapshotTests
         return SimulationSnapshot.FromBytes(Encoding.UTF8.GetBytes(changed));
     }
 
-    private static World RoundTrip(World world) => SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore();
+    private static World RoundTrip(World world) => SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(PrototypeHome.Map);
 
     private static (string Header, string State) Split(string text)
     {
