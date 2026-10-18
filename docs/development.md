@@ -13,6 +13,7 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen, inklusive arkitekturtestet som håller den ren. |
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern. |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
+| `tools/` | Skript för utvecklare, till exempel [mätningar på enhet](./design/device-measurements.md). Ingår inte i CI. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
@@ -75,6 +76,8 @@ Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka o
 ```bash
 client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
 ```
+
+Prestanda och batteri mäts på telefonen med mätscenen (`-eirora-measure day|night`) och skriptet i `tools/device-measurements/`, enligt [mätningar på enhet](./design/device-measurements.md).
 
 Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-0006](./adr/0006-saves-are-migrated-snapshots.md)): segmentets start-snapshot, journalen sedan dess och den senaste snapshoten, med en hash över allt.
 Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`; är sparningen skadad laddas reservfilen och den skadade läggs undan som `.damaged`.
