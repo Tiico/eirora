@@ -87,9 +87,21 @@ public sealed class SaveTests
     {
         string text = Encoding.UTF8.GetString(PlayedSave().ToBytes());
 
-        string newer = text.Replace($"eirora-save {Save.FormatVersion}\n", $"eirora-save {Save.FormatVersion + 1}\n", StringComparison.Ordinal);
+        string newer = Reseal(text, Save.FormatVersion + 1);
 
         Assert.Throws<SavedByNewerVersionException>(() => Save.Load(Encoding.UTF8.GetBytes(newer)));
+    }
+
+    // The hash covers the header too, so a damaged format version is not mistaken for a newer app's save.
+    [Fact]
+    public void AChangedFormatVersionIsCaught()
+    {
+        string text = Encoding.UTF8.GetString(PlayedSave().ToBytes());
+
+        string changed = text.Replace($"eirora-save {Save.FormatVersion}\n", $"eirora-save {Save.FormatVersion + 8}\n", StringComparison.Ordinal);
+
+        var problem = Assert.ThrowsAny<FormatException>(() => Save.Load(Encoding.UTF8.GetBytes(changed)));
+        Assert.IsNotType<SavedByNewerVersionException>(problem);
     }
 
     [Theory]
@@ -202,13 +214,13 @@ public sealed class SaveTests
             $"state-sha256 {Sha256(state)}\n",
             state);
         string body = Section("start", snapshot) + Section("inputs", string.Empty) + Section("latest", snapshot);
-        return Encoding.UTF8.GetBytes($"eirora-save 1\nsha256 {Sha256(body)}\n{body}");
+        return Encoding.UTF8.GetBytes(Sealed(1, body));
 
         static string Section(string name, string text) => $"{name} {text.Length}\n{text}";
     }
 
     /// <summary>Gives a hand-changed save a matching hash, and its snapshots too.</summary>
-    private static string Reseal(string save)
+    private static string Reseal(string save, int format = Save.FormatVersion)
     {
         int bodyStart = save.IndexOf('\n', save.IndexOf('\n') + 1) + 1;
         string body = save[bodyStart..];
@@ -232,7 +244,14 @@ public sealed class SaveTests
             at = lineEnd + 1 + length;
         }
 
-        return $"eirora-save {Save.FormatVersion}\nsha256 {Sha256(resealed.ToString())}\n{resealed}";
+        return Sealed(format, resealed.ToString());
+    }
+
+    /// <summary>A save's frame around <paramref name="body"/>: the header and a hash of the header and the body.</summary>
+    private static string Sealed(int format, string body)
+    {
+        string header = $"eirora-save {format.ToString(CultureInfo.InvariantCulture)}\n";
+        return $"{header}sha256 {Sha256(header + body)}\n{body}";
     }
 
     private static string Sha256(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));

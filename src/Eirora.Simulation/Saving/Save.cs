@@ -16,9 +16,11 @@ namespace Eirora.Simulation.Saving
     /// devices be resolved (TASK-023).
     /// </summary>
     /// <remarks>
-    /// The bytes are UTF-8 text: a header with the format and a SHA-256 hash of everything after it, then named
-    /// sections, each with its length. A changed or missing byte is caught, so a save cut off mid-write is never
-    /// mistaken for a world. The simulation does no I/O; the client writes the bytes atomically.
+    /// The bytes are UTF-8 text: a header line with the format, a line with the SHA-256 hash of the header and the body,
+    /// then the body of named sections, each with its length in UTF-16 characters. This frame of two lines stays the same
+    /// in every format, so any build can tell a damaged save from a newer one. A changed or missing byte is caught, so a
+    /// save cut off mid-write is never mistaken for a world. The simulation does no I/O; the client writes the bytes
+    /// atomically.
     /// </remarks>
     public sealed class Save
     {
@@ -124,8 +126,9 @@ namespace Eirora.Simulation.Saving
                 AppendSection(body, "previous-inputs", previous.Inputs);
             }
 
+            string header = $"{Magic} {FormatVersion.ToString(CultureInfo.InvariantCulture)}\n";
             string text = body.ToString();
-            return s_utf8.GetBytes($"{Magic} {FormatVersion.ToString(CultureInfo.InvariantCulture)}\nsha256 {Hash(text)}\n{text}");
+            return s_utf8.GetBytes($"{header}sha256 {Hash(header + text)}\n{text}");
         }
 
         /// <summary>The world the current segment's start and journal lead to, for checking that they do.</summary>
@@ -155,6 +158,14 @@ namespace Eirora.Simulation.Saving
                 throw new FormatException("Not a save.");
             }
 
+            // The hash is checked before the format is read, so a damaged version is never taken for a newer app's.
+            string header = text.Substring(0, magicEnd + 1);
+            string body = text.Substring(hashEnd + 1);
+            if (!string.Equals(text.Substring(magicEnd + 1, hashEnd - magicEnd - 1), "sha256 " + Hash(header + body), StringComparison.Ordinal))
+            {
+                throw new FormatException("The save does not match its hash; it is damaged or incomplete.");
+            }
+
             string version = text.Substring(Magic.Length + 1, magicEnd - Magic.Length - 1);
             if (!int.TryParse(version, NumberStyles.None, CultureInfo.InvariantCulture, out int format) || format < 1)
             {
@@ -164,12 +175,6 @@ namespace Eirora.Simulation.Saving
             if (format > FormatVersion)
             {
                 throw new SavedByNewerVersionException($"The save has format {format}; this build reads format {FormatVersion}.");
-            }
-
-            string body = text.Substring(hashEnd + 1);
-            if (!string.Equals(text.Substring(magicEnd + 1, hashEnd - magicEnd - 1), "sha256 " + Hash(body), StringComparison.Ordinal))
-            {
-                throw new FormatException("The save does not match its hash; it is damaged or incomplete.");
             }
 
             var sections = new Dictionary<string, string>(StringComparer.Ordinal);
