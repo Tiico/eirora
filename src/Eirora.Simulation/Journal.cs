@@ -38,11 +38,14 @@ namespace Eirora.Simulation
 
         public World World { get; }
 
+        /// <summary>The first line of a journal written by this build.</summary>
+        internal static string CurrentHeader => $"{Header} {Text(FormatVersion)} rules {Text(RulesVersion.Current)}";
+
         /// <summary>Creates a new world and starts its journal.</summary>
         public static Journal Start(TimeReading install, RestSchedule restSchedule)
         {
             var journal = new Journal(World.Create(install, restSchedule), install);
-            journal.Line($"{Header} {FormatVersion} rules {RulesVersion.Current}");
+            journal.Line(CurrentHeader);
             journal.Line($"create {Reading(install)} {restSchedule.StartMinuteOfDay} {restSchedule.DurationMinutes}");
             return journal;
         }

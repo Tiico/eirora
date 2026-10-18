@@ -1,0 +1,42 @@
+create 1791964800 Europe/Stockholm 7200 1380 480
+cmd steps-0 selfcare 0 Steps Verified 7500
+cmd sleep-0 selfcare 0 Sleep Verified 390
+cmd workouts-0 selfcare 0 Workouts Verified 1
+cmd jetty-h1-0 build Jetty H1
+cmd woodcutter-f2-0 build Woodcutter F2
+time 1792045800 Europe/Stockholm 7200
+cmd steps-1 selfcare 1 Steps Verified 7500
+cmd sleep-1 selfcare 1 Sleep Verified 390
+cmd workouts-1 selfcare 1 Workouts Verified 0
+cmd sawmill-e2-1 build Sawmill E2
+cmd workday-e2-1 workday E2
+time 1792132200 Europe/Stockholm 7200
+cmd steps-2 selfcare 2 Steps Verified 7500
+cmd sleep-2 selfcare 2 Sleep Verified 390
+cmd workouts-2 selfcare 2 Workouts Verified 1
+cmd expedition-2 expedition
+cmd rush-2 rush
+time 1792218600 Europe/Stockholm 7200
+cmd steps-3 selfcare 3 Steps Verified 7500
+cmd sleep-3 selfcare 3 Sleep Verified 390
+cmd workouts-3 selfcare 3 Workouts Verified 0
+cmd expedition-again-3 expedition
+cmd workday-f2-3 workday F2
+time 1792305000 Europe/Stockholm 7200
+cmd steps-4 selfcare 4 Steps Verified 7500
+cmd sleep-4 selfcare 4 Sleep Verified 390
+cmd workouts-4 selfcare 4 Workouts Verified 1
+cmd jetty-n0-4 build Jetty N0
+cmd sheep-n1-4 build SheepFarm N1
+time 1792391400 Europe/Stockholm 7200
+cmd steps-5 selfcare 5 Steps Verified 7500
+cmd sleep-5 selfcare 5 Sleep Verified 390
+cmd workouts-5 selfcare 5 Workouts Verified 0
+cmd quarry-n2-5 build Quarry N2
+cmd weavery-l3-5 build Weavery L3
+time 1792477800 Europe/Stockholm 7200
+cmd steps-6 selfcare 6 Steps Verified 7500
+cmd sleep-6 selfcare 6 Sleep Verified 390
+cmd workouts-6 selfcare 6 Workouts Verified 0
+cmd longhouse-l1-6 build Longhouse L1
+cmd workday-n1-6 workday N1

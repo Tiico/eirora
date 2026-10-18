@@ -46,11 +46,39 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.ComputesWithFloats), "ldc.r8")]
     [InlineData(nameof(ImpureFixture.CallsMath), "System.Math")]
     [InlineData(nameof(ImpureFixture.ReadsTickCount), "System.Environment")]
+    [InlineData(nameof(ImpureFixture.ReadsTheRuntime), "System.Reflection.Assembly")]
     public void ScannerCatchesEachKindOfImpurity(string method, string expectedViolation)
     {
         var violations = ScanFixture();
 
         Assert.Contains(violations, v => v.Contains($"::{method}(", StringComparison.Ordinal) && v.Contains(expectedViolation, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(nameof(ImpureFixture.FormatsNumberByCulture), "culture-dependent System.Int32::ToString")]
+    [InlineData(nameof(ImpureFixture.ParsesNumberByCulture), "culture-dependent System.Int32::Parse")]
+    [InlineData(nameof(ImpureFixture.ComparesStringsByCulture), "culture-dependent System.String::Compare")]
+    [InlineData(nameof(ImpureFixture.StartsWithByCulture), "culture-dependent System.String::StartsWith")]
+    [InlineData(nameof(ImpureFixture.LowersByCulture), "culture-dependent System.String::ToLower")]
+    [InlineData(nameof(ImpureFixture.SortsStringsByCulture), "culture-dependent System.Collections.Generic.SortedSet`1::.ctor without a comparer")]
+    [InlineData(nameof(ImpureFixture.IteratesDictionary), "hash order System.Collections.Generic.Dictionary`2::GetEnumerator")]
+    [InlineData(nameof(ImpureFixture.IteratesDictionaryKeys), "hash order System.Collections.Generic.Dictionary`2::get_Keys")]
+    public void ScannerCatchesWhatDiffersBetweenRuntimesAndDevices(string method, string expectedViolation)
+    {
+        var violations = ScanFixture();
+
+        Assert.Contains(violations, v => v.Contains($"::{method}(", StringComparison.Ordinal) && v.Contains(expectedViolation, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(nameof(ImpureFixture.FormatsNumberInvariantly))]
+    [InlineData(nameof(ImpureFixture.FindsCharacterOrdinally))]
+    [InlineData(nameof(ImpureFixture.SortsStringsOrdinally))]
+    public void ScannerAllowsInvariantAndOrdinalForms(string method)
+    {
+        var violations = ScanFixture();
+
+        Assert.DoesNotContain(violations, v => v.Contains($"::{method}(", StringComparison.Ordinal));
     }
 
     [Fact]

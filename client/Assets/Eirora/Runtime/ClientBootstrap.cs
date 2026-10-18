@@ -18,6 +18,13 @@ namespace Eirora.Client
     {
         private const float CatchUpSeconds = 1f;
 
+        // The determinism build only plays the replay corpus (TASK-021, Builds.AndroidDeterminism).
+#if EIRORA_DETERMINISM
+        private static readonly bool s_determinismBuild = true;
+#else
+        private static readonly bool s_determinismBuild = false;
+#endif
+
         private GameSession _session = null!;
         private IslandView _island = null!;
         private Atmosphere _atmosphere = null!;
@@ -31,6 +38,12 @@ namespace Eirora.Client
 
         private void Start()
         {
+            if (s_determinismBuild)
+            {
+                DeterminismRun.RunFromResources();
+                return;
+            }
+
             Application.targetFrameRate = 30;
             _camera = Camera.main != null ? Camera.main : new GameObject("Main Camera").AddComponent<Camera>();
             var sun = FindFirstObjectByType<Light>() ?? new GameObject("Sun").AddComponent<Light>();
@@ -168,6 +181,11 @@ namespace Eirora.Client
 
         private void Update()
         {
+            if (s_determinismBuild)
+            {
+                return;
+            }
+
             _rig.Update();
             if (_session?.World is not { } world)
             {

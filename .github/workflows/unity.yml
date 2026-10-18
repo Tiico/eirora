@@ -9,6 +9,8 @@ on:
       - client/**
       - src/Eirora.Simulation/**
       - src/Eirora.Contracts/**
+      - tests/Replays/**
+      - scripts/check-determinism.sh
       - .github/workflows/unity.yml
   workflow_dispatch:
 
@@ -67,6 +69,62 @@ jobs:
         with:
           name: unity-test-results
           path: ${{ steps.tests.outputs.artifactsPath }}
+          retention-days: 14
+
+  # The replay corpus must give the same state in .NET and in the IL2CPP build on Android (TASK-021, NFR-02).
+  determinism:
+    name: Determinism (.NET and IL2CPP on Android)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: false
+          dotnet: false
+          haskell: true
+          large-packages: false
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/cache@v6
+        with:
+          path: client/Library
+          key: unity-library-determinism-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          restore-keys: unity-library-android-
+
+      - uses: game-ci/unity-builder@v6
+        with:
+          projectPath: client
+          targetPlatform: Android
+          buildMethod: Eirora.Editor.Builds.AndroidDeterminism
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # The x86_64 image runs the ARM64 build through Android's ARM translation.
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: scripts/check-determinism.sh client/Builds/Android/EiroraDeterminism.apk
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: determinism-hashes
+          path: artifacts/determinism
           retention-days: 14
 
   android:
