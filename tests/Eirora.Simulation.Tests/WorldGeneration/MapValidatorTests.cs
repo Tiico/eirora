@@ -83,12 +83,10 @@ public sealed class MapValidatorTests
     {
         var report = MapValidator.Validate(PrototypeHome.Map);
 
-        // Nyön's harbour site lies inland, so no ship can land; Hemön's two mountains share the top; and the
-        // second expedition's island only comes with generator v1 (TASK-031).
-        Assert.Equal(
-            ["islands-have-harbours", "islands-reachable", "crest", "first-island", "second-island"],
-            report.Failed.Select(r => r.Rule));
-        Assert.Equal("nyon", report["islands-have-harbours"].Detail);
+        // The second expedition's island, Ytterön, only comes with generator v1 (TASK-031).
+        Assert.Equal(["second-island"], report.Failed.Select(r => r.Rule));
+        Assert.Equal(("nyon", 9), (report["first-island"].Detail, (int)report["first-island"].Value));
+        Assert.Equal(6, report["crest"].Value);
         Assert.Equal(46, report["start-land"].Value);
     }
 

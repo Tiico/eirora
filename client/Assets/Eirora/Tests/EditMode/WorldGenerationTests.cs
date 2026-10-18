@@ -12,7 +12,7 @@ namespace Eirora.Client.Tests
     public sealed class WorldGenerationTests
     {
         // tests/Eirora.Simulation.Tests/WorldGeneration/Golden/maps.txt.
-        private const string PrototypeHomeHash = "235f3ca98f52f6f90c0b4de7af1cedac3cd78a66ca2b95309a49771d2ec8f3eb";
+        private const string PrototypeHomeHash = "68c9ca3cbba613b120301be188b7b9b14ab4b114f475791eb9c06981662de2c2";
 
         private static readonly uint[] s_reference = { 0xa15c02b7, 0x7b47f409, 0xba1d3330, 0x83d2f293, 0xbfa4784b, 0xcbed606e };
 
