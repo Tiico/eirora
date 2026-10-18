@@ -32,3 +32,31 @@ jobs:
       - run: dotnet build Eirora.slnx --no-restore --configuration Release
 
       - run: dotnet test --solution Eirora.slnx --no-build --configuration Release
+
+  image:
+    name: Server container image
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Every push proves the image builds; only main publishes it, tagged with the commit (deploy/README.md).
+      - name: Build the image
+        if: github.ref != 'refs/heads/main'
+        run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerArchiveOutputPath=artifacts/eirora-server.tar.gz
+
+      - name: Log in to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Publish the image
+        if: github.ref == 'refs/heads/main'
+        run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerRegistry=ghcr.io -p:ContainerImageTags=${{ github.sha }}
