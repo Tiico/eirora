@@ -93,11 +93,15 @@ app_layer() {
     shell dumpsys SurfaceFlinger --list | grep -F "SurfaceView[$PACKAGE" | grep -v -F "Background" | grep -F "BLAST" | head -n 1
 }
 
+# The Unity extra for the measurement scene. adb joins its arguments into one command line that the phone's shell
+# splits again, so the extra is quoted for that shell to arrive as one string.
+scene_argument() { printf "'-eirora-measure %s'" "$LIGHT"; }
+
 measure_cold_start() {
     local activity="$1" i total times=()
     echo "Cold start ($STARTS times):"
     for i in $(seq 1 "$STARTS"); do
-        total="$(shell am start -W -S -n "$activity" -e unity "-eirora-measure $LIGHT" | awk '/TotalTime:/ { print $2 }')"
+        total="$(shell am start -W -S -n "$activity" -e unity "$(scene_argument)" | awk '/TotalTime:/ { print $2 }')"
         [ -n "$total" ] || die "am start reported no TotalTime"
         times+=("$total")
         sleep 3
@@ -109,11 +113,12 @@ measure_cold_start() {
 measure_session() {
     local activity="$1" layer start end i temps
     echo "Holding the $LIGHT scene for $SECONDS_TO_HOLD s:"
-    shell am start -S -n "$activity" -e unity "-eirora-measure $LIGHT" >/dev/null
+    shell am start -S -n "$activity" -e unity "$(scene_argument)" >/dev/null
     sleep 10 # Let the scripted week play and the scene settle before measuring.
 
     shell dumpsys batterystats --reset >/dev/null
     shell dumpsys battery unplug >/dev/null # Count the session as on battery even while USB is attached.
+    trap '"$ADB" shell dumpsys battery reset >/dev/null 2>&1' EXIT # Also when the session fails or is interrupted.
     temps="$(temperatures)"
     record battery_temp_start_c "${temps%% *}"
     record skin_temp_start_c "${temps##* }"
@@ -135,6 +140,7 @@ measure_session() {
     record app_battery_mah "$(app_mah)"
     record app_battery_mah_per_hour "$(awk -v m="$(app_mah)" -v s="$SECONDS_TO_HOLD" 'BEGIN { printf "%.1f", m * 3600 / s }')"
     shell dumpsys battery reset >/dev/null
+    trap - EXIT
 
     # Frame times between consecutive presents; gaps over a second are breaks between latency dumps.
     sort -n -u "$OUT/frames.txt" | awk 'NR > 1 { d = ($1 - prev) / 1e6; if (d > 0 && d < 1000) printf "%.3f\n", d } { prev = $1 }' |
