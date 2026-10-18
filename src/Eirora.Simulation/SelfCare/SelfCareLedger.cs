@@ -124,16 +124,27 @@ namespace Eirora.Simulation.SelfCare
             return ledger;
         }
 
+        /// <summary>The total recorded for a game day, habit and source, or null when nothing is recorded.</summary>
+        public int? Total(int day, Habit habit, ContributionSource source) =>
+            _totals.TryGetValue((day, habit, source), out int total) ? total : (int?)null;
+
+        /// <summary>
+        /// The health store's total (its verified and manually entered parts) or the player's own input, whichever is
+        /// higher; never their sum, so a day completed by hand is not counted twice (forces.md, section 6).
+        /// </summary>
         private int? Effective(int day, Habit habit)
         {
-            bool hasVerified = _totals.TryGetValue((day, habit, ContributionSource.Verified), out int verified);
-            bool hasSelfReported = _totals.TryGetValue((day, habit, ContributionSource.SelfReported), out int selfReported);
-            if (!hasVerified && !hasSelfReported)
+            int? verified = Total(day, habit, ContributionSource.Verified);
+            int? storeManual = Total(day, habit, ContributionSource.HealthStoreManualEntry);
+            int? selfReported = Total(day, habit, ContributionSource.SelfReported);
+            if (verified is null && storeManual is null && selfReported is null)
             {
                 return null;
             }
 
-            return verified > selfReported ? verified : selfReported;
+            int store = (verified ?? 0) + (storeManual ?? 0);
+            int own = selfReported ?? 0;
+            return store > own ? store : own;
         }
 
         private int Sessions(int day) => Effective(day, Habit.Workouts) ?? 0;

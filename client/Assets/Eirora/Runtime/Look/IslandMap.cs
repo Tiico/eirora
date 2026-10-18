@@ -26,6 +26,12 @@ namespace Eirora.Client.Look
         public const int Radius = 4;
         public const int SeaRadius = 9;
 
+        /// <summary>Nyön's centre and its land: one ring around its harbour and stone vein.</summary>
+        public static readonly Hex NyonCentre = new(10, 0);
+        private const int NyonRadius = 1;
+        private const int NyonSeaRadius = 4;
+        private const int NyonOpenSea = 7; // Overlaps the home sea, so one sea joins the islands.
+
         // Fishing water and the channels that join it to the open sea.
         private static readonly Hex[] s_water =
         {
@@ -45,18 +51,25 @@ namespace Eirora.Client.Look
             }
 
             var origin = new Hex(0, 0);
-            for (int q = -SeaRadius; q <= SeaRadius; q++)
+            for (int q = -SeaRadius; q <= NyonCentre.Q + NyonOpenSea; q++)
             {
                 for (int r = -SeaRadius; r <= SeaRadius; r++)
                 {
                     var hex = new Hex(q, r);
                     int distance = hex.DistanceTo(origin);
-                    if (distance > SeaRadius)
+                    int toNyon = hex.DistanceTo(NyonCentre);
+                    if (distance <= Radius && !s_water.Contains(hex))
                     {
-                        continue;
+                        _terrain[hex] = LandTerrain(hex, distance);
                     }
-
-                    _terrain[hex] = distance <= Radius && !s_water.Contains(hex) ? LandTerrain(hex, distance) : Terrain.DeepSea;
+                    else if (toNyon <= NyonRadius)
+                    {
+                        _terrain[hex] = LandTerrain(hex, 0); // A small green island, not a sandbank.
+                    }
+                    else if (distance <= SeaRadius || toNyon <= NyonOpenSea)
+                    {
+                        _terrain[hex] = Terrain.DeepSea;
+                    }
                 }
             }
 
@@ -75,6 +88,9 @@ namespace Eirora.Client.Look
         public Site? SiteAt(Hex hex) => _sites.TryGetValue(hex, out var site) ? site : null;
 
         public static Hex HexOf(Site site) => new(site.Q, site.R);
+
+        /// <summary>Whether a hex belongs to Nyön, which stays hidden until an expedition finds it.</summary>
+        public static bool OnNyon(Hex hex) => hex.DistanceTo(NyonCentre) <= NyonSeaRadius;
 
         public bool IsLand(Hex hex) => _terrain.TryGetValue(hex, out var terrain) && terrain >= Terrain.Beach;
 

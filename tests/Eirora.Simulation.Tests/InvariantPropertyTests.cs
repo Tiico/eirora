@@ -150,8 +150,9 @@ public sealed class InvariantPropertyTests
 
             Assert.True(world.Now.UtcSeconds >= was.UtcSeconds); // INV-D8.
             Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2.
-            long capacity = StoragePerStorehouse * world.Buildings.Count(b => b.Kind == BuildingKind.Storehouse);
+            long capacity = StoragePerStorehouse * world.Buildings.Count(b => b.Kind == BuildingKind.Storehouse && b.Site.Island == IslandId.Home);
             Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(r), 0, capacity)); // INV-R1.
+            Assert.All(Enum.GetValues<Resource>(), r => Assert.True(world.Stock(IslandId.Nyon, r) >= 0));
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
         }
     }
@@ -198,7 +199,7 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        Assert.Equal(8, accepted.Count); // Every kind of command.
+        Assert.Equal(9, accepted.Count); // Every kind of command.
         Assert.Superset(new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule }, rejections);
         Assert.Superset(
             new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "sites-revealed", "force-withdrawn" },

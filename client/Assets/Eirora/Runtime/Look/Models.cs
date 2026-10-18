@@ -140,6 +140,19 @@ namespace Eirora.Client.Look
             }
         }
 
+        /// <summary>A small square-sailed boat on the water.</summary>
+        public static void Boat(MeshBuilder mesh, Vector3 c, float yaw)
+        {
+            var hull = Color.Lerp(Palette.Wood, Color.black, 0.15f);
+            mesh.Box(c + new Vector3(0f, -0.12f, 0f), new Vector3(0.7f, 0.12f, 0.22f), yaw, Palette.Wood, hull);
+            mesh.Box(c, new Vector3(0.04f, 0.6f, 0.04f), yaw, Palette.Wood, Palette.Wood);
+            var rotation = Quaternion.Euler(0f, yaw, 0f);
+            var sailCentre = c + (Vector3.up * 0.38f) + (rotation * new Vector3(0f, 0f, -0.03f));
+            var right = rotation * new Vector3(0.22f, 0f, 0f);
+            mesh.Polygon(Palette.Birch, sailCentre - right + (Vector3.down * 0.18f), sailCentre - right + (Vector3.up * 0.18f), sailCentre + right + (Vector3.up * 0.18f), sailCentre + right + (Vector3.down * 0.18f));
+            mesh.Polygon(Palette.FaluRed, sailCentre + right + (Vector3.down * 0.18f), sailCentre + right + (Vector3.up * 0.18f), sailCentre - right + (Vector3.up * 0.18f), sailCentre - right + (Vector3.down * 0.18f));
+        }
+
         /// <summary>Poles and a half-built frame where work is queued.</summary>
         public static void Scaffold(MeshBuilder mesh, Vector3 c)
         {

@@ -81,6 +81,7 @@ namespace Eirora.Client.UI
             Rejection.AlreadyDone => "Det är redan gjort.",
             Rejection.NothingLeftToSurvey => "Hela ön är kartlagd.",
             Rejection.NothingToRush => "Det finns inget bygge att rusta.",
+            Rejection.NoBuildingThere => "Det behövs en byggnad för det här först.",
             Rejection.GameDayOutOfRange => "Det går att fylla i de senaste sju dygnen.",
             Rejection.AmountOutOfRange => "Värdet verkar inte stämma.",
             _ => "Det gick inte just nu.",
@@ -96,6 +97,7 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Upgrade } done => $"{Name(done.Building)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
             SitesRevealed => "Dimman lättade över nya platser.",
+            ExpeditionReturned => "Expeditionen kom hem. Den hittade Nyön i öster.",
             _ => null,
         };
 

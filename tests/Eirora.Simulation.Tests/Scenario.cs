@@ -113,8 +113,13 @@ internal sealed class Scenario
             case 6:
                 return _ => new BuildRoad(site);
             case 7:
-                bool survey = random.Next(2) == 0;
-                return _ => survey ? new Survey() : new Rush();
+                int which = random.Next(3);
+                return _ => which switch
+                {
+                    0 => new Survey(),
+                    1 => new SendExpedition(),
+                    _ => new Rush(),
+                };
             case 8:
                 return _ => new Workday(site);
             default:

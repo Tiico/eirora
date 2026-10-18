@@ -42,6 +42,14 @@ namespace Eirora.Simulation.Events
                     }
 
                     break;
+                case ExpeditionReturned e:
+                    writer.Line("expedition-returned").Long(e.UtcSeconds);
+                    foreach (string siteId in e.SiteIds)
+                    {
+                        writer.Text(siteId);
+                    }
+
+                    break;
                 default:
                     throw new ArgumentException($"{gameEvent.GetType().Name} has no state record.", nameof(gameEvent));
             }
@@ -81,17 +89,26 @@ namespace Eirora.Simulation.Events
 
             if (reader.Next("sites-revealed"))
             {
-                long utcSeconds = reader.Long();
-                var siteIds = new List<string>();
-                while (reader.HasField)
-                {
-                    siteIds.Add(reader.Text());
-                }
+                return new SitesRevealed(reader.Long(), SiteIds(reader));
+            }
 
-                return new SitesRevealed(utcSeconds, siteIds);
+            if (reader.Next("expedition-returned"))
+            {
+                return new ExpeditionReturned(reader.Long(), SiteIds(reader));
             }
 
             throw new FormatException($"Expected an event, found '{reader.Peek ?? "the end"}'.");
+        }
+
+        private static List<string> SiteIds(StateReader reader)
+        {
+            var siteIds = new List<string>();
+            while (reader.HasField)
+            {
+                siteIds.Add(reader.Text());
+            }
+
+            return siteIds;
         }
     }
 }

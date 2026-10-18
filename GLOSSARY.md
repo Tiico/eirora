@@ -231,6 +231,20 @@ _Avoid_: maskot, tutor, NPC
 Sammanfattningen som visas första gången spelaren öppnar spelet efter en gryning och täcker allt sedan den senast lästa rapporten.
 _Avoid_: logg, nyhetsflöde, dagbok
 
+## Konto
+
+**Konto** (`Account`):
+Spelarens identitet på servern, som skapas när spelaren första gången loggar in med Apple eller Google; den egna världen kräver aldrig ett konto.
+_Avoid_: profil, användare, inloggning (som är sättet att nå kontot)
+
+**Molnsparning** (`CloudSave`):
+Kontots kopia av världens sparning på servern, uppdelad i en världsdel och en end-to-end-krypterad bidragsdel.
+_Avoid_: backup, synk
+
+**Bidragsnyckel** (`ContributionKey`):
+Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per spelardygn; förloras den går bidragshistoriken förlorad, aldrig världen.
+_Avoid_: lösenord, återställningskod (som är en av nyckelns kopior)
+
 ## Socialt
 
 **Grupp** (`Group`):

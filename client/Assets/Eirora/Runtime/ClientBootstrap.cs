@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Eirora.Client.App;
+using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Client.UI;
 using Eirora.Simulation.Commands;
@@ -24,6 +25,9 @@ namespace Eirora.Client
         private CameraRig _rig = null!;
         private Camera _camera = null!;
         private float _nextCatchUp;
+        private IHealthSource? _healthSource;
+        private HealthSync? _healthSync;
+        private HealthStatus? _healthStatus;
 
         private void Start()
         {
@@ -40,7 +44,7 @@ namespace Eirora.Client
 
             var document = gameObject.AddComponent<UIDocument>();
             document.panelSettings = PanelSettings();
-            _hud = new Hud(document.rootVisualElement, command => _session.Apply(command));
+            _hud = new Hud(document.rootVisualElement, command => _session.Apply(command), new HealthControls(this));
             _hud.SelectionChanged += site => _island.Select(site is null ? null : IslandMap.HexOf(site));
 
             _rig = new CameraRig(_camera, _hud.IsOverInterface);
@@ -53,7 +57,72 @@ namespace Eirora.Client
                 return;
             }
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+            _healthSource = new AndroidHealthSource();
+            _healthSync = new HealthSync(_healthSource);
+#endif
             Begin(new GameSession(new DeviceClock(), GameSession.DefaultSavePath));
+            SyncHealth();
+        }
+
+        /// <summary>Reads the health store now, as when the player opens the game (D-70).</summary>
+        internal async void SyncHealth()
+        {
+            if (_healthSource is null)
+            {
+                return;
+            }
+
+            try
+            {
+                _healthStatus = await _healthSource.StatusAsync();
+                await _session.SyncHealthAsync(_healthSync);
+                Refresh();
+            }
+            catch (HealthSourceException)
+            {
+                _healthStatus = HealthStatus.Unavailable; // The player can always enter self-care by hand (HLT-12).
+            }
+        }
+
+        /// <summary>Uses another health store, such as the fake one in the screenshot tour.</summary>
+        internal void UseHealthSource(IHealthSource source)
+        {
+            _healthSource = source;
+            _healthSync = new HealthSync(source);
+            SyncHealth();
+        }
+
+        /// <summary>What the self-care sheet needs to connect Health Connect.</summary>
+        private sealed class HealthControls : IHealthControls
+        {
+            private readonly ClientBootstrap _client;
+
+            public HealthControls(ClientBootstrap client) => _client = client;
+
+            public HealthStatus? Status => _client._healthStatus;
+
+            public async void Connect(System.Action<int> done)
+            {
+                if (_client._healthSource is not { } source)
+                {
+                    done(0);
+                    return;
+                }
+
+                try
+                {
+                    var granted = await source.RequestAccessAsync(new[] { Simulation.SelfCare.Habit.Steps, Simulation.SelfCare.Habit.Workouts, Simulation.SelfCare.Habit.Sleep });
+                    _client.SyncHealth();
+                    done(granted.Count);
+                }
+                catch (HealthSourceException)
+                {
+                    done(0);
+                }
+            }
+
+            public void OpenSettings() => _client._healthSource?.OpenSettings();
         }
 
         /// <summary>Starts showing a session: the saved world, or the first-launch setup.</summary>
@@ -75,7 +144,11 @@ namespace Eirora.Client
             }
             else
             {
-                _hud.ShowSetup(schedule => _session.Begin(schedule));
+                _hud.ShowSetup(schedule =>
+                {
+                    _session.Begin(schedule);
+                    SyncHealth();
+                });
             }
         }
 
@@ -119,6 +192,7 @@ namespace Eirora.Client
             else
             {
                 _session?.CatchUp();
+                SyncHealth();
             }
         }
 
@@ -151,5 +225,7 @@ namespace Eirora.Client
         }
 
         internal void Apply(GameCommand command) => _session.Apply(command);
+
+        internal void Focus(Vector3 point) => _rig.Focus(point);
     }
 }

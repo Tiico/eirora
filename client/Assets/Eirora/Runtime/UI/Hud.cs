@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
@@ -21,6 +22,8 @@ namespace Eirora.Client.UI
     public sealed class Hud
     {
         private readonly Func<GameCommand, CommandResult> _apply;
+        private readonly IHealthControls? _health;
+        private bool _explainingHealth;
         private readonly VisualElement _root;
         private readonly VisualElement _screen;
         private readonly VisualElement _top;
@@ -38,9 +41,10 @@ namespace Eirora.Client.UI
         private Sheet _open;
         private Site? _site;
 
-        public Hud(VisualElement root, Func<GameCommand, CommandResult> apply)
+        public Hud(VisualElement root, Func<GameCommand, CommandResult> apply, IHealthControls? health = null)
         {
             _apply = apply;
+            _health = health;
             _root = root;
             _root.styleSheets.Add(Resources.Load<StyleSheet>("UI/Eirora"));
             _root.pickingMode = PickingMode.Ignore;
@@ -160,6 +164,14 @@ namespace Eirora.Client.UI
 
         public void OpenReport() => Open(Sheet.Report);
 
+        /// <summary>Opens the explanation shown before Health Connect's own dialog (HLT-03).</summary>
+        public void OpenHealthExplanation()
+        {
+            Open(Sheet.SelfCare);
+            _explainingHealth = true;
+            ShowSheet();
+        }
+
         /// <summary>Whether a screen position is over the interface rather than the island.</summary>
         public bool IsOverInterface(Vector2 screenPosition)
         {
@@ -204,7 +216,9 @@ namespace Eirora.Client.UI
             var night = Container("card night", _middle);
             Text("night-title", night, "Byn vilar.");
             Text("night-text", night, $"Världen öppnar klockan {Clock(RestEnd(world))}.");
-            Text("night-text", night, "Medan byn sover mognar säden och skogen växer.");
+            Text("night-text", night, world.ExpeditionHoursLeft > 0
+                ? "Medan byn sover mognar säden, skogen växer och expeditionen ligger för ankar."
+                : "Medan byn sover mognar säden och skogen växer.");
         }
 
         private void ShowBar(World world)
@@ -231,6 +245,7 @@ namespace Eirora.Client.UI
         private void Open(Sheet sheet)
         {
             _open = _open == sheet ? Sheet.None : sheet;
+            _explainingHealth = false;
             if (sheet == Sheet.SelfCare && _world is not null)
             {
                 _selfCare.Reset(_world.GameDay);
@@ -262,7 +277,15 @@ namespace Eirora.Client.UI
                     SiteSheet(_world, _site);
                     break;
                 case Sheet.SelfCare:
-                    _selfCare.Build(_sheet, command => Run(command), Stepper, ShowSheet);
+                    if (_explainingHealth)
+                    {
+                        HealthExplanation();
+                    }
+                    else
+                    {
+                        _selfCare.Build(_sheet, command => Run(command), Stepper, ShowSheet, HealthSection);
+                    }
+
                     break;
                 case Sheet.Report:
                     ReportSheet();
@@ -313,6 +336,12 @@ namespace Eirora.Client.UI
         {
             bool produces = building.Kind is not (BuildingKind.Longhouse or BuildingKind.Cottage or BuildingKind.Storehouse
                 or BuildingKind.Jetty or BuildingKind.Lookout);
+            if (building.Kind == BuildingKind.Jetty)
+            {
+                JettyActions(world, building);
+                return;
+            }
+
             if (!produces)
             {
                 Text("sheet-text", _sheet, building.Kind switch
@@ -345,6 +374,99 @@ namespace Eirora.Client.UI
             {
                 AddAction("Väg till förrådet", "2 sten och 4 h arbete per steg · mer når fram", true, () => Run(new BuildRoad(building.Site.Id)));
             }
+        }
+
+        /// <summary>The jetty: expeditions from home, the sea route, and Nyön's goods waiting for the ship.</summary>
+        private void JettyActions(World world, Building building)
+        {
+            if (building.Site.Island == IslandId.Nyon)
+            {
+                var waiting = Enum.GetValues(typeof(Resource)).Cast<Resource>()
+                    .Where(r => world.Stock(IslandId.Nyon, r) > 0)
+                    .Select(r => $"{world.Stock(IslandId.Nyon, r)} {Texts.Name(r)}")
+                    .ToList();
+                Text("sheet-text", _sheet, "Skeppen tar Nyöns varor hem, 40 per dygn.");
+                Text("sheet-text", _sheet, waiting.Count == 0 ? "Inget väntar på skeppen just nu." : "Väntar på skeppen: " + string.Join(", ", waiting) + ".");
+                return;
+            }
+
+            if (world.ExpeditionHoursLeft > 0)
+            {
+                Text("sheet-text", _sheet, $"Expeditionen är ute. Om {world.ExpeditionHoursLeft} timmar med vakna bybor är den tillbaka.");
+            }
+            else if (!world.IsRevealed("N0"))
+            {
+                int cost = SendExpedition.Cost(world);
+                AddAction("Skicka expedition", $"{cost} Utforskning · 32 h med vakna bybor · hittar land bortom horisonten",
+                    world.Available(Force.Exploration) >= cost, () => Run(new SendExpedition()));
+            }
+            else
+            {
+                Text("sheet-text", _sheet, world.SeaRouteOpen
+                    ? "Sjövägen till Nyön är öppen. Skeppen tar hem 40 varor per dygn."
+                    : "Nyön är hittad. Bygg en brygga där, så öppnar sjövägen.");
+            }
+        }
+
+        /// <summary>The health store's part of the self-care sheet: connect it, or see what is read and change it there.</summary>
+        private void HealthSection()
+        {
+            var status = _health?.Status;
+            if (_health is null || status is null || status.Availability == HealthAvailability.Unavailable)
+            {
+                return;
+            }
+
+            if (status.Availability == HealthAvailability.UpdateRequired)
+            {
+                AddAction("Installera Health Connect", "Behövs för att läsa steg, träning och sömn från telefonen", true, _health.OpenSettings);
+                return;
+            }
+
+            if (status.Granted.Count == 0)
+            {
+                AddAction("Koppla Health Connect", "Steg, träningspass och sömn läses när du öppnar spelet", true, () =>
+                {
+                    _explainingHealth = true;
+                    ShowSheet();
+                });
+                return;
+            }
+
+            var names = status.Granted.OrderBy(h => h).Select(h => h switch
+            {
+                Habit.Steps => "steg",
+                Habit.Workouts => "träningspass",
+                _ => "sömn",
+            });
+            Text("sheet-text", _sheet, $"Health Connect: läser {string.Join(", ", names)} när du öppnar spelet.");
+            AddAction("Ändra i Health Connect", "Välj vad spelet får läsa, eller ta bort behörigheten", true, _health.OpenSettings);
+        }
+
+        /// <summary>
+        /// The explanation before the system dialog (HLT-03, ux-journeys.md, step 9); both choices weigh the same.
+        /// </summary>
+        private void HealthExplanation()
+        {
+            Text("sheet-title", _sheet, "Var ska krafterna komma ifrån?");
+            Text("sheet-text", _sheet, "Eirora kan läsa tre saker från Health Connect: hur många steg du tar, vilka träningspass du gör och hur länge du sover. Inget annat: ingen plats, ingen puls och ingen sömnkvalitet.");
+            Text("sheet-text", _sheet, "Allt stannar på din telefon. Ingen annan ser något om du inte själv väljer att dela det. Du kan pausa, se och radera allt när du vill.");
+            Text("sheet-text", _sheet, "Vill du hellre skriva in själv fungerar spelet precis lika bra.");
+            var choices = Container("bar", _sheet);
+            Button("button", choices, "Koppla Health Connect", () =>
+            {
+                _explainingHealth = false;
+                _health?.Connect(granted =>
+                {
+                    Toast(granted > 0 ? "Health Connect är kopplat." : "Inget kopplat. Du skriver in själv.");
+                    ShowSheet();
+                });
+            });
+            Button("button", choices, "Jag skriver in själv", () =>
+            {
+                _explainingHealth = false;
+                ShowSheet();
+            });
         }
 
         private void ReportSheet()
@@ -501,10 +623,11 @@ namespace Eirora.Client.UI
                 _touchedWorkouts = false;
             }
 
-            public void Build(VisualElement sheet, Action<GameCommand> run, Func<VisualElement, string, System.Action, System.Action, Label> stepper, System.Action refresh)
+            public void Build(VisualElement sheet, Action<GameCommand> run, Func<VisualElement, string, System.Action, System.Action, Label> stepper, System.Action refresh, System.Action health)
             {
                 Text("sheet-title", sheet, "Egenvård");
                 Text("sheet-subtitle", sheet, "Skriv in det du gjort. Det räknas precis som data från telefonen.");
+                health();
                 var tabs = Container("tabs", sheet);
                 for (int back = 0; back <= 1 && _today - back >= 0; back++)
                 {
