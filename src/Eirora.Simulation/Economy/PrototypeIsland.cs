@@ -29,7 +29,21 @@ namespace Eirora.Simulation.Economy
             new Site("M1", -4, 0, SiteKind.Mountain),
             new Site("M2", 3, -1, SiteKind.Mountain, hidden: true, richnessPercent: 200),
             new Site("P1", -2, -1, SiteKind.Pasture),
+
+            // Nyön lies across the sea to the east; its stone vein and pasture are twice as rich.
+            new Site("N0", 10, 0, SiteKind.HarborSpot | SiteKind.Land, hidden: true, island: IslandId.Nyon),
+            new Site("N1", 10, 1, SiteKind.Pasture, hidden: true, richnessPercent: 200, island: IslandId.Nyon),
+            new Site("N2", 11, 0, SiteKind.Mountain, hidden: true, richnessPercent: 200, island: IslandId.Nyon),
         };
+
+        /// <summary>The Exploration an expedition costs before a lookout's discount (economy-v1.md, section 6).</summary>
+        public const int ExpeditionCost = 250;
+
+        /// <summary>Hours of travel with the villagers awake; the crew rests at night like everyone else (INV-T4).</summary>
+        public const int ExpeditionHours = 32;
+
+        /// <summary>What the first expedition finds.</summary>
+        public static IReadOnlyList<string> ExpeditionReveals { get; } = new[] { "N0", "N1", "N2" };
 
         /// <summary>What each survey reveals, in order, and what it costs in Exploration (economy-v1.md, section 6).</summary>
         public static IReadOnlyList<(int Cost, IReadOnlyList<string> Reveals)> Surveys { get; } = new (int, IReadOnlyList<string>)[]

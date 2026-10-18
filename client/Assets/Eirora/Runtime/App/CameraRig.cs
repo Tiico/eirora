@@ -15,6 +15,7 @@ namespace Eirora.Client.App
         private const float TapMovement = 14f;
         private const float TapSeconds = 0.45f;
         private const float PanLimit = 8f;
+        private const float PanLimitEast = 21f; // Far enough to reach Nyön.
         private static readonly float[] s_distances = { 18f, 28f, 44f };
 
         private readonly Camera _camera;
@@ -38,6 +39,13 @@ namespace Eirora.Client.App
             _camera.nearClipPlane = 0.5f;
             _camera.farClipPlane = 160f;
             _camera.clearFlags = CameraClearFlags.SolidColor;
+            Place();
+        }
+
+        /// <summary>Centres the view on a point, such as Nyön when it is found.</summary>
+        public void Focus(Vector3 point)
+        {
+            _pivot = new Vector3(point.x, Models.LandHeight, point.z - 1.2f);
             Place();
         }
 
@@ -83,7 +91,7 @@ namespace Eirora.Client.App
                 {
                     var delta = _dragAnchor - Ground(position);
                     _pivot += new Vector3(delta.x, 0f, delta.z);
-                    _pivot.x = Mathf.Clamp(_pivot.x, -PanLimit, PanLimit);
+                    _pivot.x = Mathf.Clamp(_pivot.x, -PanLimit, PanLimitEast);
                     _pivot.z = Mathf.Clamp(_pivot.z, -PanLimit, PanLimit);
                     Place();
                 }

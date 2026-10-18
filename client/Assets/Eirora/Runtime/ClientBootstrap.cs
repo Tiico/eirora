@@ -151,5 +151,7 @@ namespace Eirora.Client
         }
 
         internal void Apply(GameCommand command) => _session.Apply(command);
+
+        internal void Focus(Vector3 point) => _rig.Focus(point);
     }
 }
