@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Eirora.Simulation.Benchmarks/Eirora.Simulation.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Eirora.Contracts/Eirora.Contracts.csproj" />
     <Project Path="src/Eirora.Server/Eirora.Server.csproj" />
