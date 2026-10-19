@@ -1,5 +1,12 @@
+using System.Data.Common;
 using System.Net;
 using Eirora.Contracts;
+using Eirora.Server.Data;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Eirora.Server.Tests;
 
@@ -166,5 +173,76 @@ public sealed class AccountTests(ServerFixture fixture)
         var viaGoogle = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google, google.Subject));
 
         Assert.True(viaGoogle.AccountCreated);
+    }
+
+    [Fact]
+    public async Task TwoRemovalsAtOnceLeaveTheAccountALogin()
+    {
+        var gate = new LoginDeletionGate();
+        using var server = _server.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.ConfigureDbContext<EiroraDbContext>(options => options.AddInterceptors(gate))));
+        using var api = new Api(server.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") }));
+        var apple = _server.Providers.SignIn(LoginProviders.Apple);
+        var tokens = await api.SignInAsync(apple);
+        var google = _server.Providers.SignIn(LoginProviders.Google);
+        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), _server.Providers.Again(apple));
+
+        var statuses = await Task.WhenAll(
+            api.RemoveLoginAsync(tokens.Access, LoginProviders.Apple, _server.Providers.Again(google)),
+            api.RemoveLoginAsync(tokens.Access, LoginProviders.Google, _server.Providers.Again(apple)));
+
+        Assert.Single(statuses, HttpStatusCode.NoContent);
+        Assert.Single((await api.GetAccountAsync(tokens.Access)).Account!.Logins);
+    }
+
+    /// <summary>
+    /// Holds the first deletion of a login until a second one arrives, so that two removals interleave the way two devices
+    /// can: both have read the account's logins before either deletes. A removal that waits for the other gets through
+    /// after <see cref="Timeout"/>.
+    /// </summary>
+    private sealed class LoginDeletionGate : DbCommandInterceptor
+    {
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(2);
+
+        private readonly TaskCompletionSource _second = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _arrived;
+
+        public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            await PassAsync(command);
+            return result;
+        }
+
+        public override async ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            await PassAsync(command);
+            return result;
+        }
+
+        private async Task PassAsync(DbCommand command)
+        {
+            if (!command.CommandText.Contains("DELETE FROM \"AccountLogins\"", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            switch (Interlocked.Increment(ref _arrived))
+            {
+                case 1:
+                    await Task.WhenAny(_second.Task, Task.Delay(Timeout));
+                    break;
+                case 2:
+                    _second.SetResult();
+                    break;
+            }
+        }
     }
 }
