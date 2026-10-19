@@ -11,6 +11,7 @@ on:
       - src/Eirora.Contracts/**
       - src/Eirora.WorldGeneration/**
       - .github/workflows/unity.yml
+      - .github/actions/free-disk-space/**
   workflow_dispatch:
 
 permissions:
@@ -53,16 +54,9 @@ jobs:
       checks: write
     timeout-minutes: 60
     steps:
-      # Unity's editor image needs more disk than a hosted runner has free by default; the job runs in the image, so the
-      # runner's own SDKs can go.
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-
       - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/free-disk-space
 
       - uses: actions/cache@v6
         with:
@@ -94,14 +88,6 @@ jobs:
     env:
       RELEASE: ${{ github.ref == 'refs/heads/main' }}
     steps:
-      # The Android editor image and build need more disk than a hosted runner has free by default.
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-
       # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
       # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
       - name: Fail with instructions when the signing key is missing
@@ -142,6 +128,8 @@ jobs:
           commits="$(git rev-list --count HEAD)"
           echo "name=0.0.$commits" >> "$GITHUB_OUTPUT"
           echo "code=$commits" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/free-disk-space
 
       - uses: actions/cache@v6
         with:
@@ -189,18 +177,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      # Unity's editor image needs more disk than a hosted runner has free by default; the job runs in the image, so the
-      # runner's own SDKs can go.
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - uses: ./.github/actions/free-disk-space
 
       - uses: actions/cache@v6
         with:
