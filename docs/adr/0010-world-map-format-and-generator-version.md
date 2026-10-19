@@ -127,6 +127,8 @@ Kartan klarar ändå de krav som varje komposition behöver (MAP-07, TASK-035):
 - De två yttersta ringarna är djupt hav, så att två världar som ligger kant i kant har hav emellan.
 - Varje karta har minst ett hamnläge med en farled av djupt hav ut till kanten, där sjövägar till andra världar kan börja.
 - Validatorn (TASK-030) underkänner kartor som bryter mot detta.
+- `ArchipelagoTests` (TASK-035) lägger ut två till sex genererade världar som skivor kring ett gemensamt hav i mitten, vridna i steg om 60°: de överlappar aldrig, och från varje världs hamnlägen når ett skepp det gemensamma havet.
+  En karta med `source geographic`, byggd för hand utan geodata, valideras, sparas och simuleras som vilken värld som helst.
 
 ## Källtyper
 
