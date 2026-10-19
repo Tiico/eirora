@@ -158,7 +158,13 @@ dotnet run --project tools/Eirora.MapCheck -- --seed 42
 ```
 
 ```bash
-dotnet run -c Release --project tools/Eirora.MapCheck -- --generator prototype-home --version 1 --from 0 --seeds 10000
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --from 0 --seeds 10000
+```
+
+Ett kontaktark med kartor ritade ovanifrån i art directions palett, för att välja bland seeds innan en generatorversion låses:
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --sheet maps.svg --seeds 12
 ```
 
 ## Servern

@@ -108,9 +108,14 @@ namespace Eirora.WorldGeneration.Validation
             }
 
             var reports = new List<MapReport>(count);
+            var attempts = new List<long>(count);
             for (int i = 0; i < count; i++)
             {
-                reports.Add(MapValidator.Validate(generator.Generate(unchecked(firstSeed + (ulong)i))));
+                ulong seed = unchecked(firstSeed + (ulong)i);
+                int tries = 1;
+                var map = generator is ICountsAttempts counting ? counting.Generate(seed, out tries) : generator.Generate(seed);
+                reports.Add(MapValidator.Validate(map));
+                attempts.Add(tries);
             }
 
             var spreads = reports[0].Rules.Select((rule, index) =>
@@ -118,6 +123,10 @@ namespace Eirora.WorldGeneration.Validation
                 var values = reports.Select(r => r.Rules[index].Value).OrderBy(v => v).ToList();
                 return new RuleSpread(rule.Rule, rule.Limit, reports.Count(r => r.Rules[index].Passed), values[0], values[(values.Count - 1) / 2], values[values.Count - 1]);
             }).ToList();
+
+            // How many times the generator drew again before the validator passed a map (TASK-031).
+            attempts.Sort();
+            spreads.Add(new RuleSpread("attempts", "-", count, attempts[0], attempts[(count - 1) / 2], attempts[count - 1]));
 
             return new BulkReport(generator.Id, generator.Version, firstSeed, count, reports.Count(r => r.Passed), spreads);
         }
