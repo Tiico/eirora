@@ -170,8 +170,8 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: com.eirora.game
-    iPhone: com.eirora.game
+    Android: se.eirora.app
+    iPhone: se.eirora.app
   buildNumber:
     Standalone: 0
     VisionOS: 0
