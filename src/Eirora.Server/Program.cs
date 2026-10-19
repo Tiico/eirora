@@ -5,11 +5,17 @@ using Eirora.Server.SignIn;
 using Eirora.Simulation;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using OpenIddict.Validation.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// `migrate` applies the database migrations and exits; it runs as its own step before a new version starts (ADR-0008).
+// It issues no tokens, so it is only given the connection string (deploy/compose.yaml).
+var migrating = args is ["migrate"];
 
 // Secrets arrive as one file per key (Docker Compose secrets), e.g. SignIn__Apple__PrivateKey (ADR-0008).
 builder.Configuration.AddKeyPerFile(builder.Configuration["SecretsDirectory"] ?? "/run/secrets", optional: true);
@@ -19,7 +25,13 @@ builder.Services.AddHealthChecks();
 
 builder.Services.AddDbContext<EiroraDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Eirora"));
+    // Password authentication only: GSS would need Kerberos libraries the chiseled image does not have, and Npgsql would
+    // otherwise try GSS encryption first on every connection.
+    var connectionString = new NpgsqlConnectionStringBuilder(builder.Configuration.GetConnectionString("Eirora"))
+    {
+        GssEncryptionMode = GssEncryptionMode.Disable,
+    };
+    options.UseNpgsql(connectionString.ConnectionString);
     options.UseOpenIddict<Guid>();
 });
 
@@ -34,7 +46,7 @@ builder.Services.AddOpenIddict()
         options.AcceptAnonymousClients();
         options.RegisterScopes(Scopes.OfflineAccess);
         options.SetAccessTokenLifetime(TimeSpan.FromMinutes(15)).SetRefreshTokenLifetime(TimeSpan.FromDays(60));
-        AddTokenKeys(options, builder.Configuration, builder.Environment);
+        AddTokenKeys(options, builder.Configuration, requireKeys: builder.Environment.IsProduction() && !migrating);
         options.UseAspNetCore().EnableTokenEndpointPassthrough();
     })
     .AddValidation(options =>
@@ -52,8 +64,16 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton(ExternalProviders.FromConfiguration(builder.Configuration.GetSection("SignIn:Providers")));
 builder.Services.AddScoped<ExternalTokenValidator>();
 builder.Services.AddScoped<AccountService>();
-builder.Services.AddOptions<AppleOptions>().Bind(builder.Configuration.GetSection("SignIn:Apple"));
-builder.Services.AddHttpClient<AppleIdClient>(http => http.BaseAddress = new Uri(AppleIdClient.Audience + "/"));
+builder.Services.AddOptions<AppleOptions>()
+    .Bind(builder.Configuration.GetSection("SignIn:Apple"))
+    .Validate(apple => apple.Timeout > TimeSpan.Zero, "SignIn:Apple:Timeout must be greater than zero.")
+    .Validate(apple => !apple.IsConfigured || apple.HasReadableKey(), "SignIn:Apple:PrivateKey is not an EC private key in PEM.")
+    .ValidateOnStart();
+builder.Services.AddHttpClient<AppleIdClient>((services, http) =>
+{
+    http.BaseAddress = new Uri(AppleIdClient.Audience + "/");
+    http.Timeout = services.GetRequiredService<IOptions<AppleOptions>>().Value.Timeout;
+});
 builder.Services.AddHostedService<TokenPruning>();
 
 // Behind Traefik, which terminates TLS; the server is only reachable through it (deploy/compose.yaml).
@@ -69,8 +89,7 @@ if (builder.Configuration.GetValue<bool>("ForwardedHeaders:TrustAll"))
 
 var app = builder.Build();
 
-// `migrate` applies the database migrations and exits; it runs as its own step before a new version starts (ADR-0008).
-if (args is ["migrate"])
+if (migrating)
 {
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<EiroraDbContext>().Database.MigrateAsync();
@@ -88,8 +107,9 @@ app.MapAccountEndpoints();
 
 await app.RunAsync();
 
-// Production signs and encrypts tokens with keys from secrets; elsewhere throwaway keys, so tokens end with the process.
-static void AddTokenKeys(OpenIddictServerBuilder options, IConfiguration configuration, IHostEnvironment environment)
+// The server in production signs and encrypts tokens with keys from secrets; migrate, which issues no tokens, and other
+// environments get throwaway keys, so tokens end with the process.
+static void AddTokenKeys(OpenIddictServerBuilder options, IConfiguration configuration, bool requireKeys)
 {
     var signingKey = configuration["SignIn:TokenSigningKey"];
     var encryptionKey = configuration["SignIn:TokenEncryptionKey"];
@@ -102,7 +122,7 @@ static void AddTokenKeys(OpenIddictServerBuilder options, IConfiguration configu
         return;
     }
 
-    if (environment.IsProduction())
+    if (requireKeys)
     {
         throw new InvalidOperationException("SignIn:TokenSigningKey and SignIn:TokenEncryptionKey are required in production.");
     }

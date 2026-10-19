@@ -9,15 +9,17 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 |---|---|
 | `src/Eirora.Simulation/` | Motoroberoende, deterministisk simuleringskärna (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.simulation`. |
 | `src/Eirora.Contracts/` | Kontrakt mellan klient och server (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.contracts`. |
+| `src/Eirora.WorldGeneration/` | Kartgeneratorerna och deras slumpgenerator (netstandard2.1, C# 9, [ADR-0010](./adr/0010-world-map-format-and-generator-version.md)). Också Unity-paketet `com.eirora.worldgeneration`. |
 | `src/Eirora.Server/` | ASP.NET Core-backend (.NET 10) som äger det delade enligt ADR-0001. |
-| `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen, inklusive arkitekturtestet som håller den ren. |
+| `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen och kartgeneratorerna, inklusive arkitekturtestet som håller dem rena. |
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern. |
+| `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Skript för utvecklare, till exempel [mätningar på enhet](./design/device-measurements.md). Ingår inte i CI. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som inte ingår i CI. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
-Simuleringen och kontrakten byggs från samma källkod av både .NET och Unity.
+Simuleringen, kartgeneratorerna och kontrakten byggs från samma källkod av både .NET och Unity.
 Därför gäller C# 9 och netstandard2.1 där, och inga Unity-API:er; `dotnet build` och arkitekturtestet underkänner det som inte håller.
 
 ## Förutsättningar
@@ -43,6 +45,20 @@ dotnet format Eirora.slnx --verify-no-changes
 Varningar är fel, och `dotnet restore` underkänner paket med kända sårbarheter (NuGetAudit).
 Byggutdata hamnar i `artifacts/`.
 
+Prestandan i simuleringen mäts med BenchmarkDotNet i `benchmarks/`.
+CI bygger mätningarna men kör dem inte, eftersom tider på delade maskiner varierar för mycket för att underkänna ett bygge.
+Kör dem i Release när koden de mäter ändras:
+
+```bash
+dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --filter '*'
+```
+
+| Mätning | Budget på en utvecklardator | Senast uppmätt |
+|---|---|---|
+| Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
+
+Budgetarna på telefonen sätts i TASK-024.
+
 Unity-testerna (EditMode) körs headless:
 
 ```bash
@@ -60,6 +76,32 @@ En APK till en Android-telefon byggs lokalt med:
 ```bash
 "C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android
 ```
+
+Bygg och installera från Git Bash (Windows) med skripten:
+
+```bash
+bash scripts/build-android.sh
+bash scripts/install-android.sh
+```
+
+Bygg och installera i ett steg med `bash scripts/build-android.sh --install`.
+Om telefonens befintliga app är signerad med datorns debugnyckel, använd `bash scripts/build-android.sh --debug --install` så att sparningen kan behållas.
+`--debug` väljer Unitys debugnyckel och hoppar över releasevärdena i filen och miljön.
+Skripten kan anropas från valfri katalog med sin fullständiga sökväg.
+Stäng projektet i Unity innan du bygger.
+Byggskriptet hittar projektets Unity-version, sparar APK:n i `client/Builds/Android/Eirora.apk` och visar Unitys byggutdata direkt i terminalen.
+Det läser signeringsvärden från `~/eirora-keys/android-signing.env` om filen finns, annars används värdena i miljön eller Unitys debugnyckel.
+`EIRORA_KEY_DIR` kan ange en annan nyckelkatalog och `UNITY_EDITOR` en annan sökväg till Unity.
+
+Installationsskriptet hittar ADB via PATH eller projektets Unity-installation och väljer den senast ändrade `Eirora.apk` i `client/Builds/Android/` eller arbetskopiorna under `.claude/worktrees/` (även `artifacts/unity/`).
+Det skriver ut vald fil och enhet före installationen och föredrar en ansluten Pixel 7.
+Telefonen måste ha USB-felsökning aktiverad och datorn godkänd.
+Skriptet väntar upp till två minuter på återanslutning och USB-godkännande, även när Unity har startat om ADB efter bygget.
+Väntetiden kan ändras med miljövariabeln `ANDROID_WAIT_SECONDS` (sekunder).
+Regressionstestet för fördröjt godkännande körs med `bash scripts/test-android-install.sh`.
+Ange vid behov `--apk "C:/byggen/Eirora.apk"` eller `--serial "enhetens serienummer"`, och sätt miljövariabeln `ADB` för en annan sökväg till adb.exe.
+Installationen uppdaterar med `adb install -r`; skriptet avinstallerar aldrig appen och försöker inte kringgå signaturkonflikter eller versionskontroller.
+PowerShell-varianten finns också kvar i `scripts/install-android.ps1`.
 
 Bygget får version enligt [Versioner](#versioner) och signeras med prototypens nyckel när den finns i miljön, se [Signering](#signering).
 `Eirora.Editor.Builds.AndroidBundle` bygger i stället den `.aab` som CI laddar upp till Google Play, se [Google Play](#google-play).
@@ -135,7 +177,7 @@ scripts/check-determinism.sh
 
 Skriptet installerar och avinstallerar bara determinismbygget, aldrig spelet.
 Determinismbygget har en egen scen med bara `DeterminismBootstrap`, som `Builds.AndroidDeterminism` gör för bygget och tar bort efteråt; korpusen ligger i `client/Assets/Eirora/Determinism/` bara medan bygget pågår.
-Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `client/Assets/`, `client/Packages/` eller `tests/Replays/`.
+Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `client/Assets/`, `client/Packages/` eller `tests/Replays/`.
 `client/ProjectSettings/` jämförs inte, eftersom bygget självt sparar den efter att APK:n skrivits; bygg om efter en ändring där.
 
 Replays är indata, inte resultat, så de ändras inte när reglerna ändras.
@@ -152,6 +194,30 @@ Tills det har kört grönt och rött en gång var är de här antagandena otesta
 - att `git rev-list --count HEAD` fungerar i GameCI:s container, där `Builds.CommitCount` hämtar versionen (ett fel om ägarskap, `safe.directory`, stoppar bygget);
 - att emulatorn med API 34 för x86_64 kör ARM64-bygget genom Androids ARM-översättning;
 - att APK:n hamnar i `client/Builds/Android/EiroraDeterminism.apk` när GameCI kör `buildMethod`.
+
+### Kartor och gyllene kartor
+
+En världs karta skapas en gång och sparas hel i sparningen ([ADR-0010](./adr/0010-world-map-format-and-generator-version.md)).
+Generatorerna ligger i `src/Eirora.WorldGeneration`, och `WorldGenerators.All` listar varje version.
+Gyllene kartor ligger i `tests/Eirora.Simulation.Tests/WorldGeneration/Golden/`: `maps.txt` har hashen av kartan som varje generatorversion gör av några fasta seeds, och `prototype-home-1.map` är prototypens handgjorda karta i sin helhet.
+En låst generator ändras aldrig, så en hash som ändras underkänner bygget; en ny generatorversion får sina gyllene kartor skrivna av testerna första gången, för granskning och incheckning.
+
+Validatorn och dess regler beskrivs i [kartvalidering](./design/map-validation.md).
+En karta valideras regel för regel, och tusentals seeds sammanfattas per regel, med:
+
+```bash
+dotnet run --project tools/Eirora.MapCheck -- --seed 42
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --from 0 --seeds 10000
+```
+
+Ett kontaktark med kartor ritade ovanifrån i art directions palett, för att välja bland seeds innan en generatorversion låses:
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --sheet maps.svg --seeds 12
+```
 
 ## Servern
 
@@ -197,8 +263,8 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning; på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `tests/Replays/`, determinismskriptet eller workflowen, samt manuellt | Unity-tester, jämförelse av replay-korpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
+| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `tests/Replays/`, determinismskriptet eller workflowen, samt manuellt | Unity-tester, jämförelse av replay-korpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.

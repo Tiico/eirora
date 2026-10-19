@@ -1,6 +1,7 @@
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using FsCheck.Xunit;
 
@@ -35,7 +36,7 @@ public sealed class InvariantPropertyTests
         {
             if (i == at)
             {
-                world = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore();
+                world = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(PrototypeHome.Map);
             }
 
             scenario.Inputs[i].ApplyTo(world);
@@ -62,7 +63,7 @@ public sealed class InvariantPropertyTests
 
         var bytes = SimulationSnapshot.Take(world).ToBytes();
         var again = SimulationSnapshot.Take(world).ToBytes();
-        var restored = SimulationSnapshot.Take(SimulationSnapshot.FromBytes(bytes).Restore()).ToBytes();
+        var restored = SimulationSnapshot.Take(SimulationSnapshot.FromBytes(bytes).Restore(PrototypeHome.Map)).ToBytes();
 
         return bytes.SequenceEqual(again) && bytes.SequenceEqual(restored);
     }
@@ -90,7 +91,7 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        var restored = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore();
+        var restored = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(PrototypeHome.Map);
         string before = restored.Fingerprint();
 
         // The key alone decides: any command sent again with a used key gives the first result.

@@ -42,6 +42,22 @@ _Avoid_: frö
 **Källtyp** (`sourceType`):
 Var en karta kommer ifrån: procedurgenererad, handgjord eller geografisk.
 
+**Hamnläge** (`HarborSpot`):
+En strand intill grunt hav som når djupt hav, där en brygga kan stå och skepp lägga till; det följer av kartans brickor och sparas inte ([kartvalidering](./docs/design/map-validation.md)).
+_Avoid_: hamnplats, kaj
+
+**Fiskevatten** (`FishingWater`):
+Grunt hav intill land, där en fiskebod kan fiska.
+_Avoid_: fiskeplats
+
+**Krön** (`Crest`):
+Startöns enda högsta bricka, där Vårdkasen byggs; delar två brickor toppen finns inget krön.
+_Avoid_: topp, berg
+
+**Validator** (`MapValidator`):
+Det som avgör om en karta ger en bra start och goda vägar att växa, med ett mätvärde och en gräns per regel ([kartvalidering](./docs/design/map-validation.md)).
+_Avoid_: kartkontroll
+
 **Dimma** (`Fog`):
 Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
 _Avoid_: fog of war, mörker

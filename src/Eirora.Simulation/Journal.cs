@@ -81,9 +81,10 @@ namespace Eirora.Simulation
                 throw new FormatException($"Not a journal of format {FormatVersion}: '{lines[0]}'.");
             }
 
-            if (header[3] != Text(RulesVersion.Current))
+            if (!int.TryParse(header[3], NumberStyles.None, CultureInfo.InvariantCulture, out int rules)
+                || rules < RulesVersion.ReplaysJournalsFrom || rules > RulesVersion.Current)
             {
-                throw new FormatException($"The journal uses rules version {header[3]}; this build runs {RulesVersion.Current}.");
+                throw new FormatException($"The journal uses rules version {header[3]}; this build replays {RulesVersion.ReplaysJournalsFrom} to {RulesVersion.Current}.");
             }
 
             var create = Fields(lines[1]);

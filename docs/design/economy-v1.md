@@ -1,6 +1,6 @@
 # Ekonomi v1
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-004 · **Milstolpe:** M0 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, D-12, D-17, D-34, D-39, D-43–D-45, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)

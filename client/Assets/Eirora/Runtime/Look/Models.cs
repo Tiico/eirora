@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using UnityEngine;
 
 namespace Eirora.Client.Look

@@ -1,14 +1,18 @@
 using Eirora.Contracts;
 using Eirora.Simulation.Tests.Architecture.Fixtures;
+using Eirora.WorldGeneration;
 using Mono.Cecil;
 
 namespace Eirora.Simulation.Tests.Architecture;
 
 /// <summary>
-/// The libraries shared with Unity stay engine-agnostic (ADR-0002) and the simulation stays pure (INV-D2, INV-D3).
+/// The libraries shared with Unity stay engine-agnostic (ADR-0002), and the simulation and the map generators stay
+/// pure (INV-D2, INV-D3, ADR-0010).
 /// </summary>
 public sealed class SharedLibraryArchitectureTests
 {
+    private static readonly string[] s_worldGenerationReferences = ["Eirora.Simulation", "netstandard"];
+
     public static TheoryData<string> SharedAssemblyPaths =>
     [
         typeof(RulesVersion).Assembly.Location,
@@ -26,10 +30,28 @@ public sealed class SharedLibraryArchitectureTests
         Assert.All(references, name => Assert.Equal("netstandard", name));
     }
 
+    // ADR-0010: the generators build on the simulation's map and nothing else.
     [Fact]
-    public void SimulationNeverReadsTheOutsideWorldOrUsesFloatingPoint()
+    public void WorldGenerationReferencesOnlyNetStandardAndTheSimulation()
     {
-        using var assembly = AssemblyDefinition.ReadAssembly(typeof(RulesVersion).Assembly.Location);
+        using var assembly = AssemblyDefinition.ReadAssembly(typeof(WorldGenerators).Assembly.Location);
+
+        var references = assembly.MainModule.AssemblyReferences.Select(reference => reference.Name).Order(StringComparer.Ordinal);
+
+        Assert.Equal(s_worldGenerationReferences, references);
+    }
+
+    public static TheoryData<string> PureAssemblyPaths =>
+    [
+        typeof(RulesVersion).Assembly.Location,
+        typeof(WorldGenerators).Assembly.Location,
+    ];
+
+    [Theory]
+    [MemberData(nameof(PureAssemblyPaths))]
+    public void SimulationAndGeneratorsNeverReadTheOutsideWorldOrUseFloatingPoint(string assemblyPath)
+    {
+        using var assembly = AssemblyDefinition.ReadAssembly(assemblyPath);
 
         var violations = PurityScanner.FindViolations(assembly.MainModule.Types);
 

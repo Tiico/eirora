@@ -5,6 +5,7 @@ using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Client.UI;
 using Eirora.Simulation.Commands;
+using Eirora.Simulation.Map;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -49,7 +50,7 @@ namespace Eirora.Client
             _hud.SelectionChanged += site => _island.Select(site is null ? null : IslandMap.HexOf(site));
 
             _rig = new CameraRig(_camera, _hud.IsOverInterface);
-            _rig.Tapped += point => _hud.Select(_island.Map.SiteAt(Hex.FromWorld(point)));
+            _rig.Tapped += point => _hud.Select(_island.Map.SiteAt(HexLayout.FromWorld(point)));
 
             string? screenshots = Argument("-eirora-screenshots");
             if (screenshots is not null)
@@ -205,7 +206,11 @@ namespace Eirora.Client
 
         private void OnApplicationQuit() => _session?.Save();
 
-        private void OnDestroy() => StagedLook.Edited -= LooksEdited;
+        private void OnDestroy()
+        {
+            StagedLook.Edited -= LooksEdited;
+            _island?.Dispose();
+        }
 
         /// <summary>A designer changed a look while playing in the editor: show it at once.</summary>
         private void LooksEdited()

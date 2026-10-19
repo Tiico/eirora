@@ -24,7 +24,7 @@ rm -f "$out/dotnet.txt" "$out/android.txt"
 # An APK older than the code it is built from or the corpus would compare yesterday's code. ProjectSettings is left
 # out because the build itself saves it after writing the APK.
 [[ -f "$apk" ]] || { echo "::error::$apk does not exist; build it with Eirora.Editor.Builds.AndroidDeterminism."; exit 1; }
-newer="$(find "$root/src/Eirora.Simulation" "$root/src/Eirora.Contracts" "$root/client/Assets" "$root/client/Packages" "$root/tests/Replays" -type f -newer "$apk" | head -n 1)"
+newer="$(find "$root/src/Eirora.Simulation" "$root/src/Eirora.Contracts" "$root/src/Eirora.WorldGeneration" "$root/client/Assets" "$root/client/Packages" "$root/tests/Replays" -type f -newer "$apk" | head -n 1)"
 if [[ -n "$newer" ]]; then
   echo "::error::$apk is older than $newer; build it again."
   exit 1

@@ -9,6 +9,7 @@ on:
       - client/**
       - src/Eirora.Simulation/**
       - src/Eirora.Contracts/**
+      - src/Eirora.WorldGeneration/**
       - tests/Replays/**
       - scripts/check-determinism.sh
       - .github/workflows/unity.yml
@@ -55,7 +56,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: client/Library
-          key: unity-library-test-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          key: unity-library-test-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-test-
 
       - uses: game-ci/unity-test-runner@v4
@@ -93,7 +94,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: client/Library
-          key: unity-library-determinism-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          key: unity-library-determinism-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-android-
 
       - uses: game-ci/unity-builder@v6
@@ -190,7 +191,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: client/Library
-          key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-android-
 
       - uses: game-ci/unity-builder@v6
@@ -240,7 +241,7 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: client/Library
-          key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**') }}
+          key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-ios-
 
       - uses: game-ci/unity-builder@v6

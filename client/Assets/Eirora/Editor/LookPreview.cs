@@ -1,6 +1,7 @@
 using System;
 using Eirora.Client.App;
 using Eirora.Client.Look;
+using Eirora.Simulation.Map;
 using UnityEditor;
 using UnityEngine;
 using Terrain = Eirora.Client.Look.Terrain;
@@ -38,7 +39,7 @@ namespace Eirora.Editor
             var surfaces = new MeshBuilder();
             var glows = new MeshBuilder();
             var hex = new Hex(0, 0);
-            var at = hex.Center + (Vector3.up * Models.Height(ground));
+            var at = hex.Center() + (Vector3.up * Models.Height(ground));
             Models.Tile(surfaces, hex, ground);
             if (nature != null && nature != look)
             {

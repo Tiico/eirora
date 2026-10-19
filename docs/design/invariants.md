@@ -1,6 +1,6 @@
 # Simuleringsinvarianter
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-002 · **Milstolpe:** M0 · **PRD:** NFR-02, CIV-04, CIV-06, RST-*, HLT-04–10, SOC-04, D-08, D-17, D-22, D-35–D-39  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md)
 

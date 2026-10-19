@@ -42,14 +42,21 @@ public sealed class Api(HttpClient http) : IDisposable
         return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<AccountInfo>(Cancel) : null);
     }
 
-    public async Task<HttpStatusCode> LinkAsync(string accessToken, ExternalLogin login) =>
-        await SendAsync(Authorized(HttpMethod.Post, "/api/account/logins", accessToken, login));
+    /// <summary>Links <paramref name="login"/>, confirmed with a sign-in of the account, or with none at all.</summary>
+    public async Task<HttpStatusCode> LinkAsync(string accessToken, ExternalLogin login, ExternalLogin? confirmation) =>
+        await SendAsync(Authorized(HttpMethod.Post, "/api/account/logins", accessToken, new { login, confirmation }));
 
-    public async Task<HttpStatusCode> UnlinkAsync(string accessToken, string provider) =>
-        await SendAsync(Authorized(HttpMethod.Delete, $"/api/account/logins/{provider}", accessToken));
+    /// <summary>Removes the login with <paramref name="provider"/>, confirmed with a sign-in of the account, or with none.</summary>
+    public async Task<HttpStatusCode> RemoveLoginAsync(string accessToken, string provider, ExternalLogin? confirmation)
+    {
+        var request = Authorized(HttpMethod.Post, $"/api/account/logins/{provider}/removal", accessToken);
+        request.Content = JsonContent.Create(confirmation);
+        return await SendAsync(request);
+    }
 
-    public async Task<HttpStatusCode> DeleteAccountAsync(string accessToken, ExternalLogin confirmation) =>
-        await SendAsync(Authorized(HttpMethod.Post, "/api/account/deletion", accessToken, confirmation));
+    /// <summary>Deletes the account; cancelling <paramref name="hangUp"/> drops the connection like a player who closes the app.</summary>
+    public async Task<HttpStatusCode> DeleteAccountAsync(string accessToken, ExternalLogin confirmation, CancellationToken? hangUp = null) =>
+        await SendAsync(Authorized(HttpMethod.Post, "/api/account/deletion", accessToken, confirmation), hangUp);
 
     public void Dispose() => http.Dispose();
 
@@ -66,11 +73,11 @@ public sealed class Api(HttpClient http) : IDisposable
             String(root, "error"));
     }
 
-    private async Task<HttpStatusCode> SendAsync(HttpRequestMessage request)
+    private async Task<HttpStatusCode> SendAsync(HttpRequestMessage request, CancellationToken? cancellationToken = null)
     {
         using (request)
         {
-            using var response = await http.SendAsync(request, Cancel);
+            using var response = await http.SendAsync(request, cancellationToken ?? Cancel);
             return response.StatusCode;
         }
     }
