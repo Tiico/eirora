@@ -14,10 +14,11 @@ services:
       - ./public:/usr/share/nginx/html:ro
       - ./default.conf.template:/etc/nginx/templates/default.conf.template:ro
     read_only: true
-    # The entrypoint writes the filled-in configuration to conf.d, and nginx keeps its pid and buffers in /tmp.
+    # The entrypoint writes the filled-in configuration to conf.d, and nginx keeps its pid and buffers in /tmp; both
+    # belong to the image's nginx user (UID 101), or nginx starts without the site.
     tmpfs:
-      - /etc/nginx/conf.d
-      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+      - /tmp:uid=101,gid=101
     cap_drop:
       - ALL
     security_opt:

@@ -37,16 +37,23 @@ jobs:
 
       - name: The policy names the developer and the contact, and keeps its headers
         run: |
-          get() { docker compose exec -T site wget -q -S -O - "http://localhost:8080$1" 2>&1; }
+          get() { docker compose exec -T site wget -q -S -O - "http://localhost:8080$1" 2>&1 || true; }
+          failed=0
+          expect() {
+            if ! grep -q -- "$2" <<<"$1"; then echo "::error::Expected: $2"; failed=1; fi
+          }
           page="$(get /privacy/)"
-          grep -q "HTTP/1.1 200" <<<"$page"
-          grep -q "Content-Security-Policy: default-src 'none'" <<<"$page"
-          grep -q "Ansvarig för appen: Test Developer." <<<"$page"
-          grep -q "Developer: Test Developer." <<<"$page"
-          grep -q 'href="mailto:privacy@example.test"' <<<"$page"
-          if grep -q "{{" <<<"$page"; then echo "::error::A placeholder was not filled in"; exit 1; fi
-          get /site.css | grep -q "HTTP/1.1 200"
-          get / | grep -q "Location: http://localhost:8080/privacy/\|Location: /privacy/"
+          expect "$page" "HTTP/1.1 200"
+          expect "$page" "Content-Security-Policy: default-src 'none'"
+          expect "$page" "Ansvarig för appen: Test Developer."
+          expect "$page" "Developer: Test Developer."
+          expect "$page" 'href="mailto:privacy@example.test"'
+          if grep -q "{{" <<<"$page"; then echo "::error::A placeholder was not filled in"; failed=1; fi
+          expect "$(get /site.css)" "HTTP/1.1 200"
+          expect "$(get /)" "Location: .*/privacy/"
+          if docker compose logs site | grep -q "ERROR"; then echo "::error::The entrypoint reported an error"; failed=1; fi
+          if [ "$failed" = 1 ]; then printf '%s
+' "$page"; exit 1; fi
 
       - if: failure()
         run: docker compose logs
