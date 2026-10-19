@@ -132,6 +132,13 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-85 | **Byborna syns som små figurer** vid bemannade byggnader under dagen, trots att de modelleras som arbetsgrupper | [BESLUTAT] |
 | D-86 | **I prototypen behåller spelaren spelkameran när viloperioden börjar;** om kameran ska sänkas till nattvyn avgörs i M7 eller M9 | [BESLUTAT] |
 | D-87 | **Vid gryning äter byborna och byn växer före Gryningskraften och bidragen;** stegen påverkar inte varandra, så ordningen ändrar inget utfall ([ux-journeys.md](./docs/design/ux-journeys.md)) | [BESLUTAT] |
+| D-88 | **Fiskeboden står på pålar i det grunda vattnet** intill land, inte på en landbricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-89 | **Ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet,** inte bara strand ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-90 | **Huggarkojan får stå bredvid skogen** och fäller skogsbrickorna på och intill sin bricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-91 | **Långhus, förråd och andra byggnader får stå på varje landbricka utom berg,** även skog, åker och bete, som då inte längre går att hugga, odla eller beta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-92 | **Krönet är startöns enda högsta bricka och bär bara Vårdkasen,** även när det är ett berg; en karta måste ha en enda sådan bricka, och på prototypens karta är det västra berget (-4,0) högst ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md), [ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-93 | **Skogskravet räknar bara skog som huggarkojan kan fälla:** upptäckta skogsbrickor på eller intill brickan som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-94 | **Epok 1:s tempo med byggplatser på brickor är målet:** 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning ([epok 1](./docs/design/epoch-1.md#5-tempo)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -668,6 +675,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
 | D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
+| D-88–D-94 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
@@ -692,6 +700,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M2 |
+| O-16 | Hur många berg att bryta sten i behöver startön, så att stenådern blir ett val och kravet i D-34 nås? | Fler än stenådern; prototypens nästa karta och generatorn ([ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | M3 |
 
 ---
 

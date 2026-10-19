@@ -39,9 +39,9 @@ Kartformat 1 har följande innehåll.
 Det som följer av brickorna sparas inte, eftersom en snapshot aldrig innehåller härledda cachar (ADR-0006):
 - gångbarhet och byggbarhet följer av terräng, höjd och grannar enligt reglerna;
 - fiskevatten är grunt vatten intill land;
-- ett hamnläge är en strand intill grunt vatten som når djupt hav;
+- ett hamnläge är en landbricka utom berg intill grunt vatten som når djupt hav (D-89);
 - farleder och flaskhalsar följer av havsbrickornas sammanhang;
-- krönet är startöns högsta bricka.
+- krönet är startöns högsta bricka; en karta har en enda sådan bricka, och krönet bär bara Vårdkasen, även när det är ett berg (D-92).
 
 Biom per bricka ingår inte i kartformat 1, eftersom V1 har ett enda nordiskt biom.
 Ett biom läggs till med kartformat 2 och en migration som ger alla befintliga brickor det nordiska biomet.
