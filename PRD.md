@@ -139,6 +139,8 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-92 | **Krönet är startöns enda högsta bricka och bär bara Vårdkasen,** även när det är ett berg; en karta måste ha en enda sådan bricka, och på prototypens karta är det västra berget (-4,0) högst ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md), [ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
 | D-93 | **Skogskravet räknar bara skog som huggarkojan kan fälla:** upptäckta skogsbrickor på eller intill brickan som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
 | D-94 | **Epok 1:s tempo med byggplatser på brickor är målet:** 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning ([epok 1](./docs/design/epoch-1.md#5-tempo)) | [BESLUTAT] |
+| D-96 | **En ny värld känner startön och havet längs dess kust;** allt bortom kusten ligger under dimma, och de dolda platserna ligger under små dimfläckar tills en kartläggning lyfter dem (TASK-032) | [BESLUTAT] |
+| D-97 | **Dimman lyfts bricka för bricka med Utforskning, 10 per bricka vid kanten av det kända,** men inte från platser som en kartläggning visar eller land på öar som en expedition hittar, så att kartläggningar och expeditioner behåller sitt värde (TASK-032) | [FÖRSLAG] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -676,6 +678,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
 | D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
 | D-88–D-94 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
+| D-96–D-97 | 2026-10-19 | Se avsnitt 1.1 | Produktägarens val i TASK-032 (D-96) och en följd av det för ekonomin (D-97, förslag) |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

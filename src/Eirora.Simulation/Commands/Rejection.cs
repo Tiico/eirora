@@ -38,5 +38,14 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The building queue is empty.</summary>
         NothingToRush,
+
+        /// <summary>The fog lifts only from a tile next to what is known (TASK-032).</summary>
+        NotNextToTheKnown,
+
+        /// <summary>A survey reveals this site; its fog is not lifted tile by tile.</summary>
+        FoundBySurvey,
+
+        /// <summary>This island is found by an expedition; its fog is not lifted tile by tile.</summary>
+        FoundByExpedition,
     }
 }
