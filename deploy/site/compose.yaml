@@ -1,0 +1,48 @@
+# The public pages on the product owner's server, behind the same Traefik as the backend (deploy/README.md).
+# Separate from the backend so the privacy policy stays up when the backend is down or not yet deployed.
+# Setup: deploy/site/README.md.
+name: ${EIRORA_SITE_PROJECT:-eirora-site}
+
+services:
+  site:
+    image: nginxinc/nginx-unprivileged:1.30.6-alpine
+    environment:
+      NGINX_ENVSUBST_FILTER: ^EIRORA_
+      EIRORA_DEVELOPER_NAME: ${EIRORA_DEVELOPER_NAME:?set the developer name shown in Google Play}
+      EIRORA_PRIVACY_CONTACT: ${EIRORA_PRIVACY_CONTACT:?set the public privacy contact address}
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+      - ./default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    read_only: true
+    # The entrypoint writes the filled-in configuration to conf.d, and nginx keeps its pid and buffers in /tmp; both
+    # belong to the image's nginx user (UID 101), or nginx starts without the site.
+    tmpfs:
+      - /etc/nginx/conf.d:uid=101,gid=101
+      - /tmp:uid=101,gid=101
+    # Traefik only routes to a healthy container, so a site that started without its configuration gets no traffic.
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/privacy/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      start_interval: 1s
+      retries: 3
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik}
+      traefik.http.services.${EIRORA_SITE_PROJECT:-eirora-site}.loadbalancer.server.port: "8080"
+      traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.rule: Host(`${EIRORA_SITE_HOST:?}`)
+      traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+    restart: unless-stopped
+
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik}

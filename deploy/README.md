@@ -17,34 +17,26 @@ docker login ghcr.io --username Tiico
 ## Första gången
 
 1. Kopiera `deploy/` till servern, till exempel `/srv/eirora/`, och skapa `.env` från [.env.example](./.env.example).
-2. Skapa hemligheterna i `secrets/` (katalogen ignoreras av git):
+2. Skapa katalogen för hemligheterna, stängd för alla utom dig, innan något läggs i den (`secrets/` ignoreras av git):
 
 ```bash
-mkdir -p secrets && chmod 700 secrets
-```
-
-```bash
-openssl rand -base64 32 | tr -d '\n' > secrets/postgres_password
-```
-
-```bash
-printf 'Host=postgres;Database=eirora;Username=eirora;Password=%s' "$(cat secrets/postgres_password)" > secrets/connection_string
-```
-
-```bash
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out secrets/token_signing_key.pem
-```
-
-```bash
-openssl rand -base64 32 | tr -d '\n' > secrets/token_encryption_key
-```
-
-```bash
-chmod 600 secrets/*
+install -d -m 700 secrets
 ```
 
 3. Lägg Sign in with Apple-nyckeln från Apple Developer (Certificates, Identifiers & Profiles → Keys) som `secrets/apple_private_key.p8` och dess Key ID i `.env`.
-4. Starta:
+4. Skapa de övriga hemligheterna och ge dem till containrarna som läser dem:
+
+```bash
+sudo ./create-secrets.sh
+```
+
+Utanför Swarm monterar Compose filhemligheter med samma ägare och rättigheter som filen har på värden, och de går inte att sätta i `compose.yaml`.
+Servern och `migrate` körs som avbildningens icke-root-användare `app` (UID 1654), så skriptet låter den äga sina filer med läsrätt bara för ägaren; lösenordet till PostgreSQL läses som root och ägs av root.
+En användare på värden med UID 1654 kan därför läsa de filerna om den kommer in i `secrets/`; ge ingen användare på värden det UID:t och låt katalogen vara stängd.
+Skriptet behåller hemligheter som redan finns, så det kan köras igen för att laga ägare och rättigheter.
+CI kör de här stegen och `compose.yaml` mot varje ny avbildning ([smoke-test.sh](./smoke-test.sh)).
+
+5. Starta:
 
 ```bash
 docker compose --env-file .env up -d
@@ -75,5 +67,7 @@ Staging får aldrig riktiga spelares data, inte heller från en backup.
 | `token_signing_key.pem`, `token_encryption_key` | Alla loggas ut och loggar in igen nästa gång de synkar; inget går förlorat. |
 | `apple_private_key.p8` | En ny nyckel skapas hos Apple; tills dess kan appens åtkomst inte återkallas vid radering. |
 | `postgres_password`, `connection_string` | Byts i PostgreSQL och i båda filerna. |
+
+En hemlighet som byts eller läggs dit för hand får sin ägare och sina rättigheter med `sudo ./create-secrets.sh`.
 
 Backupen med pgBackRest och dess krypteringsnyckel, som också ska förvaras i produktägarens lösenordshanterare, läggs till i ett eget ärende.

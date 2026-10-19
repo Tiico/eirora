@@ -108,7 +108,7 @@ public sealed class WebSignInTests(ServerFixture fixture)
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
         var tokens = await api.SignInAsync(apple);
         var google = _server.Providers.SignIn(LoginProviders.Google);
-        await api.LinkAsync(tokens.Access, google.ToExternalLogin());
+        await api.LinkAsync(tokens.Access, google.ToExternalLogin(), _server.Providers.Again(apple));
 
         var withGoogle = await DeleteOnTheWebAsync(_server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
         var code = "apple-code-" + Guid.NewGuid().ToString("N");

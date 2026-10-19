@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.Serialization;
 
@@ -138,16 +137,22 @@ namespace Eirora.Simulation
             Format > FormatVersion || Rules > RulesVersion.Current || Content > ContentVersion.Current;
 
         /// <summary>
-        /// Rebuilds the world under the current rules and content, migrating the state forward from an older rules
-        /// version (ADR-0006). The simulation time stays the same.
+        /// Rebuilds the world on its map under the current rules and content, migrating the state forward from an older
+        /// rules version (ADR-0006). The simulation time stays the same.
         /// </summary>
         /// <exception cref="FormatException">
-        /// The snapshot is from a newer version, a migration is missing, or it does not restore to the state it holds.
+        /// The snapshot is from a newer version, a migration is missing, it belongs to another map, or it does not
+        /// restore to the state it holds.
         /// </exception>
-        public World Restore() => Restore(Migrations.All);
+        public World Restore(WorldMap map) => Restore(map, Migrations.All);
 
-        internal World Restore(IReadOnlyList<StateMigration> migrations)
+        internal World Restore(WorldMap map, IReadOnlyList<StateMigration> migrations)
         {
+            if (map is null)
+            {
+                throw new ArgumentNullException(nameof(map));
+            }
+
             if (IsFromNewerVersion)
             {
                 throw new SavedByNewerVersionException(
@@ -159,7 +164,7 @@ namespace Eirora.Simulation
             try
             {
                 var reader = new StateReader(state);
-                world = World.Read(reader);
+                world = World.Read(reader, map);
                 reader.End();
             }
             catch (ArgumentException e)
@@ -175,17 +180,6 @@ namespace Eirora.Simulation
             return world;
         }
 
-        private static string Hash(string state)
-        {
-            using var sha256 = SHA256.Create();
-            byte[] hash = sha256.ComputeHash(s_utf8.GetBytes(state));
-            var hex = new StringBuilder(hash.Length * 2);
-            foreach (byte b in hash)
-            {
-                hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
-            }
-
-            return hex.ToString();
-        }
+        private static string Hash(string state) => Sha256.Of(state);
     }
 }

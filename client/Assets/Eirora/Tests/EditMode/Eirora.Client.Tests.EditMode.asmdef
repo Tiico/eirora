@@ -5,6 +5,7 @@
     "Eirora.Client",
     "Eirora.Simulation",
     "Eirora.Contracts",
+    "Eirora.WorldGeneration",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner",
     "Unity.RenderPipelines.Core.Runtime",

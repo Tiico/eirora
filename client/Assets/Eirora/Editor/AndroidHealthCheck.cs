@@ -1,3 +1,6 @@
+// UnityEditor.Android exists only where Unity's Android support is installed, which the test runner's image lacks;
+// Android builds always compile with UNITY_ANDROID, so the check still guards every one of them.
+#if UNITY_ANDROID
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -166,3 +169,4 @@ namespace Eirora.Editor
         }
     }
 }
+#endif

@@ -41,6 +41,13 @@ public sealed class TestProviders
         return new PlayerLogin(provider, subject, nonce, IdToken(provider, subject, HashHex(nonce)));
     }
 
+    /// <summary>
+    /// A fresh sign-in with the same login, as the client sends it to confirm changing the account, with Apple's
+    /// authorization code when deleting.
+    /// </summary>
+    public ExternalLogin Again(PlayerLogin login, string? authorizationCode = null) =>
+        SignIn(login.Provider, login.Subject).ToExternalLogin(authorizationCode);
+
     public string IdToken(
         string provider,
         string subject,

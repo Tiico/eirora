@@ -62,8 +62,18 @@ public sealed partial class AccountService(
                 [.. account.Logins.OrderBy(l => l.LinkedAt).Select(l => new LinkedLogin(l.Provider, l.LinkedAt))]);
     }
 
-    public async Task<LinkResult> LinkAsync(Guid accountId, ExternalIdentity identity, CancellationToken cancellationToken)
+    /// <summary>Links a login to the account, after a fresh sign-in with one of the account's own logins.</summary>
+    public async Task<LinkResult> LinkAsync(
+        Guid accountId,
+        ExternalIdentity confirmation,
+        ExternalIdentity identity,
+        CancellationToken cancellationToken)
     {
+        if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
+        {
+            return LinkResult.NotThisAccount;
+        }
+
         var owner = await FindAccountIdAsync(identity, cancellationToken);
         if (owner == accountId)
         {
@@ -100,24 +110,34 @@ public sealed partial class AccountService(
         return LinkResult.Linked;
     }
 
-    public async Task<UnlinkResult> UnlinkAsync(Guid accountId, string provider, CancellationToken cancellationToken)
+    /// <summary>Removes the account's login with a provider, after a fresh sign-in with one of the account's own logins.</summary>
+    public async Task<RemoveLoginResult> RemoveLoginAsync(
+        Guid accountId,
+        ExternalIdentity confirmation,
+        string provider,
+        CancellationToken cancellationToken)
     {
+        if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
+        {
+            return RemoveLoginResult.NotThisAccount;
+        }
+
         var logins = await db.AccountLogins.Where(l => l.AccountId == accountId).ToListAsync(cancellationToken);
         var login = logins.SingleOrDefault(l => l.Provider == provider);
         if (login is null)
         {
-            return UnlinkResult.NotLinked;
+            return RemoveLoginResult.NotLinked;
         }
 
         // Signing in with another linked login is how an account is recovered, so the last one only goes with the account.
         if (logins.Count == 1)
         {
-            return UnlinkResult.LastLogin;
+            return RemoveLoginResult.LastLogin;
         }
 
         db.AccountLogins.Remove(login);
         await db.SaveChangesAsync(cancellationToken);
-        return UnlinkResult.Unlinked;
+        return RemoveLoginResult.Removed;
     }
 
     /// <summary>
@@ -136,7 +156,7 @@ public sealed partial class AccountService(
             return DeleteResult.NotFound;
         }
 
-        if (!account.Logins.Any(l => l.Provider == confirmation.Provider && l.Subject == confirmation.Subject))
+        if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
         {
             return DeleteResult.NotThisAccount;
         }
@@ -148,27 +168,35 @@ public sealed partial class AccountService(
                 return DeleteResult.AppleConfirmationRequired;
             }
 
-            // Deleting is the player's right, so a failure at Apple is logged and the account is deleted anyway.
-            await apple.RevokeAsync(appleAuthorizationCode, confirmation.Audience, cancellationToken);
+            // From here on the confirmation is spent, so the deletion runs to the end even when the player hangs up;
+            // Apple's own timeout bounds the wait. Deleting is the player's right, so a failure at Apple is logged and the
+            // account is deleted anyway.
+            await apple.RevokeAsync(appleAuthorizationCode, confirmation.Audience);
         }
 
+        await DeleteConfirmedAsync(account);
+        return DeleteResult.Deleted;
+    }
+
+    /// <summary>Deletes an account whose deletion has been confirmed; not cancellable, since the confirmation is spent.</summary>
+    private async Task DeleteConfirmedAsync(Account account)
+    {
         // Through OpenIddict's managers, so that no cached entry keeps an access token valid. Collected first, since
         // deleting while the query is still being read would need a second command on the connection.
-        var subject = accountId.ToString();
-        foreach (var token in await ToListAsync(tokens.FindBySubjectAsync(subject, cancellationToken), cancellationToken))
+        var subject = account.Id.ToString();
+        foreach (var token in await ToListAsync(tokens.FindBySubjectAsync(subject, CancellationToken.None)))
         {
-            await tokens.DeleteAsync(token, cancellationToken);
+            await tokens.DeleteAsync(token, CancellationToken.None);
         }
 
-        foreach (var authorization in await ToListAsync(authorizations.FindBySubjectAsync(subject, cancellationToken), cancellationToken))
+        foreach (var authorization in await ToListAsync(authorizations.FindBySubjectAsync(subject, CancellationToken.None)))
         {
-            await authorizations.DeleteAsync(authorization, cancellationToken);
+            await authorizations.DeleteAsync(authorization, CancellationToken.None);
         }
 
         db.Accounts.Remove(account);
-        await db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(CancellationToken.None);
         LogDeleted(logger);
-        return DeleteResult.Deleted;
     }
 
     /// <summary>
@@ -179,16 +207,23 @@ public sealed partial class AccountService(
             ? await DeleteAsync(accountId, confirmation, appleAuthorizationCode, cancellationToken)
             : DeleteResult.NotFound;
 
+    /// <summary>
+    /// Whether a confirming sign-in is one of the account's own logins: the rule that keeps a stolen token, or another
+    /// player's sign-in, from linking, removing a login or deleting the account (threat model).
+    /// </summary>
+    private async Task<bool> IsOwnLoginAsync(Guid accountId, ExternalIdentity confirmation, CancellationToken cancellationToken) =>
+        await FindAccountIdAsync(confirmation, cancellationToken) == accountId;
+
     private async Task<Guid?> FindAccountIdAsync(ExternalIdentity identity, CancellationToken cancellationToken) =>
         await db.AccountLogins
             .Where(l => l.Provider == identity.Provider && l.Subject == identity.Subject)
             .Select(l => (Guid?)l.AccountId)
             .SingleOrDefaultAsync(cancellationToken);
 
-    private static async Task<List<object>> ToListAsync(IAsyncEnumerable<object> source, CancellationToken cancellationToken)
+    private static async Task<List<object>> ToListAsync(IAsyncEnumerable<object> source)
     {
         var list = new List<object>();
-        await foreach (var item in source.WithCancellation(cancellationToken))
+        await foreach (var item in source)
         {
             list.Add(item);
         }
@@ -209,13 +244,15 @@ public sealed partial class AccountService(
 public enum LinkResult
 {
     Linked,
+    NotThisAccount,
     LinkedToAnotherAccount,
     ProviderAlreadyLinked,
 }
 
-public enum UnlinkResult
+public enum RemoveLoginResult
 {
-    Unlinked,
+    Removed,
+    NotThisAccount,
     NotLinked,
     LastLogin,
 }

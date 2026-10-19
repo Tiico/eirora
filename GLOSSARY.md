@@ -30,6 +30,22 @@ _Avoid_: värld (när bara kartan avses), seed
 En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landbricka är en möjlig byggplats (D-79).
 _Avoid_: ruta, cell, plats
 
+**Byggplats**:
+En bricka som uppfyller en byggnads krav, till exempel skog, berg, fiskevatten eller hamnläge; vad brickan duger till följer av terräng, höjd och grannar (D-79).
+_Avoid_: plats (som namngiven plats), tomt
+
+**Fiskevatten**:
+Grunt vatten intill land, där fiskeboden står på pålar (D-88).
+_Avoid_: fiskeplats, kust
+
+**Hamnläge**:
+En landbricka utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas (D-89).
+_Avoid_: hamnplats, strand (som krav)
+
+**Krön**:
+Startöns enda högsta bricka, där Vårdkasen byggs och som inte bär något annat (D-92).
+_Avoid_: topp, högsta punkt
+
 **Generator** (`WorldGenerator`):
 Det som skapar en karta, av en källtyp och med en fast generatorversion.
 En låst generatorversion ändras aldrig, och en ny version används bara för nya världar.
@@ -41,6 +57,22 @@ _Avoid_: frö
 
 **Källtyp** (`sourceType`):
 Var en karta kommer ifrån: procedurgenererad, handgjord eller geografisk.
+
+**Hamnläge** (`HarborSpot`):
+En strand intill grunt hav som når djupt hav, där en brygga kan stå och skepp lägga till; det följer av kartans brickor och sparas inte ([kartvalidering](./docs/design/map-validation.md)).
+_Avoid_: hamnplats, kaj
+
+**Fiskevatten** (`FishingWater`):
+Grunt hav intill land, där en fiskebod kan fiska.
+_Avoid_: fiskeplats
+
+**Krön** (`Crest`):
+Startöns enda högsta bricka, där Vårdkasen byggs; delar två brickor toppen finns inget krön.
+_Avoid_: topp, berg
+
+**Validator** (`MapValidator`):
+Det som avgör om en karta ger en bra start och goda vägar att växa, med ett mätvärde och en gräns per regel ([kartvalidering](./docs/design/map-validation.md)).
+_Avoid_: kartkontroll
 
 **Dimma** (`Fog`):
 Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
@@ -107,7 +139,7 @@ Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
 _Avoid_: sömnpoäng, vilobonus
 
 **Kartläggning** (`Survey`):
-En handling som kostar Utforskning och visar dolda platser nära bosättningen.
+En handling som kostar Utforskning och lyfter dimman från utvalda brickor nära bosättningen.
 _Avoid_: scouting, spaning
 
 **Expedition** (`Expedition`):

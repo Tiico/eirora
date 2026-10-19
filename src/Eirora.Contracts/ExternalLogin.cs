@@ -1,8 +1,9 @@
 namespace Eirora.Contracts
 {
     /// <summary>
-    /// A fresh sign-in with a provider, sent to link a login (<c>POST /api/account/logins</c>) or to confirm deleting the
-    /// account (<c>POST /api/account/deletion</c>).
+    /// A fresh sign-in with a provider: a login to link (<see cref="LoginLink"/>), or the confirmation of linking, of
+    /// removing a login (<c>POST /api/account/logins/{provider}/removal</c>) or of deleting the account
+    /// (<c>POST /api/account/deletion</c>).
     /// </summary>
     public sealed class ExternalLogin
     {

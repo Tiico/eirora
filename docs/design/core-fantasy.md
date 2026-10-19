@@ -1,6 +1,6 @@
 # Kärnfantasi: varför egenvård som motor blir ett bra strategispel
 
-> **Status:** [FÖRSLAG] v0.1, väntar på granskning av produktägaren  
+> **Status:** [BESLUTAT] v1.0, godkänd av produktägaren vid grind A0 (D-82)  
 > **Ärende:** TASK-001 · **Milstolpe:** M0 · **PRD:** princip 1, D-12, D-14, D-23, R-01, AC-06  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md)
 

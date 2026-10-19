@@ -9,7 +9,7 @@ namespace Eirora.Simulation.Saving
     /// </summary>
     internal static class Migrations
     {
-        public static IReadOnlyList<StateMigration> All { get; } = Array.Empty<StateMigration>();
+        public static IReadOnlyList<StateMigration> All { get; } = new StateMigration[] { new MapArrives() };
 
         /// <summary>Runs the chain from <paramref name="fromRules"/> to the current rules.</summary>
         /// <exception cref="FormatException">A migration in the chain is missing.</exception>

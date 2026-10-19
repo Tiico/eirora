@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Map generators (ADR-0010): pure integer code that turns a seed into a WorldMap, shared by the client, which makes
+    a world offline, and the server, which validates maps in bulk.
+    Also a local Unity package (package.json, Eirora.WorldGeneration.asmdef): Unity compiles these same sources.
+    It references only the simulation, never Unity or any other package.
+  -->
+  <PropertyGroup>
+    <!-- Unity's compiler builds these sources too: netstandard2.1 and C# 9, so no implicit usings (C# 10). -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Eirora.WorldGeneration</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Eirora.Simulation\Eirora.Simulation.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,3 @@
-using Eirora.Simulation.Map;
 using System;
 using System.Collections;
 using Eirora.Client.Accounts;
@@ -7,6 +6,7 @@ using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Client.UI;
 using Eirora.Simulation.Commands;
+using Eirora.Simulation.Map;
 using UnityEngine;
 using UnityEngine.UIElements;
 
