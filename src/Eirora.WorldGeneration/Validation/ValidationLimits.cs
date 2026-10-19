@@ -21,7 +21,7 @@ namespace Eirora.WorldGeneration.Validation
         public const int StartForest = 3;
         public const int StartFarmland = 2;
         public const int StartPasture = 1;
-        public const int StartMountain = 1;
+        public const int StartMountain = 2; // Besides the crest, so the richest is a choice (D-95).
         public const int StartFishingWater = 2;
         public const int StartHarbours = 1;
 

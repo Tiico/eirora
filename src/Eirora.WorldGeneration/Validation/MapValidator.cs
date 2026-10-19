@@ -48,11 +48,13 @@ namespace Eirora.WorldGeneration.Validation
             rules.Add(AtLeast("start-forest", land.Count(h => map.TerrainAt(h) == Terrain.Forest), StartForest, "woodcutter"));
             rules.Add(AtLeast("start-farmland", land.Count(h => map.TerrainAt(h) == Terrain.Farmland), StartFarmland, "field"));
             rules.Add(AtLeast("start-pasture", land.Count(h => map.TerrainAt(h) == Terrain.Pasture), StartPasture, "sheep farm"));
-            rules.Add(AtLeast("start-mountain", land.Count(h => map.TerrainAt(h) == Terrain.Mountain), StartMountain, "quarry"));
+            var crest = features.CrestOf(start);
+
+            // The crest bears only the Vårdkase (D-92), and one quarry is not a choice (D-95).
+            rules.Add(AtLeast("start-mountain", land.Count(h => map.TerrainAt(h) == Terrain.Mountain && h != crest), StartMountain, "quarries besides the crest"));
             int fishing = Coast(map, land).Count(features.IsFishingWater);
             rules.Add(AtLeast("start-fishing-water", fishing, StartFishingWater, "fishing hut"));
             rules.Add(AtLeast("start-harbours", harbours.Count, StartHarbours, "jetty"));
-            var crest = features.CrestOf(start);
             long crestHeight = crest is Hex top ? map.HeightAt(top) : -1;
             rules.Add(new RuleResult("crest", crestHeight, $">={CrestHeight}", crestHeight >= CrestHeight, crest is Hex at ? $"at {at.Q},{at.R}" : "the top is shared"));
 

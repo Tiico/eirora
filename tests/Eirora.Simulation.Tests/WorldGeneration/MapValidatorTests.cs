@@ -56,7 +56,7 @@ public sealed class MapValidatorTests
 
     public static TheoryData<string> Breakages =>
     [
-        "deep-sea-edge", "start-land", "start-pasture", "start-farmland", "crest",
+        "deep-sea-edge", "start-land", "start-pasture", "start-farmland", "start-mountain", "crest",
         "first-island", "second-island", "trade-offs",
     ];
 
@@ -130,7 +130,8 @@ public sealed class MapValidatorTests
     }
 
     /// <summary>
-    /// A map made to pass every rule: a start island of radius 4 with every kind of ground and a single crest, and two
+    /// A map made to pass every rule: a start island of radius 4 with every kind of ground, a single crest and two
+    /// mountains to quarry besides it, and two
     /// small islands 10 and 14 steps away by sea with richer ground than home.
     /// </summary>
     internal static WorldMapBuilder GoodMap(Hex? first = null, Hex? second = null)
@@ -140,6 +141,8 @@ public sealed class MapValidatorTests
         var map = new WorldMapBuilder(24, MapSource.Handmade, "good", 1) { Start = Hex.Origin };
         Island(map, Hex.Origin, 4);
         map.Set(s_crest, Terrain.Mountain, 6);
+        map.Set(new Hex(-1, -1), Terrain.Mountain, 5);
+        map.Set(new Hex(1, -2), Terrain.Mountain, 5);
         foreach (var hex in new[] { new Hex(-2, 1), new Hex(-2, 2), new Hex(-1, 2) })
         {
             map.Set(hex, Terrain.Forest, 3);
@@ -196,6 +199,10 @@ public sealed class MapValidatorTests
                 break;
             case "start-farmland":
                 map.Set(new Hex(2, 0), Terrain.Grassland, 3);
+                break;
+            case "start-mountain":
+                // The crest and one quarry: the crest bears only the Vårdkase (D-92).
+                map.Set(new Hex(1, -2), Terrain.Grassland, 3);
                 break;
             case "crest":
                 map.Set(new Hex(-2, 0), Terrain.Mountain, 6);
