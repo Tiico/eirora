@@ -67,12 +67,18 @@ namespace Eirora.Client.Look
             mesh.Box(c, new Vector3(0.6f, 0.08f, 0.4f), 10f, Palette.Sand, Palette.Wood);
         }
 
-        /// <summary>A fog cloud over an unexplored site (MAP-04).</summary>
-        public static void Fog(MeshBuilder mesh, Vector3 c)
+        /// <summary>
+        /// A fog cloud over a tile not yet known (MAP-04). At the edge of the known, where the fog can be lifted next,
+        /// it is thinner and lighter (TASK-032). Over the sea it lies low, as sea mist rather than clouds.
+        /// </summary>
+        public static void Fog(MeshBuilder mesh, Vector3 c, bool thin = false, bool sea = false)
         {
-            mesh.Cone(c + new Vector3(0f, 0f, 0f), 0.75f, 0.55f, 6, Palette.Fog, 0.2f);
-            mesh.Cone(c + new Vector3(0.45f, 0f, 0.25f), 0.5f, 0.4f, 6, Color.Lerp(Palette.Fog, Color.white, 0.25f), 0.7f);
-            mesh.Cone(c + new Vector3(-0.4f, 0f, -0.2f), 0.45f, 0.35f, 6, Color.Lerp(Palette.Fog, Color.white, 0.15f), 1.3f);
+            float size = thin ? 0.7f : 1f;
+            float height = size * (sea ? 0.45f : 1f);
+            var colour = thin ? Color.Lerp(Palette.Fog, Color.white, 0.35f) : Palette.Fog;
+            mesh.Cone(c, 0.75f * size, 0.55f * height, 6, colour, 0.2f);
+            mesh.Cone(c + new Vector3(0.45f * size, 0f, 0.25f * size), 0.5f * size, 0.4f * height, 6, Color.Lerp(colour, Color.white, 0.25f), 0.7f);
+            mesh.Cone(c + new Vector3(-0.4f * size, 0f, -0.2f * size), 0.45f * size, 0.35f * height, 6, Color.Lerp(colour, Color.white, 0.15f), 1.3f);
         }
 
         /// <summary>A small cone figure; villagers are work groups, shown as a few figures by day.</summary>

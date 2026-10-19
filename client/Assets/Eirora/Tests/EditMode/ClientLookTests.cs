@@ -1,8 +1,10 @@
 using System;
 using System.Linq;
 using Eirora.Client.Look;
+using Eirora.Client.UI;
 using Eirora.Simulation;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Events;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
@@ -23,6 +25,23 @@ namespace Eirora.Client.Tests
         {
             Assert.That(GraphicsSettings.defaultRenderPipeline, Is.InstanceOf<UniversalRenderPipelineAsset>());
             Assert.That(PlayerSettings.colorSpace, Is.EqualTo(ColorSpace.Linear));
+        }
+
+        [Test]
+        public void TheDailyReportGathersTheLiftedFogInOneLine()
+        {
+            // A day can lift tens of tiles; the report says how many where the first was lifted (TASK-032).
+            var events = new GameEvent[]
+            {
+                new DawnBroke(0, 2), new FogLifted(1, 6, 0), new SitesRevealed(2, new[] { "M2" }), new FogLifted(3, 7, 0),
+                new FogLifted(4, 7, -1),
+            };
+
+            Assert.That(Texts.Report(events), Is.EqualTo(new[]
+            {
+                "Byn vaknade till spelardygn 2.", "Dimman lättade över 3 brickor.", "Dimman lättade över nya platser.",
+            }));
+            Assert.That(Texts.Report(new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en bricka." }));
         }
 
         [Test]
