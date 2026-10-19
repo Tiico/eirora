@@ -52,8 +52,7 @@ jobs:
           expect "$(get /site.css)" "HTTP/1.1 200"
           expect "$(get /)" "Location: .*/privacy/"
           if docker compose logs site | grep -q "ERROR"; then echo "::error::The entrypoint reported an error"; failed=1; fi
-          if [ "$failed" = 1 ]; then printf '%s
-' "$page"; exit 1; fi
+          if [ "$failed" = 1 ]; then echo "$page"; exit 1; fi
 
       - if: failure()
         run: docker compose logs
