@@ -87,7 +87,7 @@ Det finns inga namngivna platser; kolumnen *Krav* ovan säger vad brickan ska du
 - Rikedomen hör till brickan: stenådern är ett rikt berg, och av urskogens två skogsbrickor är den ena rik.
 - Höjden avgör i v1 bara krönet, där Vårdkasen byggs ([epok 1](./epoch-1.md)).
   Krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg (D-92).
-  På `prototype-home-1` delar de två bergen (-4,0) och (3,-1) höjd 5; nästa version av kartan höjer det västra berget, så att stenådern förblir stenbrottets.
+  På `prototype-home-1` är det västra berget (-4,0) krönet, med höjd 6 mot stenåderns 5, så att stenådern förblir stenbrottets.
 - Byggregeln prövas när bygget läggs i kön.
   En byggnad som redan står kvar står kvar även på en bricka som inte längre duger, så regeländringen flyttar ingenting (INV-V1).
 
@@ -96,7 +96,7 @@ Prototypens karta, `prototype-home` med samma land, vatten och terräng som klie
 | Ö | Landbrickor | Land | Skog | Åker | Bete | Berg | Krön | Fiskevatten | Hamnläge |
 |---|---|---|---|---|---|---|---|---|---|
 | Hemön | 46 | 44 | 37 | 2 | 1 | 1 | 1 | 35 | 29 |
-| Nyön | 7 | 6 | 6 | 0 | 1 | 1 | 0 | 12 | 5 |
+| Nyön | 6 | 5 | 5 | 0 | 1 | 1 | 0 | 12 | 5 |
 
 *Skog* räknar brickorna med skog på eller intill sig när hela ön är upptäckt och obebyggd; under spelet duger färre (D-93).
 
@@ -104,7 +104,8 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 
 - Huggarkojan i startbyn når två skogsbrickor, inte en, och ger 1 timmer/h från början.
 - Skogen öster om byn, som prototypen räknade som tre skogsbrickor, är en enda skogsbricka och ger 0,5 timmer/h.
-- Nyöns mitt, där prototypen hade sitt hamnläge, är öns enda strand och når inte vattnet; bryggan byggs på en skogsbricka vid vattnet intill betet.
+- Nyöns mitt, där prototypen hade sitt hamnläge, är öns enda strand och når vattnet genom en vik mot Hemön.
+  Varje landbricka på Nyön utom berget är ett hamnläge, och kalkylens brygga står på skogsbrickan intill betet.
 - Hemön har bara två åkerbrickor och en betesbricka, så maten kommer från fiskevattnet.
 - Hemön har bara ett berg att bryta sten i, stenådern, eftersom det andra berget är krönet.
 
@@ -269,12 +270,12 @@ Senare beslut som berör ekonomin:
 Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 
 - **D-88:** fiskeboden står på pålar i det grunda vattnet, som startbyns fiskebod redan gör, så att ingen byggnad behöver flytta.
-- **D-89:** ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet, eftersom Nyön inte har någon strandbricka som når vattnet.
+- **D-89:** ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet, eftersom Nyön bara har en strandbricka.
 - **D-90:** huggarkojan får stå bredvid skogen, så att närheten till förrådet blir ett verkligt val.
 - **D-91:** långhus, förråd och andra byggnader får stå på varje landbricka utom berg, även skog, åker och bete, som då inte längre går att hugga, odla eller beta.
-- **D-92:** krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg; en karta måste ha en enda sådan bricka, och prototypens karta får en ny version där det västra berget är högst.
+- **D-92:** krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg; en karta måste ha en enda sådan bricka, och på prototypens karta är det västra berget högst.
 - **D-93:** skogskravet räknar bara upptäckta skogsbrickor som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman och ingen huggarkoja byggs där den inte ger något.
 
 Öppen fråga efter v1.1:
 
-- **O-16:** startön behöver fler berg att bryta sten i än stenådern, annars hittar även en naiv spelare den och kravet i D-34 på 1,3 gånger nås inte; det avgörs i nästa version av prototypens karta och i generatorn (TASK-031).
+- **O-16:** startön behöver fler berg att bryta sten i än stenådern, annars hittar även en naiv spelare den och kravet i D-34 på 1,3 gånger nås inte; det avgörs i prototypens karta och i generatorn (TASK-031).

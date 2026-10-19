@@ -101,7 +101,7 @@ def prototype_home():
             d, to_nyon = hexdist((q, r), (0, 0)), hexdist((q, r), (10, 0))
             if d <= 4 and (q, r) not in water:
                 TILES[(q, r)] = Tile(named.get((q, r)) or scenery(q, r, d), "Hemön")
-            elif to_nyon <= 1:
+            elif to_nyon <= 1 and (q, r) != (9, 0):  # viken väster om N0, där skeppen lägger till
                 TILES[(q, r)] = Tile(named.get((q, r)) or scenery(q, r, 0), "Nyön", hidden=True)
             elif d <= 9 or to_nyon <= 7:
                 TILES[(q, r)] = Tile(DEEP)
@@ -124,8 +124,8 @@ HOME = "Hemön"
 prototype_home()
 
 # Krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg (D-92).
-# I prototype-home-1.map delar bergen (-4,0) och (3,-1) höjd 5; nästa version av kartan höjer
-# (-4,0), så att stenådern på (3,-1) förblir stenbrottets.
+# I prototype-home-1.map är (-4,0) högst, med höjd 6 mot stenåderns 5 på (3,-1), som förblir
+# stenbrottets.
 CREST = (-4, 0)
 
 # Prototypens gamla namn på brickorna, så att strategierna läses som förut (TASK-029).
@@ -134,7 +134,7 @@ NAMES = {
     "H1": (1, 1), "O1": (0, 1), "O2": (-1, 2), "F1": (1, -1), "F2": (3, -2), "F3": (-2, 0),
     "E1": (2, -1), "E2": (2, -2), "M1": (-4, 0), "M2": (3, -1), "P1": (-2, -1),
     "N0": (10, 0), "N1": (10, 1), "N2": (11, 0),
-    "N9": (9, 1),  # Nyöns hamnläge intill betet; N0 är öns mitt och når inte vattnet
+    "N9": (9, 1),  # Nyöns hamnläge intill betet
 }
 
 

@@ -220,6 +220,6 @@ Produktägarens svar på de öppna frågorna i v0.1:
 Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 
 - **D-92:** Vårdkasen står på krönet, startöns enda högsta bricka, även när det är ett berg, och krönet bär inget annat ([ekonomi v1, avsnitt 3.1](./economy-v1.md#31-byggplatser)).
-  I kalkylen är krönet det västra berget (-4,0), som nästa version av prototypens karta gör högst.
+  I kalkylen är krönet det västra berget (-4,0), Hemöns högsta bricka på prototypens karta.
 - **D-94:** tempot med byggplatser på brickor godtas som mål: 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning, mot 12 utan träning i v1.0.
   Det är det tempot som TASK-037 prövar mot.
