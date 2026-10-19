@@ -56,7 +56,7 @@ public sealed class MapValidatorTests
 
     public static TheoryData<string> Breakages =>
     [
-        "deep-sea-edge", "start-land", "start-pasture", "start-farmland", "crest",
+        "deep-sea-edge", "start-land", "start-pasture", "start-farmland", "crest", "start-quarries",
         "first-island", "second-island", "trade-offs",
     ];
 
@@ -83,8 +83,9 @@ public sealed class MapValidatorTests
     {
         var report = MapValidator.Validate(PrototypeHome.Map);
 
-        // The second expedition's island, Ytterön, only comes with generator v1 (TASK-031).
-        Assert.Equal(["second-island"], report.Failed.Select(r => r.Rule));
+        // Ytterön comes when the sea around Hemön is filled once (D-81); with the crest bearing only the Vårdkase,
+        // Hemön has only the stone vein to quarry (D-92, O-16).
+        Assert.Equal(["start-quarries", "second-island"], report.Failed.Select(r => r.Rule));
         Assert.Equal(("nyon", 9), (report["first-island"].Detail, (int)report["first-island"].Value));
         Assert.Equal(6, report["crest"].Value);
         Assert.Equal(46, report["start-land"].Value);
@@ -140,6 +141,8 @@ public sealed class MapValidatorTests
         var map = new WorldMapBuilder(24, MapSource.Handmade, "good", 1) { Start = Hex.Origin };
         Island(map, Hex.Origin, 4);
         map.Set(s_crest, Terrain.Mountain, 6);
+        map.Set(new Hex(2, -1), Terrain.Mountain, 5);
+        map.Set(new Hex(-1, -1), Terrain.Mountain, 5);
         foreach (var hex in new[] { new Hex(-2, 1), new Hex(-2, 2), new Hex(-1, 2) })
         {
             map.Set(hex, Terrain.Forest, 3);
@@ -196,6 +199,9 @@ public sealed class MapValidatorTests
                 break;
             case "start-farmland":
                 map.Set(new Hex(2, 0), Terrain.Grassland, 3);
+                break;
+            case "start-quarries":
+                map.Set(new Hex(-1, -1), Terrain.Grassland, 3);
                 break;
             case "crest":
                 map.Set(new Hex(-2, 0), Terrain.Mountain, 6);

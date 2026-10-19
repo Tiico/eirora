@@ -34,10 +34,10 @@ Kartan sparar bara terräng, höjd och rikedom; resten följer av brickorna (`Ma
 | `start-forest` | Skog på startön | ≥ 3 | Huggarkojan behöver minst två skogsbrickor för full takt (ekonomi v1). |
 | `start-farmland` | Åker på startön | ≥ 2 | Åkern. |
 | `start-pasture` | Betesmark på startön | ≥ 1 | Fårgården. |
-| `start-mountain` | Berg på startön | ≥ 1 | Stenbrottet. |
 | `start-fishing-water` | Fiskevatten vid startön | ≥ 2 | Fiskeboden. |
 | `start-harbours` | Hamnlägen på startön | ≥ 1 | Bryggan, där expeditionerna börjar. |
 | `crest` | Krönets höjd | ≥ 4 | Vårdkasen står på Hemöns krön (epok 1), och krönet ska vara en höjd. |
+| `start-quarries` | Berg på startön utom krönet | ≥ 2 | Stenbrotten; krönet bär bara Vårdkasen (D-92), och ett enda brytberg gör valet för enkelt (O-16). |
 | `first-island` | Steg till sjöss till den första expeditionens ö | 8–12 | Nyön ligger 10 steg bort i epok 1:s modell. |
 | `second-island` | Steg till sjöss till en annan ö för den andra expeditionen | 11–16 | Ytterön ligger 12 steg bort i modellen och tar tre spelardygn. |
 | `inner-sea` | Havsbrickor inom öarnas räckvidd från starten, utom kusten närmast startön | ≥ 150 | Vårdkasens eld kräver att dimman lyfts över innerhavet (epok 1). |
@@ -45,7 +45,10 @@ Kartan sparar bara terräng, höjd och rikedom; resten följer av brickorna (`Ma
 
 ## Hemön i dag
 
-Prototypens handgjorda karta klarar alla regler utom `second-island`: Ytterön, den andra expeditionens ö, kommer med generatorn som fyller havet runt Hemön (TASK-031).
+Prototypens handgjorda karta klarar alla regler utom två:
+- `second-island`: Ytterön, den andra expeditionens ö, kommer när havet runt Hemön fylls en gång (D-81).
+- `start-quarries`: Hemön har bara stenådern (M2) att bryta när krönet bär Vårdkasen (D-92, O-16).
+
 Nyön ligger 9 steg till sjöss från Hemöns hamnlägen, och krönet är det västra berget (M1) med höjd 6.
 
 Validatorn visade två fel i den första versionen av kartan, som rättades innan någon värld sparades med den:
