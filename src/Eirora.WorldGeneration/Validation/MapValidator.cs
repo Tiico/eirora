@@ -64,8 +64,10 @@ namespace Eirora.WorldGeneration.Validation
             rules.Add(AtLeast("start-quarries", quarries, StartQuarries, "quarry, besides the crest that bears only the Vårdkase (D-92)"));
 
             // Ways to grow (epoch 1).
-            var first = Nearest(distances, FirstIslandMinimum, FirstIslandMaximum, except: null);
-            var second = Nearest(distances, SecondIslandMinimum, SecondIslandMaximum, except: first?.Key);
+            // An expedition finds a real island with ground worth the journey, never a bare skerry.
+            var worthFinding = distances.Where(d => WorthFinding(map, features, d.Key)).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+            var first = Nearest(worthFinding, FirstIslandMinimum, FirstIslandMaximum, except: null);
+            var second = Nearest(worthFinding, SecondIslandMinimum, SecondIslandMaximum, except: first?.Key);
             string others = string.Join(",", distances.OrderBy(d => d.Key, StringComparer.Ordinal).Select(d => $"{d.Key}={d.Value.ToString(CultureInfo.InvariantCulture)}"));
             rules.Add(Found("first-island", first, FirstIslandMinimum, FirstIslandMaximum, others));
             rules.Add(Found("second-island", second, SecondIslandMinimum, SecondIslandMaximum, others));
@@ -93,6 +95,10 @@ namespace Eirora.WorldGeneration.Validation
             features.LandOf(island).Where(features.IsHarborSpot).Select(h => steps.TryGetValue(h, out int n) ? n : -1).Where(n => n >= 0).DefaultIfEmpty(-1).Min();
 
         /// <summary>The nearest island within the limits, the first in name order when two are as near.</summary>
+        /// <summary>Whether an island is big enough and rich enough for an expedition to find (TASK-034's finding).</summary>
+        private static bool WorthFinding(WorldMap map, MapFeatures features, string island) =>
+            features.LandOf(island).Count >= ExpeditionIslandLand && features.LandOf(island).Any(h => map.RichnessAt(h) > 100);
+
         private static KeyValuePair<string, int>? Nearest(Dictionary<string, int> distances, int minimum, int maximum, string? except)
         {
             var found = distances
