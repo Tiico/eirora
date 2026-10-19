@@ -49,7 +49,7 @@ services:
       # Apple's web flow for the Android app and the deletion page Google Play requires (docs/development.md#inloggning).
       SignIn__Web__AppleServicesId: ${APPLE_SERVICES_ID:?}
       SignIn__Web__GoogleClientId: ${GOOGLE_SERVER_CLIENT_ID:?}
-      SignIn__Web__AndroidPackage: ${ANDROID_PACKAGE:-com.eirora.game}
+      SignIn__Web__AndroidPackage: ${ANDROID_PACKAGE:-se.eirora.app}
       SignIn__Apple__TeamId: ${APPLE_TEAM_ID:?}
       SignIn__Apple__KeyId: ${APPLE_KEY_ID:?}
     secrets:

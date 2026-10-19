@@ -36,7 +36,7 @@ public sealed class WebSignInTests(ServerFixture fixture)
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location!.OriginalString;
         Assert.StartsWith("intent://apple?", location, StringComparison.Ordinal);
-        Assert.EndsWith("#Intent;scheme=eirora-signin;package=com.eirora.game;end", location, StringComparison.Ordinal);
+        Assert.EndsWith("#Intent;scheme=eirora-signin;package=se.eirora.app;end", location, StringComparison.Ordinal);
         Assert.Contains("code=c.0.abc", location, StringComparison.Ordinal);
         Assert.Contains("id_token=eyJ.header.sig", location, StringComparison.Ordinal);
         Assert.Contains("state=s%2B1%2F2", location, StringComparison.Ordinal);
@@ -57,7 +57,7 @@ public sealed class WebSignInTests(ServerFixture fixture)
         Assert.StartsWith("intent://apple?", location, StringComparison.Ordinal);
         Assert.Contains("error=user_cancelled_authorize", location, StringComparison.Ordinal);
         Assert.Contains("state=s1", location, StringComparison.Ordinal);
-        Assert.EndsWith("#Intent;scheme=eirora-signin;package=com.eirora.game;end", location, StringComparison.Ordinal);
+        Assert.EndsWith("#Intent;scheme=eirora-signin;package=se.eirora.app;end", location, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -112,11 +112,32 @@ public sealed class WebSignInTests(ServerFixture fixture)
 
         var withGoogle = await DeleteOnTheWebAsync(_server.Providers.SignIn(LoginProviders.Google, google.Subject).ToExternalLogin());
         var code = "apple-code-" + Guid.NewGuid().ToString("N");
-        var withApple = await DeleteOnTheWebAsync(_server.Providers.SignIn(LoginProviders.Apple, apple.Subject).ToExternalLogin(code));
+        var onTheWeb = _server.Providers.SignIn(LoginProviders.Apple, apple.Subject, TestProviders.AppleServicesId);
+        var withApple = await DeleteOnTheWebAsync(onTheWeb.ToExternalLogin(code));
 
         Assert.Equal(HttpStatusCode.Forbidden, withGoogle);
         Assert.Equal(HttpStatusCode.NoContent, withApple);
-        Assert.Contains(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code);
+        var exchange = Assert.Single(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code).Form;
+        Assert.Equal(TestProviders.AppleServicesId, exchange["client_id"]);
+        Assert.Equal("https://localhost" + DeletionPage.Path, exchange["redirect_uri"]);
+        Assert.Contains(_server.Apple.Requests, r => r.Path == "/auth/revoke" && r.Form["client_id"] == TestProviders.AppleServicesId);
+    }
+
+    [Fact]
+    public async Task InTheAndroidAppApplesCodeIsExchangedWithTheCallbackItReturnedTo()
+    {
+        using var api = _server.CreateApi();
+        var apple = _server.Providers.SignIn(LoginProviders.Apple, audience: TestProviders.AppleServicesId);
+        var tokens = await api.SignInAsync(apple);
+        var code = "apple-code-" + Guid.NewGuid().ToString("N");
+        var confirmation = _server.Providers.SignIn(LoginProviders.Apple, apple.Subject, TestProviders.AppleServicesId);
+
+        var status = await api.DeleteAccountAsync(tokens.Access, confirmation.ToExternalLogin(code));
+
+        Assert.Equal(HttpStatusCode.NoContent, status);
+        var exchange = Assert.Single(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code).Form;
+        Assert.Equal(TestProviders.AppleServicesId, exchange["client_id"]);
+        Assert.Equal("https://localhost" + AppleWebCallback.Path, exchange["redirect_uri"]);
     }
 
     [Fact]

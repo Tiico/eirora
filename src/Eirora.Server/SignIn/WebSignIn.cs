@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Encodings.Web;
+using Eirora.Contracts;
 
 namespace Eirora.Server.SignIn;
 
@@ -13,7 +14,17 @@ public sealed class WebSignInOptions
     public string GoogleClientId { get; set; } = "";
 
     /// <summary>The Android app that receives Apple's answer; no other app on the phone can.</summary>
-    public string AndroidPackage { get; set; } = "com.eirora.game";
+    public string AndroidPackage { get; set; } = "se.eirora.app";
+
+    /// <summary>
+    /// The return URL on this host that Apple's web flow used for <paramref name="identity"/>, which exchanging its
+    /// authorization code must repeat; null for a sign-in that did not come from the web flow, such as in the iOS app.
+    /// </summary>
+    /// <param name="path">Where the flow returned: the callback for the Android app, or the deletion page.</param>
+    public string? AppleRedirectUri(ExternalIdentity identity, HttpRequest request, string path) =>
+        identity.Provider == LoginProviders.Apple && AppleServicesId.Length > 0 && identity.Audience == AppleServicesId
+            ? $"{request.Scheme}://{request.Host}{request.PathBase}{path}"
+            : null;
 }
 
 /// <summary>

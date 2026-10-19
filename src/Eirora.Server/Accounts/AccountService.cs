@@ -144,10 +144,14 @@ public sealed partial class AccountService(
     /// Deletes the account and everything stored for it, after a fresh sign-in with one of its logins; with an Apple
     /// login, that sign-in must be Apple's so that the app's access to the Apple ID can be revoked.
     /// </summary>
+    /// <param name="appleRedirectUri">
+    /// The return URL of Apple's web flow when the confirmation came from it (<see cref="WebSignInOptions.AppleRedirectUri"/>).
+    /// </param>
     public async Task<DeleteResult> DeleteAsync(
         Guid accountId,
         ExternalIdentity confirmation,
         string? appleAuthorizationCode,
+        string? appleRedirectUri,
         CancellationToken cancellationToken)
     {
         var account = await db.Accounts.Include(a => a.Logins).SingleOrDefaultAsync(a => a.Id == accountId, cancellationToken);
@@ -171,7 +175,7 @@ public sealed partial class AccountService(
             // From here on the confirmation is spent, so the deletion runs to the end even when the player hangs up;
             // Apple's own timeout bounds the wait. Deleting is the player's right, so a failure at Apple is logged and the
             // account is deleted anyway.
-            await apple.RevokeAsync(appleAuthorizationCode, confirmation.Audience);
+            await apple.RevokeAsync(appleAuthorizationCode, confirmation.Audience, appleRedirectUri);
         }
 
         await DeleteConfirmedAsync(account);
@@ -202,9 +206,13 @@ public sealed partial class AccountService(
     /// <summary>
     /// Deletes the account a fresh sign-in belongs to, as on the web page where no other session exists (ADR-0008).
     /// </summary>
-    public async Task<DeleteResult> DeleteByLoginAsync(ExternalIdentity confirmation, string? appleAuthorizationCode, CancellationToken cancellationToken) =>
+    public async Task<DeleteResult> DeleteByLoginAsync(
+        ExternalIdentity confirmation,
+        string? appleAuthorizationCode,
+        string? appleRedirectUri,
+        CancellationToken cancellationToken) =>
         await FindAccountIdAsync(confirmation, cancellationToken) is { } accountId
-            ? await DeleteAsync(accountId, confirmation, appleAuthorizationCode, cancellationToken)
+            ? await DeleteAsync(accountId, confirmation, appleAuthorizationCode, appleRedirectUri, cancellationToken)
             : DeleteResult.NotFound;
 
     /// <summary>

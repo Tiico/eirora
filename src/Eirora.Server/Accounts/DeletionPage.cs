@@ -47,6 +47,8 @@ public static class DeletionPage
 
     private static async Task<IResult> DeleteAsync(
         ExternalLogin confirmation,
+        HttpRequest request,
+        IOptions<WebSignInOptions> web,
         ExternalTokenValidator validator,
         AccountService accounts,
         CancellationToken cancellationToken)
@@ -57,7 +59,8 @@ public static class DeletionPage
             return TypedResults.Problem("The sign-in could not be verified.", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return await accounts.DeleteByLoginAsync(identity, confirmation.AuthorizationCode, cancellationToken) switch
+        var appleRedirectUri = web.Value.AppleRedirectUri(identity, request, Path);
+        return await accounts.DeleteByLoginAsync(identity, confirmation.AuthorizationCode, appleRedirectUri, cancellationToken) switch
         {
             DeleteResult.Deleted => TypedResults.NoContent(),
             DeleteResult.AppleConfirmationRequired => TypedResults.Problem(
@@ -85,10 +88,11 @@ public static class DeletionPage
 
             <h2>Det här raderas</h2>
             <ul>
-            <li>Kontot och dess kopplade inloggningar med Apple och Google.</li>
-            <li>Alla inloggningar på dina enheter.</li>
-            <li>Allt annat servern sparar för kontot, som molnsparningen och de krypterade bidragen.</li>
+            <li>Kontot: dess id och när det skapades.</li>
+            <li>De kopplade inloggningarna med Apple och Google: vilken leverantör det är och det id leverantören gett dig för Eirora.</li>
+            <li>Alla inloggningar på dina enheter, så att ingen av dem når kontot längre.</li>
             </ul>
+            <p>Det är allt servern sparar för ett konto. Inget namn och ingen e-post sparas.</p>
             <p>Inget sparas kvar om dig. Säkerhetskopiorna av databasen gallras efter 30 dagar, så inom 30 dagar är kontot borta även där. Serverns loggar innehåller inga uppgifter om dig.</p>
             <p>Har kontot en Apple-inloggning återkallar vi också appens åtkomst till ditt Apple-ID.</p>
             <p>Din värld på telefonen påverkas inte. Den kräver inget konto och finns kvar tills du tar bort appen.</p>
