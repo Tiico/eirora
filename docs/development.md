@@ -207,6 +207,7 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning; på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
 | [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/` eller workflowen, samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
+| [`Site`](../.github/workflows/site.yml) | Push som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
@@ -288,7 +289,8 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
 1. Skapa nyckeln med guiden under [Signering](#signering) om den inte redan finns.
 2. Skapa appen **Eirora** i [Play Console](https://play.google.com/console) och låt Google skapa och förvara appens signeringsnyckel (Play App Signing, D-76).
    Nyckeln från guiden blir uppladdningsnyckel och kan bytas ut via Play Console om den försvinner.
-3. Fyll i **Appinnehåll**: integritetspolicy, dataskydd och deklarationen för Health Connect-behörigheterna.
+3. Publicera integritetspolicyn på servern enligt [deploy/site](../deploy/site/README.md).
+   Fyll sedan i **Appinnehåll**: policyns adress, dataskydd och deklarationen för Health Connect-behörigheterna.
    Appen läser steg, träningspass och sömn när spelaren öppnar den, för spelets krafter, och skickar inga hälsodata till någon server (HLT-10).
    Google släpper ingen version med Health Connect-behörigheter förrän deklarationen är godkänd.
 4. Lägg till ditt Google-konto som testare under **Testa → Internt test → Testare**, öppna länken för att gå med på telefonen och godkänn.

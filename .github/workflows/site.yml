@@ -1,0 +1,52 @@
+# Starts the public pages with the same compose file as the server and checks what a visitor gets (deploy/site/README.md).
+name: Site
+
+on:
+  push:
+    paths:
+      - deploy/site/**
+      - .github/workflows/site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  serve:
+    name: Serve the privacy policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: deploy/site
+    env:
+      EIRORA_SITE_HOST: site.example.test
+      EIRORA_DEVELOPER_NAME: Test Developer
+      EIRORA_PRIVACY_CONTACT: privacy@example.test
+    steps:
+      - uses: actions/checkout@v7
+
+      # On the server Traefik owns this network; here it only has to exist.
+      - run: docker network create traefik
+
+      - run: docker compose up --detach --wait --wait-timeout 60
+
+      - name: The policy names the developer and the contact, and keeps its headers
+        run: |
+          get() { docker compose exec -T site wget -q -S -O - "http://localhost:8080$1" 2>&1; }
+          page="$(get /privacy/)"
+          grep -q "HTTP/1.1 200" <<<"$page"
+          grep -q "Content-Security-Policy: default-src 'none'" <<<"$page"
+          grep -q "Ansvarig för appen: Test Developer." <<<"$page"
+          grep -q "Developer: Test Developer." <<<"$page"
+          grep -q 'href="mailto:privacy@example.test"' <<<"$page"
+          if grep -q "{{" <<<"$page"; then echo "::error::A placeholder was not filled in"; exit 1; fi
+          get /site.css | grep -q "HTTP/1.1 200"
+          get / | grep -q "Location: http://localhost:8080/privacy/\|Location: /privacy/"
+
+      - if: failure()
+        run: docker compose logs
