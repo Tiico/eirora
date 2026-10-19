@@ -244,7 +244,7 @@ gh secret set UNITY_PASSWORD
 5. Kör Unity-workflowen manuellt under **Actions → Unity → Run workflow** och kontrollera att alla jobb blir gröna.
 
 Licensfilen är bunden till datorn där den skapades, så CI avvisar den och aktiverar i stället med `UNITY_EMAIL` och `UNITY_PASSWORD`.
-Kontot får därför inte ha tvåstegsverifiering, och licensfilen behövs bara för att workflowen kontrollerar att den finns.
+Kontot får därför inte ha tvåstegsverifiering; licensfilen behövs ändå, eftersom GameCI börjar med den.
 
 > Unity har i omgångar begränsat manuell aktivering av Personal-licenser i CI.
 > Om aktiveringen misslyckas trots korrekta secrets krävs Unity Pro eller Plus och `UNITY_SERIAL`, se [GameCI:s aktiveringsguide](https://game.ci/docs/github/activation).
