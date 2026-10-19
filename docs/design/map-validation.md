@@ -60,6 +60,7 @@ Nu har Nyön en vik väster om hamnläget, mot Hemön, och det västra berget ä
 `BulkValidation` validerar kartorna en generator gör av en följd av seeds och sammanfattar per regel hur många som godkänns och hur mätvärdet fördelar sig (minsta, median, största).
 Samma seeds ger alltid samma rapport, byte för byte.
 CI kör ett litet urval för varje generator i `WorldGenerators.All`; lokalt körs tiotusentals med `tools/Eirora.MapCheck`, se [development.md](../development.md#kartor-och-gyllene-kartor).
+Seedverktyget i samma verktyg ritar kartorna med det validatorn mätte (`MapAnalysis`) och listar per regel de kartor som ligger närmast gränsen (TASK-034).
 
 Generator v1 (`procedural-archipelago`, TASK-031) väljer om tills validatorn godkänner kartan, och bulkrapportens rad `attempts` visar hur många försök det krävde.
 Över seeds 0–9 999 godkändes alla 10 000 kartor, oftast på första försöket och aldrig efter fler än fyra.

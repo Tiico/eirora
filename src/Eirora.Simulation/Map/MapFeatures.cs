@@ -116,6 +116,60 @@ namespace Eirora.Simulation.Map
             return steps;
         }
 
+        /// <summary>
+        /// One of the shortest ways by sea from any of <paramref name="from"/> to any of <paramref name="to"/>, both ends
+        /// included, sailing as <see cref="SeaStepsFrom"/> counts; empty when there is none. Equally short ways are told
+        /// apart by map order, so the same map always gives the same way.
+        /// </summary>
+        public IReadOnlyList<Hex> SeaRoute(IEnumerable<Hex> from, IEnumerable<Hex> to)
+        {
+            var goals = new HashSet<Hex>(to);
+            var parent = new Dictionary<Hex, Hex?>();
+            var queue = new Queue<Hex>();
+            foreach (var hex in new SortedSet<Hex>(from))
+            {
+                if (_map.Contains(hex))
+                {
+                    parent[hex] = null;
+                    queue.Enqueue(hex);
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                var hex = queue.Dequeue();
+                if (goals.Contains(hex))
+                {
+                    var route = new List<Hex>();
+                    for (Hex? at = hex; at is Hex step; at = parent[step])
+                    {
+                        route.Add(step);
+                    }
+
+                    route.Reverse();
+                    return route;
+                }
+
+                bool atSea = !_map.TerrainAt(hex).IsLand();
+                if (!atSea && parent[hex] is not null)
+                {
+                    continue;
+                }
+
+                for (int direction = 0; direction < Hex.Directions; direction++)
+                {
+                    var next = hex.Neighbour(direction);
+                    if (_map.Contains(next) && !parent.ContainsKey(next) && (atSea || !_map.TerrainAt(next).IsLand()))
+                    {
+                        parent[next] = hex;
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            return Array.Empty<Hex>();
+        }
+
         private bool HasNeighbour(Hex hex, Func<Hex, bool> test)
         {
             for (int direction = 0; direction < Hex.Directions; direction++)
