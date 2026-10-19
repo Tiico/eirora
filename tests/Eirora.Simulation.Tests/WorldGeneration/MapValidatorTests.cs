@@ -245,8 +245,12 @@ public sealed class MapValidatorTests
                 map.Set(new Hex(-2, 0), Terrain.Mountain, 6);
                 break;
             case "trade-offs":
-                map.Set(s_first, Terrain.Grassland, 3);
-                map.Set(s_second, Terrain.Grassland, 3);
+                // All forest is rich, so there is no ordinary forest nearer home to weigh it against: two kinds left.
+                foreach (var hex in new[] { new Hex(-2, 1), new Hex(-2, 2), new Hex(-1, 2) })
+                {
+                    map.Set(hex, Terrain.Forest, 3, richness: 150);
+                }
+
                 break;
         }
     }
