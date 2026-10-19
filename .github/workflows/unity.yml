@@ -13,6 +13,7 @@ on:
       - tests/Replays/**
       - scripts/check-determinism.sh
       - .github/workflows/unity.yml
+      - .github/actions/free-disk-space/**
   workflow_dispatch:
 
 permissions:
@@ -93,16 +94,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: false
-          dotnet: false
-          haskell: true
-          large-packages: false
-
       - uses: actions/checkout@v7
+
+      # The emulator and the .NET half of the comparison run on the runner, outside Unity's image.
+      - uses: ./.github/actions/free-disk-space
         with:
-          fetch-depth: 0
+          keep-android-sdk: true
+          keep-dotnet: true
 
       - uses: actions/cache@v6
         with:
@@ -110,11 +108,13 @@ jobs:
           key: unity-library-determinism-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-android-
 
+      # The build has no version (Builds.AndroidDeterminism), so it needs neither the history nor GameCI's versioning.
       - uses: game-ci/unity-builder@v6
         with:
           projectPath: client
           targetPlatform: Android
           buildMethod: Eirora.Editor.Builds.AndroidDeterminism
+          versioning: None
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -126,13 +126,15 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # The x86_64 image runs the ARM64 build through Android's ARM translation.
+      # The x86_64 image runs the ARM64 build through Android's ARM translation. The build renders with OpenGL ES 3,
+      # which the emulator's software renderer (SwiftShader) provides.
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           target: google_apis
           arch: x86_64
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: scripts/check-determinism.sh client/Builds/Android/EiroraDeterminism.apk
 
       - uses: actions/upload-artifact@v7

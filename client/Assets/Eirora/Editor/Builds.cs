@@ -9,6 +9,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
 
@@ -58,7 +59,10 @@ namespace Eirora.Editor
         /// <summary>
         /// The determinism build (TASK-021): IL2CPP for ARM64 that only plays the replay corpus in tests/Replays and logs
         /// each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
-        /// own package name, so it never replaces the game on a phone.
+        /// own package name, so it never replaces the game on a phone. It renders with OpenGL ES 3 only, because on the
+        /// emulator's software renderer (SwiftShader) the player crashed with SIGILL when graphics started with the
+        /// default APIs, Vulkan first. It has no version, so it needs no git history, which CI's container may refuse
+        /// to read ("dubious ownership").
         /// </summary>
         public static void AndroidDeterminism()
         {
@@ -66,6 +70,8 @@ namespace Eirora.Editor
             var android = NamedBuildTarget.Android;
             string identifier = PlayerSettings.GetApplicationIdentifier(android);
             string productName = PlayerSettings.productName;
+            bool defaultGraphics = PlayerSettings.GetUseDefaultGraphicsAPIs(BuildTarget.Android);
+            var graphics = PlayerSettings.GetGraphicsAPIs(BuildTarget.Android);
             var openScenes = EditorSceneManager.GetSceneManagerSetup();
             bool succeeded;
             try
@@ -74,12 +80,16 @@ namespace Eirora.Editor
                 string scene = DeterminismScene();
                 PlayerSettings.SetApplicationIdentifier(android, identifier + ".determinism");
                 PlayerSettings.productName = productName + " determinism";
-                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraDeterminism.apk", scene);
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.OpenGLES3 });
+                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraDeterminism.apk", scene, versioned: false);
             }
             finally
             {
                 PlayerSettings.SetApplicationIdentifier(android, identifier);
                 PlayerSettings.productName = productName;
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, graphics);
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, defaultGraphics);
                 // An untitled scene cannot be reopened, so an empty one takes its place.
                 if (openScenes.Length > 0 && openScenes.All(s => s.path.Length > 0))
                 {
@@ -153,8 +163,8 @@ namespace Eirora.Editor
             }
         }
 
-        /// <summary>Builds the game's scenes, or only the given scene.</summary>
-        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, string? scene = null)
+        /// <summary>Builds the game's scenes, or only the given scene, versioned by the number of commits unless told not to.</summary>
+        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, string? scene = null, bool versioned = true)
         {
             if (scene is null)
             {
@@ -179,9 +189,13 @@ namespace Eirora.Editor
             BuildSummary summary;
             try
             {
-                var version = BuildVersion.FromCommitCount(CommitCount());
-                PlayerSettings.bundleVersion = version.Name;
-                PlayerSettings.Android.bundleVersionCode = version.Code;
+                if (versioned)
+                {
+                    var version = BuildVersion.FromCommitCount(CommitCount());
+                    PlayerSettings.bundleVersion = version.Name;
+                    PlayerSettings.Android.bundleVersionCode = version.Code;
+                }
+
                 signed = target == BuildTarget.Android && UseReleaseKeystore();
                 summary = BuildPipeline.BuildPlayer(options).summary;
             }

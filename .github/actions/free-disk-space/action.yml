@@ -1,0 +1,36 @@
+# Frees disk space on a GitHub-hosted Ubuntu runner before a job pulls a unityci/editor image.
+# The images are larger than the space a hosted runner has free by default, so the pull fails with "no space left on
+# device". Every job that pulls one runs this step first, after checkout (a local action needs the repository).
+# GameCI builds and tests inside the image, which brings its own Android SDK/NDK and .NET, so the runner's own copies
+# can go unless a later step on the runner itself needs them.
+name: Free disk space for Unity
+description: Removes preinstalled SDKs and Docker images that Unity jobs do not use.
+
+inputs:
+  keep-android-sdk:
+    description: Keep the runner's Android SDK, for steps outside the Unity image such as an emulator.
+    required: false
+    default: "false"
+  keep-dotnet:
+    description: Keep the runner's .NET SDK, for steps outside the Unity image.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+      with:
+        android: ${{ inputs.keep-android-sdk != 'true' }}
+        dotnet: ${{ inputs.keep-dotnet != 'true' }}
+        haskell: true
+        docker-images: true
+        # Takes minutes for a few GB; the other removals free enough.
+        large-packages: false
+
+    # CodeQL is several GB and only used by code scanning, which the Unity jobs do not run.
+    - name: Remove CodeQL
+      shell: bash
+      run: |
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        df -h /
