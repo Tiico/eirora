@@ -14,7 +14,7 @@
 # Set ADB to the adb binary if it is not on PATH, and ANDROID_SERIAL to pick a device when several are attached.
 set -euo pipefail
 
-PACKAGE="com.eirora.game"
+PACKAGE="se.eirora.app"
 ADB="${ADB:-adb}"
 if ! command -v "$ADB" >/dev/null 2>&1 && [ -x "${LOCALAPPDATA:-}/Android/Sdk/platform-tools/adb.exe" ]; then
     ADB="$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"

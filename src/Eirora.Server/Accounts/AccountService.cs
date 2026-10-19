@@ -117,6 +117,12 @@ public sealed partial class AccountService(
         string provider,
         CancellationToken cancellationToken)
     {
+        // The account's row is locked until the removal commits, so that two removals at once cannot each see the other's
+        // login still there and both remove theirs. The confirmation is checked under the lock too, since the other removal
+        // may be taking away the very login that confirms this one.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"""SELECT 1 FROM "Accounts" WHERE "Id" = {accountId} FOR UPDATE""", cancellationToken);
+
         if (!await IsOwnLoginAsync(accountId, confirmation, cancellationToken))
         {
             return RemoveLoginResult.NotThisAccount;
@@ -137,6 +143,7 @@ public sealed partial class AccountService(
 
         db.AccountLogins.Remove(login);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return RemoveLoginResult.Removed;
     }
 

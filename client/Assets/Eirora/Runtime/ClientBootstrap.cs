@@ -48,10 +48,21 @@ namespace Eirora.Client
             var document = gameObject.AddComponent<UIDocument>();
             document.panelSettings = PanelSettings();
             _hud = new Hud(document.rootVisualElement, command => _session.Apply(command), new HealthControls(this));
-            _hud.SelectionChanged += site => _island.Select(site is null ? null : IslandMap.HexOf(site));
+            _hud.SelectionChanged += hex => _island.Select(hex);
 
             _rig = new CameraRig(_camera, _hud.IsOverInterface);
-            _rig.Tapped += point => _hud.Select(_island.Map.SiteAt(HexLayout.FromWorld(point)));
+            _rig.Tapped += point =>
+            {
+                var hex = HexLayout.FromWorld(point);
+                if (_island.Map.SiteAt(hex) is null && _island.Map.Tiles.ContainsKey(hex) && _hud.IsFogged(hex))
+                {
+                    _hud.SelectFog(hex);
+                }
+                else
+                {
+                    _hud.Select(_island.Map.SiteAt(hex));
+                }
+            };
 
             string? screenshots = Argument("-eirora-screenshots");
             if (screenshots is not null)

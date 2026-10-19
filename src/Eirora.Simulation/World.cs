@@ -86,7 +86,7 @@ namespace Eirora.Simulation
                 throw new ArgumentException("The rest schedule must be 6–10 hours and start within the day.", nameof(restSchedule));
             }
 
-            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found());
+            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found(map));
 
             // The guided tour's Dawn Power stands in for the first game day's baseline (D-45).
             world._selfCare.MarkCredited(0, Habit.Sleep, ForceRules.DawnPowerBaseline);
@@ -119,6 +119,15 @@ namespace Eirora.Simulation
 
         /// <summary>Whether a site has been found; hidden sites are under the fog (MAP-04).</summary>
         public bool IsRevealed(string siteId) => _settlement.IsRevealed(siteId);
+
+        /// <summary>Whether the fog has lifted from a tile (TASK-032); what lies under the fog stays unknown.</summary>
+        public bool IsKnown(Hex hex) => _settlement.Fog.IsKnown(hex);
+
+        /// <summary>Whether the fog can be lifted from a tile with Exploration next (TASK-032).</summary>
+        public bool CanLiftFog(Hex hex) => CheckLiftFog(hex) == Rejection.None;
+
+        /// <summary>Why the fog cannot be lifted from a tile with Exploration, or <see cref="Rejection.None"/>.</summary>
+        public Rejection CheckLiftFog(Hex hex) => _settlement.CheckLiftFog(hex);
 
         /// <summary>
         /// Applies a command once per idempotency key (INV-D6). Gameplay commands are rejected during rest (INV-T3).
@@ -203,7 +212,7 @@ namespace Eirora.Simulation
 
             var cycle = DayCycle.Read(reader);
             var forces = ForceBalances.Read(reader);
-            var settlement = Settlement.Read(reader);
+            var settlement = Settlement.Read(reader, map);
             var selfCare = SelfCareLedger.Read(reader);
             var world = new World(map, cycle, forces, selfCare, settlement);
             while (reader.Next("unreconciled"))

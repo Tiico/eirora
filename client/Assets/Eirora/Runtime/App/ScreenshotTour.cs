@@ -6,6 +6,7 @@ using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using UnityEngine;
@@ -114,6 +115,14 @@ namespace Eirora.Client.App
             // Nyön, found by the expedition and joined by the sea route.
             client.Focus(IslandMap.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
+
+            // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
+            var world = session.World!;
+            var edge = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
+                .Where(world.CanLiftFog).OrderBy(h => h.DistanceTo(Hex.Origin)).ThenBy(h => h).First();
+            client.Focus(edge.Center());
+            client.Hud.SelectFog(edge);
+            yield return Capture(client, folder, "14-fog");
 
             Application.Quit();
         }
