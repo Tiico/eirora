@@ -21,9 +21,11 @@ namespace Eirora.WorldGeneration.Validation
         public const int StartForest = 3;
         public const int StartFarmland = 2;
         public const int StartPasture = 1;
-        public const int StartMountain = 1;
         public const int StartFishingWater = 2;
         public const int StartHarbours = 1;
+
+        /// <summary>Mountains to quarry besides the crest, which bears only the Vårdkase (D-92, O-16).</summary>
+        public const int StartQuarries = 2;
 
         /// <summary>The crest the Vårdkase stands on is the start island's single highest tile, and a hill.</summary>
         public const int CrestHeight = 4;
@@ -31,6 +33,11 @@ namespace Eirora.WorldGeneration.Validation
         /// <summary>Steps by sea from Hemön to the first expedition's island (Nyön lies 10 away in epoch 1's model).</summary>
         public const int FirstIslandMinimum = 8;
         public const int FirstIslandMaximum = 12;
+
+        /// <summary>
+        /// Land tiles an expedition's island has at least, besides some rich ground; a skerry never counts (Nyön has 6).
+        /// </summary>
+        public const int ExpeditionIslandLand = 6;
 
         /// <summary>Steps by sea to the second expedition's island (Ytterön lies 12 away in epoch 1's model).</summary>
         public const int SecondIslandMinimum = 11;

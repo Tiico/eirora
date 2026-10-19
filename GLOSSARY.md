@@ -30,6 +30,22 @@ _Avoid_: värld (när bara kartan avses), seed
 En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landbricka är en möjlig byggplats (D-79).
 _Avoid_: ruta, cell, plats
 
+**Byggplats**:
+En bricka som uppfyller en byggnads krav, till exempel skog, berg, fiskevatten eller hamnläge; vad brickan duger till följer av terräng, höjd och grannar (D-79).
+_Avoid_: plats (som namngiven plats), tomt
+
+**Fiskevatten**:
+Grunt vatten intill land, där fiskeboden står på pålar (D-88).
+_Avoid_: fiskeplats, kust
+
+**Hamnläge**:
+En landbricka utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas (D-89).
+_Avoid_: hamnplats, strand (som krav)
+
+**Krön**:
+Startöns enda högsta bricka, där Vårdkasen byggs och som inte bär något annat (D-92).
+_Avoid_: topp, högsta punkt
+
 **Generator** (`WorldGenerator`):
 Det som skapar en karta, av en källtyp och med en fast generatorversion.
 En låst generatorversion ändras aldrig, och en ny version används bara för nya världar.
@@ -123,7 +139,7 @@ Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
 _Avoid_: sömnpoäng, vilobonus
 
 **Kartläggning** (`Survey`):
-En handling som kostar Utforskning och visar dolda platser nära bosättningen.
+En handling som kostar Utforskning och lyfter dimman från utvalda brickor nära bosättningen.
 _Avoid_: scouting, spaning
 
 **Expedition** (`Expedition`):

@@ -61,6 +61,7 @@ Thumbs.db
 
 # Server deployment: environment and secrets live only on the server (deploy/README.md)
 /deploy/.env
+/deploy/site/.env
 /deploy/secrets/
 
 # BenchmarkDotNet results (benchmarks/)

@@ -23,49 +23,170 @@ WEIGHT = {"fisk": 1, "säd": 1, "timmer": 1, "plank": 3, "sten": 2, "ull": 2, "v
 VILLAGER_VALUE = 15
 STORAGE_PER_DEPOT = 150  # per resurs och förråd
 
-# --- Karta (axiala hexkoordinater) ---------------------------------------------
+# --- Karta: brickor (ADR-0010, D-79) --------------------------------------------
+# Varje landbricka är en möjlig byggplats, och vad den duger till följer av terräng och
+# grannar (TASK-037). Kartan är prototypens handgjorda karta `prototype-home` (TASK-029):
+# samma land, vatten och terräng som klienten ritar (client/.../Look/IslandMap.cs).
+
+DEEP, SHALLOW, BEACH, GRASS, FOREST, FARMLAND, PASTURE, MOUNTAIN = (
+    "djuphav", "grunt", "strand", "äng", "skog", "åker", "bete", "berg")
+LAND = {BEACH, GRASS, FOREST, FARMLAND, PASTURE, MOUNTAIN}
+NEIGHBOURS = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
+
 
 @dataclass
-class Site:
-    q: int
-    r: int
-    island: str
-    kinds: set
-    hidden: bool = False
-    forest_tiles: int = 0
-    richness: float = 1.0
+class Tile:
+    terrain: str
+    island: str = ""      # landbrickor och grunt vatten intill dem; tomt för djuphavet
+    richness: float = 1.0  # rikedom: 1,0 är normalt (kartans procent / 100)
+    hidden: bool = False   # under dimman tills en kartläggning eller expedition lyfter den
 
 
-SITES = {
-    "S": Site(0, 0, "Hemön", {"land"}),
-    "L1": Site(-1, 0, "Hemön", {"land"}),
-    "L2": Site(0, -1, "Hemön", {"land"}),
-    "L3": Site(-1, 1, "Hemön", {"land"}),
-    "K1": Site(1, 0, "Hemön", {"kust", "fiskevatten"}),
-    "K2": Site(-3, 3, "Hemön", {"kust", "fiskevatten"}, hidden=True, richness=1.5),
-    "H1": Site(1, 1, "Hemön", {"kust", "hamnläge"}),
-    "O1": Site(0, 1, "Hemön", {"odlingsmark"}),
-    "O2": Site(-1, 2, "Hemön", {"odlingsmark"}),
-    "F1": Site(1, -1, "Hemön", {"skog"}, forest_tiles=1),
-    "F2": Site(3, -2, "Hemön", {"skog"}, forest_tiles=3),
-    "E1": Site(2, -1, "Hemön", {"land"}),
-    "E2": Site(2, -2, "Hemön", {"land"}),
-    "M1": Site(-4, 0, "Hemön", {"berg"}),
-    "M2": Site(3, -1, "Hemön", {"berg"}, hidden=True, richness=2.0),
-    "F3": Site(-2, 0, "Hemön", {"skog"}, hidden=True, forest_tiles=4, richness=1.25),
-    "P1": Site(-2, -1, "Hemön", {"bete"}),
-    # Nyön: hittas av en expedition; varor skeppas via sjöväg till Hemön.
-    "N0": Site(10, 0, "Nyön", {"kust", "hamnläge", "land"}, hidden=True),
-    "N1": Site(10, 1, "Nyön", {"bete"}, hidden=True, richness=2.0),
-    "N2": Site(11, 0, "Nyön", {"berg"}, hidden=True, richness=2.0),
-}
-SURVEYS = [["M2", "F3"], ["K2", "O2"]]  # närområdet, sedan kusten längre bort
-HOME = "Hemön"
+TILES = {}
 
 
-def hexdist(a: Site, b: Site) -> int:
-    dq, dr = a.q - b.q, a.r - b.r
+def neighbours(pos):
+    return [(pos[0] + dq, pos[1] + dr) for dq, dr in NEIGHBOURS]
+
+
+def hexdist(a, b) -> int:
+    dq, dr = a[0] - b[0], a[1] - b[1]
     return (abs(dq) + abs(dr) + abs(dq + dr)) // 2
+
+
+def add_shores():
+    """Hav intill land är grunt och hör till landets ö (IslandMap.cs)."""
+    for pos, tile in TILES.items():
+        if tile.terrain in (DEEP, SHALLOW):
+            land = [TILES[n] for n in neighbours(pos) if n in TILES and TILES[n].terrain in LAND]
+            if land:
+                tile.terrain, tile.island = SHALLOW, land[0].island
+
+
+def add_island(island, land, richness=None):
+    """Lägger till en ö under dimman med grunt vatten runt och djuphav utanför."""
+    for p, terrain in land.items():
+        TILES[p] = Tile(terrain, island, hidden=True)
+    for p in land:
+        for n in neighbours(p):
+            for m in [n] + neighbours(n):
+                TILES.setdefault(m, Tile(DEEP))
+    add_shores()
+    for p, tile in TILES.items():
+        if tile.island == island:
+            tile.hidden = True
+    for p, r in (richness or {}).items():
+        TILES[p].richness = r
+
+
+def prototype_home():
+    """Hemön och Nyön som klienten ritar dem; det som var kuliss är riktig terräng (ADR-0010)."""
+    named = {  # prototypens namngivna brickor med sin terräng (TASK-029)
+        (0, 0): GRASS, (-1, 0): GRASS, (0, -1): GRASS, (-1, 1): GRASS, (2, -1): GRASS,
+        (2, -2): GRASS, (1, 1): BEACH, (0, 1): FARMLAND, (-1, 2): FARMLAND, (1, -1): FOREST,
+        (3, -2): FOREST, (-2, 0): FOREST, (-4, 0): MOUNTAIN, (3, -1): MOUNTAIN, (-2, -1): PASTURE,
+        (10, 0): BEACH, (10, 1): PASTURE, (11, 0): MOUNTAIN,
+    }
+    water = {(1, 0), (2, 0), (3, 0), (4, 0), (4, -1), (-3, 3), (-3, 4), (-4, 4), (-2, 3),
+             (0, -4), (1, -4), (4, -4), (-4, 1), (2, 2), (3, 1)}
+
+    def scenery(q, r, ring):
+        noise = (q * 73 + r * 151 + q * r * 17) & 7
+        if ring == 4:
+            return BEACH if noise < 5 else GRASS
+        return FOREST if noise < 2 else GRASS
+
+    for q in range(-9, 18):
+        for r in range(-9, 10):
+            d, to_nyon = hexdist((q, r), (0, 0)), hexdist((q, r), (10, 0))
+            if d <= 4 and (q, r) not in water:
+                TILES[(q, r)] = Tile(named.get((q, r)) or scenery(q, r, d), "Hemön")
+            elif to_nyon <= 1 and (q, r) != (9, 0):  # viken väster om N0, där skeppen lägger till
+                TILES[(q, r)] = Tile(named.get((q, r)) or scenery(q, r, 0), "Nyön", hidden=True)
+            elif d <= 9 or to_nyon <= 7:
+                TILES[(q, r)] = Tile(DEEP)
+    add_shores()
+    for pos, tile in TILES.items():
+        if tile.island == "Nyön":
+            tile.hidden = True
+    # Rikedom och dimma: stenådern, urskogen och det rika fiskevattnet visas av kartläggningar.
+    # Rikedomen är kartans (prototype-home-1.map): av urskogens två skogsbrickor är bara F3 rik.
+    for pos, richness in {(3, -1): 2.0, (-2, 0): 1.25, (-3, 3): 1.5,
+                          (10, 1): 2.0, (11, 0): 2.0}.items():
+        TILES[pos].richness = richness
+    for area in SURVEYS:
+        for pos in area:
+            TILES[pos].hidden = True
+
+
+SURVEYS = [[(3, -1), (-2, 0), (-3, 1)], [(-3, 3), (-1, 2)]]  # närområdet, sedan kusten längre bort
+HOME = "Hemön"
+prototype_home()
+
+# Krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg (D-92).
+# I prototype-home-1.map är (-4,0) högst, med höjd 6 mot stenåderns 5 på (3,-1), som förblir
+# stenbrottets.
+CREST = (-4, 0)
+
+# Prototypens gamla namn på brickorna, så att strategierna läses som förut (TASK-029).
+NAMES = {
+    "S": (0, 0), "L1": (-1, 0), "L2": (0, -1), "L3": (-1, 1), "K1": (1, 0), "K2": (-3, 3),
+    "H1": (1, 1), "O1": (0, 1), "O2": (-1, 2), "F1": (1, -1), "F2": (3, -2), "F3": (-2, 0),
+    "E1": (2, -1), "E2": (2, -2), "M1": (-4, 0), "M2": (3, -1), "P1": (-2, -1),
+    "N0": (10, 0), "N1": (10, 1), "N2": (11, 0),
+    "N9": (9, 1),  # Nyöns hamnläge intill betet
+}
+
+
+def coord(tile):
+    """Koordinaterna för en bricka, given med sitt namn eller sina koordinater."""
+    return NAMES.get(tile, tile)
+
+
+# --- Vad en bricka duger till (D-79) ------------------------------------------------
+
+def reaches_deep_sea(start) -> bool:
+    seen, todo = {start}, [start]
+    while todo:
+        p = todo.pop()
+        if TILES[p].terrain == DEEP:
+            return True
+        for n in neighbours(p):
+            if n in TILES and n not in seen and TILES[n].terrain in (DEEP, SHALLOW):
+                seen.add(n)
+                todo.append(n)
+    return False
+
+
+def reach(p):
+    """Brickorna en huggarkoja når: sin egen och de sex grannarna."""
+    return [p] + [n for n in neighbours(p) if n in TILES]
+
+
+def uses(p) -> set:
+    """Vad brickan duger till enligt kartan, härlett ur terräng, höjd och grannar.
+
+    Skogskravet gäller också världens tillstånd: se World.meets (D-93).
+    """
+    t = TILES[p]
+    if p == CREST:
+        return {"krön"}  # krönet bär bara Vårdkasen (D-92)
+    if t.terrain == SHALLOW:
+        return {"fiskevatten"}  # grunt vatten intill land; fiskeboden står på pålar
+    if t.terrain not in LAND:
+        return set()
+    if t.terrain == MOUNTAIN:
+        return {"berg"}  # berget bär bara stenbrott
+    out = {"land"}
+    if any(TILES[n].terrain == FOREST for n in reach(p)):
+        out.add("skog")
+    if t.terrain == FARMLAND:
+        out.add("åker")
+    if t.terrain == PASTURE:
+        out.add("bete")
+    if any(n in TILES and TILES[n].terrain == SHALLOW and reaches_deep_sea(n) for n in neighbours(p)):
+        out.add("hamnläge")
+    return out
 
 
 def distance_factor(d: int, road: bool) -> float:
@@ -82,7 +203,7 @@ class Spec:
     work: int  # arbetstimmar
     build_power: int
     staff: int
-    site_kind: str
+    requirement: str
 
 
 SPECS = {
@@ -90,7 +211,7 @@ SPECS = {
     "Stuga": Spec({"timmer": 15, "sten": 5}, 32, 0, 0, "land"),  # bostad utan kraft (D-43)
     "Förråd": Spec({"timmer": 10, "sten": 5}, 16, 0, 1, "land"),
     "Fiskebod": Spec({"timmer": 8}, 12, 0, 2, "fiskevatten"),
-    "Åker": Spec({"timmer": 4}, 8, 0, 2, "odlingsmark"),
+    "Åker": Spec({"timmer": 4}, 8, 0, 2, "åker"),
     "Huggarkoja": Spec({"timmer": 6}, 8, 0, 2, "skog"),
     "Fårgård": Spec({"timmer": 10, "plank": 5}, 12, 0, 1, "bete"),
     "Sågverk": Spec({"timmer": 15, "sten": 5}, 24, 30, 2, "land"),
@@ -137,17 +258,27 @@ DAWN_RUSH_COST = 20      # Rusta: +8 arbetstimmar på ett bygge
 SURVEY_COSTS = [60, 120]
 EXPEDITION_COST = 250
 EXPEDITION_HOURS = 32
-# Expeditionsmål i den ordning de hittas: (ö, Utforskning, aktiva timmar, platser som visas).
-EXPEDITIONS = [("Nyön", EXPEDITION_COST, EXPEDITION_HOURS, ["N0", "N1", "N2"])]
+# Expeditionsmål i den ordning de hittas: (ö, Utforskning, aktiva timmar); hela ön visas.
+EXPEDITIONS = [("Nyön", EXPEDITION_COST, EXPEDITION_HOURS)]
 SEA_CAPACITY_PER_DAY = 40
 RESERVE = 20  # minimilager som förädling lämnar kvar (LOG-06), en gratis planeringsinställning
 
 # --- Värld ----------------------------------------------------------------------
 
+FOREST_PER_TILE = 40.0     # timmer en skogsbricka rymmer
+FOREST_REGROWTH = 0.25     # timmer per timme och skogsbricka
+WOODCUTTER_PER_TILE = 0.5  # timmer per timme och skogsbricka som fälls
+WOODCUTTER_TILES = 2       # skogsbrickor en huggarkoja fäller samtidigt
+
+
+def tag(p) -> str:
+    return f"{p[0]},{p[1]}"
+
+
 @dataclass
 class Building:
     kind: str
-    site: str
+    tile: tuple  # brickans axiala koordinater
     level: int = 1
     staffed: bool = False
     road: bool = False
@@ -170,7 +301,7 @@ class World:
     projects: list = field(default_factory=list)
     forces: dict = field(default_factory=lambda: dict(START_FORCES))
     revealed: set = field(default_factory=set)
-    forest: dict = field(default_factory=dict)
+    forest: dict = field(default_factory=dict)  # timmer kvar per skogsbricka
     remote_stock: dict = field(default_factory=dict)  # lager på andra öar än Hemön
     expedition_left: float = 0.0
     expedition_target: int = 0  # index i EXPEDITIONS för nästa eller pågående expedition
@@ -180,34 +311,56 @@ class World:
     spent: dict = field(default_factory=lambda: {"U": 0, "B": 0, "G": 0})
 
     def __post_init__(self):
-        for name, s in SITES.items():
-            if s.forest_tiles:
-                self.forest[name] = 40.0 * s.forest_tiles
-        self.revealed = {n for n, s in SITES.items() if not s.hidden}
-        for kind, site in [("Förråd", "S"), ("Fiskebod", "K1"), ("Åker", "O1"), ("Huggarkoja", "F1")]:
-            self.buildings.append(Building(kind, site))
+        self.forest = {p: FOREST_PER_TILE for p, t in TILES.items() if t.terrain == FOREST}
+        self.revealed = {p for p, t in TILES.items() if not t.hidden}
+        self._distances = {}
+        for kind, tile in [("Förråd", "S"), ("Fiskebod", "K1"), ("Åker", "O1"), ("Huggarkoja", "F1")]:
+            self.buildings.append(Building(kind, coord(tile)))
         self.staff()
 
     # -- hjälpare --
     def has(self, kind, island=None):
-        return any(b.kind == kind and (island is None or SITES[b.site].island == island)
+        return any(b.kind == kind and (island is None or TILES[b.tile].island == island)
                    for b in self.buildings)
 
     def housing(self):
         return START_HOUSING + sum(HOUSING.get(b.kind, 0) for b in self.buildings)
 
     def depots(self, island):
-        return [SITES[b.site] for b in self.buildings
-                if SITES[b.site].island == island and b.kind in ("Förråd", "Brygga")]
+        return tuple(sorted(b.tile for b in self.buildings
+                            if TILES[b.tile].island == island and b.kind in ("Förråd", "Brygga")))
 
     def factor(self, b):
-        site = SITES[b.site]
-        if site.island != HOME:
-            return 1.0
-        return distance_factor(self.depot_distance(b.site), b.road)
+        return distance_factor(self.depot_distance(b.tile), b.road)
 
-    def depot_distance(self, site):
-        return min(hexdist(SITES[site], dep) for dep in self.depots(HOME))
+    def depot_distance(self, tile):
+        """Steg över land till närmaste förråd eller brygga på samma ö (sökväg, TASK-028)."""
+        p = coord(tile)
+        island = TILES[p].island
+        key = (p, self.depots(island))
+        if key not in self._distances:
+            goals, seen, frontier, d = set(key[1]), {p}, [p], 0
+            while frontier and not goals & set(frontier):
+                d += 1
+                step = []
+                for f in frontier:
+                    for n in neighbours(f):
+                        if (n in TILES and n not in seen and TILES[n].island == island
+                                and TILES[n].terrain in LAND):
+                            seen.add(n)
+                            step.append(n)
+                frontier = step
+            self._distances[key] = d if frontier else 99
+        return self._distances[key]
+
+    def building_at(self, p):
+        return next((b for b in self.buildings if b.tile == p), None)
+
+    def woods(self, p):
+        """Skogsbrickor som en huggarkoja på p fäller, rikast först; bebyggd skog fälls inte."""
+        tiles = [n for n in reach(p) if TILES[n].terrain == FOREST and n in self.revealed
+                 and (n == p or self.building_at(n) is None)]
+        return sorted(tiles, key=lambda n: (-TILES[n].richness, -self.forest[n], n))
 
     def pending(self, label):
         return any(p.label == label for p in self.projects)
@@ -224,9 +377,22 @@ class World:
             if not b.staffed and need and self.free_villagers() >= need:
                 b.staffed = True
 
-    def occupied(self, site):
-        return any(b.site == site for b in self.buildings) or any(
-            p.label.endswith("@" + site) for p in self.projects)
+    def occupied(self, tile):
+        p = coord(tile)
+        return self.building_at(p) is not None or any(
+            pr.label.endswith("@" + tag(p)) for pr in self.projects)
+
+    def meets(self, p, requirement):
+        """Uppfyller brickan kravet nu? En huggarkoja kräver skog att fälla (D-93)."""
+        if requirement not in uses(p):
+            return False
+        return requirement != "skog" or bool(self.woods(p))
+
+    def can_build(self, kind, tile):
+        """Byggregeln (D-79): brickan är upptäckt, ledig och uppfyller byggnadens krav."""
+        p = coord(tile)
+        return (p in TILES and p in self.revealed and self.meets(p, SPECS[kind].requirement)
+                and not self.occupied(p))
 
     def pay(self, cost, bp):
         if any(self.stock[r] < n for r, n in cost.items()) or self.forces["B"] < bp:
@@ -238,21 +404,23 @@ class World:
         return True
 
     # -- kommandon (nekas utan sidoeffekter, INV-D7) --
-    def build(self, kind, site):
-        spec, s = SPECS[kind], SITES[site]
-        if site not in self.revealed or spec.site_kind not in s.kinds or self.occupied(site):
+    def build(self, kind, tile):
+        spec, p = SPECS[kind], coord(tile)
+        if not self.can_build(kind, p):
             return False
-        if s.island != HOME and kind != "Brygga" and not self.has("Brygga", s.island):
+        island = TILES[p].island
+        if island != HOME and kind != "Brygga" and not self.has("Brygga", island):
             return False
         if not self.pay(spec.cost, spec.build_power):
             return False
-        self.projects.append(Project(f"{kind}@{site}", spec.work,
-                                     lambda: self.buildings.append(Building(kind, site))))
+        self.projects.append(Project(f"{kind}@{tag(p)}", spec.work,
+                                     lambda: self.buildings.append(Building(kind, p))))
         return True
 
-    def upgrade(self, kind, site):
-        b = next((b for b in self.buildings if b.kind == kind and b.site == site), None)
-        label = f"Uppgradera {kind}@{site}"
+    def upgrade(self, kind, tile):
+        p = coord(tile)
+        b = next((b for b in self.buildings if b.kind == kind and b.tile == p), None)
+        label = f"Uppgradera {kind}@{tag(p)}"
         if b is None or b.level > 1 or self.pending(label):
             return False
         if not self.pay(UPGRADE.cost, UPGRADE.build_power):
@@ -261,12 +429,13 @@ class World:
                                      lambda: setattr(b, "level", 2)))
         return True
 
-    def road(self, kind, site):
-        b = next((b for b in self.buildings if b.kind == kind and b.site == site), None)
-        label = f"Väg till {kind}@{site}"
+    def road(self, kind, tile):
+        p = coord(tile)
+        b = next((b for b in self.buildings if b.kind == kind and b.tile == p), None)
+        label = f"Väg till {kind}@{tag(p)}"
         if b is None or b.road or self.pending(label):
             return False
-        d = self.depot_distance(site)
+        d = self.depot_distance(p)
         if not self.pay({"sten": ROAD.cost["sten"] * d}, 0):
             return False
         self.projects.append(Project(label, ROAD.work * d,
@@ -294,18 +463,19 @@ class World:
     def expedition(self):
         if not self.has("Brygga") or self.expedition_left or self.expedition_target >= len(EXPEDITIONS):
             return False
-        _, cost, hours, _ = EXPEDITIONS[self.expedition_target]
+        _, cost, hours = EXPEDITIONS[self.expedition_target]
         if not self.spend("U", self.explore_cost(cost)):
             return False
         self.expedition_left = hours
         return True
 
-    def workday(self, kind, site):
-        if not any(b.kind == kind and b.site == site and b.staffed for b in self.buildings):
+    def workday(self, kind, tile):
+        p = coord(tile)
+        if not any(b.kind == kind and b.tile == p and b.staffed for b in self.buildings):
             return False
-        if (kind, site) in self.boosted or not self.spend("G", DAWN_WORKDAY_COST):
+        if (kind, p) in self.boosted or not self.spend("G", DAWN_WORKDAY_COST):
             return False
-        self.boosted.add((kind, site))
+        self.boosted.add((kind, p))
         return True
 
     def rush(self):
@@ -338,22 +508,21 @@ class World:
 
     def hour(self, active):
         # Långsamma processer fortgår dygnet runt (INV-T5).
-        for name in self.forest:
-            cap = 40.0 * SITES[name].forest_tiles
-            self.forest[name] = min(cap, self.forest[name] + 0.25 * SITES[name].forest_tiles)
+        for p in self.forest:
+            self.forest[p] = min(FOREST_PER_TILE, self.forest[p] + FOREST_REGROWTH)
         for b in self.buildings:
             if b.kind == "Åker":
-                b.buffer += 0.5 * SITES[b.site].richness
+                b.buffer += 0.5 * TILES[b.tile].richness
             if b.kind == "Fårgård":
-                b.buffer += 0.4 * SITES[b.site].richness
+                b.buffer += 0.4 * TILES[b.tile].richness
         if not active:
             return  # byborna sover (INV-T4)
         if self.expedition_left:
             self.expedition_left -= 1
             if self.expedition_left == 0:
-                island, _, _, sites = EXPEDITIONS[self.expedition_target]
+                island, _, _ = EXPEDITIONS[self.expedition_target]
                 self.expedition_target += 1
-                self.revealed.update(sites)
+                self.revealed.update(p for p, t in TILES.items() if t.island == island)
                 self.remote_stock[island] = {r: 0.0 for r in RESOURCES}
                 self.log.append(f"Expeditionen hittade {island}")
         # Byggen: lediga bybor arbetar.
@@ -373,21 +542,22 @@ class World:
             if not b.staffed:
                 continue
             k = self.factor(b) * (1.5 if b.level == 2 else 1.0) * (
-                1.5 if (b.kind, b.site) in self.boosted else 1.0)
-            site = SITES[b.site]
-            out = self.stock if site.island == HOME else self.remote_stock[site.island]
+                1.5 if (b.kind, b.tile) in self.boosted else 1.0)
+            tile = TILES[b.tile]
+            out = self.stock if tile.island == HOME else self.remote_stock[tile.island]
             if b.kind == "Fiskebod":
-                self.add(out, "fisk", 1.25 * site.richness * k, cap)
+                self.add(out, "fisk", 1.25 * tile.richness * k, cap)
             elif b.kind in ("Åker", "Fårgård"):
                 res = "säd" if b.kind == "Åker" else "ull"
                 take = min(b.buffer, 2.0 * k)
                 b.buffer -= self.add(out, res, take, cap)
             elif b.kind == "Huggarkoja":
-                rate = (1.0 if site.forest_tiles >= 2 else 0.5) * site.richness * k
-                take = min(rate, self.forest[b.site])
-                self.forest[b.site] -= self.add(out, "timmer", take, cap)
+                felled = [n for n in self.woods(b.tile) if self.forest[n] > 0][:WOODCUTTER_TILES]
+                for n in felled:
+                    take = min(WOODCUTTER_PER_TILE * TILES[n].richness * k, self.forest[n])
+                    self.forest[n] -= self.add(out, "timmer", take, cap)
             elif b.kind == "Stenbrott":
-                self.add(out, "sten", 0.75 * site.richness * k, cap)
+                self.add(out, "sten", 0.75 * tile.richness * k, cap)
             elif b.kind == "Sågverk":
                 n = min(1.0 * k, max(0.0, self.stock["timmer"] - RESERVE) / 2)
                 n = self.add(out, "plank", n, cap)
@@ -413,6 +583,9 @@ class World:
         return amount
 
     # -- mått --
+    def woodcutter_rate(self, p):
+        return sum(WOODCUTTER_PER_TILE * TILES[n].richness for n in self.woods(p)[:WOODCUTTER_TILES])
+
     def daily_output(self):
         """Effektiv produktionskapacitet per spelardygn, viktad (balansmått)."""
         total = 0.0
@@ -420,13 +593,13 @@ class World:
             if not b.staffed:
                 continue
             k = self.factor(b) * (1.5 if b.level == 2 else 1.0)
-            s = SITES[b.site]
+            richness = TILES[b.tile].richness
             per_hour = {
-                "Fiskebod": ("fisk", 1.25 * s.richness),
-                "Åker": ("säd", 0.5 * s.richness * 24 / ACTIVE_HOURS),
-                "Fårgård": ("ull", 0.4 * s.richness * 24 / ACTIVE_HOURS),
-                "Huggarkoja": ("timmer", (1.0 if s.forest_tiles >= 2 else 0.5) * s.richness),
-                "Stenbrott": ("sten", 0.75 * s.richness),
+                "Fiskebod": ("fisk", 1.25 * richness),
+                "Åker": ("säd", 0.5 * richness * 24 / ACTIVE_HOURS),
+                "Fårgård": ("ull", 0.4 * richness * 24 / ACTIVE_HOURS),
+                "Huggarkoja": ("timmer", self.woodcutter_rate(b.tile)),
+                "Stenbrott": ("sten", 0.75 * richness),
                 "Sågverk": ("plank", 1.0),
                 "Väveri": ("vadmal", 0.5),
             }.get(b.kind)
@@ -440,7 +613,7 @@ class World:
             "bybor": self.villagers,
             "byggnader": len(self.buildings),
             "nivå 2": sum(b.level == 2 for b in self.buildings),
-            "öar": len({SITES[b.site].island for b in self.buildings}),
+            "öar": len({TILES[b.tile].island for b in self.buildings}),
             "lager": {r: round(v) for r, v in self.stock.items()},
         }
 
@@ -471,11 +644,11 @@ def strategy_land(w: World, day: int):
 def strategy_sea(w: World, day: int):
     """Havet: brygga, expedition till Nyön, ull och vadmal för snabbare tillväxt."""
     w.build("Brygga", "H1")
-    w.build("Huggarkoja", "F2")
+    w.build("Huggarkoja", "E2")
     w.build("Sågverk", "L3")
     w.expedition()
     w.build("Långhus", "L1")
-    w.build("Brygga", "N0")
+    w.build("Brygga", "N9")
     w.build("Fårgård", "N1")
     w.build("Stenbrott", "N2")
     w.build("Väveri", "L2")
@@ -488,7 +661,7 @@ def strategy_sea(w: World, day: int):
 def strategy_naive(w: World, day: int):
     """Naiv: bygger det första som går, där det går, utan att läsa kartan."""
     w.build("Sågverk", "L1")
-    w.build("Stenbrott", "M1")
+    w.build("Stenbrott", "M2")
     w.build("Långhus", "L2")
     w.build("Väveri", "L3")
     w.build("Fårgård", "P1")
@@ -550,8 +723,17 @@ def main():
         ("Ingen spelare, ingen egenvård", strategy_idle, "ingen"),
         ("Ingen spelare, måttlig egenvård", strategy_idle, "måttlig"),
     ]
+    print("Byggplatser per ö: brickor som duger till varje krav (D-79)\n")
+    kinds = ["land", "skog", "åker", "bete", "berg", "krön", "fiskevatten", "hamnläge"]
+    print("| Ö | Landbrickor | " + " | ".join(kinds) + " |")
+    print("|---|---|" + "---|" * len(kinds))
+    for island in [HOME] + [e[0] for e in EXPEDITIONS]:
+        tiles = [p for p, t in TILES.items() if t.island == island]
+        land = sum(TILES[p].terrain in LAND for p in tiles)
+        print(f"| {island} | {land} | " + " | ".join(
+            str(sum(k in uses(p) for p in tiles)) for k in kinds) + " |")
     base = World().value()
-    print(f"Startvärde: {base:.0f}\n")
+    print(f"\nStartvärde: {base:.0f}\n")
     print("| Körning | Profil | Bybor | Byggnader | Nivå 2 | Öar | Plank | Sten | Vadmal "
           "| Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |")
     print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")

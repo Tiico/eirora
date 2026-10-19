@@ -39,9 +39,9 @@ Kartformat 1 har följande innehåll.
 Det som följer av brickorna sparas inte, eftersom en snapshot aldrig innehåller härledda cachar (ADR-0006):
 - gångbarhet och byggbarhet följer av terräng, höjd och grannar enligt reglerna;
 - fiskevatten är grunt vatten intill land;
-- ett hamnläge är en strand intill grunt vatten som når djupt hav;
+- ett hamnläge är en landbricka utom berg intill grunt vatten som når djupt hav (D-89);
 - farleder och flaskhalsar följer av havsbrickornas sammanhang;
-- krönet är startöns högsta bricka.
+- krönet är startöns högsta bricka; en karta har en enda sådan bricka, och krönet bär bara Vårdkasen, även när det är ett berg (D-92).
 
 Biom per bricka ingår inte i kartformat 1, eftersom V1 har ett enda nordiskt biom.
 Ett biom läggs till med kartformat 2 och en migration som ger alla befintliga brickor det nordiska biomet.
@@ -127,6 +127,8 @@ Kartan klarar ändå de krav som varje komposition behöver (MAP-07, TASK-035):
 - De två yttersta ringarna är djupt hav, så att två världar som ligger kant i kant har hav emellan.
 - Varje karta har minst ett hamnläge med en farled av djupt hav ut till kanten, där sjövägar till andra världar kan börja.
 - Validatorn (TASK-030) underkänner kartor som bryter mot detta.
+- `ArchipelagoTests` (TASK-035) lägger ut två till sex genererade världar som skivor kring ett gemensamt hav i mitten, vridna i steg om 60°: de överlappar aldrig, och från varje världs hamnlägen når ett skepp det gemensamma havet.
+  En karta med `source geographic`, byggd för hand utan geodata, valideras, sparas och simuleras som vilken värld som helst.
 
 ## Källtyper
 

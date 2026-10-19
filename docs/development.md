@@ -213,6 +213,18 @@ dotnet run --project tools/Eirora.MapCheck -- --seed 42
 dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --from 0 --seeds 10000
 ```
 
+Seedverktyget (TASK-034) skriver en fristående HTML-sida som öppnas i webbläsaren.
+För en seed visar den kartan med startön, expeditionernas öar, hamnlägen, krönet, innerhavet och farlederna, och validatorns rapport.
+För ett intervall visar den dessutom per regel de kartor som ligger närmast gränsen, så att generatorn kan förbättras där den är svagast:
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --html seed.html --seed 42
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --html seeds.html --from 0 --seeds 1000
+```
+
 Ett kontaktark med kartor ritade ovanifrån i art directions palett, för att välja bland seeds innan en generatorversion låses:
 
 ```bash
@@ -265,6 +277,7 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
 | [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `tests/Replays/`, determinismskriptet eller workflowen, samt manuellt | Unity-tester, jämförelse av replay-korpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
+| [`Site`](../.github/workflows/site.yml) | Push som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
@@ -299,6 +312,9 @@ gh secret set UNITY_PASSWORD
 ```
 
 5. Kör Unity-workflowen manuellt under **Actions → Unity → Run workflow** och kontrollera att alla jobb blir gröna.
+
+Licensfilen är bunden till datorn där den skapades, så CI avvisar den och aktiverar i stället med `UNITY_EMAIL` och `UNITY_PASSWORD`.
+Kontot får därför inte ha tvåstegsverifiering; licensfilen behövs ändå, eftersom GameCI börjar med den.
 
 > Unity har i omgångar begränsat manuell aktivering av Personal-licenser i CI.
 > Om aktiveringen misslyckas trots korrekta secrets krävs Unity Pro eller Plus och `UNITY_SERIAL`, se [GameCI:s aktiveringsguide](https://game.ci/docs/github/activation).
@@ -346,7 +362,8 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
 1. Skapa nyckeln med guiden under [Signering](#signering) om den inte redan finns.
 2. Skapa appen **Eirora** i [Play Console](https://play.google.com/console) och låt Google skapa och förvara appens signeringsnyckel (Play App Signing, D-76).
    Nyckeln från guiden blir uppladdningsnyckel och kan bytas ut via Play Console om den försvinner.
-3. Fyll i **Appinnehåll**: integritetspolicy, dataskydd och deklarationen för Health Connect-behörigheterna.
+3. Publicera integritetspolicyn på servern enligt [deploy/site](../deploy/site/README.md).
+   Fyll sedan i **Appinnehåll**: policyns adress, dataskydd och deklarationen för Health Connect-behörigheterna.
    Appen läser steg, träningspass och sömn när spelaren öppnar den, för spelets krafter, och skickar inga hälsodata till någon server (HLT-10).
    Google släpper ingen version med Health Connect-behörigheter förrän deklarationen är godkänd.
 4. Lägg till ditt Google-konto som testare under **Testa → Internt test → Testare**, öppna länken för att gå med på telefonen och godkänn.
