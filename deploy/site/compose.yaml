@@ -19,6 +19,14 @@ services:
     tmpfs:
       - /etc/nginx/conf.d:uid=101,gid=101
       - /tmp:uid=101,gid=101
+    # Traefik only routes to a healthy container, so a site that started without its configuration gets no traffic.
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/privacy/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      start_interval: 1s
+      retries: 3
     cap_drop:
       - ALL
     security_opt:

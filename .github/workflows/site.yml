@@ -37,7 +37,7 @@ jobs:
 
       - name: The policy names the developer and the contact, and keeps its headers
         run: |
-          get() { docker compose exec -T site wget -q -S -O - "http://localhost:8080$1" 2>&1 || true; }
+          get() { docker compose exec -T site wget -q -S -O - "http://127.0.0.1:8080$1" 2>&1 || true; }
           failed=0
           expect() {
             if ! grep -q -- "$2" <<<"$1"; then echo "::error::Expected: $2"; failed=1; fi
