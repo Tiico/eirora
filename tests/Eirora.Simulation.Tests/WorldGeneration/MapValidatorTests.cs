@@ -172,11 +172,17 @@ public sealed class MapValidatorTests
     /// A map made to pass every rule: a start island of radius 4 with every kind of ground and a single crest, and two
     /// small islands 10 and 14 steps away by sea with richer ground than home.
     /// </summary>
-    internal static WorldMapBuilder GoodMap(Hex? first = null, Hex? second = null)
+    internal static WorldMapBuilder GoodMap(Hex? first = null, Hex? second = null, MapSource source = MapSource.Handmade)
     {
         var firstCentre = first ?? s_first;
         var secondCentre = second ?? s_second;
-        var map = new WorldMapBuilder(24, MapSource.Handmade, "good", 1) { Start = Hex.Origin };
+        var map = new WorldMapBuilder(24, source, "good", 1) { Start = Hex.Origin };
+        if (source == MapSource.Geographic)
+        {
+            // Made by hand in the shape geodata would give; no geodata is imported (D-05, MAP-10).
+            map.Provenance = new MapProvenance("handmade-test", "1", "CC0", 18_000_000, 59_000_000, 18_400_000, 59_200_000);
+        }
+
         Island(map, Hex.Origin, 4);
         map.Set(s_crest, Terrain.Mountain, 6);
         map.Set(new Hex(2, -1), Terrain.Mountain, 5);
