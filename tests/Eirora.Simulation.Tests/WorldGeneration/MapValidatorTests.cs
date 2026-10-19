@@ -25,6 +25,44 @@ public sealed class MapValidatorTests
     }
 
     [Fact]
+    public void TheAnalysisShowsWhatTheReportMeasured()
+    {
+        var analysis = MapValidator.Analyse(GoodMap().Build());
+
+        Assert.Equal(analysis.InnerSea.Count, analysis.Report["inner-sea"].Value);
+        Assert.Equal(analysis.StartHarbours.Count, analysis.Report["start-harbours"].Value);
+        Assert.Equal(("first", "second", s_crest), (analysis.FirstIsland, analysis.SecondIsland, analysis.Crest));
+        Assert.Equal(analysis.Report["first-island"].Value, analysis.Distances["first"]);
+    }
+
+    [Fact]
+    public void AFairwayIsAsLongAsTheDistanceBySea()
+    {
+        var analysis = MapValidator.Analyse(GoodMap().Build());
+        var harbours = analysis.Features.LandOf("first").Where(analysis.Features.IsHarborSpot);
+
+        var route = analysis.Features.SeaRoute(analysis.StartHarbours, harbours);
+
+        Assert.Equal(analysis.Distances["first"] + 1, route.Count);
+        Assert.Contains(route[0], analysis.StartHarbours);
+        Assert.All(route.Skip(1).SkipLast(1), hex => Assert.False(analysis.Map.TerrainAt(hex).IsLand()));
+        Assert.All(route.Zip(route.Skip(1)), step => Assert.Equal(1, step.First.DistanceTo(step.Second)));
+    }
+
+    [Theory]
+    [InlineData(10, 8L, null, 2L)] // At least 8: two above the limit.
+    [InlineData(9, 8L, 12L, 1L)] // Within 8..12: one from the lower limit.
+    [InlineData(11, 8L, 12L, 1L)] // One from the upper limit.
+    [InlineData(0, 0L, 0L, null)] // Only one value passes: no margin.
+    [InlineData(7, 8L, 12L, null)] // Failing: no margin.
+    public void AMarginIsTheDistanceToTheNearestLimit(long value, long? minimum, long? maximum, long? margin)
+    {
+        bool passed = (minimum is null || value >= minimum) && (maximum is null || value <= maximum);
+
+        Assert.Equal(margin, new RuleResult("rule", value, "-", passed, string.Empty, minimum, maximum).Margin);
+    }
+
+    [Fact]
     public void AStartIslandWithoutAHarbourFailsForItsHarbour()
     {
         var map = GoodMap();

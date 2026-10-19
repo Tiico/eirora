@@ -161,6 +161,18 @@ dotnet run --project tools/Eirora.MapCheck -- --seed 42
 dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --from 0 --seeds 10000
 ```
 
+Seedverktyget (TASK-034) skriver en fristående HTML-sida som öppnas i webbläsaren.
+För en seed visar den kartan med startön, expeditionernas öar, hamnlägen, krönet, innerhavet och farlederna, och validatorns rapport.
+För ett intervall visar den dessutom per regel de kartor som ligger närmast gränsen, så att generatorn kan förbättras där den är svagast:
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --html seed.html --seed 42
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --html seeds.html --from 0 --seeds 1000
+```
+
 Ett kontaktark med kartor ritade ovanifrån i art directions palett, för att välja bland seeds innan en generatorversion låses:
 
 ```bash
