@@ -8,7 +8,7 @@ namespace Eirora.Client.Accounts
 {
     /// <summary>
     /// The player's account on this device (ADR-0008): signing in with Apple or Google, keeping the refresh token in the
-    /// platform keystore and the access token in memory, refreshing, linking a second login, signing out and deleting.
+    /// platform keystore and the access token in memory, refreshing, linking and removing logins, signing out and deleting.
     /// </summary>
     /// <remarks>
     /// Nothing here is needed to play: the own world never waits for the account (ACC-04, HLT-12), and every action is
@@ -91,12 +91,27 @@ namespace Eirora.Client.Accounts
         /// <summary>Asks the server for the account, for example when the account settings are opened.</summary>
         public Task<AccountOutcome> LoadAsync() => Exclusive(LoadAccountAsync);
 
-        /// <summary>Links another provider's login, so that either one reaches the account (account recovery).</summary>
+        /// <summary>
+        /// Links another provider's login, so that either one reaches the account (account recovery). The player first
+        /// confirms with <see cref="ConfirmationProvider"/>, so that a stolen token alone cannot add a login (threat model).
+        /// </summary>
         public Task<AccountOutcome> LinkAsync(string provider) => Exclusive(async () =>
         {
-            if (!IsSignedIn)
+            if (!_providers.ContainsKey(provider))
             {
-                return AccountOutcome.SignedOut;
+                return AccountOutcome.ProviderUnavailable;
+            }
+
+            var (ready, confirmationProvider) = await ConfirmationAsync(() => ConfirmationProvider);
+            if (confirmationProvider is null)
+            {
+                return ready;
+            }
+
+            var (confirmed, confirmation) = await FreshLoginAsync(confirmationProvider);
+            if (confirmation is null)
+            {
+                return confirmed;
             }
 
             var (outcome, login) = await FreshLoginAsync(provider);
@@ -105,7 +120,7 @@ namespace Eirora.Client.Accounts
                 return outcome;
             }
 
-            var (result, reply) = await AuthorizedAsync(access => _server.LinkAsync(access, login));
+            var (result, reply) = await AuthorizedAsync(access => _server.LinkAsync(access, login, confirmation));
             if (reply is null)
             {
                 return result;
@@ -116,6 +131,8 @@ namespace Eirora.Client.Accounts
                 case 204:
                     await LoadAccountAsync();
                     return AccountOutcome.Done;
+                case 403:
+                    return AccountOutcome.NotThisAccount;
                 case 409:
                     return AccountOutcome.LoginOfAnotherAccount;
                 case 400:
@@ -125,23 +142,59 @@ namespace Eirora.Client.Accounts
             }
         });
 
-        /// <summary>Removes a linked login; the last one only goes with the account.</summary>
-        public Task<AccountOutcome> UnlinkAsync(string provider) => Exclusive(async () =>
+        /// <summary>
+        /// Removes a linked login, after the player confirms with <see cref="RemovalProvider"/>; the last one only goes
+        /// with the account.
+        /// </summary>
+        public Task<AccountOutcome> RemoveLoginAsync(string provider) => Exclusive(async () =>
         {
-            var (result, reply) = await AuthorizedAsync(access => _server.UnlinkAsync(access, provider));
+            var (ready, confirmationProvider) = await ConfirmationAsync(() => RemovalProvider(provider));
+            if (confirmationProvider is null)
+            {
+                return ready;
+            }
+
+            var (confirmed, confirmation) = await FreshLoginAsync(confirmationProvider);
+            if (confirmation is null)
+            {
+                return confirmed;
+            }
+
+            var (result, reply) = await AuthorizedAsync(access => _server.RemoveLoginAsync(access, provider, confirmation));
             if (reply is null)
             {
                 return result;
             }
 
-            if (reply.Status is 204 or 404)
+            switch (reply.Status)
             {
-                await LoadAccountAsync();
-                return AccountOutcome.Done;
+                case 204:
+                case 404: // Already removed, from another device.
+                    await LoadAccountAsync();
+                    return AccountOutcome.Done;
+                case 403:
+                    return AccountOutcome.NotThisAccount;
+                case 409:
+                    return AccountOutcome.LastLogin;
+                case 400:
+                    return AccountOutcome.SignInFailed;
+                default:
+                    return AccountOutcome.Failed;
             }
-
-            return reply.Status == 409 ? AccountOutcome.LastLogin : AccountOutcome.Failed;
         });
+
+        /// <summary>
+        /// The provider the player confirms linking with: the first of the account's logins that this device can sign in
+        /// with. Null before the account is known or when this device has none of them.
+        /// </summary>
+        public string? ConfirmationProvider => Account is null ? null : Providers.FirstOrDefault(IsLinked);
+
+        /// <summary>
+        /// The provider the player confirms removing <paramref name="provider"/>'s login with: preferably a login that
+        /// stays, so that the player shows the account can still be reached. Null like <see cref="ConfirmationProvider"/>.
+        /// </summary>
+        public string? RemovalProvider(string provider) =>
+            Account is null ? null : Providers.FirstOrDefault(p => p != provider && IsLinked(p)) ?? ConfirmationProvider;
 
         /// <summary>
         /// Revokes the refresh token on the server and forgets the sign-in on this device. Without a connection only the
@@ -163,24 +216,10 @@ namespace Eirora.Client.Accounts
         /// can revoke the app at Apple, otherwise one of the account's logins that this device can sign in with.
         /// Null before the account is known or when this device has none of them.
         /// </summary>
-        public string? DeletionProvider
-        {
-            get
-            {
-                if (Account is null)
-                {
-                    return null;
-                }
-
-                var linked = Account.Logins.Select(l => l.Provider).ToList();
-                if (linked.Contains(LoginProviders.Apple))
-                {
-                    return _providers.ContainsKey(LoginProviders.Apple) ? LoginProviders.Apple : null;
-                }
-
-                return Providers.FirstOrDefault(linked.Contains);
-            }
-        }
+        public string? DeletionProvider =>
+            !IsLinked(LoginProviders.Apple) ? ConfirmationProvider
+            : _providers.ContainsKey(LoginProviders.Apple) ? LoginProviders.Apple
+            : null;
 
         /// <summary>
         /// Deletes the account and everything the server stores for it, after a fresh sign-in with
@@ -188,26 +227,13 @@ namespace Eirora.Client.Accounts
         /// </summary>
         public Task<AccountOutcome> DeleteAsync() => Exclusive(async () =>
         {
-            if (!IsSignedIn)
+            var (ready, provider) = await ConfirmationAsync(() => DeletionProvider);
+            if (provider is null)
             {
-                return AccountOutcome.SignedOut;
+                return ready;
             }
 
-            if (Account is null)
-            {
-                var loaded = await LoadAccountAsync();
-                if (loaded != AccountOutcome.Done)
-                {
-                    return loaded;
-                }
-            }
-
-            if (DeletionProvider is not { } provider)
-            {
-                return AccountOutcome.ConfirmationUnavailable;
-            }
-
-            var (outcome, login) = await FreshLoginAsync(provider);
+            var (outcome, login) = await FreshLoginAsync(provider, forDeletion: true);
             if (login is null)
             {
                 return outcome;
@@ -249,8 +275,36 @@ namespace Eirora.Client.Accounts
             return reply is null ? result : reply.Status == 200 ? AccountOutcome.Done : AccountOutcome.Failed;
         }
 
-        /// <summary>A sign-in with the provider, bound to a new nonce, or why there is none.</summary>
-        private async Task<(AccountOutcome Outcome, ExternalLogin? Login)> FreshLoginAsync(string provider)
+        /// <summary>
+        /// The provider to confirm a change of the account with, once the account is known, or why there is none: signed
+        /// out, offline, or no login of the account on this device.
+        /// </summary>
+        private async Task<(AccountOutcome Outcome, string? Provider)> ConfirmationAsync(Func<string?> provider)
+        {
+            if (!IsSignedIn)
+            {
+                return (AccountOutcome.SignedOut, null);
+            }
+
+            if (Account is null)
+            {
+                var loaded = await LoadAccountAsync();
+                if (loaded != AccountOutcome.Done)
+                {
+                    return (loaded, null);
+                }
+            }
+
+            return provider() is { } chosen ? (AccountOutcome.Done, chosen) : (AccountOutcome.ConfirmationUnavailable, null);
+        }
+
+        private bool IsLinked(string provider) => Account?.Logins.Any(l => l.Provider == provider) == true;
+
+        /// <summary>
+        /// A sign-in with the provider, bound to a new nonce, or why there is none. Apple's authorization code is only kept
+        /// for a deletion, the one request the server needs it for (to revoke the app at Apple).
+        /// </summary>
+        private async Task<(AccountOutcome Outcome, ExternalLogin? Login)> FreshLoginAsync(string provider, bool forDeletion = false)
         {
             if (!_providers.TryGetValue(provider, out var source))
             {
@@ -261,7 +315,7 @@ namespace Eirora.Client.Accounts
             try
             {
                 var signIn = await source.SignInAsync(Nonce.Hash(nonce));
-                return (AccountOutcome.Done, new ExternalLogin(provider, signIn.IdToken, nonce, signIn.AuthorizationCode));
+                return (AccountOutcome.Done, new ExternalLogin(provider, signIn.IdToken, nonce, forDeletion ? signIn.AuthorizationCode : null));
             }
             catch (SignInCancelledException)
             {
@@ -435,10 +489,10 @@ namespace Eirora.Client.Accounts
         /// <summary>The last login can only be removed by deleting the account.</summary>
         LastLogin,
 
-        /// <summary>The deletion was confirmed with a login of another account.</summary>
+        /// <summary>The change was confirmed with a login of another account.</summary>
         NotThisAccount,
 
-        /// <summary>This device cannot sign in with the provider the deletion must be confirmed with.</summary>
+        /// <summary>This device cannot sign in with any login the change can be confirmed with.</summary>
         ConfirmationUnavailable,
 
         /// <summary>Another action is under way.</summary>

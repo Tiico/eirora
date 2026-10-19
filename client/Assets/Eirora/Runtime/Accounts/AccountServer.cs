@@ -50,22 +50,40 @@ namespace Eirora.Client.Accounts
             return (reply, reply.Status == 200 ? ParseAccount(reply.Body) : null);
         }
 
-        public Task<HttpReply> LinkAsync(string accessToken, ExternalLogin login) =>
-            _http.SendAsync(new HttpCall("POST", _baseUrl + "/api/account/logins", Json(login), HttpCall.Json, accessToken));
+        /// <summary><c>POST /api/account/logins</c>: links <paramref name="login"/>, confirmed with one of the account's own logins.</summary>
+        public Task<HttpReply> LinkAsync(string accessToken, ExternalLogin login, ExternalLogin confirmation) =>
+            _http.SendAsync(new HttpCall("POST", _baseUrl + "/api/account/logins", Json(login, confirmation), HttpCall.Json, accessToken));
 
-        public Task<HttpReply> UnlinkAsync(string accessToken, string provider) =>
-            _http.SendAsync(new HttpCall("DELETE", _baseUrl + "/api/account/logins/" + Uri.EscapeDataString(provider), bearer: accessToken));
+        /// <summary><c>POST /api/account/logins/{provider}/removal</c>, confirmed with one of the account's own logins.</summary>
+        public Task<HttpReply> RemoveLoginAsync(string accessToken, string provider, ExternalLogin confirmation) =>
+            _http.SendAsync(new HttpCall(
+                "POST",
+                _baseUrl + "/api/account/logins/" + Uri.EscapeDataString(provider) + "/removal",
+                Json(confirmation),
+                HttpCall.Json,
+                accessToken));
 
+        /// <summary><c>POST /api/account/deletion</c>, confirmed with one of the account's own logins.</summary>
         public Task<HttpReply> DeleteAsync(string accessToken, ExternalLogin confirmation) =>
             _http.SendAsync(new HttpCall("POST", _baseUrl + "/api/account/deletion", Json(confirmation), HttpCall.Json, accessToken));
 
-        public static string Json(ExternalLogin login) => JsonUtility.ToJson(new ExternalLoginJson
+        /// <summary>An <see cref="ExternalLogin"/> as the server reads it.</summary>
+        public static string Json(ExternalLogin login) => JsonUtility.ToJson(ToJson(login));
+
+        /// <summary>A <see cref="LoginLink"/> as the server reads it.</summary>
+        public static string Json(ExternalLogin login, ExternalLogin confirmation) => JsonUtility.ToJson(new LoginLinkJson
+        {
+            login = ToJson(login),
+            confirmation = ToJson(confirmation),
+        });
+
+        private static ExternalLoginJson ToJson(ExternalLogin login) => new()
         {
             provider = login.Provider,
             idToken = login.IdToken,
             nonce = login.Nonce,
             authorizationCode = login.AuthorizationCode ?? string.Empty,
-        });
+        };
 
         public static AccountInfo? ParseAccount(string json)
         {
@@ -84,22 +102,22 @@ namespace Eirora.Client.Accounts
         private async Task<TokenReply> TokenAsync(Dictionary<string, string> form)
         {
             var reply = await _http.SendAsync(new HttpCall("POST", _baseUrl + "/connect/token", UrlQuery.Encode(form), HttpCall.Form));
-            if (!reply.Reached)
-            {
-                return new TokenReply(reply.Status, null);
-            }
+            return reply.Reached ? ParseTokens(reply.Status, reply.Body) : new TokenReply(reply.Status, null);
+        }
 
+        public static TokenReply ParseTokens(int status, string json)
+        {
             TokenJson? tokens;
             try
             {
-                tokens = JsonUtility.FromJson<TokenJson>(reply.Body);
+                tokens = JsonUtility.FromJson<TokenJson>(json);
             }
             catch (ArgumentException)
             {
                 tokens = null; // Not JSON, such as a proxy's error page.
             }
 
-            return new TokenReply(reply.Status, tokens);
+            return new TokenReply(status, tokens);
         }
 
         private static DateTimeOffset Time(string text) =>
@@ -113,6 +131,13 @@ namespace Eirora.Client.Accounts
             public string idToken;
             public string nonce;
             public string authorizationCode;
+        }
+
+        [Serializable]
+        private sealed class LoginLinkJson
+        {
+            public ExternalLoginJson login;
+            public ExternalLoginJson confirmation;
         }
 
         [Serializable]

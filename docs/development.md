@@ -229,7 +229,7 @@ Kontot behövs aldrig för att spela, och knappen syns bara i ett bygge som har 
 | iOS | Inbyggd Sign in with Apple (`EiroraSignIn.mm`) | Googles OAuth-flöde med PKCE i `ASWebAuthenticationSession` och appens iOS-klient |
 | Android | Webbflödet med ett Services ID i en Custom Tab; Apple postar svaret till serverns `/signin/apple/callback`, som lämnar det till appen | Credential Manager med "Sign in with Google" och appens webbklient |
 
-Allt ligger bakom `ILoginProvider` i `client/Assets/Eirora/Runtime/Accounts/`, och `AccountSession` sköter token, förnyelse, koppling, utloggning och radering.
+Allt ligger bakom `ILoginProvider` i `client/Assets/Eirora/Runtime/Accounts/`, och `AccountSession` sköter token, förnyelse, koppling och bortkoppling, utloggning och radering.
 Refresh-token ligger i iOS nyckelring eller krypterad med en nyckel i Android Keystore (`SignIn.androidlib`), aldrig i en vanlig fil.
 Webbsidan för radering som Google Play kräver finns på `/account/delete` på servern.
 
@@ -238,14 +238,14 @@ Webbsidan för radering som Google Play kräver finns på `/account/delete` på 
 Produktägaren skapar dessa en gång; ingen av dem är hemlig utom Apples nyckel.
 `<värd>` är serverns publika värdnamn (`EIRORA_HOST`).
 
-1. **Apple Developer → Identifiers:** slå på Sign in with Apple för App ID `com.eirora.game`.
-2. **Apple Developer → Identifiers → Services IDs:** skapa ett Services ID (till exempel `com.eirora.game.signin`), slå på Sign in with Apple och ange domänen `<värd>` med returadresserna `https://<värd>/signin/apple/callback` och `https://<värd>/account/delete`.
+1. **Apple Developer → Identifiers:** slå på Sign in with Apple för App ID `se.eirora.app`.
+2. **Apple Developer → Identifiers → Services IDs:** skapa ett Services ID (till exempel `se.eirora.app.signin`), slå på Sign in with Apple och ange domänen `<värd>` med returadresserna `https://<värd>/signin/apple/callback` och `https://<värd>/account/delete`.
 3. **Apple Developer → Keys:** skapa en nyckel med Sign in with Apple, se [deploy/README.md](../deploy/README.md).
 4. **Google Cloud → Google Auth Platform:** skapa appens varumärkesprofil med bara den icke-känsliga omfattningen `openid`.
 5. **Google Cloud → Clients:** skapa tre OAuth-klienter.
    - **Web:** med `https://<värd>` som tillåtet JavaScript-ursprung, för raderingssidan; Android begär ID-token till den här klienten.
-   - **Android:** paketnamnet `com.eirora.game` och SHA-1 för Play-appsigneringens certifikat (Play Console → Testa och släpp → Appintegritet), och en till för uppladdningsnyckeln så att byggen från CI och datorn kan logga in.
-   - **iOS:** bundle-id `com.eirora.game`.
+   - **Android:** paketnamnet `se.eirora.app` och SHA-1 för Play-appsigneringens certifikat (Play Console → Testa och släpp → Appintegritet), och en till för uppladdningsnyckeln så att byggen från CI och datorn kan logga in.
+   - **iOS:** bundle-id `se.eirora.app`.
 6. Fyll i `client/Assets/Eirora/Resources/Accounts/AccountConfig.json` och committa:
 
    ```json
@@ -263,7 +263,10 @@ Ett tomt värde stänger av sin del: utan `server` visas inget konto, utan `appl
 
 ### Kontrollera på riktig enhet
 
-EditMode-testerna kör hela klientflödet mot en falsk server (`FakeAccountServer`), men leverantörernas egna dialoger och nyckellagren finns bara på en telefon.
+EditMode-testerna kör hela klientflödet mot en falsk server (`FakeAccountServer`).
+Kontraktstestet `ClientRequestTests` finns på båda sidor och håller ihop dem: förfrågningarna i `src/Eirora.Contracts/Requests~/` är byte för byte vad klienten skickar, och servertesterna skickar samma förfrågningar till den riktiga servern.
+Ändras ett anrop ändras filen där, och båda testerna måste gå igenom.
+Leverantörernas egna dialoger och nyckellagren finns däremot bara på en telefon.
 Kontrollera detta på både Android och iOS innan en version med inloggning släpps:
 
 1. Första inloggningen med varje leverantör skapar kontot, och nästa inloggning med samma konto når samma konto.
@@ -272,7 +275,8 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 4. Google på Android visar kontoväljaren, och avbrott i den avbryter utan felmeddelande.
 5. Efter omstart av appen är spelaren fortfarande inloggad, och efter 15 minuter förnyas token tyst.
 6. Efter en avinstallation och ominstallation, eller en återställning till en ny telefon, är spelaren utloggad men världen finns kvar.
-7. Koppla den andra leverantören, logga ut och logga in med den; samma konto nås.
+7. Koppla den andra leverantören efter att ha bekräftat med den första, logga ut och logga in med den; samma konto nås.
+   Ta sedan bort en av inloggningarna efter att ha bekräftat med den som blir kvar.
 8. Radera kontot från inställningarna: ett konto med Apple-inloggning bekräftas med Apple, och appen visas inte längre under Apple-ID → Logga in med Apple.
 9. Allt ovan fungerar under viloperioden (RST-07), och i flygplansläge säger appen att servern inte går att nå utan att spelet påverkas.
 10. Raderingssidan på `https://<värd>/account/delete` raderar ett konto med Google och med Apple från en dators webbläsare.

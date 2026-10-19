@@ -1,0 +1,5 @@
+POST /api/account/logins/apple/removal
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"provider":"google","idToken":"__CONFIRMATION_ID_TOKEN__","nonce":"__CONFIRMATION_NONCE__","authorizationCode":""}

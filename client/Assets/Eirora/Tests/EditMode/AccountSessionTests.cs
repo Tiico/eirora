@@ -191,7 +191,9 @@ namespace Eirora.Client.Tests
             Run(_session.SignInAsync(LoginProviders.Google));
             var account = _session.Account!.Id;
 
+            Assert.That(_session.ConfirmationProvider, Is.EqualTo(LoginProviders.Google));
             Assert.That(Run(_session.LinkAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.Done));
+            Assert.That(_google.NonceHashes, Has.Count.EqualTo(2), "Linking is confirmed with a fresh sign-in with Google.");
             Assert.That(_session.Account!.Logins.Select(l => l.Provider), Is.EquivalentTo(new[] { LoginProviders.Google, LoginProviders.Apple }));
 
             Run(_session.SignOutAsync());
@@ -211,14 +213,86 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void LinkingConfirmedAsSomeoneElseLinksNothing()
+        {
+            Run(_session.SignInAsync(LoginProviders.Google));
+            _google.Subject = "someone-else";
+
+            Assert.That(Run(_session.LinkAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.NotThisAccount));
+            Assert.That(_server.LoginsOf("google-player"), Is.EqualTo(new[] { LoginProviders.Google }));
+        }
+
+        [Test]
+        public void CancellingTheConfirmationLinksNothingAndNeverAsksForTheNewLogin()
+        {
+            Run(_session.SignInAsync(LoginProviders.Google));
+            _google.CancelNext = true;
+
+            Assert.That(Run(_session.LinkAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.Cancelled));
+            Assert.That(_apple.NonceHashes, Is.Empty);
+            Assert.That(_server.Calls.Any(c => c.Url.EndsWith("/api/account/logins", StringComparison.Ordinal)), Is.False);
+        }
+
+        [Test]
+        public void ALoginIsRemovedAfterConfirmingWithTheOneThatStays()
+        {
+            Run(_session.SignInAsync(LoginProviders.Google));
+            Run(_session.LinkAsync(LoginProviders.Apple));
+            int appleSignIns = _apple.NonceHashes.Count;
+
+            Assert.That(_session.RemovalProvider(LoginProviders.Apple), Is.EqualTo(LoginProviders.Google));
+            Assert.That(Run(_session.RemoveLoginAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.Done));
+
+            Assert.That(_session.Account!.Logins.Single().Provider, Is.EqualTo(LoginProviders.Google));
+            Assert.That(_apple.NonceHashes, Has.Count.EqualTo(appleSignIns));
+            Assert.That(_google.NonceHashes, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public void RemovalConfirmedAsSomeoneElseRemovesNothing()
+        {
+            Run(_session.SignInAsync(LoginProviders.Google));
+            Run(_session.LinkAsync(LoginProviders.Apple));
+            _google.Subject = "someone-else";
+
+            Assert.That(Run(_session.RemoveLoginAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.NotThisAccount));
+            Assert.That(_server.LoginsOf("google-player"), Is.EquivalentTo(new[] { LoginProviders.Google, LoginProviders.Apple }));
+        }
+
+        [Test]
         public void TheLastLoginStaysUntilTheAccountIsDeleted()
         {
             Run(_session.SignInAsync(LoginProviders.Google));
             Run(_session.LinkAsync(LoginProviders.Apple));
 
-            Assert.That(Run(_session.UnlinkAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.Done));
-            Assert.That(Run(_session.UnlinkAsync(LoginProviders.Google)), Is.EqualTo(AccountOutcome.LastLogin));
+            Assert.That(Run(_session.RemoveLoginAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.Done));
+            Assert.That(Run(_session.RemoveLoginAsync(LoginProviders.Google)), Is.EqualTo(AccountOutcome.LastLogin));
             Assert.That(_session.Account!.Logins.Single().Provider, Is.EqualTo(LoginProviders.Google));
+        }
+
+        [Test]
+        public void AChangeCannotBeConfirmedFromADeviceWithoutAnyOfTheAccountsLogins()
+        {
+            Run(_session.SignInAsync(LoginProviders.Apple));
+            var googleOnly = new AccountSession(FakeAccountServer.Url, _server, _store, new ILoginProvider[] { _google }, () => _now);
+            Run(googleOnly.LoadAsync());
+
+            Assert.That(googleOnly.ConfirmationProvider, Is.Null);
+            Assert.That(Run(googleOnly.LinkAsync(LoginProviders.Google)), Is.EqualTo(AccountOutcome.ConfirmationUnavailable));
+            Assert.That(_google.NonceHashes, Is.Empty);
+        }
+
+        [Test]
+        public void OnlyTheDeletionSendsApplesAuthorizationCode()
+        {
+            Run(_session.SignInAsync(LoginProviders.Apple));
+            Run(_session.LinkAsync(LoginProviders.Google));
+            Run(_session.RemoveLoginAsync(LoginProviders.Google));
+
+            Assert.That(_server.Calls.Where(c => c.Body?.Contains("apple-code-") == true), Is.Empty);
+
+            Run(_session.DeleteAsync());
+            Assert.That(_server.AppleCodesRevoked, Has.Count.EqualTo(1));
         }
 
         [Test]

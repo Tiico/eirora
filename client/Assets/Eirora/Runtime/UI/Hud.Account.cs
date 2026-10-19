@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace Eirora.Client.UI
 {
     /// <summary>
-    /// The account sheet (ADR-0008): signing in with Apple or Google, linking the other, signing out and deleting the
+    /// The account sheet (ADR-0008): signing in with Apple or Google, linking the other and removing it, signing out and deleting the
     /// account. Reachable from the bar at any time, also during rest (RST-07), and never needed to play (ACC-04).
     /// </summary>
     public sealed partial class Hud
@@ -99,9 +99,23 @@ namespace Eirora.Client.UI
             Text("sheet-text", _sheet, "Kontot och allt du gör här fungerar även när byn vilar. Din värld på telefonen påverkas aldrig.");
             if (linked is not null)
             {
-                foreach (var provider in account.Providers.Where(p => !linked.Contains(p)))
+                var unlinked = account.Providers.Where(p => !linked.Contains(p)).ToList();
+                if (unlinked.Count > 0 || linked.Count > 1)
                 {
-                    AddAction($"Koppla {Texts.Provider(provider)}", "Då når du kontot med båda inloggningarna", !account.IsBusy, () => Run(account.LinkAsync(provider), "Inloggningen är kopplad."));
+                    // Linking and removing need a fresh sign-in with a login of the account, so that a stolen token cannot (threat model).
+                    Text("sheet-text", _sheet, "Du bekräftar en ändring av inloggningarna genom att logga in en gång till med en av kontots inloggningar.");
+                }
+
+                foreach (var provider in unlinked)
+                {
+                    string? confirm = account.ConfirmationProvider;
+                    AddAction(
+                        $"Koppla {Texts.Provider(provider)}",
+                        confirm is null
+                            ? "Telefonen kan inte logga in med kontots inloggning"
+                            : $"Bekräfta med {Texts.Provider(confirm)}, logga sedan in med {Texts.Provider(provider)}",
+                        !account.IsBusy && confirm is not null,
+                        () => Run(account.LinkAsync(provider), "Inloggningen är kopplad."));
                 }
 
                 if (linked.Count > 1)
@@ -109,7 +123,14 @@ namespace Eirora.Client.UI
                     foreach (var provider in linked)
                     {
                         string other = Texts.Provider(linked.First(p => p != provider));
-                        AddAction($"Ta bort {Texts.Provider(provider)}-inloggningen", $"Kontot nås sedan bara med {other}", !account.IsBusy, () => Run(account.UnlinkAsync(provider), "Inloggningen är borttagen."));
+                        string? confirm = account.RemovalProvider(provider);
+                        AddAction(
+                            $"Ta bort {Texts.Provider(provider)}-inloggningen",
+                            confirm is null
+                                ? "Telefonen kan inte logga in med kontots inloggning"
+                                : $"Bekräfta med {Texts.Provider(confirm)}. Kontot nås sedan bara med {other}",
+                            !account.IsBusy && confirm is not null,
+                            () => Run(account.RemoveLoginAsync(provider), "Inloggningen är borttagen."));
                     }
                 }
             }

@@ -94,8 +94,8 @@ namespace Eirora.Client.UI
             Accounts.AccountOutcome.ProviderUnavailable => "Den inloggningen finns inte på den här telefonen.",
             Accounts.AccountOutcome.LoginOfAnotherAccount => "Den inloggningen hör redan till ett annat konto.",
             Accounts.AccountOutcome.LastLogin => "Kontot behöver minst en inloggning.",
-            Accounts.AccountOutcome.NotThisAccount => "Logga in med samma konto som du vill radera.",
-            Accounts.AccountOutcome.ConfirmationUnavailable => "Radera kontot på webbsidan i stället.",
+            Accounts.AccountOutcome.NotThisAccount => "Bekräfta med en inloggning som hör till det här kontot.",
+            Accounts.AccountOutcome.ConfirmationUnavailable => "Telefonen kan inte logga in med någon av kontots inloggningar.",
             Accounts.AccountOutcome.Failed => "Det gick inte just nu. Försök igen om en stund.",
             _ => null,
         };

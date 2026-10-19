@@ -10,13 +10,17 @@ namespace Eirora.Client.Accounts
     /// <summary>
     /// Eirora.Server's account API in memory for tests and the screenshot tour, with the same rules as the real one
     /// (ADR-0008): ID tokens bound to the nonce and accepted once, access tokens for 15 minutes, refresh tokens rotated
-    /// and revocable, linking and the Apple rule for deletion. Speaks the same wire format, so the client is tested down
-    /// to the bytes it sends.
+    /// and revocable, linking, removing a login and deleting confirmed with a fresh sign-in with one of the account's own
+    /// logins, and the Apple rule for deletion. Speaks the same wire format, which the contract test pins to the server's
+    /// (<c>ClientRequestTests</c>), so the client is tested down to the bytes it sends.
     /// </summary>
     public sealed class FakeAccountServer : IHttpTransport
     {
         public const string Url = "https://eirora.test";
         public static readonly TimeSpan AccessLifetime = TimeSpan.FromMinutes(15);
+
+        private const string LoginsPath = "/api/account/logins/";
+        private const string RemovalSuffix = "/removal";
 
         private readonly Func<DateTimeOffset> _now;
         private readonly HashSet<string> _redeemedIdTokens = new();
@@ -65,9 +69,9 @@ namespace Eirora.Client.Accounts
                 ("POST", "/connect/token") => Token(UrlQuery.Parse(call.Body!)),
                 ("POST", "/connect/revoke") => Revoke(UrlQuery.Parse(call.Body!)),
                 ("GET", "/api/account") => Authorized(call, GetAccount),
-                ("POST", "/api/account/logins") => Authorized(call, account => Link(account, Login(call))),
-                ("DELETE", _) when path.StartsWith("/api/account/logins/", StringComparison.Ordinal) =>
-                    Authorized(call, account => Unlink(account, path.Substring("/api/account/logins/".Length))),
+                ("POST", "/api/account/logins") => Authorized(call, account => Link(account, JsonUtility.FromJson<LoginLinkJson>(call.Body))),
+                ("POST", _) when path.StartsWith(LoginsPath, StringComparison.Ordinal) && path.EndsWith(RemovalSuffix, StringComparison.Ordinal) =>
+                    Authorized(call, account => RemoveLogin(account, Uri.UnescapeDataString(path.Substring(LoginsPath.Length, path.Length - LoginsPath.Length - RemovalSuffix.Length)), Login(call))),
                 ("POST", "/api/account/deletion") => Authorized(call, account => Delete(account, Login(call))),
                 _ => new HttpReply(404),
             });
@@ -125,15 +129,21 @@ namespace Eirora.Client.Accounts
             logins = _accounts[account].Select(l => new LoginJson { provider = l.Provider, linkedAt = "2026-10-18T10:00:00+00:00" }).ToArray(),
         }));
 
-        private HttpReply Link(Guid account, ExternalLoginJson login)
+        private HttpReply Link(Guid account, LoginLinkJson link)
         {
-            var identity = Validate(login.provider, login.idToken, login.nonce);
-            if (identity is null)
+            var confirmation = Validate(link.confirmation);
+            var identity = Validate(link.login);
+            if (confirmation is null || identity is null)
             {
                 return new HttpReply(400);
             }
 
-            if (_accounts.Any(a => a.Key != account && a.Value.Contains(identity.Value)) || _accounts[account].Any(l => l.Provider == login.provider && l != identity.Value))
+            if (!_accounts[account].Contains(confirmation.Value))
+            {
+                return new HttpReply(403);
+            }
+
+            if (_accounts.Any(a => a.Key != account && a.Value.Contains(identity.Value)) || _accounts[account].Any(l => l.Provider == identity.Value.Provider && l != identity.Value))
             {
                 return new HttpReply(409);
             }
@@ -146,9 +156,20 @@ namespace Eirora.Client.Accounts
             return new HttpReply(204);
         }
 
-        private HttpReply Unlink(Guid account, string provider)
+        private HttpReply RemoveLogin(Guid account, string provider, ExternalLoginJson confirmation)
         {
+            var identity = Validate(confirmation);
+            if (identity is null)
+            {
+                return new HttpReply(400);
+            }
+
             var logins = _accounts[account];
+            if (!logins.Contains(identity.Value))
+            {
+                return new HttpReply(403);
+            }
+
             if (!logins.Any(l => l.Provider == provider))
             {
                 return new HttpReply(404);
@@ -165,7 +186,7 @@ namespace Eirora.Client.Accounts
 
         private HttpReply Delete(Guid account, ExternalLoginJson confirmation)
         {
-            var identity = Validate(confirmation.provider, confirmation.idToken, confirmation.nonce);
+            var identity = Validate(confirmation);
             if (identity is null)
             {
                 return new HttpReply(400);
@@ -215,6 +236,9 @@ namespace Eirora.Client.Accounts
             return handle(access.Account);
         }
 
+        private (string Provider, string Subject)? Validate(ExternalLoginJson? login) =>
+            login is null || string.IsNullOrEmpty(login.provider) ? null : Validate(login.provider, login.idToken, login.nonce);
+
         /// <summary>A <see cref="FakeLogin"/> token, accepted once and only with the nonce whose hash it carries.</summary>
         private (string Provider, string Subject)? Validate(string provider, string idToken, string nonce)
         {
@@ -248,6 +272,13 @@ namespace Eirora.Client.Accounts
             public string idToken;
             public string nonce;
             public string authorizationCode;
+        }
+
+        [Serializable]
+        private sealed class LoginLinkJson
+        {
+            public ExternalLoginJson? login;
+            public ExternalLoginJson? confirmation;
         }
 
         [Serializable]
