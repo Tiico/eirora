@@ -47,8 +47,21 @@ jobs:
     name: Unity tests
     needs: license
     runs-on: ubuntu-latest
+    # The test runner reports its results as a check run on the commit.
+    permissions:
+      contents: read
+      checks: write
     timeout-minutes: 60
     steps:
+      # Unity's editor image needs more disk than a hosted runner has free by default; the job runs in the image, so the
+      # runner's own SDKs can go.
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+
       - uses: actions/checkout@v7
 
       - uses: actions/cache@v6
@@ -176,6 +189,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      # Unity's editor image needs more disk than a hosted runner has free by default; the job runs in the image, so the
+      # runner's own SDKs can go.
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
