@@ -47,26 +47,23 @@ namespace Eirora.Client.Look
             var occupied = new HashSet<Hex>(world.Buildings.Select(b => IslandMap.HexOf(b.Site)));
             occupied.UnionWith(world.Projects.Select(p => IslandMap.HexOf(p.Site)));
 
-            bool nyonFound = world.IsRevealed("N0");
+            // Fog per tile from the world's state (TASK-032); Nyön's land is its own mesh, shown once it is found.
+            bool nyonFound = world.IsKnown(IslandMap.NyonCentre);
             _nyon.SetActive(nyonFound);
             foreach (var tile in _map.Tiles)
             {
-                var site = _map.SiteAt(tile.Key);
-                if (!nyonFound && IslandMap.OnNyon(tile.Key))
+                bool fogged = !world.IsKnown(tile.Key);
+                bool thin = fogged && world.CanLiftFog(tile.Key);
+                if (!nyonFound && IslandMap.OnNyon(tile.Key) && _map.IsLand(tile.Key))
                 {
-                    if (_map.IsLand(tile.Key))
-                    {
-                        Models.Fog(mesh, tile.Key.Center());
-                    }
-
+                    Models.Fog(mesh, tile.Key.Center(), thin);
                     continue;
                 }
 
-                bool fogged = site is not null && !world.IsRevealed(site.Id);
-                var ground = tile.Key.Center() + (Vector3.up * Models.Height(tile.Value));
+                var ground = tile.Key.Center() + (Vector3.up * Mathf.Max(Models.Height(tile.Value), 0f));
                 if (fogged)
                 {
-                    Models.Fog(mesh, ground);
+                    Models.Fog(mesh, ground, thin, sea: !_map.IsLand(tile.Key));
                 }
 
                 if (NatureOf(tile.Value) is NatureKind nature)

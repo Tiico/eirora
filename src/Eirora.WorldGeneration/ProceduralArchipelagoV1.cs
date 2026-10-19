@@ -337,7 +337,7 @@ namespace Eirora.WorldGeneration
                 var summits = tiles.Where(h => depth[h] == deepest).ToList();
                 var crest = summits[random.Below(summits.Count)];
                 Set(crest, Terrain.Mountain, 6);
-                int ridges = random.Between(0, 2);
+                int ridges = random.Between(2, 3); // Mountains to quarry besides the crest (D-92, D-95).
                 for (int i = 0; i < ridges; i++)
                 {
                     var spots = tiles.Where(h => Free(h) && depth[h] >= 2 && h.DistanceTo(crest) >= 2).ToList();

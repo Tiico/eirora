@@ -42,6 +42,9 @@ namespace Eirora.Simulation.Events
                     }
 
                     break;
+                case FogLifted e:
+                    writer.Line("fog-lifted").Long(e.UtcSeconds).Long(e.Q).Long(e.R);
+                    break;
                 case ExpeditionReturned e:
                     writer.Line("expedition-returned").Long(e.UtcSeconds);
                     foreach (string siteId in e.SiteIds)
@@ -90,6 +93,11 @@ namespace Eirora.Simulation.Events
             if (reader.Next("sites-revealed"))
             {
                 return new SitesRevealed(reader.Long(), SiteIds(reader));
+            }
+
+            if (reader.Next("fog-lifted"))
+            {
+                return new FogLifted(reader.Long(), reader.Int(), reader.Int());
             }
 
             if (reader.Next("expedition-returned"))

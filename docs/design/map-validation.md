@@ -34,18 +34,19 @@ Kartan sparar bara terräng, höjd och rikedom; resten följer av brickorna (`Ma
 | `start-forest` | Skog på startön | ≥ 3 | Huggarkojan behöver minst två skogsbrickor för full takt (ekonomi v1). |
 | `start-farmland` | Åker på startön | ≥ 2 | Åkern. |
 | `start-pasture` | Betesmark på startön | ≥ 1 | Fårgården. |
-| `start-mountain` | Berg på startön utom krönet | ≥ 2 | Stenbrotten: krönet bär bara Vårdkasen (D-92), och det rikaste berget ska vara ett val, inte det enda (D-95). |
 | `start-fishing-water` | Fiskevatten vid startön | ≥ 2 | Fiskeboden. |
 | `start-harbours` | Hamnlägen på startön | ≥ 1 | Bryggan, där expeditionerna börjar. |
 | `crest` | Krönets höjd | ≥ 4 | Vårdkasen står på Hemöns krön (epok 1), och krönet ska vara en höjd. |
-| `first-island` | Steg till sjöss till den första expeditionens ö | 8–12 | Nyön ligger 10 steg bort i epok 1:s modell. |
+| `start-quarries` | Berg på startön utom krönet | ≥ 2 | Stenbrotten: krönet bär bara Vårdkasen (D-92), och det rikaste berget ska vara ett val, inte det enda (D-95). |
+| `first-island` | Steg till sjöss till den första expeditionens ö | 8–12 | Nyön ligger 10 steg bort i epok 1:s modell. En expeditions ö har minst 6 landbrickor och någon rik mark, så ett skär räknas aldrig. |
 | `second-island` | Steg till sjöss till en annan ö för den andra expeditionen | 11–16 | Ytterön ligger 12 steg bort i modellen och tar tre spelardygn. |
 | `inner-sea` | Havsbrickor inom öarnas räckvidd från starten, utom kusten närmast startön | ≥ 150 | Vårdkasens eld kräver att dimman lyfts över innerhavet (epok 1). |
 | `trade-offs` | Sorter av mark (skog, sten, fisk, ull, säd) där rikare mark ligger längre bort än vanlig | ≥ 3 | Rikedom mot avstånd är en verklig avvägning (MAP-03). |
 
 ## Hemön i dag
 
-Prototypens handgjorda karta klarar alla regler utom `second-island`: Ytterön, den andra expeditionens ö, kommer med generatorn som fyller havet runt Hemön (TASK-031).
+Prototypens handgjorda karta klarar alla regler utom `second-island`: Ytterön, den andra expeditionens ö, kommer när havet runt Hemön fylls en gång (D-81).
+
 Nyön ligger 9 steg till sjöss från Hemöns hamnlägen, och krönet är det västra berget (M1) med höjd 6.
 Intill krönet står ett vanligt berg på (-3,-1), så att Hemön har stenådern och ett berg till att bryta sten i (D-95).
 
@@ -58,6 +59,7 @@ Nu har Nyön en vik väster om hamnläget, mot Hemön, och det västra berget ä
 `BulkValidation` validerar kartorna en generator gör av en följd av seeds och sammanfattar per regel hur många som godkänns och hur mätvärdet fördelar sig (minsta, median, största).
 Samma seeds ger alltid samma rapport, byte för byte.
 CI kör ett litet urval för varje generator i `WorldGenerators.All`; lokalt körs tiotusentals med `tools/Eirora.MapCheck`, se [development.md](../development.md#kartor-och-gyllene-kartor).
+Seedverktyget i samma verktyg ritar kartorna med det validatorn mätte (`MapAnalysis`) och listar per regel de kartor som ligger närmast gränsen (TASK-034).
 
 Generator v1 (`procedural-archipelago`, TASK-031) väljer om tills validatorn godkänner kartan, och bulkrapportens rad `attempts` visar hur många försök det krävde.
 Över seeds 0–9 999 godkändes alla 10 000 kartor, oftast på första försöket och aldrig efter fler än fyra.

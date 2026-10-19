@@ -98,6 +98,21 @@ namespace Eirora.Simulation.Events
         public IReadOnlyList<string> SiteIds { get; }
     }
 
+    /// <summary>The fog lifted from one tile, paid with Exploration (TASK-032, MAP-04).</summary>
+    public sealed class FogLifted : GameEvent
+    {
+        public FogLifted(long utcSeconds, int q, int r)
+            : base(utcSeconds)
+        {
+            Q = q;
+            R = r;
+        }
+
+        public int Q { get; }
+
+        public int R { get; }
+    }
+
     /// <summary>The expedition came home and found new places across the sea (EXP-01, EXP-02).</summary>
     public sealed class ExpeditionReturned : GameEvent
     {

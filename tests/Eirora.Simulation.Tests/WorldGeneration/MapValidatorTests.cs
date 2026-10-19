@@ -25,6 +25,44 @@ public sealed class MapValidatorTests
     }
 
     [Fact]
+    public void TheAnalysisShowsWhatTheReportMeasured()
+    {
+        var analysis = MapValidator.Analyse(GoodMap().Build());
+
+        Assert.Equal(analysis.InnerSea.Count, analysis.Report["inner-sea"].Value);
+        Assert.Equal(analysis.StartHarbours.Count, analysis.Report["start-harbours"].Value);
+        Assert.Equal(("first", "second", s_crest), (analysis.FirstIsland, analysis.SecondIsland, analysis.Crest));
+        Assert.Equal(analysis.Report["first-island"].Value, analysis.Distances["first"]);
+    }
+
+    [Fact]
+    public void AFairwayIsAsLongAsTheDistanceBySea()
+    {
+        var analysis = MapValidator.Analyse(GoodMap().Build());
+        var harbours = analysis.Features.LandOf("first").Where(analysis.Features.IsHarborSpot);
+
+        var route = analysis.Features.SeaRoute(analysis.StartHarbours, harbours);
+
+        Assert.Equal(analysis.Distances["first"] + 1, route.Count);
+        Assert.Contains(route[0], analysis.StartHarbours);
+        Assert.All(route.Skip(1).SkipLast(1), hex => Assert.False(analysis.Map.TerrainAt(hex).IsLand()));
+        Assert.All(route.Zip(route.Skip(1)), step => Assert.Equal(1, step.First.DistanceTo(step.Second)));
+    }
+
+    [Theory]
+    [InlineData(10, 8L, null, 2L)] // At least 8: two above the limit.
+    [InlineData(9, 8L, 12L, 1L)] // Within 8..12: one from the lower limit.
+    [InlineData(11, 8L, 12L, 1L)] // One from the upper limit.
+    [InlineData(0, 0L, 0L, null)] // Only one value passes: no margin.
+    [InlineData(7, 8L, 12L, null)] // Failing: no margin.
+    public void AMarginIsTheDistanceToTheNearestLimit(long value, long? minimum, long? maximum, long? margin)
+    {
+        bool passed = (minimum is null || value >= minimum) && (maximum is null || value <= maximum);
+
+        Assert.Equal(margin, new RuleResult("rule", value, "-", passed, string.Empty, minimum, maximum).Margin);
+    }
+
+    [Fact]
     public void AStartIslandWithoutAHarbourFailsForItsHarbour()
     {
         var map = GoodMap();
@@ -56,7 +94,7 @@ public sealed class MapValidatorTests
 
     public static TheoryData<string> Breakages =>
     [
-        "deep-sea-edge", "start-land", "start-pasture", "start-farmland", "start-mountain", "crest",
+        "deep-sea-edge", "start-land", "start-pasture", "start-farmland", "crest", "start-quarries",
         "first-island", "second-island", "trade-offs",
     ];
 
@@ -83,7 +121,8 @@ public sealed class MapValidatorTests
     {
         var report = MapValidator.Validate(PrototypeHome.Map);
 
-        // The second expedition's island, Ytterön, only comes with generator v1 (TASK-031).
+        // Ytterön comes when the sea around Hemön is filled once (D-81). Hemön quarries the stone vein and the mountain
+        // beside the crest (D-95).
         Assert.Equal(["second-island"], report.Failed.Select(r => r.Rule));
         Assert.Equal(("nyon", 9), (report["first-island"].Detail, (int)report["first-island"].Value));
         Assert.Equal(6, report["crest"].Value);
@@ -130,19 +169,24 @@ public sealed class MapValidatorTests
     }
 
     /// <summary>
-    /// A map made to pass every rule: a start island of radius 4 with every kind of ground, a single crest and two
-    /// mountains to quarry besides it, and two
+    /// A map made to pass every rule: a start island of radius 4 with every kind of ground and a single crest, and two
     /// small islands 10 and 14 steps away by sea with richer ground than home.
     /// </summary>
-    internal static WorldMapBuilder GoodMap(Hex? first = null, Hex? second = null)
+    internal static WorldMapBuilder GoodMap(Hex? first = null, Hex? second = null, MapSource source = MapSource.Handmade)
     {
         var firstCentre = first ?? s_first;
         var secondCentre = second ?? s_second;
-        var map = new WorldMapBuilder(24, MapSource.Handmade, "good", 1) { Start = Hex.Origin };
+        var map = new WorldMapBuilder(24, source, "good", 1) { Start = Hex.Origin };
+        if (source == MapSource.Geographic)
+        {
+            // Made by hand in the shape geodata would give; no geodata is imported (D-05, MAP-10).
+            map.Provenance = new MapProvenance("handmade-test", "1", "CC0", 18_000_000, 59_000_000, 18_400_000, 59_200_000);
+        }
+
         Island(map, Hex.Origin, 4);
         map.Set(s_crest, Terrain.Mountain, 6);
+        map.Set(new Hex(2, -1), Terrain.Mountain, 5);
         map.Set(new Hex(-1, -1), Terrain.Mountain, 5);
-        map.Set(new Hex(1, -2), Terrain.Mountain, 5);
         foreach (var hex in new[] { new Hex(-2, 1), new Hex(-2, 2), new Hex(-1, 2) })
         {
             map.Set(hex, Terrain.Forest, 3);
@@ -200,16 +244,19 @@ public sealed class MapValidatorTests
             case "start-farmland":
                 map.Set(new Hex(2, 0), Terrain.Grassland, 3);
                 break;
-            case "start-mountain":
-                // The crest and one quarry: the crest bears only the Vårdkase (D-92).
-                map.Set(new Hex(1, -2), Terrain.Grassland, 3);
+            case "start-quarries":
+                map.Set(new Hex(-1, -1), Terrain.Grassland, 3);
                 break;
             case "crest":
                 map.Set(new Hex(-2, 0), Terrain.Mountain, 6);
                 break;
             case "trade-offs":
-                map.Set(s_first, Terrain.Grassland, 3);
-                map.Set(s_second, Terrain.Grassland, 3);
+                // All forest is rich, so there is no ordinary forest nearer home to weigh it against: two kinds left.
+                foreach (var hex in new[] { new Hex(-2, 1), new Hex(-2, 2), new Hex(-1, 2) })
+                {
+                    map.Set(hex, Terrain.Forest, 3, richness: 150);
+                }
+
                 break;
         }
     }

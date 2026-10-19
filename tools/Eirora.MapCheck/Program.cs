@@ -7,8 +7,20 @@ using Eirora.WorldGeneration.Validation;
 //   dotnet run --project tools/Eirora.MapCheck -- [--generator prototype-home] [--version 1] [--from 0] [--seeds 10000]
 //   dotnet run --project tools/Eirora.MapCheck -- --seed 42     (the report of one map, rule by rule)
 //   dotnet run --project tools/Eirora.MapCheck -- --generator procedural-archipelago --sheet maps.svg --seeds 12
+//   dotnet run --project tools/Eirora.MapCheck -- --generator procedural-archipelago --html seeds.html --from 0 --seeds 1000
+//   dotnet run --project tools/Eirora.MapCheck -- --generator procedural-archipelago --html seed.html --seed 42
 var options = Options(args);
 var generator = WorldGenerators.Get(options.GetValueOrDefault("generator", PrototypeHome.GeneratorId), int.Parse(options.GetValueOrDefault("version", "1"), CultureInfo.InvariantCulture));
+
+if (options.TryGetValue("html", out string? page))
+{
+    // The seed tool (TASK-034): one seed, or a range with the maps nearest each limit.
+    ulong from = ulong.Parse(options.GetValueOrDefault("seed", options.GetValueOrDefault("from", "0")), CultureInfo.InvariantCulture);
+    int count = options.ContainsKey("seed") ? 1 : int.Parse(options.GetValueOrDefault("seeds", "1000"), CultureInfo.InvariantCulture);
+    File.WriteAllText(page, SeedPage.Write(generator, from, count));
+    Console.WriteLine($"Wrote {page}.");
+    return 0;
+}
 
 if (options.TryGetValue("sheet", out string? sheet))
 {

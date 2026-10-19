@@ -9,6 +9,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using UnityEngine;
@@ -41,6 +42,7 @@ namespace Eirora.Client.UI
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
         private Sheet _open;
         private Site? _site;
+        private Hex? _fog;
 
         public Hud(VisualElement root, Func<GameCommand, CommandResult> apply, IHealthControls? health = null)
         {
@@ -77,12 +79,13 @@ namespace Eirora.Client.UI
         {
             None,
             Site,
+            Fog,
             SelfCare,
             Report,
         }
 
-        /// <summary>The selected place changed; the island marks it.</summary>
-        public event Action<Site?>? SelectionChanged;
+        /// <summary>The selected tile changed; the island marks it.</summary>
+        public event Action<Hex?>? SelectionChanged;
 
         /// <summary>First launch: choose the rest period before the world begins (D-50).</summary>
         public void ShowSetup(Action<RestSchedule> begin)
@@ -160,6 +163,14 @@ namespace Eirora.Client.UI
 
             ShowNight(world);
             ShowBar(world);
+
+            // A lifted tile is no longer under the fog: its sheet closes and the island shows what was there.
+            if (_open == Sheet.Fog && _fog is Hex lifted && world.IsKnown(lifted))
+            {
+                Select(null);
+                return;
+            }
+
             ShowSheet();
         }
 
@@ -167,10 +178,24 @@ namespace Eirora.Client.UI
         public void Select(Site? site)
         {
             _site = site;
+            _fog = null;
             _open = site is null ? Sheet.None : Sheet.Site;
-            SelectionChanged?.Invoke(site);
+            SelectionChanged?.Invoke(site?.Hex);
             ShowSheet();
         }
+
+        /// <summary>Opens the sheet for a tile under the fog (TASK-032).</summary>
+        public void SelectFog(Hex hex)
+        {
+            _site = null;
+            _fog = hex;
+            _open = Sheet.Fog;
+            SelectionChanged?.Invoke(hex);
+            ShowSheet();
+        }
+
+        /// <summary>Whether a tile lies under the fog, so that tapping it opens the fog's sheet.</summary>
+        public bool IsFogged(Hex hex) => _world is not null && !_world.IsKnown(hex);
 
         public void OpenSelfCare() => Open(Sheet.SelfCare);
 
@@ -263,9 +288,10 @@ namespace Eirora.Client.UI
                 _selfCare.Reset(_world.GameDay);
             }
 
-            if (_open != Sheet.Site)
+            if (_open != Sheet.Site && _open != Sheet.Fog)
             {
                 _site = null;
+                _fog = null;
                 SelectionChanged?.Invoke(null);
             }
 
@@ -288,6 +314,9 @@ namespace Eirora.Client.UI
                 case Sheet.Site when _site is not null:
                     SiteSheet(_world, _site);
                     break;
+                case Sheet.Fog when _fog is Hex fog:
+                    FogSheet(_world, fog);
+                    break;
                 case Sheet.SelfCare:
                     if (_explainingHealth)
                     {
@@ -303,6 +332,24 @@ namespace Eirora.Client.UI
                     ReportSheet();
                     break;
             }
+        }
+
+        /// <summary>
+        /// A tile under the fog: lift it with Exploration when it lies at the edge of the known, or say what finds it
+        /// (TASK-032). What lies under the fog is never shown.
+        /// </summary>
+        private void FogSheet(World world, Hex hex)
+        {
+            Text("sheet-title", _sheet, "Dimma");
+            var rejection = world.CheckLiftFog(hex);
+            if (rejection != Rejection.None)
+            {
+                Text("sheet-text", _sheet, Texts.Reason(rejection));
+                return;
+            }
+
+            Text("sheet-text", _sheet, "Utforskningen lyfter dimman och visar vad som finns här.");
+            AddAction("Lyft dimman", $"{LiftFog.Cost} Utforskning", world.Phase == Phase.Active && world.Available(Force.Exploration) >= LiftFog.Cost, () => Run(new LiftFog(hex.Q, hex.R)));
         }
 
         private void SiteSheet(World world, Site site)
