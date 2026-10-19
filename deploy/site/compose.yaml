@@ -10,6 +10,7 @@ services:
       NGINX_ENVSUBST_FILTER: ^EIRORA_
       EIRORA_DEVELOPER_NAME: ${EIRORA_DEVELOPER_NAME:?set the developer name shown in Google Play}
       EIRORA_PRIVACY_CONTACT: ${EIRORA_PRIVACY_CONTACT:?set the public privacy contact address}
+      EIRORA_ACCOUNT_DELETION_URL: ${EIRORA_ACCOUNT_DELETION_URL:?set the address of the server's account deletion page}
     volumes:
       - ./public:/usr/share/nginx/html:ro
       - ./default.conf.template:/etc/nginx/templates/default.conf.template:ro

@@ -12,10 +12,12 @@ server {
     # Only ever reached over HTTPS through Traefik.
     add_header Strict-Transport-Security "max-age=31536000" always;
 
-    # The pages name the developer and the privacy contact, which live in the server's .env rather than in the repo.
+    # The pages name the developer, the privacy contact and the account deletion page, which live in the server's .env
+    # rather than in the repo.
     sub_filter_once off;
     sub_filter "{{developer}}" "${EIRORA_DEVELOPER_NAME}";
     sub_filter "{{contact}}" "${EIRORA_PRIVACY_CONTACT}";
+    sub_filter "{{deletion}}" "${EIRORA_ACCOUNT_DELETION_URL}";
 
     location = / {
         return 302 /privacy/;
