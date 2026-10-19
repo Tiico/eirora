@@ -19,12 +19,19 @@ namespace Eirora.WorldGeneration
         WorldMap Generate(ulong seed);
     }
 
+    /// <summary>A generator that draws again until the validator passes its map, and says how many attempts it took.</summary>
+    public interface ICountsAttempts
+    {
+        WorldMap Generate(ulong seed, out int attempts);
+    }
+
     /// <summary>Every generator version there is; the golden maps in CI cover each of them (ADR-0010).</summary>
     public static class WorldGenerators
     {
         public static IReadOnlyList<IWorldGenerator> All { get; } = new IWorldGenerator[]
         {
             new PrototypeHomeGenerator(),
+            new ProceduralArchipelagoV1(),
         };
 
         /// <summary>The generator with this id and version.</summary>

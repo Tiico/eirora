@@ -77,6 +77,32 @@ En APK till en Android-telefon byggs lokalt med:
 "C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android
 ```
 
+Bygg och installera från Git Bash (Windows) med skripten:
+
+```bash
+bash scripts/build-android.sh
+bash scripts/install-android.sh
+```
+
+Bygg och installera i ett steg med `bash scripts/build-android.sh --install`.
+Om telefonens befintliga app är signerad med datorns debugnyckel, använd `bash scripts/build-android.sh --debug --install` så att sparningen kan behållas.
+`--debug` väljer Unitys debugnyckel och hoppar över releasevärdena i filen och miljön.
+Skripten kan anropas från valfri katalog med sin fullständiga sökväg.
+Stäng projektet i Unity innan du bygger.
+Byggskriptet hittar projektets Unity-version, sparar APK:n i `client/Builds/Android/Eirora.apk` och visar Unitys byggutdata direkt i terminalen.
+Det läser signeringsvärden från `~/eirora-keys/android-signing.env` om filen finns, annars används värdena i miljön eller Unitys debugnyckel.
+`EIRORA_KEY_DIR` kan ange en annan nyckelkatalog och `UNITY_EDITOR` en annan sökväg till Unity.
+
+Installationsskriptet hittar ADB via PATH eller projektets Unity-installation och väljer den senast ändrade `Eirora.apk` i `client/Builds/Android/` eller arbetskopiorna under `.claude/worktrees/` (även `artifacts/unity/`).
+Det skriver ut vald fil och enhet före installationen och föredrar en ansluten Pixel 7.
+Telefonen måste ha USB-felsökning aktiverad och datorn godkänd.
+Skriptet väntar upp till två minuter på återanslutning och USB-godkännande, även när Unity har startat om ADB efter bygget.
+Väntetiden kan ändras med miljövariabeln `ANDROID_WAIT_SECONDS` (sekunder).
+Regressionstestet för fördröjt godkännande körs med `bash scripts/test-android-install.sh`.
+Ange vid behov `--apk "C:/byggen/Eirora.apk"` eller `--serial "enhetens serienummer"`, och sätt miljövariabeln `ADB` för en annan sökväg till adb.exe.
+Installationen uppdaterar med `adb install -r`; skriptet avinstallerar aldrig appen och försöker inte kringgå signaturkonflikter eller versionskontroller.
+PowerShell-varianten finns också kvar i `scripts/install-android.ps1`.
+
 Bygget får version enligt [Versioner](#versioner) och signeras med prototypens nyckel när den finns i miljön, se [Signering](#signering).
 `Eirora.Editor.Builds.AndroidBundle` bygger i stället den `.aab` som CI laddar upp till Google Play, se [Google Play](#google-play).
 
@@ -132,7 +158,13 @@ dotnet run --project tools/Eirora.MapCheck -- --seed 42
 ```
 
 ```bash
-dotnet run -c Release --project tools/Eirora.MapCheck -- --generator prototype-home --version 1 --from 0 --seeds 10000
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --from 0 --seeds 10000
+```
+
+Ett kontaktark med kartor ritade ovanifrån i art directions palett, för att välja bland seeds innan en generatorversion låses:
+
+```bash
+dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --sheet maps.svg --seeds 12
 ```
 
 ## Servern
@@ -179,7 +211,7 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning; på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
 | [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/` eller workflowen, samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.

@@ -100,7 +100,7 @@ public sealed class MapValidatorTests
 
         Assert.Equal(first, second);
         Assert.StartsWith("scattered-islands 1 seeds 00000000000003e8+40 passed ", first, StringComparison.Ordinal);
-        Assert.Equal(MapValidator.Validate(GoodMap().Build()).Rules.Count + 2, first.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(MapValidator.Validate(GoodMap().Build()).Rules.Count + 3, first.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
     }
 
     /// <summary>
