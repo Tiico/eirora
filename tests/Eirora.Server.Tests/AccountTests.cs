@@ -198,11 +198,11 @@ public sealed class AccountTests(ServerFixture fixture)
     /// <summary>
     /// Holds the first deletion of a login until a second one arrives, so that two removals interleave the way two devices
     /// can: both have read the account's logins before either deletes. A removal that waits for the other gets through
-    /// after <see cref="Timeout"/>.
+    /// after <see cref="s_timeout"/>.
     /// </summary>
     private sealed class LoginDeletionGate : DbCommandInterceptor
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan s_timeout = TimeSpan.FromSeconds(2);
 
         private readonly TaskCompletionSource _second = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _arrived;
@@ -237,7 +237,7 @@ public sealed class AccountTests(ServerFixture fixture)
             switch (Interlocked.Increment(ref _arrived))
             {
                 case 1:
-                    await Task.WhenAny(_second.Task, Task.Delay(Timeout));
+                    await Task.WhenAny(_second.Task, Task.Delay(s_timeout));
                     break;
                 case 2:
                     _second.SetResult();
