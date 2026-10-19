@@ -105,11 +105,47 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
             SitesRevealed => "Dimman lättade över nya platser.",
             ExpeditionReturned => "Expeditionen kom hem. Den hittade Nyön i öster.",
-            FogLifted => "Dimman lättade över en bricka.",
+            FogLifted => FogLiftedOver(1),
             _ => null,
         };
 
-        public static IEnumerable<string> Report(IEnumerable<GameEvent> events) =>
-            events.Select(Describe).Where(line => line is not null).Select(line => line!);
+        /// <summary>
+        /// The daily report: one line per event, except that all the fog the player lifted is one line where the first
+        /// lift was, since a day can lift tens of tiles.
+        /// </summary>
+        public static IEnumerable<string> Report(IEnumerable<GameEvent> events)
+        {
+            var lines = new List<string>();
+            int lifted = 0;
+            int fogLine = -1;
+            foreach (var gameEvent in events)
+            {
+                if (gameEvent is FogLifted)
+                {
+                    if (lifted++ == 0)
+                    {
+                        fogLine = lines.Count;
+                        lines.Add(string.Empty);
+                    }
+
+                    continue;
+                }
+
+                if (Describe(gameEvent) is string line)
+                {
+                    lines.Add(line);
+                }
+            }
+
+            if (fogLine >= 0)
+            {
+                lines[fogLine] = FogLiftedOver(lifted);
+            }
+
+            return lines;
+        }
+
+        private static string FogLiftedOver(int tiles) =>
+            tiles == 1 ? "Dimman lättade över en bricka." : $"Dimman lättade över {tiles} brickor.";
     }
 }

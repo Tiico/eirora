@@ -157,14 +157,15 @@ namespace Eirora.Simulation.Economy
                 return Rejection.AlreadyDone;
             }
 
+            // An island the expedition finds says so wherever it is tapped, not "lift closer first" only to refuse later.
+            if (_map.Contains(hex) && _map.IslandAt(hex) is string island && island != _map.IslandAt(_map.Start) && !IslandFound(island))
+            {
+                return Rejection.FoundByExpedition;
+            }
+
             if (!Fog.CanLift(hex))
             {
                 return Rejection.NotNextToTheKnown;
-            }
-
-            if (_map.IslandAt(hex) is string island && island != _map.IslandAt(_map.Start) && !IslandFound(island))
-            {
-                return Rejection.FoundByExpedition;
             }
 
             for (int survey = SurveysDone; survey < PrototypeIsland.Surveys.Count; survey++)

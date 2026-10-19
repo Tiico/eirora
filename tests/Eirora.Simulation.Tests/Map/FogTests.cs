@@ -52,10 +52,20 @@ public sealed class FogTests
         var world = NewWorld();
         string before = world.Fingerprint();
 
-        var result = world.Apply("far", new LiftFog(PrototypeHome.NyonCentre.Q, PrototypeHome.NyonCentre.R));
+        var result = world.Apply("far", new LiftFog(0, 20));
 
         Assert.Equal(Rejection.NotNextToTheKnown, result.Rejection);
+        Assert.Equal(Rejection.NotNextToTheKnown, world.Apply("off the map", new LiftFog(100, 0)).Rejection);
         Assert.Equal(before, world.Fingerprint());
+    }
+
+    [Fact]
+    public void AnUnfoundIslandSaysSoWhereverItIsTapped()
+    {
+        // Lifting closer first would only end in the same refusal at the island's shore.
+        var world = NewWorld();
+
+        Assert.Equal(Rejection.FoundByExpedition, world.Apply("nyon", new LiftFog(PrototypeHome.NyonCentre.Q, PrototypeHome.NyonCentre.R)).Rejection);
     }
 
     [Fact]
@@ -114,7 +124,10 @@ public sealed class FogTests
         {
             var edge = Liftable(save.World).ToList();
             var tile = edge[random.Next(edge.Count)];
-            save.Apply($"lift-{i}", new LiftFog(tile.Q, tile.R));
+            if (!save.Apply($"lift-{i}", new LiftFog(tile.Q, tile.R)).Accepted)
+            {
+                return false;
+            }
         }
 
         var known = Tiles().Where(save.World.IsKnown).ToList();
