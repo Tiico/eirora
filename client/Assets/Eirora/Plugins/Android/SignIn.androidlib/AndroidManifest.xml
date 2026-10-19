@@ -17,14 +17,21 @@
     </queries>
 
     <application>
-        <!--
-          Opens Apple's sign-in page and receives its answer. The server's callback sends the answer to this package only,
-          as an intent: URL with package=, so no other app that claims the scheme gets it.
-        -->
+        <!-- Opens Apple's sign-in page and waits for its answer; only the game starts it. -->
         <activity
             android:name="com.eirora.signin.WebSignInActivity"
-            android:exported="true"
+            android:exported="false"
             android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!--
+          Receives the answer and hands only its address to WebSignInActivity. The server's callback sends the answer to
+          this package only, as an intent: URL with package=, so no other app that claims the scheme gets it.
+        -->
+        <activity
+            android:name="com.eirora.signin.WebSignInRedirectActivity"
+            android:exported="true"
+            android:noHistory="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -28,7 +28,10 @@ namespace Eirora.Client.Accounts
             AndroidSignInBridge.Call("authenticate", AndroidSignInBridge.Activity, url);
     }
 
-    /// <summary>Values encrypted with an AES key in the Android Keystore (SecureStore.kt); never in Auto Backup's reach.</summary>
+    /// <summary>
+    /// Values encrypted with an AES key in the Android Keystore (SecureStore.kt). Auto Backup may copy the ciphertext to a
+    /// new phone, but the key never leaves this one, so there the value reads as missing and the player signs in again.
+    /// </summary>
     public sealed class AndroidKeystore : ISecureStore
     {
         private const string StoreClass = "com.eirora.signin.SecureStore";

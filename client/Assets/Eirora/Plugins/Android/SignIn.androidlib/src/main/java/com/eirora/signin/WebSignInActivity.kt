@@ -2,14 +2,16 @@ package com.eirora.signin
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.browser.customtabs.CustomTabsIntent
 
 /**
- * Hosts a web sign-in: opens the page in a Custom Tab and receives the `eirora-signin:` redirect that ends it, the way
- * AppAuth's authorization activity does. Coming back without a redirect means the player closed the page.
+ * Hosts a web sign-in: opens the page in a Custom Tab and receives the `eirora-signin:` redirect that ends it from
+ * [WebSignInRedirectActivity], the way AppAuth's authorization activity does. Coming back without a redirect means the
+ * player closed the page. Not exported, so only the game itself can start it and choose the page.
  */
 class WebSignInActivity : Activity() {
     private var started = false
@@ -61,7 +63,14 @@ class WebSignInActivity : Activity() {
     }
 
     companion object {
+        const val SCHEME = "eirora-signin"
         const val EXTRA_URL = "eirora.url"
         private const val KEY_STARTED = "eirora.started"
+
+        /** Brings the waiting sign-in back to the front with the redirect, closing the Custom Tab above it. */
+        fun answer(context: Context, redirect: Uri): Intent =
+            Intent(context, WebSignInActivity::class.java)
+                .setData(redirect)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
 }
