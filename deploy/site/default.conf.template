@@ -5,12 +5,16 @@ server {
     server_name _;
     root /usr/share/nginx/html;
     server_tokens off;
+    # Redirects stay relative: nginx listens on 8080 behind Traefik, so an absolute one would name the wrong port.
+    absolute_redirect off;
 
     add_header Content-Security-Policy "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "no-referrer" always;
     # Only ever reached over HTTPS through Traefik.
     add_header Strict-Transport-Security "max-age=31536000" always;
+    # Cloudflare would otherwise rewrite the contact address into a script that the CSP blocks.
+    add_header Cache-Control "no-transform" always;
 
     # The pages name the developer and the privacy contact, which live in the server's .env rather than in the repo.
     sub_filter_once off;

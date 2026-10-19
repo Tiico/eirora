@@ -45,12 +45,13 @@ jobs:
           page="$(get /privacy/)"
           expect "$page" "HTTP/1.1 200"
           expect "$page" "Content-Security-Policy: default-src 'none'"
+          expect "$page" "Cache-Control: no-transform"
           expect "$page" "Ansvarig för appen: Test Developer."
           expect "$page" "Developer: Test Developer."
           expect "$page" 'href="mailto:privacy@example.test"'
           if grep -q "{{" <<<"$page"; then echo "::error::A placeholder was not filled in"; failed=1; fi
           expect "$(get /site.css)" "HTTP/1.1 200"
-          expect "$(get /)" "Location: .*/privacy/"
+          expect "$(get /)" "Location: /privacy/"
           if docker compose logs site | grep -q "ERROR"; then echo "::error::The entrypoint reported an error"; failed=1; fi
           if [ "$failed" = 1 ]; then echo "$page"; exit 1; fi
 
