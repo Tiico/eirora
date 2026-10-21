@@ -6,7 +6,8 @@ namespace Eirora.Simulation.Saving
     /// <remarks>
     /// It works on the canonical state text, because the rules that wrote it are no longer in the code. It is a pure
     /// function (INV-D2) that keeps the simulation time and returns the canonical text of version
-    /// <see cref="FromRules"/> + 1; a rule change that keeps the state's shape has an identity migration.
+    /// <see cref="FromRules"/> + 1; a rule change that keeps the state's shape has an identity migration. From rules 3
+    /// on, the state can end before the contributions when a cloud save's contribution part is lost (D-100).
     /// </remarks>
     internal abstract class StateMigration
     {

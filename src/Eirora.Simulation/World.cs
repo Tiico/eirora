@@ -108,6 +108,12 @@ namespace Eirora.Simulation
         /// <summary>When a recent game day began, for reading health data per game day (D-40, D-71); null if too old.</summary>
         public long? GameDayStartUtc(int day) => Cycle.GameDayStartUtc(day);
 
+        /// <summary>
+        /// The last game day that takes no more self-care, because the world went on without its contribution part
+        /// (D-100); null when every recent day is open.
+        /// </summary>
+        public int? LastClosedGameDay => _selfCare.ClosedThrough;
+
         /// <summary>What has been recorded for a game day, habit and source, so the client records only changes.</summary>
         public int? RecordedSelfCare(int day, Habit habit, ContributionSource source) => _selfCare.Total(day, habit, source);
 
@@ -196,12 +202,38 @@ namespace Eirora.Simulation
         public string Fingerprint()
         {
             var writer = new StateWriter();
-            Write(writer);
+            WriteWorld(writer);
+            WriteContributions(writer);
             return writer.ToString();
         }
 
-        /// <summary>Reads a world written by <see cref="Write"/>, on the map its state names.</summary>
-        internal static World Read(StateReader reader, WorldMap map)
+        /// <summary>
+        /// The first part of the state, everything but what is kept per game day: what the save's world part holds
+        /// (ADR-0008, D-99).
+        /// </summary>
+        internal string WorldState()
+        {
+            var writer = new StateWriter();
+            WriteWorld(writer);
+            return writer.ToString();
+        }
+
+        /// <summary>
+        /// The rest of the state: self-care per game day, the force each day was credited, and the used keys with their
+        /// outcomes. It follows <see cref="WorldState"/> in the fingerprint.
+        /// </summary>
+        internal string ContributionState()
+        {
+            var writer = new StateWriter();
+            WriteContributions(writer);
+            return writer.ToString();
+        }
+
+        /// <summary>
+        /// Reads a world written by <see cref="Fingerprint"/>, on the map its state names; or, without its contributions,
+        /// one written by <see cref="WorldState"/>, whose game days so far are then closed (D-100).
+        /// </summary>
+        internal static World Read(StateReader reader, WorldMap map, bool withContributions = true)
         {
             // In the order Write writes them.
             reader.Expect("map");
@@ -213,6 +245,14 @@ namespace Eirora.Simulation
             var cycle = DayCycle.Read(reader);
             var forces = ForceBalances.Read(reader);
             var settlement = Settlement.Read(reader, map);
+            if (!withContributions)
+            {
+                // What each day was credited went with the part, so recording those days again could credit them twice.
+                var closed = new SelfCareLedger();
+                closed.CloseThrough(cycle.GameDay);
+                return new World(map, cycle, forces, closed, settlement);
+            }
+
             var selfCare = SelfCareLedger.Read(reader);
             var world = new World(map, cycle, forces, selfCare, settlement);
             while (reader.Next("unreconciled"))
@@ -237,15 +277,24 @@ namespace Eirora.Simulation
         }
 
         /// <summary>
-        /// Writes the whole state: everything that can change what the world does next, and nothing derived (ADR-0006).
-        /// Used keys keep their outcomes, so a command sent again after loading gets its first result (INV-D6).
+        /// Writes the state but what is kept per game day. Followed by <see cref="WriteContributions"/>, it is the whole
+        /// state: everything that can change what the world does next, and nothing derived (ADR-0006).
         /// </summary>
-        private void Write(StateWriter writer)
+        private void WriteWorld(StateWriter writer)
         {
             writer.Line("map").Text(Map.Hash);
             Cycle.Write(writer);
             _forces.Write(writer);
             _settlement.Write(writer);
+        }
+
+        /// <summary>
+        /// Writes self-care per game day and the used keys. Used keys keep their outcomes, so a command sent again after
+        /// loading gets its first result (INV-D6); they belong here because a self-care command's outcome tells what a
+        /// day was credited.
+        /// </summary>
+        private void WriteContributions(StateWriter writer)
+        {
             _selfCare.Write(writer);
             foreach (var (day, habit) in _unreconciled)
             {

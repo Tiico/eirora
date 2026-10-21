@@ -299,6 +299,14 @@ _Avoid_: profil, användare, inloggning (som är sättet att nå kontot)
 Kontots kopia av världens sparning på servern, uppdelad i en världsdel och en end-to-end-krypterad bidragsdel.
 _Avoid_: backup, synk
 
+**Världsdel** (`Save.ToParts().World`):
+Den del av sparningen som servern kan läsa: kartan och senaste snapshoten utom det som hålls per spelardygn; den räcker för att världen ska fortsätta.
+_Avoid_: grunddata, publik del
+
+**Bidragsdel** (`Save.ToParts().Contributions`):
+Den del av sparningen som krypteras på enheten: egenvården och krediteringen per spelardygn, de använda idempotensnycklarna, segmentens start och journalerna (D-99).
+_Avoid_: hälsodata (som aldrig lämnar telefonen), krypterad backup
+
 **Bidragsnyckel** (`ContributionKey`):
 Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per spelardygn; förloras den går bidragshistoriken förlorad, aldrig världen.
 _Avoid_: lösenord, återställningskod (som är en av nyckelns kopior)

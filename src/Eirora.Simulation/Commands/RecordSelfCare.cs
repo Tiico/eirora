@@ -33,7 +33,7 @@ namespace Eirora.Simulation.Commands
 
         internal override Rejection Execute(World world)
         {
-            if (GameDay > world.GameDay || GameDay <= world.GameDay - DaysBack)
+            if (GameDay > world.GameDay || GameDay <= world.GameDay - DaysBack || GameDay <= world.LastClosedGameDay)
             {
                 return Rejection.GameDayOutOfRange;
             }

@@ -11,27 +11,41 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
-    /// A world's stored form on the device (GLOSSARY: Sparning, ADR-0006): the world's map (ADR-0010), the snapshot from
-    /// when the world got its current rules version, the journal since then and the latest snapshot, plus the previous
-    /// segment until the next rules change. Loading restores the latest snapshot; the journal lets a migration be redone and conflicts between
-    /// devices be resolved (TASK-023).
+    /// A world's stored form (GLOSSARY: Sparning, ADR-0006): the world's map (ADR-0010), the snapshot from when the world
+    /// got its current rules version, the journal since then and the latest snapshot, plus the previous segment until
+    /// the next rules change. Loading restores the latest snapshot; the journal lets a migration be redone and
+    /// conflicts between devices be resolved (TASK-023).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The bytes are UTF-8 text: a header line with the format, a line with the SHA-256 hash of the header and the body,
     /// then the body of named sections, each with its length in UTF-16 characters. This frame of two lines stays the same
     /// in every format, so any build can tell a damaged save from a newer one. A changed or missing byte is caught, so a
     /// save cut off mid-write is never mistaken for a world. The simulation does no I/O; the client writes the bytes
     /// atomically.
+    /// </para>
+    /// <para>
+    /// The cloud save keeps it as two parts in the same frame (ADR-0008, D-99): the world part, with the map and the
+    /// latest snapshot of everything but what is kept per game day, and the contribution part, with the rest of the
+    /// latest state, the segments and the journals, which the client encrypts. The device keeps both in one file.
+    /// </para>
     /// </remarks>
     public sealed class Save
     {
         /// <summary>The save container's format. Bumped when the sections or their encoding change.</summary>
-        /// <remarks>Format 2 added the map (TASK-029); a format 1 save is a world on the prototype's map.</remarks>
-        public const int FormatVersion = 2;
+        /// <remarks>
+        /// Format 2 added the map (TASK-029); a format 1 save is a world on the prototype's map. Format 3 split the
+        /// latest snapshot into the world part and the contributions (TASK-023).
+        /// </remarks>
+        public const int FormatVersion = 3;
 
         private const string Magic = "eirora-save";
 
         private static readonly UTF8Encoding s_utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+        private static readonly string[] s_worldSections = { "map", "latest" };
+
+        private static readonly string[] s_contributionSections = { "contributions", "start", "inputs", "previous-start", "previous-inputs" };
 
         private readonly WorldMap _map;
         private readonly SimulationSnapshot _start;
@@ -84,9 +98,53 @@ namespace Eirora.Simulation.Saving
         /// <exception cref="FormatException">The save is damaged or incomplete.</exception>
         public static Save Load(byte[] bytes) => Load(bytes, Migrations.All);
 
-        internal static Save Load(byte[] bytes, IReadOnlyList<StateMigration> migrations)
+        internal static Save Load(byte[] bytes, IReadOnlyList<StateMigration> migrations) =>
+            Load(Sections(bytes, out int format), format, migrations);
+
+        /// <summary>
+        /// Restores the world from a cloud save's two parts (<see cref="ToParts"/>), migrating it to the current rules if
+        /// needed. Without the contribution part, when its key is lost, the world goes on in a new segment with its game
+        /// days so far closed (ADR-0008, D-100).
+        /// </summary>
+        /// <exception cref="SavedByNewerVersionException">A newer app wrote the save.</exception>
+        /// <exception cref="FormatException">
+        /// A part is damaged or incomplete, is not the part it is passed as, or the parts are of different saves.
+        /// </exception>
+        public static Save FromParts(byte[] world, byte[]? contributions) => FromParts(world, contributions, Migrations.All);
+
+        internal static Save FromParts(byte[] world, byte[]? contributions, IReadOnlyList<StateMigration> migrations)
         {
-            var sections = Sections(bytes, out int format);
+            var sections = Sections(world, out int format);
+            if (format < 3 || !HasOnly(sections, s_worldSections))
+            {
+                throw new FormatException("Not a save's world part.");
+            }
+
+            if (contributions is null)
+            {
+                var map = WorldMap.Parse(Section(sections, "map"));
+                var latest = Snapshot(sections, "latest");
+                ThrowIfNewer(latest, start: null);
+                var alone = latest.RestoreWorld(map, null, migrations);
+                return new Save(map, SimulationSnapshot.Take(alone), Journal.Continue(alone), null, changedOnLoad: true);
+            }
+
+            var rest = Sections(contributions, out int restFormat);
+            if (restFormat != format || !HasOnly(rest, s_contributionSections))
+            {
+                throw new FormatException("Not the save's contribution part.");
+            }
+
+            foreach (var section in rest)
+            {
+                sections.Add(section.Key, section.Value);
+            }
+
+            return Load(sections, format, migrations);
+        }
+
+        private static Save Load(Dictionary<string, string> sections, int format, IReadOnlyList<StateMigration> migrations)
+        {
             var map = format > 1 ? WorldMap.Parse(Section(sections, "map")) : PrototypeHome.Map;
             var start = Snapshot(sections, "start");
             string inputs = Section(sections, "inputs");
@@ -95,13 +153,10 @@ namespace Eirora.Simulation.Saving
                 ? new Segment(Snapshot(sections, "previous-start"), Section(sections, "previous-inputs"))
                 : null;
 
-            if (latest.IsFromNewerVersion || start.IsFromNewerVersion)
-            {
-                throw new SavedByNewerVersionException(
-                    $"The save has rules version {latest.Rules} and content version {latest.Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
-            }
-
-            var world = latest.Restore(map, migrations);
+            ThrowIfNewer(latest, start);
+            var world = format > 2
+                ? latest.RestoreWorld(map, Contributions(sections, latest), migrations)
+                : latest.Restore(map, migrations);
             if (latest.Rules == RulesVersion.Current)
             {
                 return new Save(map, start, Journal.Resume(world, inputs), previous, changedOnLoad: format != FormatVersion);
@@ -123,25 +178,88 @@ namespace Eirora.Simulation.Saving
         /// </summary>
         public byte[] ToBytes()
         {
-            _journal.RecordNow();
-            var body = new StringBuilder();
-            AppendSection(body, "map", _map.ToText());
-            AppendSection(body, "start", Text(_start));
-            AppendSection(body, "inputs", _journal.Inputs);
-            AppendSection(body, "latest", Text(SimulationSnapshot.Take(World)));
-            if (_previous is Segment previous)
-            {
-                AppendSection(body, "previous-start", Text(previous.Start));
-                AppendSection(body, "previous-inputs", previous.Inputs);
-            }
+            var (world, contributions) = Bodies();
+            return Sealed(world + contributions);
+        }
 
-            string header = $"{Magic} {FormatVersion.ToString(CultureInfo.InvariantCulture)}\n";
-            string text = body.ToString();
-            return s_utf8.GetBytes($"{header}sha256 {Hash(header + text)}\n{text}");
+        /// <summary>
+        /// The save as the cloud save's two parts, with a new latest snapshot: the world part, which holds nothing per game
+        /// day, and the contribution part, which the client encrypts (ADR-0008, D-99). <see cref="ToBytes"/> holds both.
+        /// </summary>
+        public (byte[] World, byte[] Contributions) ToParts()
+        {
+            var (world, contributions) = Bodies();
+            return (Sealed(world), Sealed(contributions));
         }
 
         /// <summary>The world the current segment's start and journal lead to, for checking that they do.</summary>
         internal World Replay() => Journal.Continue(_start.Restore(_map), _journal.Inputs).World;
+
+        /// <summary>
+        /// The world part's sections and the contribution part's, after recording the current time so that the segment's
+        /// start and journal always lead exactly to the latest snapshot. The contributions name the snapshot they complete.
+        /// </summary>
+        private (string World, string Contributions) Bodies()
+        {
+            _journal.RecordNow();
+            var latest = SimulationSnapshot.TakeWorld(World);
+            var world = new StringBuilder();
+            AppendSection(world, "map", _map.ToText());
+            AppendSection(world, "latest", Text(latest));
+
+            var contributions = new StringBuilder();
+            AppendSection(contributions, "contributions", $"of {latest.StateHash}\n{World.ContributionState()}");
+            AppendSection(contributions, "start", Text(_start));
+            AppendSection(contributions, "inputs", _journal.Inputs);
+            if (_previous is Segment previous)
+            {
+                AppendSection(contributions, "previous-start", Text(previous.Start));
+                AppendSection(contributions, "previous-inputs", previous.Inputs);
+            }
+
+            return (world.ToString(), contributions.ToString());
+        }
+
+        private static byte[] Sealed(string body)
+        {
+            string header = $"{Magic} {FormatVersion.ToString(CultureInfo.InvariantCulture)}\n";
+            return s_utf8.GetBytes($"{header}sha256 {Hash(header + body)}\n{body}");
+        }
+
+        /// <summary>The contribution state that completes the latest snapshot, checked to be the one it belongs to.</summary>
+        private static string Contributions(Dictionary<string, string> sections, SimulationSnapshot latest)
+        {
+            string text = Section(sections, "contributions");
+            string of = $"of {latest.StateHash}\n";
+            if (!text.StartsWith(of, StringComparison.Ordinal))
+            {
+                throw new FormatException("The contributions belong to another snapshot.");
+            }
+
+            return text.Substring(of.Length);
+        }
+
+        private static void ThrowIfNewer(SimulationSnapshot latest, SimulationSnapshot? start)
+        {
+            if (latest.IsFromNewerVersion || start?.IsFromNewerVersion == true)
+            {
+                throw new SavedByNewerVersionException(
+                    $"The save has rules version {latest.Rules} and content version {latest.Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
+            }
+        }
+
+        private static bool HasOnly(Dictionary<string, string> sections, string[] names)
+        {
+            foreach (string name in sections.Keys)
+            {
+                if (Array.IndexOf(names, name) < 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         private static Dictionary<string, string> Sections(byte[] bytes, out int format)
         {

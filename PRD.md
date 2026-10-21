@@ -142,6 +142,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-95 | **Startön har minst två berg att bryta sten i utom krönet,** så att det rikaste berget är ett val: prototypens karta får ett vanligt berg på (-3,-1) intill krönet, och kartvalideringen kräver det; besvarar O-16 ([kartvalidering](./docs/design/map-validation.md), [ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | [BESLUTAT] |
 | D-96 | **En ny värld känner startön och havet längs dess kust;** allt bortom kusten ligger under dimma, och de dolda platserna ligger under små dimfläckar tills en kartläggning lyfter dem (TASK-032) | [BESLUTAT] |
 | D-97 | **Dimman lyfts bricka för bricka med Utforskning, 10 per bricka vid kanten av det kända,** men inte från platser som en kartläggning visar eller land på öar som en expedition hittar, så att kartläggningar och expeditioner behåller sitt värde (TASK-032) | [BESLUTAT] |
+| D-98 | **Två enheter som spelat offline slår ihop sina journaler:** klienten spelar upp båda enheternas kommandon från den gemensamma snapshoten i tidsordning, idempotensnycklarna hindrar dubbla bidrag och byggnader, och ett kommando som inte längre går avvisas, så att ingen spelad tid går förlorad (TASK-023, ACC-03) | [BESLUTAT] |
+| D-99 | **Molnsparningens bidragsdel bär hela journalen:** världsdelen är kartan och senaste snapshoten utom det som hålls per spelardygn, och bidragsdelen resten av snapshoten, segmentens start och journalerna, så att sammanslagning och omgjord migration har hela journalen och servern ser mindre än ADR-0008 tillåter ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
+| D-100 | **Utan bidragsnyckeln stängs spelardygnen till och med snapshotens spelardygn:** de tar inte emot mer egenvård och räknas som tomma i Byggkraftens rullande vecka, eftersom det de krediterats fanns i bidragsdelen; egenvården räknas igen från nästa spelardygn ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -680,6 +683,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
 | D-88–D-95 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | D-96–D-97 | 2026-10-19 | Se avsnitt 1.1 | Produktägarens val i TASK-032 |
+| D-98–D-100 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-023 |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
