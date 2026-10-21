@@ -119,7 +119,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-72 | **Kontot skapas först när spelaren loggar in med Apple eller Google;** dessförinnan finns inget om spelaren på servern, och inga lösenord eller e-postadresser lagras ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
 | D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och spelardygnen före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
 | D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
-| D-75 | **Prototypen når telefonen genom Google Plays interna test:** varje push till `main` som ändrar bygget blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation ([development.md](./docs/development.md#google-play)) | [BESLUTAT] |
+| D-75 | ~~**Prototypen når telefonen genom Google Plays interna test:** varje push till `main` som ändrar bygget blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation ([development.md](./docs/development.md#google-play))~~ | [ERSATT av D-98] |
 | D-76 | **Google förvarar appens signeringsnyckel (Play App Signing);** prototypens nyckel är uppladdningsnyckel, så en APK från CI eller datorn kan inte installeras över appen från Google Play | [BESLUTAT] |
 | D-77 | **Appen från Google Play är en ny app,** `se.eirora.app`, och dagboken börjar i den; de sidladdade provbyggena (`com.eirora.game`) kan ligga kvar, men deras värld följer inte med | [BESLUTAT] |
 | D-78 | **Androids säkerhetskopiering till spelarens eget Google-konto är påslagen** och tar med journalen, så att världen kan följa med till en ny telefon; journalen innehåller bara dygnssummor, aldrig enskilda hälsoposter (HLT-10) | [BESLUTAT] |
@@ -142,6 +142,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-95 | **Startön har minst två berg att bryta sten i utom krönet,** så att det rikaste berget är ett val: prototypens karta får ett vanligt berg på (-3,-1) intill krönet, och kartvalideringen kräver det; besvarar O-16 ([kartvalidering](./docs/design/map-validation.md), [ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | [BESLUTAT] |
 | D-96 | **En ny värld känner startön och havet längs dess kust;** allt bortom kusten ligger under dimma, och de dolda platserna ligger under små dimfläckar tills en kartläggning lyfter dem (TASK-032) | [BESLUTAT] |
 | D-97 | **Dimman lyfts bricka för bricka med Utforskning, 10 per bricka vid kanten av det kända,** men inte från platser som en kartläggning visar eller land på öar som en expedition hittar, så att kartläggningar och expeditioner behåller sitt värde (TASK-032) | [BESLUTAT] |
+| D-98 | **Prototypen når telefonen genom Google Plays interna test när en version släpps:** en GitHub-release med en tagg på `main` blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation; pull requests kör bara testerna, så att Actions-budgeten på 2000 minuter i månaden räcker ([development.md](./docs/development.md#släppa-en-version)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -680,6 +681,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
 | D-88–D-95 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | D-96–D-97 | 2026-10-19 | Se avsnitt 1.1 | Produktägarens val i TASK-032 |
+| D-98 | 2026-10-21 | Se avsnitt 1.1; ersätter D-75 | Produktägarens val för att hålla Actions-budgeten |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

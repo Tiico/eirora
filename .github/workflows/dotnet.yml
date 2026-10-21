@@ -1,8 +1,19 @@
-# Builds and tests the simulation library, contracts and server on every push.
+# Builds and tests the simulation library, contracts and server on pull requests and on main, where it also publishes
+# the server image. Changes that only touch the Unity client or documentation build nothing here.
 name: .NET
 
 on:
+  pull_request:
+    paths-ignore:
+      - client/**
+      - docs/**
+      - "**.md"
   push:
+    branches: [main]
+    paths-ignore:
+      - client/**
+      - docs/**
+      - "**.md"
   workflow_dispatch:
 
 permissions:
@@ -48,7 +59,7 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Every push proves the image builds and deploys as deploy/README.md says; only main publishes that same image, tagged
+      # Every run proves the image builds and deploys as deploy/README.md says; only main publishes that same image, tagged
       # with the commit.
       - name: Build the image
         run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerImageTags=ci
