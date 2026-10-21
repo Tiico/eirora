@@ -8,8 +8,9 @@ namespace Eirora.Simulation.Map
     /// The prototype's handmade map, <c>prototype-home</c> version 1: Hemön with its sites and Nyön across the sea to the
     /// east, exactly as the client drew them in M1, so every world from the prototype keeps what it has seen (D-81,
     /// ADR-0010). What was scenery around the sites, such as woods and beaches, is now real terrain. Beyond the sea the
-    /// prototype drew, the map is deep sea until generator v1 fills it once (TASK-031). Two things differ from M1's
-    /// picture, so the map passes the validator: a bay where ships land at Nyön's harbour, and a single crest.
+    /// prototype drew, the map is deep sea until generator v1 fills it once (TASK-031). Three things differ from M1's
+    /// picture, so the map passes the validator: a bay where ships land at Nyön's harbour, a single crest, and a second
+    /// mountain to quarry beside it.
     /// </summary>
     /// <remarks>Never change this map: every world made before world generation is on it, and its hash is in their state.</remarks>
     public static class PrototypeHome
@@ -38,6 +39,12 @@ namespace Eirora.Simulation.Map
         /// <summary>Hemön's crest, where the Vårdkase stands: the western mountain, a step above the stone vein.</summary>
         public const string CrestSite = "M1";
         public const int CrestHeight = 6;
+
+        /// <summary>
+        /// A plain mountain beside the crest, on what M1 drew as a beach, so that Hemön has a mountain to quarry besides
+        /// the stone vein and the rich vein stays a choice (D-95, map-validation.md).
+        /// </summary>
+        public static readonly Hex WesternQuarry = new(-3, -1);
 
         /// <summary>The sea the prototype drew around Nyön; it overlaps Hemön's, so one sea joins the islands.</summary>
         public const int NyonSeaRadius = 7;
@@ -131,6 +138,8 @@ namespace Eirora.Simulation.Map
                 int height = site.Id == CrestSite ? CrestHeight : Height(map.TerrainAt(hex));
                 map.Set(hex, map.TerrainAt(hex), height, site.RichnessPercent);
             }
+
+            Set(map, WesternQuarry, Terrain.Mountain);
 
             map.AddIsland(Home, Hex.Origin);
             map.AddIsland(Nyon, NyonCentre);
