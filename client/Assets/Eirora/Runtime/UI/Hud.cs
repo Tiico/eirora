@@ -19,7 +19,7 @@ namespace Eirora.Client.UI
 {
     /// <summary>
     /// The prototype's interface, built in code with UI Toolkit (NFR-14): forces and stock at the top, actions at
-    /// the bottom, a sheet for the selected place, self-care input, the daily report, the account and the night view
+    /// the bottom, a sheet for the selected tile, self-care input, the daily report, the account and the night view
     /// (RST-03).
     /// </summary>
     public sealed partial class Hud
@@ -42,7 +42,7 @@ namespace Eirora.Client.UI
         private World? _world;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
         private Sheet _open;
-        private Site? _site;
+        private Hex? _tile;
         private Hex? _fog;
 
         public Hud(VisualElement root, Func<GameCommand, CommandResult> apply, IHealthControls? health = null)
@@ -79,7 +79,7 @@ namespace Eirora.Client.UI
         private enum Sheet
         {
             None,
-            Site,
+            Tile,
             Fog,
             SelfCare,
             Report,
@@ -176,20 +176,29 @@ namespace Eirora.Client.UI
             ShowSheet();
         }
 
-        /// <summary>Opens the sheet for a place on the island, or closes it.</summary>
-        public void Select(Site? site)
+        /// <summary>
+        /// Opens the sheet for a known tile, which tells what it is good for and what can be built there (D-79), or
+        /// closes it; a tile that bears nothing, such as the open sea, closes it too.
+        /// </summary>
+        public void Select(Hex? tile)
         {
-            _site = site;
+            if (tile is Hex hex && _world is not null && _world.UsesOf(hex) == TileUse.None && _world.BuildingAt(hex) is null
+                && !_world.Projects.Any(p => p.Tile == hex))
+            {
+                tile = null;
+            }
+
+            _tile = tile;
             _fog = null;
-            _open = site is null ? Sheet.None : Sheet.Site;
-            SelectionChanged?.Invoke(site?.Hex);
+            _open = tile is null ? Sheet.None : Sheet.Tile;
+            SelectionChanged?.Invoke(tile);
             ShowSheet();
         }
 
         /// <summary>Opens the sheet for a tile under the fog (TASK-032).</summary>
         public void SelectFog(Hex hex)
         {
-            _site = null;
+            _tile = null;
             _fog = hex;
             _open = Sheet.Fog;
             SelectionChanged?.Invoke(hex);
@@ -297,9 +306,9 @@ namespace Eirora.Client.UI
                 _selfCare.Reset(_world.GameDay);
             }
 
-            if (_open != Sheet.Site && _open != Sheet.Fog)
+            if (_open != Sheet.Tile && _open != Sheet.Fog)
             {
-                _site = null;
+                _tile = null;
                 _fog = null;
                 SelectionChanged?.Invoke(null);
             }
@@ -320,8 +329,8 @@ namespace Eirora.Client.UI
             Button("close", _sheet, "×", () => Select(null));
             switch (_open)
             {
-                case Sheet.Site when _site is not null:
-                    SiteSheet(_world, _site);
+                case Sheet.Tile when _tile is Hex tile:
+                    TileSheet(_world, tile);
                     break;
                 case Sheet.Fog when _fog is Hex fog:
                     FogSheet(_world, fog);
@@ -364,21 +373,17 @@ namespace Eirora.Client.UI
             AddAction("Lyft dimman", $"{LiftFog.Cost} Utforskning", world.Phase == Phase.Active && world.Available(Force.Exploration) >= LiftFog.Cost, () => Run(new LiftFog(hex.Q, hex.R)));
         }
 
-        private void SiteSheet(World world, Site site)
+        /// <summary>A known tile: its building or the work on it, or what it is good for and what can stand there (D-79).</summary>
+        private void TileSheet(World world, Hex tile)
         {
-            if (!world.IsRevealed(site.Id))
-            {
-                Text("sheet-title", _sheet, "Under dimman");
-                Text("sheet-text", _sheet, "Något ligger gömt här. Kartlägg ön för att se vad.");
-                return;
-            }
-
-            var building = world.Buildings.FirstOrDefault(b => b.Site == site);
-            var project = world.Projects.FirstOrDefault(p => p.Site == site && p.Kind == ProjectKind.Build);
+            var uses = world.UsesOf(tile);
+            string ground = Texts.Ground(world.Map, tile, uses);
+            var building = world.BuildingAt(tile);
+            var project = world.Projects.FirstOrDefault(p => p.Tile == tile && p.Kind == ProjectKind.Build);
             if (building is not null)
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
-                Text("sheet-subtitle", _sheet, $"{Texts.Describe(site)} · {(building.Staffed ? "i arbete" : "väntar på bybor")}");
+                Text("sheet-subtitle", _sheet, $"{ground} · {(building.Staffed ? "i arbete" : "väntar på bybor")}");
                 BuildingActions(world, building);
                 return;
             }
@@ -386,20 +391,31 @@ namespace Eirora.Client.UI
             if (project is not null)
             {
                 Text("sheet-title", _sheet, $"{Texts.Name(project.Building)} byggs");
-                Text("sheet-subtitle", _sheet, $"{Texts.Describe(site)} · {Math.Ceiling(project.WorkLeft / 1000.0)} h arbete kvar");
+                Text("sheet-subtitle", _sheet, $"{ground} · {Math.Ceiling(project.WorkLeft / 1000.0)} h arbete kvar");
                 Text("sheet-text", _sheet, "Lediga bybor bygger medan de är vakna.");
                 return;
             }
 
-            Text("sheet-title", _sheet, Texts.Describe(site));
-            Text("sheet-subtitle", _sheet, "Vad ska stå här?");
-            foreach (BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
+            Text("sheet-title", _sheet, ground);
+            Text("sheet-subtitle", _sheet, Texts.Uses(uses));
+            // What only this kind of tile allows comes first, then what any land allows.
+            var buildable = Enum.GetValues(typeof(BuildingKind)).Cast<BuildingKind>()
+                .Where(kind => world.CheckBuild(kind, tile) == Rejection.None)
+                .OrderBy(kind => BuildingSpec.For(kind).Requirement == TileUse.Land)
+                .ToList();
+            foreach (var kind in buildable)
             {
                 var spec = BuildingSpec.For(kind);
-                if ((site.Kinds & spec.Site) != 0)
-                {
-                    AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, site.Id)));
-                }
+                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)));
+            }
+
+            if (buildable.Count == 0 && (uses & TileUse.Crest) != 0)
+            {
+                Text("sheet-text", _sheet, "Här ska Vårdkasen stå.");
+            }
+            else if (buildable.Count == 0 && uses != TileUse.None)
+            {
+                Text("sheet-text", _sheet, "Bygg en brygga på ön först, så når byggarna hit.");
             }
         }
 
@@ -428,29 +444,30 @@ namespace Eirora.Client.UI
 
             if (building.Staffed && !building.WorkdayToday)
             {
-                AddAction("Dagsverke", $"{Workday.Cost} Gryningskraft · 50 % mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(building.Site.Id)));
+                AddAction("Dagsverke", $"{Workday.Cost} Gryningskraft · 50 % mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(building.Tile)));
             }
             else if (building.WorkdayToday)
             {
                 Text("sheet-text", _sheet, "Dagsverke i dag: 50 % mer.");
             }
 
-            if (building.Level == 1 && !world.Projects.Any(p => p.Site == building.Site && p.Kind == ProjectKind.Upgrade))
+            if (building.Level == 1 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Upgrade))
             {
-                AddAction("Uppgradera till nivå 2", Texts.Cost(BuildingSpec.Upgrade), Affordable(world, BuildingSpec.Upgrade), () => Run(new Upgrade(building.Site.Id)));
+                AddAction("Uppgradera till nivå 2", Texts.Cost(BuildingSpec.Upgrade), Affordable(world, BuildingSpec.Upgrade), () => Run(new Upgrade(building.Tile)));
             }
 
-            if (!building.HasRoad && DepotDistance(world, building.Site) > 1
-                && !world.Projects.Any(p => p.Site == building.Site && p.Kind == ProjectKind.Road))
+            int steps = world.DepotDistance(building.Tile);
+            if (!building.HasRoad && steps > 1 && steps < int.MaxValue
+                && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Road))
             {
-                AddAction("Väg till förrådet", "2 sten och 4 h arbete per steg · mer når fram", true, () => Run(new BuildRoad(building.Site.Id)));
+                AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · mer når fram", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
             }
         }
 
         /// <summary>The jetty: expeditions from home, the sea route, and Nyön's goods waiting for the ship.</summary>
         private void JettyActions(World world, Building building)
         {
-            if (building.Site.Island == IslandId.Nyon)
+            if (building.Island == IslandId.Nyon)
             {
                 var waiting = Enum.GetValues(typeof(Resource)).Cast<Resource>()
                     .Where(r => world.Stock(IslandId.Nyon, r) > 0)
@@ -465,7 +482,7 @@ namespace Eirora.Client.UI
             {
                 Text("sheet-text", _sheet, $"Expeditionen är ute. Om {world.ExpeditionHoursLeft} timmar med vakna bybor är den tillbaka.");
             }
-            else if (!world.IsRevealed("N0"))
+            else if (!world.IsKnown(PrototypeIsland.ExpeditionFinds))
             {
                 int cost = SendExpedition.Cost(world);
                 AddAction("Skicka expedition", $"{cost} Utforskning · 32 h med vakna bybor · hittar land bortom horisonten",
@@ -614,12 +631,6 @@ namespace Eirora.Client.UI
             Text("button-cost-value", row, cost.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return button;
         }
-
-        private static int DepotDistance(World world, Site site) => world.Buildings
-            .Where(b => b.Kind is BuildingKind.Storehouse or BuildingKind.Jetty)
-            .Select(b => b.Site.DistanceTo(site))
-            .DefaultIfEmpty(int.MaxValue)
-            .Min();
 
         private static bool Affordable(World world, BuildingSpec spec) =>
             spec.Cost.All(c => world.Stock(c.Key) >= c.Value) && world.Available(Force.BuildPower) >= spec.BuildPower;

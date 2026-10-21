@@ -23,7 +23,15 @@ internal sealed class Scenario
 {
     private const long Hour = 3600;
 
-    private static readonly string[] s_siteIds = PrototypeIsland.Sites.Select(s => s.Id).ToArray();
+    // The tiles the design names, where most of the economy happens; blind commands also go to tiles around Hemön.
+    private static readonly Hex[] s_named =
+    [
+        Tiles.S, Tiles.L1, Tiles.L2, Tiles.L3, Tiles.E1, Tiles.E2, Tiles.K1, Tiles.K2, Tiles.H1, Tiles.O1, Tiles.O2,
+        Tiles.F1, Tiles.F2, Tiles.F3, Tiles.M1, Tiles.M2, Tiles.M3, Tiles.P1, Tiles.N0, Tiles.N1, Tiles.N2, Tiles.N9,
+    ];
+
+    // Where a suited building is sought: Hemön and its waters, and Nyön.
+    private static readonly Hex[] s_sites = [.. Hex.Origin.Within(6), .. PrototypeHome.NyonCentre.Within(2)];
     private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
     private Scenario(TimeReading install, RestSchedule schedule, IReadOnlyList<Input> inputs)
@@ -128,7 +136,7 @@ internal sealed class Scenario
     {
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
-        string site = s_siteIds[random.Next(s_siteIds.Length)];
+        var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
         switch (random.Next(10))
         {
             case 0 or 1 or 2:
@@ -148,7 +156,7 @@ internal sealed class Scenario
             case 5:
                 return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < BuildingSpec.For(b.Kind).MaxLevel && world.Settlement.CanAfford(BuildingSpec.Upgrade.Cost)) ?? site : site);
             case 6:
-                return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad && world.Settlement.DepotDistance(b.Site) > 1 && !world.Settlement.IsQueued(b.Site.Id, ProjectKind.Road)) ?? site : site);
+                return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue && !world.Settlement.IsQueued(b.Tile, ProjectKind.Road)) ?? site : site);
             case 7:
                 int which = random.Next(4);
                 // Around Hemön and out to Nyön, and now and then off the map.
@@ -169,12 +177,12 @@ internal sealed class Scenario
         }
     }
 
-    /// <summary>One of the affordable buildings that the settlement would take on a site, or none.</summary>
-    private static (BuildingKind Kind, string Site)? FreeSite(World world, int pick)
+    /// <summary>One of the affordable buildings that the settlement would take on a tile, or none.</summary>
+    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick)
     {
-        var free = PrototypeIsland.Sites
-            .SelectMany(s => s_buildings.Select(k => (Kind: k, Site: s.Id)))
-            .Where(c => world.Settlement.CheckSite(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(BuildingSpec.For(c.Kind).Cost))
+        var free = s_sites
+            .SelectMany(tile => s_buildings.Select(k => (Kind: k, Site: tile)))
+            .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(BuildingSpec.For(c.Kind).Cost))
             .ToList();
         return free.Count > 0 ? free[pick % free.Count] : null;
     }
@@ -186,11 +194,11 @@ internal sealed class Scenario
         return edge.Count > 0 ? edge[pick % edge.Count] : null;
     }
 
-    /// <summary>The site of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>
-    private static string? BuiltSite(World world, int pick, Func<Building, bool> can)
+    /// <summary>The tile of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>
+    private static Hex? BuiltSite(World world, int pick, Func<Building, bool> can)
     {
         var built = world.Buildings.Where(b => Upgrade.Produces(b.Kind) && can(b)).ToList();
-        return built.Count > 0 ? built[pick % built.Count].Site.Id : null;
+        return built.Count > 0 ? built[pick % built.Count].Tile : null;
     }
 
     /// <summary>One input to a world: a command or a time reading.</summary>

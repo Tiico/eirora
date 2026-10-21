@@ -1,6 +1,7 @@
 using System.Linq;
 using Eirora.Client.App;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
 
@@ -27,13 +28,16 @@ namespace Eirora.Client.Tests
             session.CatchUp();
             var world = session.World!;
 
-            Assert.That(world.Buildings.Single(b => b.Site.Id == "E2").Level, Is.EqualTo(2));
+            Assert.That(world.BuildingAt(ScriptedWeek.Sawmill)!.Level, Is.EqualTo(2));
             Assert.That(world.SeaRouteOpen, Is.True);
             Assert.That(
-                world.Buildings.Select(b => $"{b.Kind}@{b.Site.Id}"),
-                Is.SupersetOf(new[] { "Longhouse@L1", "Cottage@L2", "Lookout@L3", "Jetty@N0", "SheepFarm@N1", "Quarry@N2" }));
-            Assert.That(world.IsRevealed("O2"), Is.True, "Shot 03 shows O2 as an empty site.");
-            Assert.That(world.Buildings.Any(b => b.Site.Id == "O2") || world.Projects.Any(p => p.Site.Id == "O2"), Is.False, "Shot 03 shows O2 as an empty site.");
+                world.Buildings.Select(b => $"{b.Kind}@{b.Tile}"),
+                Is.SupersetOf(new[] { "Longhouse@(-1, 0)", "Cottage@(0, -1)", "Lookout@(-1, 1)", "Jetty@(10, 0)", "SheepFarm@(10, 1)", "Quarry@(11, 0)" }));
+
+            // Shot 03 shows the farmland as an empty building site.
+            var farmland = ScriptedWeek.EmptyFarmland;
+            Assert.That(world.CheckBuild(BuildingKind.Field, farmland), Is.EqualTo(Simulation.Commands.Rejection.None));
+            Assert.That(world.Projects.Any(p => p.Tile == farmland), Is.False);
         }
 
         private static (GameSession Session, FixedClock Clock) Begin()

@@ -31,6 +31,7 @@ namespace Eirora.Simulation.Map
         private readonly int[] _island;
         private string? _text;
         private string? _hash;
+        private MapFeatures? _features;
 
         internal WorldMap(
             HexDisc disc,
@@ -85,6 +86,9 @@ namespace Eirora.Simulation.Map
 
         /// <summary>The SHA-256 hash of the map's text: its identity in the world's state.</summary>
         public string Hash => _hash ??= Sha256.Of(ToText());
+
+        /// <summary>What follows from the map's tiles, worked out once for the map.</summary>
+        public MapFeatures Features => _features ??= new MapFeatures(this);
 
         public bool Contains(Hex hex) => Disc.Contains(hex);
 

@@ -7,41 +7,41 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests.Map;
 
 /// <summary>
-/// The prototype's handmade map (TASK-029, D-81): every site of the economy lies where it did, on ground that fits it,
-/// and every world carries its map through snapshots and saves.
+/// The prototype's handmade map (TASK-029, D-81): every site the prototype named lies where it did, on ground that fits
+/// it, and every world carries its map through snapshots and saves.
 /// </summary>
 public sealed class PrototypeHomeTests
 {
     private static readonly WorldMap s_map = PrototypeHome.Map;
     private static readonly string[] s_islands = ["home", "nyon"];
 
-    public static TheoryData<string> SiteIds => [.. PrototypeIsland.Sites.Select(site => site.Id)];
+    public static TheoryData<string> SiteIds => [.. PrototypeSites.All.Select(site => site.Id)];
 
     [Theory]
     [MemberData(nameof(SiteIds))]
     public void EverySiteLiesOnGroundThatFitsItWithItsRichness(string id)
     {
-        var site = PrototypeIsland.Sites.Single(s => s.Id == id);
+        var site = PrototypeSites.All.Single(s => s.Id == id);
 
-        Assert.Equal(PrototypeHome.TerrainOf(site.Kinds), s_map.TerrainAt(site.Hex));
-        Assert.Equal(site.RichnessPercent, s_map.RichnessAt(site.Hex));
+        Assert.Equal(site.Terrain, s_map.TerrainAt(site.Hex));
+        Assert.Equal(site.Richness, s_map.RichnessAt(site.Hex));
     }
 
     [Theory]
     [MemberData(nameof(SiteIds))]
     public void EveryLandSiteLiesOnItsIslandAndEveryWaterSiteOffShore(string id)
     {
-        var site = PrototypeIsland.Sites.Single(s => s.Id == id);
-        bool water = (site.Kinds & SiteKind.FishingWater) != 0;
+        var site = PrototypeSites.All.Single(s => s.Id == id);
+        string island = PrototypeSites.ExpeditionFound.Contains(site.Id) ? PrototypeHome.Nyon : PrototypeHome.Home;
 
-        Assert.Equal(water ? null : PrototypeHome.IslandOf(site.Island), s_map.IslandAt(site.Hex));
+        Assert.Equal(site.Terrain.IsLand() ? island : null, s_map.IslandAt(site.Hex));
     }
 
     [Fact]
     public void HemonAndNyonAreTheMapsIslandsWithTheSettlementAsStart()
     {
         Assert.Equal(s_islands, s_map.Islands.Select(island => island.Id));
-        Assert.Equal(PrototypeIsland.Sites.Single(s => s.Id == PrototypeIsland.Settlement).Hex, s_map.Start);
+        Assert.Equal(PrototypeIsland.Settlement, s_map.Start);
         Assert.Equal((MapSource.Handmade, "prototype-home", 1, 24), (s_map.Source, s_map.GeneratorId, s_map.GeneratorVersion, s_map.Radius));
     }
 

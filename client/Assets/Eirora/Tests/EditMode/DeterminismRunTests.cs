@@ -21,17 +21,13 @@ namespace Eirora.Client.Tests
             var saves = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.save")
                 .Select(path => (Path.GetFileNameWithoutExtension(path), File.ReadAllBytes(path)))
                 .ToList();
-            var journals = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.journal")
-                .Select(path => (Path.GetFileNameWithoutExtension(path), File.ReadAllText(path)))
-                .ToList();
             string maps = File.ReadAllText(DeterminismRun.GoldenMapList);
 
-            var hashes = DeterminismRun.Run(replays, saves, journals, maps);
+            var hashes = DeterminismRun.Run(replays, saves, maps);
 
             Assert.That(hashes.Select(h => h.Name), Is.Ordered.Using((IComparer)StringComparer.Ordinal));
             Assert.That(hashes.Count(h => h.Name.StartsWith("replay/", StringComparison.Ordinal)), Is.EqualTo(replays.Count));
             Assert.That(hashes.Count(h => h.Name.StartsWith("save/", StringComparison.Ordinal)), Is.EqualTo(saves.Count));
-            Assert.That(hashes.Count(h => h.Name.StartsWith("journal/", StringComparison.Ordinal)), Is.EqualTo(journals.Count));
             Assert.That(hashes.Count(h => h.Name.StartsWith("map/", StringComparison.Ordinal)), Is.EqualTo(maps.Split('\n').Count(line => line.Trim().Length > 0)));
             Assert.That(
                 hashes.Where(h => h.Name.StartsWith("replay/", StringComparison.Ordinal)),

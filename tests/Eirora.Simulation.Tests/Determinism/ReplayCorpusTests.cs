@@ -135,13 +135,13 @@ public sealed class ReplayCorpusTests
     {
         var journal = Journal.Start(At("2026-10-14 17:30", 2), s_night);
         journal.Apply("survey", new Survey());
-        journal.Apply("cottage", new Build(BuildingKind.Cottage, "L1"));
+        journal.Apply("cottage", new Build(BuildingKind.Cottage, Tiles.L1));
         journal.Apply("steps", new RecordSelfCare(0, Habit.Steps, ContributionSource.SelfReported, 6_400));
         journal.AdvanceTo(At("2026-10-14 22:45", 2));
         journal.Apply("workout", new RecordSelfCare(0, Habit.Workouts, ContributionSource.SelfReported, 1));
         journal.AdvanceTo(At("2026-10-15 07:10", 2));
         journal.Apply("sleep", new RecordSelfCare(1, Habit.Sleep, ContributionSource.SelfReported, 450));
-        journal.Apply("workday", new Workday("O1"));
+        journal.Apply("workday", new Workday(Tiles.O1));
         journal.AdvanceTo(At("2026-10-15 12:00", 2));
         return journal;
     }
@@ -150,7 +150,7 @@ public sealed class ReplayCorpusTests
     private static Journal SevenDaysAway()
     {
         var journal = Journal.Start(At("2026-10-14 12:00", 2), s_night);
-        journal.Apply("woodcutter", new Build(BuildingKind.Woodcutter, "F2"));
+        journal.Apply("woodcutter", new Build(BuildingKind.Woodcutter, Tiles.F2));
         journal.AdvanceTo(At("2026-10-21 18:00", 2));
         for (int back = 0; back < RecordSelfCare.DaysBack; back++)
         {
@@ -159,7 +159,7 @@ public sealed class ReplayCorpusTests
             journal.Apply($"sleep-{back}", new RecordSelfCare(day, Habit.Sleep, ContributionSource.Verified, 380 + (back * 10)));
         }
 
-        journal.Apply("upgrade", new Upgrade("K1"));
+        journal.Apply("upgrade", new Upgrade(Tiles.K1));
         journal.AdvanceTo(At("2026-10-22 09:00", 2));
         return journal;
     }
@@ -169,13 +169,13 @@ public sealed class ReplayCorpusTests
     {
         var journal = Journal.Start(At("2026-10-14 20:00", 2), s_night);
         journal.AdvanceTo(At("2026-10-14 23:30", 2));
-        journal.Apply("build-at-night", new Build(BuildingKind.Cottage, "L2"));
+        journal.Apply("build-at-night", new Build(BuildingKind.Cottage, Tiles.L2));
         journal.Apply("steps-at-night", new RecordSelfCare(0, Habit.Steps, ContributionSource.Verified, 11_000));
         journal.Apply("earlier-rest", new ChangeRestSchedule(new RestSchedule((22 * 60) + 30, 9 * 60)));
         journal.AdvanceTo(At("2026-10-15 07:05", 2));
         journal.Apply("sleep", new RecordSelfCare(1, Habit.Sleep, ContributionSource.Verified, 465));
         journal.AdvanceTo(At("2026-10-16 23:15", 2));
-        journal.Apply("too-late", new Build(BuildingKind.Cottage, "L2"));
+        journal.Apply("too-late", new Build(BuildingKind.Cottage, Tiles.L2));
         journal.AdvanceTo(At("2026-10-17 08:00", 2));
         return journal;
     }
@@ -185,13 +185,13 @@ public sealed class ReplayCorpusTests
     {
         (string Key, GameCommand Command)[] plan = day switch
         {
-            0 => [("survey-1", new Survey()), ("woodcutter-f3", new Build(BuildingKind.Woodcutter, "F3"))],
-            1 => [("survey-2", new Survey()), ("quarry-m2", new Build(BuildingKind.Quarry, "M2"))],
-            2 => [("storehouse-e1", new Build(BuildingKind.Storehouse, "E1")), ("workday-m2", new Workday("M2"))],
-            3 => [("sawmill-e2", new Build(BuildingKind.Sawmill, "E2")), ("rush", new Rush())],
-            4 => [("longhouse-l1", new Build(BuildingKind.Longhouse, "L1")), ("workday-e2", new Workday("E2"))],
-            5 => [("fishing-k2", new Build(BuildingKind.FishingHut, "K2"))],
-            _ => [("field-o2", new Build(BuildingKind.Field, "O2")), ("road-f3", new BuildRoad("F3"))],
+            0 => [("survey-1", new Survey()), ("woodcutter-f3", new Build(BuildingKind.Woodcutter, Tiles.F3))],
+            1 => [("survey-2", new Survey()), ("quarry-m2", new Build(BuildingKind.Quarry, Tiles.M2))],
+            2 => [("storehouse-e1", new Build(BuildingKind.Storehouse, Tiles.E1)), ("workday-m2", new Workday(Tiles.M2))],
+            3 => [("sawmill-e2", new Build(BuildingKind.Sawmill, Tiles.E2)), ("rush", new Rush())],
+            4 => [("longhouse-l1", new Build(BuildingKind.Longhouse, Tiles.L1)), ("workday-e2", new Workday(Tiles.E2))],
+            5 => [("fishing-k2", new Build(BuildingKind.FishingHut, Tiles.K2))],
+            _ => [("field-o2", new Build(BuildingKind.Field, Tiles.O2)), ("road-f3", new BuildRoad(Tiles.F3))],
         };
 
         foreach (var (key, command) in plan)
@@ -205,13 +205,13 @@ public sealed class ReplayCorpusTests
     {
         (string Key, GameCommand Command)[] plan = day switch
         {
-            0 => [("jetty-h1", new Build(BuildingKind.Jetty, "H1")), ("woodcutter-f2", new Build(BuildingKind.Woodcutter, "F2"))],
-            1 => [("sawmill-e2", new Build(BuildingKind.Sawmill, "E2")), ("rush", new Rush()), ("workday-f2", new Workday("F2"))],
-            2 => [("expedition", new SendExpedition()), ("workday-e2", new Workday("E2"))],
-            3 => [("workday-f2", new Workday("F2"))],
-            4 => [("jetty-n0", new Build(BuildingKind.Jetty, "N0")), ("workday-e2", new Workday("E2"))],
-            5 => [("sheep-n1", new Build(BuildingKind.SheepFarm, "N1")), ("quarry-n2", new Build(BuildingKind.Quarry, "N2"))],
-            _ => [("weavery-l3", new Build(BuildingKind.Weavery, "L3")), ("longhouse-l1", new Build(BuildingKind.Longhouse, "L1")), ("workday-n1", new Workday("N1"))],
+            0 => [("jetty-h1", new Build(BuildingKind.Jetty, Tiles.H1)), ("woodcutter-f2", new Build(BuildingKind.Woodcutter, Tiles.F2))],
+            1 => [("sawmill-e2", new Build(BuildingKind.Sawmill, Tiles.E2)), ("rush", new Rush()), ("workday-f2", new Workday(Tiles.F2))],
+            2 => [("expedition", new SendExpedition()), ("workday-e2", new Workday(Tiles.E2))],
+            3 => [("workday-f2", new Workday(Tiles.F2))],
+            4 => [("jetty-n0", new Build(BuildingKind.Jetty, Tiles.N0)), ("workday-e2", new Workday(Tiles.E2))],
+            5 => [("sheep-n1", new Build(BuildingKind.SheepFarm, Tiles.N1)), ("quarry-n2", new Build(BuildingKind.Quarry, Tiles.N2))],
+            _ => [("weavery-l3", new Build(BuildingKind.Weavery, Tiles.L3)), ("longhouse-l1", new Build(BuildingKind.Longhouse, Tiles.L1)), ("workday-n1", new Workday(Tiles.N1))],
         };
 
         foreach (var (key, command) in plan)
@@ -292,14 +292,13 @@ public sealed class ReplayCorpusTests
 
     /// <summary>
     /// The state hash of everything the determinism build plays, under the names DeterminismRun gives them: each replay,
-    /// each golden save and prototype journal after loading (and migrating) and saving again, and each golden map made
-    /// again by its generator.
+    /// each golden save after loading (and migrating) and saving again, and each golden map made again by its generator.
+    /// The golden prototype journal is not played: rules 4 refuse it (GoldenSaveTests).
     /// </summary>
     private static List<string> Report()
     {
         IEnumerable<(string Name, string Hash)> entries = Corpus().Select(r => ($"replay/{r.Name}", Replay.StateHash(r.Replay)))
             .Concat(Golden("*.save").Select(path => ($"save/{Path.GetFileNameWithoutExtension(path)}", Replay.StateHashAfterSaving(Save.Load(File.ReadAllBytes(path))))))
-            .Concat(Golden("*.journal").Select(path => ($"journal/{Path.GetFileNameWithoutExtension(path)}", Replay.StateHashAfterSaving(Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8))))))
             .Concat(GoldenMaps().Select(m => ($"map/{m.Id}-{m.Version}-{m.Seed}", WorldGenerators.Get(m.Id, int.Parse(m.Version, CultureInfo.InvariantCulture)).Generate(ulong.Parse(m.Seed, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture)).Hash)));
         return entries.OrderBy(e => e.Name, StringComparer.Ordinal).Select(e => $"{e.Name} {e.Hash}").ToList();
     }

@@ -118,17 +118,15 @@ namespace Eirora.Editor
         {
             var replays = Directory.GetFiles(DeterminismRun.ReplayFolder, "*.replay");
             var saves = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.save");
-            var journals = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.journal");
-            if (replays.Length == 0 || saves.Length == 0 || journals.Length == 0 || !File.Exists(DeterminismRun.GoldenMapList))
+            if (replays.Length == 0 || saves.Length == 0 || !File.Exists(DeterminismRun.GoldenMapList))
             {
-                throw new BuildFailedException($"The corpus is incomplete: replays in {DeterminismRun.ReplayFolder}, golden saves and journals in {DeterminismRun.GoldenSaveFolder} and {DeterminismRun.GoldenMapList}.");
+                throw new BuildFailedException($"The corpus is incomplete: replays in {DeterminismRun.ReplayFolder}, golden saves in {DeterminismRun.GoldenSaveFolder} and {DeterminismRun.GoldenMapList}.");
             }
 
             // A build that was killed leaves the folder behind, perhaps with files that are no longer in the corpus.
             RemoveDeterminismFolder();
             Copy(replays, Path.Combine(folder, "Replays"), ".txt");
             Copy(saves, Path.Combine(folder, "Saves"), ".bytes");
-            Copy(journals, Path.Combine(folder, "Journals"), ".txt");
             File.Copy(DeterminismRun.GoldenMapList, Path.Combine(folder, "maps.txt"));
             AssetDatabase.Refresh();
         }

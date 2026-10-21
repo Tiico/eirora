@@ -1,4 +1,5 @@
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Commands
 {
@@ -7,15 +8,16 @@ namespace Eirora.Simulation.Commands
     {
         public const int Cost = 30;
 
-        public Workday(string siteId) => SiteId = siteId;
+        public Workday(Hex tile) => Tile = tile;
 
-        public string SiteId { get; }
+        /// <summary>Where the building stands.</summary>
+        public Hex Tile { get; }
 
         public override CommandCategory Category => CommandCategory.Gameplay;
 
         internal override Rejection Execute(World world)
         {
-            var building = world.Settlement.BuildingAt(SiteId);
+            var building = world.Settlement.BuildingAt(Tile);
             if (building is null || !building.Staffed || !Upgrade.Produces(building.Kind))
             {
                 return Rejection.NoBuildingThere;

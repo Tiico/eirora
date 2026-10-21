@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.Events
@@ -32,13 +33,13 @@ namespace Eirora.Simulation.Events
                     writer.Line("villagers-moved-in").Long(e.UtcSeconds).Long(e.Count);
                     break;
                 case ProjectCompleted e:
-                    writer.Line("project-completed").Long(e.UtcSeconds).Enum(e.Kind).Enum(e.Building).Text(e.SiteId);
+                    writer.Line("project-completed").Long(e.UtcSeconds).Enum(e.Kind).Enum(e.Building).Long(e.Tile.Q).Long(e.Tile.R);
                     break;
-                case SitesRevealed e:
-                    writer.Line("sites-revealed").Long(e.UtcSeconds);
-                    foreach (string siteId in e.SiteIds)
+                case TilesRevealed e:
+                    writer.Line("tiles-revealed").Long(e.UtcSeconds);
+                    foreach (var tile in e.Tiles)
                     {
-                        writer.Text(siteId);
+                        writer.Long(tile.Q).Long(tile.R);
                     }
 
                     break;
@@ -46,12 +47,7 @@ namespace Eirora.Simulation.Events
                     writer.Line("fog-lifted").Long(e.UtcSeconds).Long(e.Q).Long(e.R);
                     break;
                 case ExpeditionReturned e:
-                    writer.Line("expedition-returned").Long(e.UtcSeconds);
-                    foreach (string siteId in e.SiteIds)
-                    {
-                        writer.Text(siteId);
-                    }
-
+                    writer.Line("expedition-returned").Long(e.UtcSeconds).Text(e.Island);
                     break;
                 default:
                     throw new ArgumentException($"{gameEvent.GetType().Name} has no state record.", nameof(gameEvent));
@@ -87,12 +83,12 @@ namespace Eirora.Simulation.Events
 
             if (reader.Next("project-completed"))
             {
-                return new ProjectCompleted(reader.Long(), reader.Enum<ProjectKind>(), reader.Enum<BuildingKind>(), reader.Text());
+                return new ProjectCompleted(reader.Long(), reader.Enum<ProjectKind>(), reader.Enum<BuildingKind>(), new Hex(reader.Int(), reader.Int()));
             }
 
-            if (reader.Next("sites-revealed"))
+            if (reader.Next("tiles-revealed"))
             {
-                return new SitesRevealed(reader.Long(), SiteIds(reader));
+                return new TilesRevealed(reader.Long(), Tiles(reader));
             }
 
             if (reader.Next("fog-lifted"))
@@ -102,21 +98,21 @@ namespace Eirora.Simulation.Events
 
             if (reader.Next("expedition-returned"))
             {
-                return new ExpeditionReturned(reader.Long(), SiteIds(reader));
+                return new ExpeditionReturned(reader.Long(), reader.Text());
             }
 
             throw new FormatException($"Expected an event, found '{reader.Peek ?? "the end"}'.");
         }
 
-        private static List<string> SiteIds(StateReader reader)
+        private static List<Hex> Tiles(StateReader reader)
         {
-            var siteIds = new List<string>();
+            var tiles = new List<Hex>();
             while (reader.HasField)
             {
-                siteIds.Add(reader.Text());
+                tiles.Add(new Hex(reader.Int(), reader.Int()));
             }
 
-            return siteIds;
+            return tiles;
         }
     }
 }

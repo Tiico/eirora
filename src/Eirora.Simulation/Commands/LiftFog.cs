@@ -6,7 +6,7 @@ namespace Eirora.Simulation.Commands
 {
     /// <summary>
     /// Spends Exploration to lift the fog from one tile at the edge of what is known (TASK-032, MAP-04): it costs 10
-    /// Exploration (epoch-1.md), and the tile stays known for ever. Sites a survey reveals and islands an expedition
+    /// Exploration (epoch-1.md), and the tile stays known for ever. Tiles a survey reveals and islands an expedition
     /// finds are not lifted this way.
     /// </summary>
     public sealed class LiftFog : GameCommand

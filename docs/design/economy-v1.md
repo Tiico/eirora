@@ -90,6 +90,10 @@ Det finns inga namngivna platser; kolumnen *Krav* ovan säger vad brickan ska du
   På `prototype-home-1` är det västra berget (-4,0) krönet, med höjd 6 mot stenåderns 5, så att stenådern förblir stenbrottets.
 - Byggregeln prövas när bygget läggs i kön.
   En byggnad som redan står kvar står kvar även på en bricka som inte längre duger, så regeländringen flyttar ingenting (INV-V1).
+- Simuleringen följer reglerna från regelversion 4.
+  Migrationen dit skriver om sparningens plats-id till brickornas koordinater, så att varje byggnad, väg och lyft dimma står kvar och saldona är oförändrade (ADR-0006).
+  En skogsplats som prototypen räknade som flera skogsbrickor lämnar sin andel timmer per bricka på sin egen bricka, och kartans övriga skog är full.
+  Prototypens journaler från före regelversion 4 spelas inte längre upp, eftersom de skulle ge en annan värld än den spelaren byggde.
 
 Prototypens karta, `prototype-home` med samma land, vatten och terräng som klienten ritar (TASK-029), ger så här många byggplatser:
 

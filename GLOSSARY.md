@@ -31,20 +31,22 @@ En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje
 _Avoid_: ruta, cell, plats
 
 **Byggplats**:
-En bricka som uppfyller en byggnads krav, till exempel skog, berg, fiskevatten eller hamnläge; vad brickan duger till följer av terräng, höjd och grannar (D-79).
+En bricka som uppfyller en byggnads krav (`TileUse`), till exempel skog, berg, fiskevatten eller hamnläge; vad brickan duger till följer av terräng, höjd och grannar och sparas inte (D-79).
+Skog räknas bara när det finns upptäckt skog att fälla, så att byggvyn aldrig avslöjar dimman (D-93).
 _Avoid_: plats (som namngiven plats), tomt
 
-**Fiskevatten**:
+**Fiskevatten** (`FishingWater`):
 Grunt vatten intill land, där fiskeboden står på pålar (D-88).
 _Avoid_: fiskeplats, kust
 
-**Hamnläge**:
-En landbricka utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas (D-89).
-_Avoid_: hamnplats, strand (som krav)
+**Hamnläge** (`HarborSpot`):
+En landbricka utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas och skepp lägga till (D-89).
+[Kartvalideringen](./docs/design/map-validation.md), och därmed generator v1, räknar bara stränder, som alltid är hamnlägen.
+_Avoid_: hamnplats, kaj, strand (som krav)
 
-**Krön**:
-Startöns enda högsta bricka, där Vårdkasen byggs och som inte bär något annat (D-92).
-_Avoid_: topp, högsta punkt
+**Krön** (`Crest`):
+Startöns enda högsta bricka, där Vårdkasen byggs och som inte bär något annat (D-92); delar två brickor toppen finns inget krön.
+_Avoid_: topp, högsta punkt, berg
 
 **Generator** (`WorldGenerator`):
 Det som skapar en karta, av en källtyp och med en fast generatorversion.
@@ -57,18 +59,6 @@ _Avoid_: frö
 
 **Källtyp** (`sourceType`):
 Var en karta kommer ifrån: procedurgenererad, handgjord eller geografisk.
-
-**Hamnläge** (`HarborSpot`):
-En strand intill grunt hav som når djupt hav, där en brygga kan stå och skepp lägga till; det följer av kartans brickor och sparas inte ([kartvalidering](./docs/design/map-validation.md)).
-_Avoid_: hamnplats, kaj
-
-**Fiskevatten** (`FishingWater`):
-Grunt hav intill land, där en fiskebod kan fiska.
-_Avoid_: fiskeplats
-
-**Krön** (`Crest`):
-Startöns enda högsta bricka, där Vårdkasen byggs; delar två brickor toppen finns inget krön.
-_Avoid_: topp, berg
 
 **Validator** (`MapValidator`):
 Det som avgör om en karta ger en bra start och goda vägar att växa, med ett mätvärde och en gräns per regel ([kartvalidering](./docs/design/map-validation.md)).

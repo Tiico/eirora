@@ -13,8 +13,8 @@ namespace Eirora.Client.App
 {
     /// <summary>
     /// Plays the determinism corpus and reports a state hash for each entry, so that the IL2CPP build on Android can be
-    /// compared with the server's .NET (TASK-021, NFR-02): each replay, each golden save and prototype journal loaded
-    /// (and migrated) and saved again, and each golden map made again by its generator. ReplayCorpusTests in
+    /// compared with the server's .NET (TASK-021, NFR-02): each replay, each golden save loaded (and migrated) and saved
+    /// again, and each golden map made again by its generator. ReplayCorpusTests in
     /// Eirora.Simulation.Tests reports the same entries under the same names. Only the determinism build runs it
     /// (DeterminismBootstrap), and only that build carries the corpus under Resources/Determinism
     /// (Builds.AndroidDeterminism).
@@ -31,7 +31,7 @@ namespace Eirora.Client.App
         /// <summary>The replay corpus in the repository, which the editor copies into the build.</summary>
         public static string ReplayFolder => Repository("tests", "Replays");
 
-        /// <summary>The golden saves and prototype journal (GoldenSaveTests), which the editor copies into the build.</summary>
+        /// <summary>The golden saves (GoldenSaveTests), which the editor copies into the build.</summary>
         public static string GoldenSaveFolder => Repository("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
         /// <summary>The golden maps' generators and seeds (GoldenMapTests), which the editor copies into the build.</summary>
@@ -44,18 +44,15 @@ namespace Eirora.Client.App
         /// <summary>The state hash of each entry in the corpus, by name, in ordinal order.</summary>
         /// <param name="replays">Each replay's name and text.</param>
         /// <param name="saves">Each golden save's name and bytes.</param>
-        /// <param name="journals">Each golden prototype journal's name and text.</param>
         /// <param name="goldenMaps">The golden maps' list: a generator, its version and a seed in hex per line.</param>
         public static IReadOnlyList<(string Name, string Hash)> Run(
             IEnumerable<(string Name, string Text)> replays,
             IEnumerable<(string Name, byte[] Bytes)> saves,
-            IEnumerable<(string Name, string Text)> journals,
             string goldenMaps)
         {
             var maps = goldenMaps.Split('\n').Select(line => line.TrimEnd('\r')).Where(line => line.Length > 0).Select(line => line.Split(' '));
             return replays.Select(r => ("replay/" + r.Name, Replay.StateHash(r.Text)))
                 .Concat(saves.Select(s => ("save/" + s.Name, Replay.StateHashAfterSaving(Save.Load(s.Bytes)))))
-                .Concat(journals.Select(j => ("journal/" + j.Name, Replay.StateHashAfterSaving(Save.FromPrototypeJournal(j.Text)))))
                 .Concat(maps.Select(f => ($"map/{f[0]}-{f[1]}-{f[2]}", MapHash(f[0], f[1], f[2]))))
                 .OrderBy(e => e.Item1, StringComparer.Ordinal)
                 .ToList();
@@ -70,7 +67,6 @@ namespace Eirora.Client.App
                 var hashes = Run(
                     Texts("Replays"),
                     Resources.LoadAll<TextAsset>(ResourceFolder + "/Saves").Select(asset => (asset.name, asset.bytes)).ToList(),
-                    Texts("Journals"),
                     Resources.Load<TextAsset>(ResourceFolder + "/maps").text);
                 foreach (var (name, hash) in hashes)
                 {

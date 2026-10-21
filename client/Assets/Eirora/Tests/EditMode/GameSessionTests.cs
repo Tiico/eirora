@@ -6,6 +6,7 @@ using System.Text;
 using Eirora.Client.App;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
 
@@ -133,7 +134,7 @@ namespace Eirora.Client.Tests
 
             var aside = session.SetAsideSave();
             session.Begin(Night);
-            session.Apply(new Workday("O1"));
+            session.Apply(new Workday(new Hex(0, 1))); // The start field.
 
             Assert.That(aside.Select(File.ReadAllText), Is.EquivalentTo(new[] { "not a save", "not a backup" }));
         }
@@ -192,7 +193,7 @@ namespace Eirora.Client.Tests
         {
             var session = Session();
             session.Begin(Night);
-            session.Apply(new Workday("O1"));
+            session.Apply(new Workday(new Hex(0, 1))); // The start field.
             return session;
         }
     }

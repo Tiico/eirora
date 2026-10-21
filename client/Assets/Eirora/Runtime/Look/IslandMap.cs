@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using MapTerrain = Eirora.Simulation.Map.Terrain;
 
@@ -29,15 +28,9 @@ namespace Eirora.Client.Look
         private const int NyonSeaRadius = 4;
 
         private readonly Dictionary<Hex, Terrain> _terrain = new();
-        private readonly Dictionary<Hex, Site> _sites = new();
 
         public IslandMap(WorldMap map)
         {
-            foreach (var site in PrototypeIsland.Sites)
-            {
-                _sites[site.Hex] = site;
-            }
-
             for (int i = 0; i < map.Disc.Count; i++)
             {
                 var hex = map.Disc[i];
@@ -50,17 +43,22 @@ namespace Eirora.Client.Look
 
         public IReadOnlyDictionary<Hex, Terrain> Tiles => _terrain;
 
-        public Site? SiteAt(Hex hex) => _sites.TryGetValue(hex, out var site) ? site : null;
-
-        public static Hex HexOf(Site site) => site.Hex;
-
         /// <summary>Whether a hex belongs to Nyön, which stays hidden until an expedition finds it.</summary>
         public static bool OnNyon(Hex hex) => hex.DistanceTo(NyonCentre) <= NyonSeaRadius;
 
         public bool IsLand(Hex hex) => _terrain.TryGetValue(hex, out var terrain) && terrain >= Terrain.Beach;
 
-        /// <summary>The ground of a site: what it offers decides how it looks.</summary>
-        public static Terrain TerrainOf(SiteKind kinds) => Look(PrototypeHome.TerrainOf(kinds));
+        /// <summary>The ground a building's site usually has, to show the building on in the look gallery.</summary>
+        public static Terrain GroundFor(TileUse requirement) => requirement switch
+        {
+            TileUse.FishingWater => Terrain.ShallowSea,
+            TileUse.Forest => Terrain.Forest,
+            TileUse.Farmland => Terrain.Farmland,
+            TileUse.Pasture => Terrain.Pasture,
+            TileUse.Mountain or TileUse.Crest => Terrain.Mountain,
+            TileUse.HarborSpot => Terrain.Beach,
+            _ => Terrain.Grass,
+        };
 
         private static Terrain Look(MapTerrain terrain) => terrain switch
         {

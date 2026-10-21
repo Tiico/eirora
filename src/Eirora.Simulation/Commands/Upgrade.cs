@@ -1,27 +1,29 @@
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Commands
 {
     /// <summary>Upgrades a producing building to level 2 for 50 % more production.</summary>
     public sealed class Upgrade : GameCommand
     {
-        public Upgrade(string siteId) => SiteId = siteId;
+        public Upgrade(Hex tile) => Tile = tile;
 
-        public string SiteId { get; }
+        /// <summary>Where the building stands.</summary>
+        public Hex Tile { get; }
 
         public override CommandCategory Category => CommandCategory.Gameplay;
 
         internal override Rejection Execute(World world)
         {
             var settlement = world.Settlement;
-            var building = settlement.BuildingAt(SiteId);
+            var building = settlement.BuildingAt(Tile);
             if (building is null || !Produces(building.Kind))
             {
                 return Rejection.NoBuildingThere;
             }
 
-            if (building.Level >= BuildingSpec.For(building.Kind).MaxLevel || settlement.IsQueued(SiteId, ProjectKind.Upgrade))
+            if (building.Level >= BuildingSpec.For(building.Kind).MaxLevel || settlement.IsQueued(Tile, ProjectKind.Upgrade))
             {
                 return Rejection.AlreadyDone;
             }
@@ -37,7 +39,7 @@ namespace Eirora.Simulation.Commands
                 return Rejection.InsufficientForces;
             }
 
-            settlement.Queue(ProjectKind.Upgrade, building.Kind, SiteId, spec.Cost, spec.WorkHours);
+            settlement.Queue(ProjectKind.Upgrade, building.Kind, Tile, spec.Cost, spec.WorkHours);
             return Rejection.None;
         }
 

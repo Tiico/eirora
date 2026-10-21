@@ -5,7 +5,7 @@ namespace Eirora.Simulation.Map
 {
     /// <summary>
     /// What follows from a map's tiles and is therefore never stored (ADR-0010): fishing water, harbour spots, crests,
-    /// how the sea hangs together and how far it is by sea. Worked out once per map, in map order, so the same map always
+    /// what each tile is good for, how the sea hangs together and how far it is by sea. Worked out once per map, in map order, so the same map always
     /// gives the same answers.
     /// </summary>
     public sealed class MapFeatures
@@ -14,6 +14,8 @@ namespace Eirora.Simulation.Map
         private readonly int[] _sea; // The sea area each sea tile belongs to, from 1; 0 for land.
         private readonly HashSet<int> _openSea = new(); // Sea areas that hold deep sea.
         private readonly Dictionary<string, List<Hex>> _land = new(StringComparer.Ordinal);
+        private readonly Hex? _crest;
+        private TileUse[]? _uses;
 
         public MapFeatures(WorldMap map)
         {
@@ -37,6 +39,8 @@ namespace Eirora.Simulation.Map
                     FillSea(index, ++areas);
                 }
             }
+
+            _crest = map.IslandAt(map.Start) is string start ? CrestOf(start) : null;
         }
 
         public WorldMap Map => _map;
@@ -47,10 +51,12 @@ namespace Eirora.Simulation.Map
         /// <summary>Shallow sea next to land, where a fishing hut can fish.</summary>
         public bool IsFishingWater(Hex hex) => _map.TerrainAt(hex) == Terrain.ShallowSea && HasNeighbour(hex, n => _map.TerrainAt(n).IsLand());
 
-        /// <summary>A beach next to shallow water that reaches the deep sea, where a jetty can stand.</summary>
-        public bool IsHarborSpot(Hex hex) =>
-            _map.TerrainAt(hex) == Terrain.Beach
-            && HasNeighbour(hex, n => _map.TerrainAt(n) == Terrain.ShallowSea && _openSea.Contains(_sea[_map.Disc.IndexOf(n)]));
+        /// <summary>
+        /// A beach next to shallow water that reaches the deep sea: a harbour as the map validator, and so generator v1,
+        /// counts them (map-validation.md). Every such beach is also a harbour spot for a jetty, which may be any land
+        /// but a mountain (D-89, <see cref="UsesOf"/>).
+        /// </summary>
+        public bool IsHarborSpot(Hex hex) => _map.TerrainAt(hex) == Terrain.Beach && HasNeighbour(hex, IsOpenShallows);
 
         /// <summary>
         /// An island's crest, its single highest tile, where the Vårdkase is built; none when two tiles share the top.
@@ -74,6 +80,33 @@ namespace Eirora.Simulation.Map
             }
 
             return shared ? null : crest;
+        }
+
+        /// <summary>
+        /// What a tile is good for (D-79, economy-v1.md, section 3.1): the start island's crest bears only the Vårdkase
+        /// (D-92), a mountain only a quarry, and other land is land, with forest, farmland, pasture and harbour spot as
+        /// its terrain and neighbours give. Whether a woodcutter has forest left to fell is the world's state (D-93).
+        /// </summary>
+        public TileUse UsesOf(Hex hex)
+        {
+            int index = _map.Disc.IndexOf(hex);
+            if (index < 0)
+            {
+                return TileUse.None;
+            }
+
+            if (_uses is null)
+            {
+                var uses = new TileUse[_map.Disc.Count];
+                for (int i = 0; i < uses.Length; i++)
+                {
+                    uses[i] = Derive(_map.Disc[i]);
+                }
+
+                _uses = uses;
+            }
+
+            return _uses[index];
         }
 
         /// <summary>
@@ -169,6 +202,37 @@ namespace Eirora.Simulation.Map
 
             return Array.Empty<Hex>();
         }
+
+        private TileUse Derive(Hex hex)
+        {
+            var terrain = _map.TerrainAt(hex);
+            if (hex == _crest)
+            {
+                return TileUse.Crest;
+            }
+
+            if (!terrain.IsLand())
+            {
+                return IsFishingWater(hex) ? TileUse.FishingWater : TileUse.None;
+            }
+
+            if (terrain == Terrain.Mountain)
+            {
+                return TileUse.Mountain;
+            }
+
+            var uses = TileUse.Land;
+            if (terrain == Terrain.Forest || HasNeighbour(hex, n => _map.TerrainAt(n) == Terrain.Forest))
+            {
+                uses |= TileUse.Forest;
+            }
+
+            uses |= terrain == Terrain.Farmland ? TileUse.Farmland : terrain == Terrain.Pasture ? TileUse.Pasture : TileUse.None;
+            return HasNeighbour(hex, IsOpenShallows) ? uses | TileUse.HarborSpot : uses;
+        }
+
+        /// <summary>Shallow water that reaches the deep sea, where ships can come in.</summary>
+        private bool IsOpenShallows(Hex hex) => _map.TerrainAt(hex) == Terrain.ShallowSea && _openSea.Contains(_sea[_map.Disc.IndexOf(hex)]);
 
         private bool HasNeighbour(Hex hex, Func<Hex, bool> test)
         {

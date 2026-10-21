@@ -2,10 +2,12 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
+using static Eirora.Simulation.Tests.Tiles;
 
 namespace Eirora.Simulation.Tests.Economy;
 
@@ -13,7 +15,6 @@ namespace Eirora.Simulation.Tests.Economy;
 public sealed class ExpeditionTests
 {
     private const long Hour = 3600;
-    private static readonly string[] s_nyon = ["N0", "N1", "N2"];
     private static int s_key;
 
     [Fact]
@@ -34,11 +35,11 @@ public sealed class ExpeditionTests
         // A full day later only 16 waking hours have passed.
         var dayLater = world.AdvanceTo(Shift(world.Now, 24));
         Assert.DoesNotContain(dayLater, e => e is ExpeditionReturned);
-        Assert.False(world.IsRevealed("N0"));
+        Assert.False(world.IsKnown(N0));
 
         var home = world.AdvanceTo(Shift(world.Now, 24));
-        Assert.Equal(s_nyon, Assert.Single(home.OfType<ExpeditionReturned>()).SiteIds);
-        Assert.True(world.IsRevealed("N1"));
+        Assert.Equal(PrototypeHome.Nyon, Assert.Single(home.OfType<ExpeditionReturned>()).Island);
+        Assert.True(world.IsKnown(N1));
         Assert.Equal(0, world.ExpeditionHoursLeft);
     }
 
@@ -57,7 +58,7 @@ public sealed class ExpeditionTests
         var world = Morning();
         Assert.Equal(250, SendExpedition.Cost(world));
 
-        Apply(world, new Build(BuildingKind.Lookout, "L2"));
+        Apply(world, new Build(BuildingKind.Lookout, L2));
         world.AdvanceTo(Shift(world.Now, 4));
 
         Assert.Equal(187, SendExpedition.Cost(world));
@@ -68,23 +69,23 @@ public sealed class ExpeditionTests
     {
         var world = Discovered();
 
-        Assert.Equal(Rejection.SiteUnavailable, Apply(world, new Build(BuildingKind.Quarry, "N2")).Rejection);
-        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Jetty, "N0")).Rejection);
+        Assert.Equal(Rejection.SiteUnavailable, Apply(world, new Build(BuildingKind.Quarry, N2)).Rejection);
+        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Jetty, N0)).Rejection);
         world.AdvanceTo(Shift(world.Now, 24));
-        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Quarry, "N2")).Rejection);
+        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Quarry, N2)).Rejection);
     }
 
     [Fact]
     public void TheSeaRouteShipsFortyUnitsAGameDayAndTheRestWaitsOnNyon()
     {
         var world = Discovered();
-        Assert.True(Apply(world, new Build(BuildingKind.Jetty, "N0")).Accepted);
+        Assert.True(Apply(world, new Build(BuildingKind.Jetty, N0)).Accepted);
         world.AdvanceTo(Shift(world.Now, 24));
-        Assert.True(Apply(world, new Build(BuildingKind.Quarry, "N2")).Accepted);
+        Assert.True(Apply(world, new Build(BuildingKind.Quarry, N2)).Accepted);
         world.AdvanceTo(Shift(world.Now, 24 * 2));
-        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.SheepFarm, "N1")).Rejection);
+        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.SheepFarm, N1)).Rejection);
         world.AdvanceTo(Shift(world.Now, 24));
-        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Storehouse, "E1")).Rejection); // Room at home.
+        Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Storehouse, E1)).Rejection); // Room at home.
         world.AdvanceTo(Shift(world.Now, 24 * 3));
         Assert.True(world.SeaRouteOpen);
 
@@ -103,10 +104,11 @@ public sealed class ExpeditionTests
     public void AWorldThatFoundNyonUnderRulesTwoKnowsNyonAndItsCoastAfterMigrating()
     {
         var world = Discovered();
+        Assert.True(Apply(world, new Survey()).Accepted); // Rules 2 hid only the sites, not all the survey's tiles.
         string state = world.Fingerprint();
 
         // The same world under rules 2 listed its revealed sites where the fog line is now.
-        var revealed = PrototypeIsland.Sites.Where(s => world.IsRevealed(s.Id)).Select(s => "revealed " + s.Id).ToList();
+        var revealed = PrototypeSites.All.Where(s => world.IsKnown(s.Hex)).Select(s => "revealed " + s.Id).ToList();
         string rulesTwo = string.Join("\n", state.Split('\n').SelectMany(l => l.StartsWith("fog ", StringComparison.Ordinal) ? revealed : [l]));
 
         Assert.Contains("revealed N2", revealed);
@@ -116,8 +118,8 @@ public sealed class ExpeditionTests
     private static World WithJetty()
     {
         var world = Morning();
-        Assert.True(Apply(world, new Build(BuildingKind.Jetty, "H1")).Accepted);
-        Assert.True(Apply(world, new Build(BuildingKind.Sawmill, "L1")).Accepted); // Planks for building on Nyön.
+        Assert.True(Apply(world, new Build(BuildingKind.Jetty, H1)).Accepted);
+        Assert.True(Apply(world, new Build(BuildingKind.Sawmill, L1)).Accepted); // Planks for building on Nyön.
         world.AdvanceTo(Shift(world.Now, 6));
         Assert.Contains(world.Buildings, b => b.Kind == BuildingKind.Jetty);
         Record(world, Habit.Steps, 50_000); // 100 + 110 = 210 Exploration.
@@ -132,7 +134,7 @@ public sealed class ExpeditionTests
         Record(world, Habit.Workouts, 2); // Build Power for the jetty on Nyön.
         Apply(world, new SendExpedition());
         world.AdvanceTo(Shift(world.Now, 48));
-        Assert.True(world.IsRevealed("N0"));
+        Assert.True(world.IsKnown(N0));
 
         // A week of timber through the sawmill pays for the jetty and the quarry on Nyön.
         world.AdvanceTo(Shift(world.Now, 24 * 7));

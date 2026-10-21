@@ -118,8 +118,17 @@ namespace Eirora.Simulation
         /// <summary>Whether ships sail between the islands.</summary>
         public bool SeaRouteOpen => _settlement.SeaRouteOpen;
 
-        /// <summary>Whether a site has been found; hidden sites are under the fog (MAP-04).</summary>
-        public bool IsRevealed(string siteId) => _settlement.IsRevealed(siteId);
+        /// <summary>The building on a tile, if any.</summary>
+        public Building? BuildingAt(Hex tile) => _settlement.BuildingAt(tile);
+
+        /// <summary>What a known tile is good for now (D-79); nothing is told about what lies under the fog (D-93).</summary>
+        public TileUse UsesOf(Hex tile) => _settlement.UsesOf(tile);
+
+        /// <summary>Why a building cannot be built on a tile right now, or <see cref="Rejection.None"/>; costs aside.</summary>
+        public Rejection CheckBuild(BuildingKind building, Hex tile) => _settlement.CheckBuild(building, tile);
+
+        /// <summary>Steps over land from a tile to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
+        public int DepotDistance(Hex tile) => _settlement.DepotDistance(tile);
 
         /// <summary>Whether the fog has lifted from a tile (TASK-032); what lies under the fog stays unknown.</summary>
         public bool IsKnown(Hex hex) => _settlement.Fog.IsKnown(hex);

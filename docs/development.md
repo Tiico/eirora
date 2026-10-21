@@ -166,7 +166,7 @@ Det här är också förbjudet men upptäcks bara av determinismkorpusen nedan, 
 Determinismkorpusen är det som determinismbygget spelar upp på Android och `ReplayCorpusTests` i .NET, med samma namn:
 
 - `replay/…`: replays i `tests/Replays/`, handgjorda fall från UX-resorna, ekonomin och dimman plus slumpade sekvenser, som start och indata utan regelversion;
-- `save/…` och `journal/…`: de gyllene sparningarna och prototypjournalen, som laddas (och migreras) och sparas igen;
+- `save/…`: de gyllene sparningarna, som laddas (och migreras) och sparas igen; prototypjournalen spelas inte, eftersom regelversion 4 nekar den;
 - `map/…`: de gyllene kartorna, som deras generator gör om från seeden, så att även `ProceduralArchipelagoV1` prövas.
 
 Varje replay blir en sparning som skrivs till bytes och återställs innan tillståndet hashas, som när klienten sparar världen.
