@@ -121,9 +121,9 @@ public sealed class MapValidatorTests
     {
         var report = MapValidator.Validate(PrototypeHome.Map);
 
-        // Ytterön comes when the sea around Hemön is filled once (D-81); with the crest bearing only the Vårdkase,
-        // Hemön has only the stone vein to quarry (D-92, O-16).
-        Assert.Equal(["start-quarries", "second-island"], report.Failed.Select(r => r.Rule));
+        // Ytterön comes when the sea around Hemön is filled once (D-81). Hemön quarries the stone vein and the mountain
+        // beside the crest (D-95).
+        Assert.Equal(["second-island"], report.Failed.Select(r => r.Rule));
         Assert.Equal(("nyon", 9), (report["first-island"].Detail, (int)report["first-island"].Value));
         Assert.Equal(6, report["crest"].Value);
         Assert.Equal(46, report["start-land"].Value);

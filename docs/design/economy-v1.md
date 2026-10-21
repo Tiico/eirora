@@ -1,7 +1,7 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, O-02, O-16  
+> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
 
@@ -95,7 +95,7 @@ Prototypens karta, `prototype-home` med samma land, vatten och terräng som klie
 
 | Ö | Landbrickor | Land | Skog | Åker | Bete | Berg | Krön | Fiskevatten | Hamnläge |
 |---|---|---|---|---|---|---|---|---|---|
-| Hemön | 46 | 44 | 37 | 2 | 1 | 1 | 1 | 35 | 29 |
+| Hemön | 46 | 43 | 37 | 2 | 1 | 2 | 1 | 35 | 28 |
 | Nyön | 6 | 5 | 5 | 0 | 1 | 1 | 0 | 12 | 5 |
 
 *Skog* räknar brickorna med skog på eller intill sig när hela ön är upptäckt och obebyggd; under spelet duger färre (D-93).
@@ -107,7 +107,7 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Nyöns mitt, där prototypen hade sitt hamnläge, är öns enda strand och når vattnet genom en vik mot Hemön.
   Varje landbricka på Nyön utom berget är ett hamnläge, och kalkylens brygga står på skogsbrickan intill betet.
 - Hemön har bara två åkerbrickor och en betesbricka, så maten kommer från fiskevattnet.
-- Hemön har bara ett berg att bryta sten i, stenådern, eftersom det andra berget är krönet.
+- Hemön har två berg att bryta sten i: stenådern och ett vanligt berg intill krönet, på det som prototypen ritade som strand (D-95).
 
 ## 4. Bybor, basbehov och vila
 
@@ -196,7 +196,7 @@ Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg,
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 324 | 180/260/440 | 461/110/229 | 1,04 |
 | Havet | måttlig | 20 | 12 | 2 | 36 | 230 | 1 201 | 250/270/360 | 426/100/260 | 0,90 |
-| Naiv | hög | 22 | 10 | 1 | 84 | 212 | 1 249 | 180/310/630 | 520/135/96 | 0,75 |
+| Naiv | hög | 21 | 10 | 1 | 19 | 188 | 1 097 | 180/310/630 | 520/135/96 | 0,61 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 129 | 1 062 | 180/0/460 | 461/100/224 | 1,02 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
 | Ingen spelare | måttlig | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 551/370/492 | – |
@@ -212,10 +212,10 @@ Utvecklingsvärdena skiljer sig med 10 %.
 Havet bör dra ifrån andra veckan medan Närområdet har material för fler långhus; det prövas med längre körningar och balansbotar i M4.
 
 **Strategin hinner ikapp (D-34).**
-Den naiva strategin med hög egenvård slutar under Närområdet men över Havet, båda med måttlig egenvård.
-Den får ut 0,75 i värde per använd kraft mot 0,90–1,04, alltså 1,2 gånger mindre, vilket **inte** uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
-Orsaken är kartan, inte reglerna: krönet tar Hemöns vanliga berg (D-92), så det enda berget som duger till stenbrott är stenådern, och dit hittar även den som bygger där det går.
-Startön behöver fler berg att bryta sten i, så att stenådern blir ett val (O-16).
+Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
+Den får ut 0,61 i värde per använd kraft mot 0,90–1,04, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+Den bygger sitt stenbrott på det vanliga berget intill krönet, fyra steg från förrådet, medan de genomtänkta strategierna kartlägger och hittar stenådern.
+Utan det berget skulle stenådern vara Hemöns enda berg att bryta sten i, och då hittar även den naiva strategin dit och skillnaden blir bara 1,2 gånger (D-95).
 
 **Utan träning (D-43).**
 En spelare som valt bort träning men går och sover måttligt bygger stugor i stället för långhus och använder ingen Byggkraft.
@@ -249,7 +249,7 @@ Utan spelare och utan egenvård (sista raderna i tabellen ovan):
    Valet mellan långhus och stuga (D-43) märks först när bostadstaket nås, vilket prövas med längre körningar i M4.
 5. **Byggplatser på brickor gör placeringen till ett beslut (TASK-037).**
    Huggarkojan vid skogskanten, förrådet mitt i ett kluster och bryggan på rätt sida av Nyön är val som den naiva strategin missar.
-   Ändå krymper skillnaden mellan genomtänkt och naiv strategi från 1,4 till 1,2 gånger, eftersom prototypens karta bara har ett berg för stenbrott och det är det rikaste (O-16).
+   Skillnaden mellan genomtänkt och naiv strategi växer från 1,4 till 1,5 gånger, men bara för att startön har två berg att bryta sten i; med stenådern som enda berg blir den 1,2 (D-95).
    Startbyns skog ger dubbelt så mycket timmer som förut, eftersom den verkligen har två skogsbrickor; ved är ändå flaskhalsen för sågverket.
    Prototypens karta har bara två åkerbrickor; generatorn (TASK-031) bör ge varje startö mer odlingsmark, så att båda matkällorna går att bygga ut.
 
@@ -276,6 +276,4 @@ Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 - **D-92:** krönet är startöns enda högsta bricka och bär bara Vårdkasen, även när det är ett berg; en karta måste ha en enda sådan bricka, och på prototypens karta är det västra berget högst.
 - **D-93:** skogskravet räknar bara upptäckta skogsbrickor som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman och ingen huggarkoja byggs där den inte ger något.
 
-Öppen fråga efter v1.1:
-
-- **O-16:** startön behöver fler berg att bryta sten i än stenådern, annars hittar även en naiv spelare den och kravet i D-34 på 1,3 gånger nås inte; det avgörs i prototypens karta och i generatorn (TASK-031).
+- **D-95:** prototypens karta får ett vanligt berg på (-3,-1) intill krönet, och kartvalideringen kräver minst två berg att bryta sten i utom krönet, så att stenådern blir ett val och kravet i D-34 nås ([map-validation.md](./map-validation.md)).

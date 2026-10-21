@@ -86,6 +86,7 @@ def prototype_home():
         (2, -2): GRASS, (1, 1): BEACH, (0, 1): FARMLAND, (-1, 2): FARMLAND, (1, -1): FOREST,
         (3, -2): FOREST, (-2, 0): FOREST, (-4, 0): MOUNTAIN, (3, -1): MOUNTAIN, (-2, -1): PASTURE,
         (10, 0): BEACH, (10, 1): PASTURE, (11, 0): MOUNTAIN,
+        (-3, -1): MOUNTAIN,  # berget intill krönet, så att stenådern blir ett val (D-95)
     }
     water = {(1, 0), (2, 0), (3, 0), (4, 0), (4, -1), (-3, 3), (-3, 4), (-4, 4), (-2, 3),
              (0, -4), (1, -4), (4, -4), (-4, 1), (2, 2), (3, 1)}
@@ -132,7 +133,7 @@ CREST = (-4, 0)
 NAMES = {
     "S": (0, 0), "L1": (-1, 0), "L2": (0, -1), "L3": (-1, 1), "K1": (1, 0), "K2": (-3, 3),
     "H1": (1, 1), "O1": (0, 1), "O2": (-1, 2), "F1": (1, -1), "F2": (3, -2), "F3": (-2, 0),
-    "E1": (2, -1), "E2": (2, -2), "M1": (-4, 0), "M2": (3, -1), "P1": (-2, -1),
+    "E1": (2, -1), "E2": (2, -2), "M1": (-4, 0), "M2": (3, -1), "M3": (-3, -1), "P1": (-2, -1),
     "N0": (10, 0), "N1": (10, 1), "N2": (11, 0),
     "N9": (9, 1),  # Nyöns hamnläge intill betet
 }
@@ -661,7 +662,7 @@ def strategy_sea(w: World, day: int):
 def strategy_naive(w: World, day: int):
     """Naiv: bygger det första som går, där det går, utan att läsa kartan."""
     w.build("Sågverk", "L1")
-    w.build("Stenbrott", "M2")
+    w.build("Stenbrott", "M3")
     w.build("Långhus", "L2")
     w.build("Väveri", "L3")
     w.build("Fårgård", "P1")
