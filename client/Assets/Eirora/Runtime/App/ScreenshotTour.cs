@@ -5,7 +5,6 @@ using System.Linq;
 using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
-using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -51,10 +50,10 @@ namespace Eirora.Client.App
             client.Refresh();
             yield return Capture(client, folder, "02-day");
 
-            client.Hud.Select(PrototypeIsland.Sites.First(s => s.Id == "O2"));
+            client.Hud.Select(ScriptedWeek.EmptyFarmland);
             yield return Capture(client, folder, "03-site");
 
-            client.Hud.Select(PrototypeIsland.Sites.First(s => s.Id == "K1"));
+            client.Hud.Select(ScriptedWeek.FishingHut);
             yield return Capture(client, folder, "04-building");
             client.Hud.Select(null);
 
@@ -106,9 +105,8 @@ namespace Eirora.Client.App
             clock.Current = ScriptedWeek.At("2026-10-23 13:00");
             session.CatchUp();
             client.Refresh();
-            var sawmill = PrototypeIsland.Sites.First(s => s.Id == "E2");
-            client.Focus(IslandMap.HexOf(sawmill).Center());
-            client.Hud.Select(sawmill);
+            client.Focus(ScriptedWeek.Sawmill.Center());
+            client.Hud.Select(ScriptedWeek.Sawmill);
             yield return Capture(client, folder, "13-upgraded");
             client.Hud.Select(null);
 

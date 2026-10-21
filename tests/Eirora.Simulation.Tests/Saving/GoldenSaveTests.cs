@@ -4,6 +4,7 @@ using Eirora.Simulation.Economy;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
+using static Eirora.Simulation.Tests.Tiles;
 
 namespace Eirora.Simulation.Tests.Saving;
 
@@ -57,23 +58,18 @@ public sealed class GoldenSaveTests
         PlayOn(save);
     }
 
+    // Rules 4 made every land tile a building site, so the prototype's journal from M1 would replay to another world
+    // than the one its player built; it is refused instead of shown (ADR-0006), and the client says so (TASK-014).
     [Fact]
-    public void TheGoldenPrototypeJournalBecomesItsExpectedWorld()
+    public void TheGoldenPrototypeJournalIsRefusedOnceItsRulesNoLongerReplay()
     {
         string path = Path.Combine(s_folder, Prototype + ".journal");
-        if (!File.Exists(path) && RulesVersion.Current == 1)
-        {
-            // The last rules version of the prototype journals; it can only be made while it is current.
-            WritePrototype(path);
-            Assert.Fail($"Wrote the golden prototype journal {Prototype}; review it and commit it.");
-        }
-
         Assert.True(File.Exists(path), $"The golden prototype journal {Prototype} is missing.");
+        Assert.True(RulesVersion.ReplaysJournalsFrom > 1);
 
-        var save = Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8));
+        var refused = Assert.Throws<FormatException>(() => Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8)));
 
-        Assert.Equal(Expected(Prototype), save.World.Fingerprint());
-        PlayOn(save);
+        Assert.Contains("rules version 1", refused.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Continues a loaded world for a few days under the current rules and writes and loads it again.</summary>
@@ -85,7 +81,7 @@ public sealed class GoldenSaveTests
             save.AdvanceTo(new TimeReading(now.UtcSeconds + (day * 24 * 3600), now.ZoneId, now.OffsetSeconds));
             save.Apply($"golden-steps-{day}", new RecordSelfCare(save.World.GameDay, Habit.Steps, ContributionSource.Verified, 8_000));
             save.Apply($"golden-sleep-{day}", new RecordSelfCare(save.World.GameDay, Habit.Sleep, ContributionSource.SelfReported, 420));
-            save.Apply($"golden-cottage-{day}", new Build(BuildingKind.Cottage, "L1"));
+            save.Apply($"golden-cottage-{day}", new Build(BuildingKind.Cottage, L1));
         }
 
         var again = Save.Load(save.ToBytes());
@@ -106,20 +102,6 @@ public sealed class GoldenSaveTests
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
         File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
-    }
-
-    private static void WritePrototype(string path)
-    {
-        var scenario = Scenario.Generate(20261017, length: 150);
-        var journal = Journal.Start(scenario.Install, scenario.Schedule);
-        foreach (var input in scenario.Inputs)
-        {
-            input.ApplyTo(journal);
-        }
-
-        Directory.CreateDirectory(s_folder);
-        File.WriteAllText(path, journal.ToText(), new UTF8Encoding(false));
-        File.WriteAllText(Path.Combine(s_folder, Prototype + ".expected"), journal.World.Fingerprint(), new UTF8Encoding(false));
     }
 
     private static string Expected(string name) => File.ReadAllText(Path.Combine(s_folder, name + ".expected"), Encoding.UTF8);

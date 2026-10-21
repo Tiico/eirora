@@ -53,14 +53,19 @@ namespace Eirora.Client
             _rig = new CameraRig(_camera, _hud.IsOverInterface);
             _rig.Tapped += point =>
             {
+                // Every tile can be tapped: under the fog to lift it, otherwise to see what it is good for (D-79).
                 var hex = HexLayout.FromWorld(point);
-                if (_island.Map.SiteAt(hex) is null && _island.Map.Tiles.ContainsKey(hex) && _hud.IsFogged(hex))
+                if (!_island.Map.Tiles.ContainsKey(hex))
+                {
+                    _hud.Select(null);
+                }
+                else if (_hud.IsFogged(hex))
                 {
                     _hud.SelectFog(hex);
                 }
                 else
                 {
-                    _hud.Select(_island.Map.SiteAt(hex));
+                    _hud.Select(hex);
                 }
             };
 

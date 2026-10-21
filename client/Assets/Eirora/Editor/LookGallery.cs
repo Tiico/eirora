@@ -314,7 +314,7 @@ namespace Eirora.Editor
             foreach (BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
             {
                 var spec = BuildingSpec.For(kind);
-                var ground = IslandMap.TerrainOf(spec.Site);
+                var ground = IslandMap.GroundFor(spec.Requirement);
                 var nature = IslandView.NatureOf(ground) is NatureKind natureKind ? looks.For(natureKind) : null;
                 yield return new GalleryRow(
                     "Buildings",

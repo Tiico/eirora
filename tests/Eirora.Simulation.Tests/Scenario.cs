@@ -1,5 +1,6 @@
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -14,7 +15,12 @@ internal sealed class Scenario
 {
     private const long Hour = 3600;
 
-    private static readonly string[] s_siteIds = PrototypeIsland.Sites.Select(s => s.Id).ToArray();
+    // The tiles the design names, where most of the economy happens; other tiles are drawn from around Hemön.
+    private static readonly Hex[] s_named =
+    [
+        Tiles.S, Tiles.L1, Tiles.L2, Tiles.L3, Tiles.E1, Tiles.E2, Tiles.K1, Tiles.K2, Tiles.H1, Tiles.O1, Tiles.O2,
+        Tiles.F1, Tiles.F2, Tiles.F3, Tiles.M1, Tiles.M2, Tiles.M3, Tiles.P1, Tiles.N0, Tiles.N1, Tiles.N2, Tiles.N9,
+    ];
 
     private Scenario(TimeReading install, RestSchedule schedule, IReadOnlyList<Input> inputs)
     {
@@ -91,7 +97,7 @@ internal sealed class Scenario
     // Commands are made against the current game day, so that self-care lands both inside and outside the window.
     private static Func<int, GameCommand> Maker(Random random)
     {
-        string site = s_siteIds[random.Next(s_siteIds.Length)];
+        var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
         switch (random.Next(10))
         {
             case 0 or 1 or 2:

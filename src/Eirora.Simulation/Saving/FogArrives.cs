@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Saving
@@ -33,10 +32,10 @@ namespace Eirora.Simulation.Saving
             var revealed = new HashSet<string>(
                 lines.Where(l => l.StartsWith("revealed ", StringComparison.Ordinal)).Select(l => l.Substring("revealed ".Length)),
                 StringComparer.Ordinal);
-            var fog = Fog.AtStart(map, PrototypeIsland.Sites.Where(s => s.Hidden).Select(s => s.Hex));
-            foreach (var site in PrototypeIsland.Sites.Where(s => s.Hidden && revealed.Contains(s.Id)))
+            var fog = Fog.AtStart(map, PrototypeSites.All.Where(s => s.Hidden).Select(s => s.Hex));
+            foreach (var site in PrototypeSites.All.Where(s => s.Hidden && revealed.Contains(s.Id)))
             {
-                if (PrototypeIsland.ExpeditionReveals.Contains(site.Id) && map.IslandAt(site.Hex) is string island)
+                if (PrototypeSites.ExpeditionFound.Contains(site.Id) && map.IslandAt(site.Hex) is string island)
                 {
                     fog.LiftIsland(island);
                 }
