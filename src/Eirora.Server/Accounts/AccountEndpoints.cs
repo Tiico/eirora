@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Eirora.Contracts;
 using Eirora.Server.SignIn;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Options;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Eirora.Server.Accounts;
@@ -78,6 +79,8 @@ public static class AccountEndpoints
     private static async Task<IResult> DeleteAsync(
         ClaimsPrincipal user,
         ExternalLogin confirmation,
+        HttpRequest request,
+        IOptions<WebSignInOptions> web,
         ExternalTokenValidator validator,
         AccountService accounts,
         CancellationToken cancellationToken)
@@ -87,7 +90,9 @@ public static class AccountEndpoints
             return InvalidSignIn();
         }
 
-        return await accounts.DeleteAsync(AccountId(user), identity, confirmation.AuthorizationCode, cancellationToken) switch
+        // In the Android app, Sign in with Apple is the web flow, which returns to the server's callback.
+        var appleRedirectUri = web.Value.AppleRedirectUri(identity, request, AppleWebCallback.Path);
+        return await accounts.DeleteAsync(AccountId(user), identity, confirmation.AuthorizationCode, appleRedirectUri, cancellationToken) switch
         {
             DeleteResult.Deleted => TypedResults.NoContent(),
             DeleteResult.NotFound => TypedResults.Unauthorized(),

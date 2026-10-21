@@ -1,0 +1,40 @@
+// Eirora's sign-in with Apple and Google and its keystore (ADR-0008), packaged like the Health Connect adapter (ADR-0007).
+// Unity includes this folder as a Gradle library module of unityLibrary; its Kotlin needs the built-in Kotlin that
+// Assets/Plugins/Android/gradleTemplate.properties turns on, and Eirora.Editor.AndroidHealthCheck fails a build without it.
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    namespace 'com.eirora.signin'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 26
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src/main/java']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.credentials:credentials:1.6.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+    // 1.2.x is compiled with Kotlin 2.4, which the built-in Kotlin 2.2 of Unity 6.3's AGP 9.1.1 cannot read.
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+    implementation 'androidx.browser:browser:1.10.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+}

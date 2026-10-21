@@ -55,12 +55,17 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
     private static readonly JsonWebTokenHandler s_handler = new();
 
     /// <summary>Revokes the app's access for the Apple ID the code belongs to; returns whether Apple confirmed it.</summary>
+    /// <param name="authorizationCode">The code from a fresh Sign in with Apple.</param>
+    /// <param name="clientId">The client id the code was issued to: the app's bundle id, or the Services ID on the web.</param>
+    /// <param name="redirectUri">
+    /// The return URL of Apple's web flow, which the exchange must repeat; null for a sign-in in the iOS app, which has none.
+    /// </param>
     /// <remarks>
     /// Never fails because of Apple: an Apple that cannot be reached, does not answer within
     /// <see cref="AppleOptions.Timeout"/> or answers garbage is logged and reported as not confirmed. It cannot be
     /// cancelled, since it runs after the player's confirmation has been spent; the timeout bounds it instead.
     /// </remarks>
-    public async Task<bool> RevokeAsync(string authorizationCode, string clientId)
+    public async Task<bool> RevokeAsync(string authorizationCode, string clientId, string? redirectUri)
     {
         if (!options.Value.IsConfigured)
         {
@@ -73,7 +78,7 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
         var clientSecret = CreateClientSecret(clientId);
         try
         {
-            return await ExchangeAndRevokeAsync(authorizationCode, clientId, clientSecret);
+            return await ExchangeAndRevokeAsync(authorizationCode, clientId, redirectUri, clientSecret);
         }
         catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException)
         {
@@ -83,17 +88,21 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
         }
     }
 
-    private async Task<bool> ExchangeAndRevokeAsync(string authorizationCode, string clientId, string clientSecret)
+    private async Task<bool> ExchangeAndRevokeAsync(string authorizationCode, string clientId, string? redirectUri, string clientSecret)
     {
-        using var exchange = await http.PostAsync(
-            new Uri("auth/token", UriKind.Relative),
-            new FormUrlEncodedContent(new Dictionary<string, string>
-            {
-                ["client_id"] = clientId,
-                ["client_secret"] = clientSecret,
-                ["code"] = authorizationCode,
-                ["grant_type"] = "authorization_code",
-            }));
+        var form = new Dictionary<string, string>
+        {
+            ["client_id"] = clientId,
+            ["client_secret"] = clientSecret,
+            ["code"] = authorizationCode,
+            ["grant_type"] = "authorization_code",
+        };
+        if (redirectUri is not null)
+        {
+            form["redirect_uri"] = redirectUri;
+        }
+
+        using var exchange = await http.PostAsync(new Uri("auth/token", UriKind.Relative), new FormUrlEncodedContent(form));
         if (!exchange.IsSuccessStatusCode)
         {
             LogFailed(logger, "token exchange", (int)exchange.StatusCode);

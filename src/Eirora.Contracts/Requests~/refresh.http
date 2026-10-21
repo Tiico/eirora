@@ -1,0 +1,4 @@
+POST /connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&refresh_token=__REFRESH_TOKEN__

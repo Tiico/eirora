@@ -69,6 +69,7 @@ builder.Services.AddOptions<AppleOptions>()
     .Validate(apple => apple.Timeout > TimeSpan.Zero, "SignIn:Apple:Timeout must be greater than zero.")
     .Validate(apple => !apple.IsConfigured || apple.HasReadableKey(), "SignIn:Apple:PrivateKey is not an EC private key in PEM.")
     .ValidateOnStart();
+builder.Services.AddOptions<WebSignInOptions>().Bind(builder.Configuration.GetSection("SignIn:Web"));
 builder.Services.AddHttpClient<AppleIdClient>((services, http) =>
 {
     http.BaseAddress = new Uri(AppleIdClient.Audience + "/");
@@ -97,6 +98,7 @@ if (migrating)
 }
 
 app.UseForwardedHeaders();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -104,6 +106,8 @@ app.MapHealthChecks("/health");
 app.MapGet("/api/info", () => new ServerInfo(RulesVersion.Current));
 app.MapTokenEndpoint();
 app.MapAccountEndpoints();
+app.MapAppleWebCallback();
+app.MapDeletionPage();
 
 await app.RunAsync();
 

@@ -1,0 +1,5 @@
+POST /api/account/deletion
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"provider":"apple","idToken":"__CONFIRMATION_ID_TOKEN__","nonce":"__CONFIRMATION_NONCE__","authorizationCode":"__AUTHORIZATION_CODE__"}
