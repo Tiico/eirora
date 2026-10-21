@@ -11,6 +11,7 @@ on:
       - src/Eirora.Contracts/**
       - src/Eirora.WorldGeneration/**
       - .github/workflows/unity.yml
+      - .github/actions/free-disk-space/**
   workflow_dispatch:
 
 permissions:
@@ -25,7 +26,11 @@ env:
   UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+  # Only main saves Unity's Library and Gradle's caches; other branches start from main's. A Library is about 2 GB per
+  # job, so branches that saved their own pushed main's out of the repository's 10 GB of cache.
+  SAVE_CACHES: ${{ github.ref == 'refs/heads/main' }}
 
+# The tests and the builds run side by side after the license check; only the release waits for the tests.
 jobs:
   license:
     name: Check Unity license secrets
@@ -53,18 +58,17 @@ jobs:
       checks: write
     timeout-minutes: 60
     steps:
-      # Unity's editor image needs more disk than a hosted runner has free by default; the job runs in the image, so the
-      # runner's own SDKs can go.
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-
       - uses: actions/checkout@v7
 
-      - uses: actions/cache@v6
+      - uses: ./.github/actions/free-disk-space
+        with:
+          required-gb: 999
+
+      - name: Watch disk use
+        run: nohup bash -c 'while true; do df --output=used -BM / | tail -n 1; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
+
+      - uses: actions/cache/restore@v6
+        id: library
         with:
           path: client/Library
           key: unity-library-test-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
@@ -84,24 +88,30 @@ jobs:
           path: ${{ steps.tests.outputs.artifactsPath }}
           retention-days: 14
 
+      - name: Report peak disk use
+        if: always()
+        run: |
+          echo "Peak used: $(sort -n "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          df -h /
+
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
+        with:
+          path: client/Library
+          key: ${{ steps.library.outputs.cache-primary-key }}
+
   # Main ships an app bundle to Google Play's internal test track (D-75), so the product owner's phone updates without a
-  # cable and keeps its world; other branches build an APK to sideload.
+  # cable and keeps its world; other branches build an APK to sideload. The release job uploads it once the tests pass.
   android:
     name: Android build
-    needs: test
+    needs: license
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       RELEASE: ${{ github.ref == 'refs/heads/main' }}
+    outputs:
+      version: ${{ steps.version.outputs.name }}
     steps:
-      # The Android editor image and build need more disk than a hosted runner has free by default.
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-
       # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
       # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
       - name: Fail with instructions when the signing key is missing
@@ -121,6 +131,7 @@ jobs:
             exit 1
           fi
 
+      # Checked here rather than in the release job, so that a missing secret fails before the build, not after it.
       - name: Fail with instructions when the Google Play secret is missing
         if: env.RELEASE == 'true'
         env:
@@ -136,6 +147,13 @@ jobs:
           # The version is the number of commits, the same rule as local builds (BuildVersion).
           fetch-depth: 0
 
+      - uses: ./.github/actions/free-disk-space
+        with:
+          required-gb: 999
+
+      - name: Watch disk use
+        run: nohup bash -c 'while true; do df --output=used -BM / | tail -n 1; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
+
       - name: Version from the number of commits
         id: version
         run: |
@@ -143,11 +161,20 @@ jobs:
           echo "name=0.0.$commits" >> "$GITHUB_OUTPUT"
           echo "code=$commits" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
+        id: library
         with:
           path: client/Library
           key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-android-
+
+      # GameCI mounts the runner's home as the container's, so Gradle's dependencies and build cache land in ~/.gradle.
+      # They depend on the Gradle and Android plugin versions that come with Unity, and on the Gradle templates.
+      - uses: actions/cache/restore@v6
+        id: gradle
+        with:
+          path: ~/.gradle/caches
+          key: gradle-android-${{ hashFiles('client/ProjectSettings/ProjectVersion.txt', 'client/Assets/Plugins/Android/**') }}
 
       - uses: game-ci/unity-builder@v6
         with:
@@ -170,39 +197,71 @@ jobs:
           path: build/Android
           retention-days: 14
 
-      # Google Play takes completed releases through its API only after the app's first release has been rolled out by
-      # hand in Play Console (docs/development.md#google-play).
+      - name: Report peak disk use
+        if: always()
+        run: |
+          echo "Peak used: $(sort -n "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          df -h /
+          sudo du -sh ~/.gradle ~/.gradle/* ~/.gradle/caches/* || true
+
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
+        with:
+          path: client/Library
+          key: ${{ steps.library.outputs.cache-primary-key }}
+
+      # Gradle writes as root inside the container.
+      - name: Make Gradle's caches readable for the cache
+        if: (env.SAVE_CACHES == 'true' || github.ref == 'refs/heads/claude/unity-ci-speed') && steps.gradle.outputs.cache-hit != 'true'
+        run: sudo chown -R "$(id -u):$(id -g)" ~/.gradle
+
+      - uses: actions/cache/save@v6
+        if: (env.SAVE_CACHES == 'true' || github.ref == 'refs/heads/claude/unity-ci-speed') && steps.gradle.outputs.cache-hit != 'true'
+        with:
+          path: ~/.gradle/caches
+          key: ${{ steps.gradle.outputs.cache-primary-key }}
+
+  # Google Play takes completed releases through its API only after the app's first release has been rolled out by hand in
+  # Play Console (docs/development.md#google-play).
+  release:
+    name: Release to Google Play
+    needs: [test, android]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: eirora-android-${{ needs.android.outputs.version }}
+          path: build/Android
+
       - name: Upload to Google Play's internal test track
-        if: env.RELEASE == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: se.eirora.app
           releaseFiles: build/Android/*.aab
-          releaseName: ${{ steps.version.outputs.name }}
+          releaseName: ${{ needs.android.outputs.version }}
           track: internal
           status: completed
 
   ios-project:
     name: iOS Xcode project
-    needs: test
+    needs: license
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      # Unity's editor image needs more disk than a hosted runner has free by default; the job runs in the image, so the
-      # runner's own SDKs can go.
-      - uses: jlumbroso/free-disk-space@v2
-        with:
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
-      - uses: actions/cache@v6
+      - uses: ./.github/actions/free-disk-space
+        with:
+          required-gb: 999
+
+      - name: Watch disk use
+        run: nohup bash -c 'while true; do df --output=used -BM / | tail -n 1; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
+
+      - uses: actions/cache/restore@v6
+        id: library
         with:
           path: client/Library
           key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
@@ -222,6 +281,18 @@ jobs:
           name: eirora-ios-xcode
           path: eirora-ios-xcode.tar.gz
           retention-days: 3
+
+      - name: Report peak disk use
+        if: always()
+        run: |
+          echo "Peak used: $(sort -n "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          df -h /
+
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
+        with:
+          path: client/Library
+          key: ${{ steps.library.outputs.cache-primary-key }}
 
   ios:
     name: iOS build (Xcode on macOS)
