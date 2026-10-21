@@ -72,6 +72,7 @@ namespace Eirora.Editor
             string productName = PlayerSettings.productName;
             bool defaultGraphics = PlayerSettings.GetUseDefaultGraphicsAPIs(BuildTarget.Android);
             var graphics = PlayerSettings.GetGraphicsAPIs(BuildTarget.Android);
+            bool storedGraphics = AndroidGraphicsEntry() >= 0;
             var openScenes = EditorSceneManager.GetSceneManagerSetup();
             bool succeeded;
             try
@@ -90,6 +91,7 @@ namespace Eirora.Editor
                 PlayerSettings.productName = productName;
                 PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, graphics);
                 PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, defaultGraphics);
+                RemoveAndroidGraphicsEntryUnless(storedGraphics);
                 // An untitled scene cannot be reopened, so an empty one takes its place.
                 if (openScenes.Length > 0 && openScenes.All(s => s.path.Length > 0))
                 {
@@ -262,10 +264,44 @@ namespace Eirora.Editor
             return true;
         }
 
-        private static SerializedProperty SerializedKeystoreName()
+        private static SerializedProperty SerializedKeystoreName() => SerializedPlayerSetting("AndroidKeystoreName");
+
+        private static SerializedProperty SerializedPlayerSetting(string name)
         {
             var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
-            return settings.FindProperty("AndroidKeystoreName");
+            return settings.FindProperty(name);
+        }
+
+        /// <summary>The index of Android's entry among the stored graphics APIs, or -1 when it has none.</summary>
+        private static int AndroidGraphicsEntry()
+        {
+            var entries = SerializedPlayerSetting("m_BuildTargetGraphicsAPIs");
+            for (int i = 0; i < entries.arraySize; i++)
+            {
+                if (entries.GetArrayElementAtIndex(i).FindPropertyRelative("m_BuildTarget").stringValue == "AndroidPlayer")
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// PlayerSettings stores an entry for Android even when given back the default APIs, so the project file would
+        /// change; the entry is removed again when the project had none.
+        /// </summary>
+        private static void RemoveAndroidGraphicsEntryUnless(bool stored)
+        {
+            int index = AndroidGraphicsEntry();
+            if (stored || index < 0)
+            {
+                return;
+            }
+
+            var entries = SerializedPlayerSetting("m_BuildTargetGraphicsAPIs");
+            entries.DeleteArrayElementAtIndex(index);
+            entries.serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static string Required(string name) =>
