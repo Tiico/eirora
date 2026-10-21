@@ -40,11 +40,16 @@ namespace Eirora.WorldGeneration.Validation
             rules.Add(Exactly("deep-sea-edge", shore, 0, "tiles in the outer rings that are not deep sea"));
             var withoutHarbour = map.Islands.Where(i => !features.LandOf(i.Id).Any(features.IsHarborSpot)).Select(i => i.Id).ToList();
             rules.Add(Exactly("islands-have-harbours", withoutHarbour.Count, 0, string.Join(",", withoutHarbour)));
-            var edge = steps.Where(s => s.Key.DistanceTo(Hex.Origin) == map.Radius).Select(s => s.Value).DefaultIfEmpty(-1).Min();
+            var edge = Enumerable.Range(0, map.Disc.Count).Select(i => map.Disc[i])
+                .Where(h => h.DistanceTo(Hex.Origin) == map.Radius && steps.ContainsKey(h)).Select(h => steps[h]).DefaultIfEmpty(-1).Min();
             rules.Add(new RuleResult("fairway-to-edge", edge, ">=0", edge >= 0, "steps by sea from the start island's harbours to the edge", 0, null));
 
-            var distances = map.Islands.Where(i => i.Id != start).ToDictionary(i => i.Id, i => IslandDistance(features, steps, i.Id), StringComparer.Ordinal);
-            var unreachable = distances.Where(d => d.Value < 0).Select(d => d.Key).OrderBy(id => id, StringComparer.Ordinal).ToList();
+            // In name order, so they read the same on every runtime (docs/development.md#determinism).
+            var distances = map.Islands.Where(i => i.Id != start)
+                .Select(i => (i.Id, Steps: IslandDistance(features, steps, i.Id)))
+                .OrderBy(d => d.Id, StringComparer.Ordinal)
+                .ToList();
+            var unreachable = distances.Where(d => d.Steps < 0).Select(d => d.Id).ToList();
             rules.Add(Exactly("islands-reachable", unreachable.Count, 0, string.Join(",", unreachable)));
 
             // The start (economy v1).
@@ -65,13 +70,13 @@ namespace Eirora.WorldGeneration.Validation
 
             // Ways to grow (epoch 1).
             // An expedition finds a real island with ground worth the journey, never a bare skerry.
-            var worthFinding = distances.Where(d => WorthFinding(map, features, d.Key)).ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+            var worthFinding = distances.Where(d => WorthFinding(map, features, d.Id)).ToList();
             var first = Nearest(worthFinding, FirstIslandMinimum, FirstIslandMaximum, except: null);
-            var second = Nearest(worthFinding, SecondIslandMinimum, SecondIslandMaximum, except: first?.Key);
-            string others = string.Join(",", distances.OrderBy(d => d.Key, StringComparer.Ordinal).Select(d => $"{d.Key}={d.Value.ToString(CultureInfo.InvariantCulture)}"));
+            var second = Nearest(worthFinding, SecondIslandMinimum, SecondIslandMaximum, except: first?.Id);
+            string others = string.Join(",", distances.Select(d => $"{d.Id}={d.Steps.ToString(CultureInfo.InvariantCulture)}"));
             rules.Add(Found("first-island", first, FirstIslandMinimum, FirstIslandMaximum, others));
             rules.Add(Found("second-island", second, SecondIslandMinimum, SecondIslandMaximum, others));
-            int innerRadius = new[] { first, second }.Where(i => i is not null).Select(i => Reach(map, i!.Value.Key)).DefaultIfEmpty(SecondIslandMaximum).Max();
+            int innerRadius = new[] { first, second }.Where(i => i is not null).Select(i => Reach(map, i!.Value.Id)).DefaultIfEmpty(SecondIslandMaximum).Max();
             var innerSea = InnerSeaTiles(map, land, innerRadius);
             rules.Add(AtLeast("inner-sea", innerSea.Count, InnerSea, $"sea tiles within {innerRadius.ToString(CultureInfo.InvariantCulture)} of the start, off its coast"));
             var tradeOffs = FindTradeOffs(map, features);
@@ -83,9 +88,9 @@ namespace Eirora.WorldGeneration.Validation
                 start,
                 harbours,
                 crest,
-                first?.Key,
-                second?.Key,
-                distances,
+                first?.Id,
+                second?.Id,
+                distances.ToDictionary(d => d.Id, d => d.Steps, StringComparer.Ordinal),
                 innerSea,
                 new MapReport(rules));
         }
@@ -94,16 +99,16 @@ namespace Eirora.WorldGeneration.Validation
         private static int IslandDistance(MapFeatures features, IReadOnlyDictionary<Hex, int> steps, string island) =>
             features.LandOf(island).Where(features.IsHarborSpot).Select(h => steps.TryGetValue(h, out int n) ? n : -1).Where(n => n >= 0).DefaultIfEmpty(-1).Min();
 
-        /// <summary>The nearest island within the limits, the first in name order when two are as near.</summary>
         /// <summary>Whether an island is big enough and rich enough for an expedition to find (TASK-034's finding).</summary>
         private static bool WorthFinding(WorldMap map, MapFeatures features, string island) =>
             features.LandOf(island).Count >= ExpeditionIslandLand && features.LandOf(island).Any(h => map.RichnessAt(h) > 100);
 
-        private static KeyValuePair<string, int>? Nearest(Dictionary<string, int> distances, int minimum, int maximum, string? except)
+        /// <summary>The nearest island within the limits, the first in name order when two are as near.</summary>
+        private static (string Id, int Steps)? Nearest(List<(string Id, int Steps)> distances, int minimum, int maximum, string? except)
         {
             var found = distances
-                .Where(d => d.Key != except && d.Value >= minimum && d.Value <= maximum)
-                .OrderBy(d => d.Value).ThenBy(d => d.Key, StringComparer.Ordinal)
+                .Where(d => d.Id != except && d.Steps >= minimum && d.Steps <= maximum)
+                .OrderBy(d => d.Steps).ThenBy(d => d.Id, StringComparer.Ordinal)
                 .ToList();
             return found.Count > 0 ? found[0] : null;
         }
@@ -177,9 +182,9 @@ namespace Eirora.WorldGeneration.Validation
         private static RuleResult Within(string rule, long value, long minimum, long maximum, string detail) =>
             new(rule, value, $"{minimum.ToString(CultureInfo.InvariantCulture)}..{maximum.ToString(CultureInfo.InvariantCulture)}", value >= minimum && value <= maximum, detail, minimum, maximum);
 
-        private static RuleResult Found(string rule, KeyValuePair<string, int>? island, int minimum, int maximum, string others) =>
-            island is KeyValuePair<string, int> found
-                ? Within(rule, found.Value, minimum, maximum, found.Key)
+        private static RuleResult Found(string rule, (string Id, int Steps)? island, int minimum, int maximum, string others) =>
+            island is { } found
+                ? Within(rule, found.Steps, minimum, maximum, found.Id)
                 : new RuleResult(rule, -1, $"{minimum.ToString(CultureInfo.InvariantCulture)}..{maximum.ToString(CultureInfo.InvariantCulture)}", false, others.Length > 0 ? "none; " + others : "none", minimum, maximum);
     }
 }

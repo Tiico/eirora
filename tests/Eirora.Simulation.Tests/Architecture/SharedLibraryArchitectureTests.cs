@@ -68,11 +68,50 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.ComputesWithFloats), "ldc.r8")]
     [InlineData(nameof(ImpureFixture.CallsMath), "System.Math")]
     [InlineData(nameof(ImpureFixture.ReadsTickCount), "System.Environment")]
+    [InlineData(nameof(ImpureFixture.ReadsTheRuntime), "System.Reflection.Assembly")]
     public void ScannerCatchesEachKindOfImpurity(string method, string expectedViolation)
     {
         var violations = ScanFixture();
 
         Assert.Contains(violations, v => v.Contains($"::{method}(", StringComparison.Ordinal) && v.Contains(expectedViolation, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(nameof(ImpureFixture.FormatsNumberByCulture), "culture-dependent System.Int32::ToString")]
+    [InlineData(nameof(ImpureFixture.ParsesNumberByCulture), "culture-dependent System.Int32::Parse")]
+    [InlineData(nameof(ImpureFixture.ComparesStringsByCulture), "culture-dependent System.String::Compare")]
+    [InlineData(nameof(ImpureFixture.StartsWithByCulture), "culture-dependent System.String::StartsWith")]
+    [InlineData(nameof(ImpureFixture.LowersByCulture), "culture-dependent System.String::ToLower")]
+    [InlineData(nameof(ImpureFixture.SortsStringsByCulture), "culture-dependent System.Collections.Generic.SortedSet`1::.ctor without a comparer")]
+    [InlineData(nameof(ImpureFixture.AppendsNumberByCulture), "culture-dependent System.Text.StringBuilder::Append of a number")]
+    [InlineData(nameof(ImpureFixture.OrdersStringsByCulture), "culture-dependent System.Linq.Enumerable::OrderBy of strings without a comparer")]
+    [InlineData(nameof(ImpureFixture.SortsStringListByCulture), "culture-dependent System.Collections.Generic.List`1::Sort of strings without a comparer")]
+    [InlineData(nameof(ImpureFixture.SortsStringArrayByCulture), "culture-dependent System.Array::Sort of strings without a comparer")]
+    [InlineData(nameof(ImpureFixture.IteratesDictionary), "hash order System.Collections.Generic.Dictionary`2::GetEnumerator")]
+    [InlineData(nameof(ImpureFixture.IteratesDictionaryKeys), "hash order System.Collections.Generic.Dictionary`2::get_Keys")]
+    [InlineData(nameof(ImpureFixture.IteratesReadOnlyDictionary), "hash order System.Collections.Generic.IEnumerable`1::GetEnumerator over key-value pairs")]
+    [InlineData(nameof(ImpureFixture.IteratesReadOnlyDictionaryValues), "hash order System.Collections.Generic.IReadOnlyDictionary`2::get_Values")]
+    [InlineData(nameof(ImpureFixture.QueriesDictionary), "hash order System.Linq.Enumerable::Count over key-value pairs")]
+    [InlineData(nameof(ImpureFixture.CopiesDictionary), "hash order System.Collections.Generic.List`1::.ctor over key-value pairs")]
+    public void ScannerCatchesWhatDiffersBetweenRuntimesAndDevices(string method, string expectedViolation)
+    {
+        var violations = ScanFixture();
+
+        Assert.Contains(violations, v => v.Contains($"::{method}(", StringComparison.Ordinal) && v.Contains(expectedViolation, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(nameof(ImpureFixture.FormatsNumberInvariantly))]
+    [InlineData(nameof(ImpureFixture.FindsCharacterOrdinally))]
+    [InlineData(nameof(ImpureFixture.SortsStringsOrdinally))]
+    [InlineData(nameof(ImpureFixture.AppendsNumberInvariantly))]
+    [InlineData(nameof(ImpureFixture.OrdersStringsOrdinally))]
+    [InlineData(nameof(ImpureFixture.IteratesSortedDictionary))]
+    public void ScannerAllowsInvariantAndOrdinalForms(string method)
+    {
+        var violations = ScanFixture();
+
+        Assert.DoesNotContain(violations, v => v.Contains($"::{method}(", StringComparison.Ordinal));
     }
 
     [Fact]

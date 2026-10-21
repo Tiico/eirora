@@ -7,25 +7,32 @@ using Eirora.Client.App;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
 
 namespace Eirora.Editor
 {
     /// <summary>
-    /// Local player builds: an Android APK for the product owner's phone, the app bundle that Google Play takes, and a
-    /// Windows player for the screenshot tour. CI builds with GameCI's default build, but with the same version rule
-    /// and signing key, so a local APK and a CI APK can update each other without losing the world (TASK-014).
+    /// Local player builds: an Android APK for the product owner's phone, the app bundle that Google Play takes, a
+    /// Windows player for the screenshot tour and the determinism build. CI builds the game with GameCI's default build,
+    /// but with the same version rule and signing key, so a local APK and a CI APK can update each other without losing
+    /// the world (TASK-014).
     /// </summary>
     /// <remarks>
     /// Run: Unity -batchmode -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.Android -buildOutput Builds/Eirora.apk
     /// </remarks>
     public static class Builds
     {
+        // Made for the determinism build and deleted after it, so its corpus never reaches the game (git ignores it).
+        private const string DeterminismFolder = "Assets/Eirora/Determinism";
+
         public static void Android()
         {
             EditorUserBuildSettings.buildAppBundle = false;
-            Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.apk");
+            ExitOnFailure(Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.apk"));
         }
 
         /// <summary>
@@ -34,24 +41,157 @@ namespace Eirora.Editor
         public static void AndroidBundle()
         {
             EditorUserBuildSettings.buildAppBundle = true;
+            bool succeeded;
             try
             {
-                Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.aab");
+                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/Eirora.aab");
             }
             finally
             {
                 EditorUserBuildSettings.buildAppBundle = false;
             }
+
+            ExitOnFailure(succeeded);
         }
 
-        public static void Windows() => Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe");
+        public static void Windows() => ExitOnFailure(Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe"));
 
-        private static void Build(BuildTarget target, BuildTargetGroup group, string defaultOutput)
+        /// <summary>
+        /// The determinism build (TASK-021): IL2CPP for ARM64 and x86_64 that only plays the determinism corpus (the replays in
+        /// tests/Replays, the golden saves and the golden maps) and logs each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
+        /// own package name, so it never replaces the game on a phone. A phone runs its ARM64 code; an x86_64 emulator
+        /// runs its x86_64 code, because Android's ARM translation lacks an instruction (SEVL) that Unity's own ARM64
+        /// engine uses and kills it with SIGILL. It renders with OpenGL ES 3, which the emulator's software renderer
+        /// provides. It has no version, so it needs no git history, which CI's container may refuse to read ("dubious
+        /// ownership").
+        /// </summary>
+        public static void AndroidDeterminism()
         {
+            EditorUserBuildSettings.buildAppBundle = false;
+            var android = NamedBuildTarget.Android;
+            string identifier = PlayerSettings.GetApplicationIdentifier(android);
+            string productName = PlayerSettings.productName;
+            bool defaultGraphics = PlayerSettings.GetUseDefaultGraphicsAPIs(BuildTarget.Android);
+            var graphics = PlayerSettings.GetGraphicsAPIs(BuildTarget.Android);
+            bool storedGraphics = AndroidGraphicsEntry() >= 0;
+            var architectures = PlayerSettings.Android.targetArchitectures;
+            var openScenes = EditorSceneManager.GetSceneManagerSetup();
+            bool succeeded;
+            try
+            {
+                CopyCorpus(Path.Combine(DeterminismFolder, "Resources", DeterminismRun.ResourceFolder));
+                string scene = DeterminismScene();
+                PlayerSettings.SetApplicationIdentifier(android, identifier + ".determinism");
+                PlayerSettings.productName = productName + " determinism";
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.OpenGLES3 });
+                PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64;
+                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraDeterminism.apk", scene, versioned: false);
+            }
+            finally
+            {
+                PlayerSettings.SetApplicationIdentifier(android, identifier);
+                PlayerSettings.productName = productName;
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, graphics);
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, defaultGraphics);
+                RemoveAndroidGraphicsEntryUnless(storedGraphics);
+                PlayerSettings.Android.targetArchitectures = architectures;
+                // An untitled scene cannot be reopened, so an empty one takes its place.
+                if (openScenes.Length > 0 && openScenes.All(s => s.path.Length > 0))
+                {
+                    EditorSceneManager.RestoreSceneManagerSetup(openScenes);
+                }
+                else
+                {
+                    EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                }
+
+                RemoveDeterminismFolder();
+                AssetDatabase.SaveAssets();
+            }
+
+            ExitOnFailure(succeeded);
+        }
+
+        /// <summary>Copies the determinism corpus into the project as text assets, only for the determinism build.</summary>
+        private static void CopyCorpus(string folder)
+        {
+            var replays = Directory.GetFiles(DeterminismRun.ReplayFolder, "*.replay");
+            var saves = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.save");
+            var journals = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.journal");
+            if (replays.Length == 0 || saves.Length == 0 || journals.Length == 0 || !File.Exists(DeterminismRun.GoldenMapList))
+            {
+                throw new BuildFailedException($"The corpus is incomplete: replays in {DeterminismRun.ReplayFolder}, golden saves and journals in {DeterminismRun.GoldenSaveFolder} and {DeterminismRun.GoldenMapList}.");
+            }
+
+            // A build that was killed leaves the folder behind, perhaps with files that are no longer in the corpus.
+            RemoveDeterminismFolder();
+            Copy(replays, Path.Combine(folder, "Replays"), ".txt");
+            Copy(saves, Path.Combine(folder, "Saves"), ".bytes");
+            Copy(journals, Path.Combine(folder, "Journals"), ".txt");
+            File.Copy(DeterminismRun.GoldenMapList, Path.Combine(folder, "maps.txt"));
+            AssetDatabase.Refresh();
+        }
+
+        /// <summary>Copies files as TextAssets with the extension that keeps them as they are: .txt for text, .bytes for bytes.</summary>
+        private static void Copy(string[] files, string folder, string extension)
+        {
+            Directory.CreateDirectory(folder);
+            foreach (string file in files)
+            {
+                File.Copy(file, Path.Combine(folder, Path.GetFileNameWithoutExtension(file) + extension));
+            }
+        }
+
+        /// <summary>Saves a scene with nothing but DeterminismBootstrap in it.</summary>
+        private static string DeterminismScene()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                throw new BuildFailedException("The open scenes have unsaved changes.");
+            }
+
+            string path = DeterminismFolder + "/Determinism.unity";
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            SceneManager.MoveGameObjectToScene(new GameObject(nameof(DeterminismBootstrap), typeof(DeterminismBootstrap)), scene);
+            if (!EditorSceneManager.SaveScene(scene, path))
+            {
+                throw new BuildFailedException($"Could not save {path}.");
+            }
+
+            return path;
+        }
+
+        private static void RemoveDeterminismFolder()
+        {
+            if (AssetDatabase.IsValidFolder(DeterminismFolder) && !AssetDatabase.DeleteAsset(DeterminismFolder))
+            {
+                throw new BuildFailedException($"Could not delete {DeterminismFolder}.");
+            }
+        }
+
+        private static void ExitOnFailure(bool succeeded)
+        {
+            if (!succeeded && Application.isBatchMode)
+            {
+                EditorApplication.Exit(1);
+            }
+        }
+
+        /// <summary>Builds the game's scenes, or only the given scene, versioned by the number of commits unless told not to.</summary>
+        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, string? scene = null, bool versioned = true)
+        {
+            if (scene is null)
+            {
+                // The game never carries the replays that a killed determinism build left behind.
+                RemoveDeterminismFolder();
+            }
+
             var options = new BuildPlayerOptions
             {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
-                locationPathName = Argument("-buildOutput") ?? defaultOutput,
+                scenes = scene is null ? EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray() : new[] { scene },
+                // GameCI names its output with -customBuildPath and fails when nothing is there.
+                locationPathName = Argument("-buildOutput") ?? Argument("-customBuildPath") ?? defaultOutput,
                 target = target,
                 targetGroup = group,
                 options = BuildOptions.StrictMode,
@@ -65,9 +205,13 @@ namespace Eirora.Editor
             BuildSummary summary;
             try
             {
-                var version = BuildVersion.FromCommitCount(CommitCount());
-                PlayerSettings.bundleVersion = version.Name;
-                PlayerSettings.Android.bundleVersionCode = version.Code;
+                if (versioned)
+                {
+                    var version = BuildVersion.FromCommitCount(CommitCount());
+                    PlayerSettings.bundleVersion = version.Name;
+                    PlayerSettings.Android.bundleVersionCode = version.Code;
+                }
+
                 signed = target == BuildTarget.Android && UseReleaseKeystore();
                 summary = BuildPipeline.BuildPlayer(options).summary;
             }
@@ -91,10 +235,7 @@ namespace Eirora.Editor
             }
 
             Debug.Log($"Build {summary.result}: {summary.outputPath} ({summary.totalSize} bytes, {summary.totalErrors} errors).");
-            if (summary.result != BuildResult.Succeeded && Application.isBatchMode)
-            {
-                EditorApplication.Exit(1);
-            }
+            return summary.result == BuildResult.Succeeded;
         }
 
         /// <summary>
@@ -128,10 +269,44 @@ namespace Eirora.Editor
             return true;
         }
 
-        private static SerializedProperty SerializedKeystoreName()
+        private static SerializedProperty SerializedKeystoreName() => SerializedPlayerSetting("AndroidKeystoreName");
+
+        private static SerializedProperty SerializedPlayerSetting(string name)
         {
             var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
-            return settings.FindProperty("AndroidKeystoreName");
+            return settings.FindProperty(name);
+        }
+
+        /// <summary>The index of Android's entry among the stored graphics APIs, or -1 when it has none.</summary>
+        private static int AndroidGraphicsEntry()
+        {
+            var entries = SerializedPlayerSetting("m_BuildTargetGraphicsAPIs");
+            for (int i = 0; i < entries.arraySize; i++)
+            {
+                if (entries.GetArrayElementAtIndex(i).FindPropertyRelative("m_BuildTarget").stringValue == "AndroidPlayer")
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// PlayerSettings stores an entry for Android even when given back the default APIs, so the project file would
+        /// change; the entry is removed again when the project had none.
+        /// </summary>
+        private static void RemoveAndroidGraphicsEntryUnless(bool stored)
+        {
+            int index = AndroidGraphicsEntry();
+            if (stored || index < 0)
+            {
+                return;
+            }
+
+            var entries = SerializedPlayerSetting("m_BuildTargetGraphicsAPIs");
+            entries.DeleteArrayElementAtIndex(index);
+            entries.serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static string Required(string name) =>
@@ -172,7 +347,7 @@ namespace Eirora.Editor
         {
             var args = Environment.GetCommandLineArgs();
             int index = Array.IndexOf(args, name);
-            return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+            return index >= 0 && index + 1 < args.Length && args[index + 1].Length > 0 && !args[index + 1].StartsWith("-", StringComparison.Ordinal) ? args[index + 1] : null;
         }
     }
 }
