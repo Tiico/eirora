@@ -1,0 +1,9 @@
+create 1792000800 Europe/Stockholm 7200 1380 480
+time 1792013400 Europe/Stockholm 7200
+cmd build-at-night build Cottage L2
+cmd steps-at-night selfcare 0 Steps Verified 11000
+cmd earlier-rest schedule 1350 540
+time 1792040700 Europe/Stockholm 7200
+cmd sleep selfcare 1 Sleep Verified 465
+time 1792185300 Europe/Stockholm 7200
+cmd too-late build Cottage L2

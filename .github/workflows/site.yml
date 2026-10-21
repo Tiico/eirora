@@ -2,7 +2,12 @@
 name: Site
 
 on:
+  pull_request:
+    paths:
+      - deploy/site/**
+      - .github/workflows/site.yml
   push:
+    branches: [main]
     paths:
       - deploy/site/**
       - .github/workflows/site.yml

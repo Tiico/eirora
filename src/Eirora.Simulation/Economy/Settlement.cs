@@ -236,9 +236,9 @@ namespace Eirora.Simulation.Economy
         public bool CanAfford(IReadOnlyDictionary<Resource, int> cost)
         {
             var home = _stores[IslandId.Home];
-            foreach (var item in cost)
+            for (int resource = 0; resource < s_resourceCount; resource++)
             {
-                if (home[(int)item.Key] < Quantity.Units(item.Value))
+                if (cost.TryGetValue((Resource)resource, out int amount) && home[resource] < Quantity.Units(amount))
                 {
                     return false;
                 }
@@ -263,10 +263,14 @@ namespace Eirora.Simulation.Economy
         /// <summary>Pays from the home island's store and queues the work; the caller has checked site, cost and forces.</summary>
         public void Queue(ProjectKind kind, BuildingKind building, string siteId, IReadOnlyDictionary<Resource, int> cost, int workHours)
         {
+            // By resource rather than over the cost, whose order is the dictionary's (docs/development.md#determinism).
             var home = _stores[IslandId.Home];
-            foreach (var item in cost)
+            for (int resource = 0; resource < s_resourceCount; resource++)
             {
-                home[(int)item.Key] -= Quantity.Units(item.Value);
+                if (cost.TryGetValue((Resource)resource, out int amount))
+                {
+                    home[resource] -= Quantity.Units(amount);
+                }
             }
 
             _projects.Add(new Project(kind, building, _sites[siteId], workHours * 1000L));

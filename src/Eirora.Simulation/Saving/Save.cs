@@ -25,7 +25,7 @@ namespace Eirora.Simulation.Saving
     /// atomically.
     /// </para>
     /// <para>
-    /// The cloud save keeps it as two parts in the same frame (ADR-0008, D-99): the world part, with the map and the
+    /// The cloud save keeps it as two parts in the same frame (ADR-0008, D-100): the world part, with the map and the
     /// latest snapshot of everything but what is kept per game day, and the contribution part, with the rest of the
     /// latest state, the segments and the journals, which the client encrypts. The device keeps both in one file.
     /// </para>
@@ -104,7 +104,7 @@ namespace Eirora.Simulation.Saving
         /// <summary>
         /// Restores the world from a cloud save's two parts (<see cref="ToParts"/>), migrating it to the current rules if
         /// needed. Without the contribution part, when its key is lost, the world goes on in a new segment with its game
-        /// days so far closed (ADR-0008, D-100).
+        /// days so far closed (ADR-0008, D-101).
         /// </summary>
         /// <exception cref="SavedByNewerVersionException">A newer app wrote the save.</exception>
         /// <exception cref="FormatException">
@@ -135,9 +135,12 @@ namespace Eirora.Simulation.Saving
                 throw new FormatException("Not the save's contribution part.");
             }
 
-            foreach (var section in rest)
+            foreach (string name in s_contributionSections)
             {
-                sections.Add(section.Key, section.Value);
+                if (rest.TryGetValue(name, out string? text))
+                {
+                    sections.Add(name, text);
+                }
             }
 
             return Load(sections, format, migrations);
@@ -184,7 +187,7 @@ namespace Eirora.Simulation.Saving
 
         /// <summary>
         /// The save as the cloud save's two parts, with a new latest snapshot: the world part, which holds nothing per game
-        /// day, and the contribution part, which the client encrypts (ADR-0008, D-99). <see cref="ToBytes"/> holds both.
+        /// day, and the contribution part, which the client encrypts (ADR-0008, D-100). <see cref="ToBytes"/> holds both.
         /// </summary>
         public (byte[] World, byte[] Contributions) ToParts()
         {
@@ -250,15 +253,16 @@ namespace Eirora.Simulation.Saving
 
         private static bool HasOnly(Dictionary<string, string> sections, string[] names)
         {
-            foreach (string name in sections.Keys)
+            int known = 0;
+            foreach (string name in names)
             {
-                if (Array.IndexOf(names, name) < 0)
+                if (sections.ContainsKey(name))
                 {
-                    return false;
+                    known++;
                 }
             }
 
-            return true;
+            return known == sections.Count;
         }
 
         private static Dictionary<string, string> Sections(byte[] bytes, out int format)

@@ -1,0 +1,11 @@
+create 1792846800 Europe/Stockholm 7200 1380 480
+cmd steps selfcare 0 Steps Verified 9000
+time 1792889940 Europe/Stockholm 7200
+time 1792915200 Europe/Stockholm 3600
+cmd sleep selfcare 1 Sleep Verified 540
+time 1793120400 Europe/Stockholm 3600
+time 1793158200 America/New_York -14400
+cmd in-new-york selfcare 3 Steps SelfReported 14000
+time 1793358000 America/New_York -14400
+time 1793433600 Europe/Stockholm 3600
+cmd home-again survey

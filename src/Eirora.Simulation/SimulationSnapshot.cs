@@ -63,7 +63,7 @@ namespace Eirora.Simulation
         }
 
         /// <summary>
-        /// A snapshot of the world's state without what is kept per game day (ADR-0008, D-99); it is restored with
+        /// A snapshot of the world's state without what is kept per game day (ADR-0008, D-100); it is restored with
         /// <see cref="RestoreWorld"/>, and its <see cref="StateHash"/> is what the contributions that complete it name.
         /// </summary>
         internal static SimulationSnapshot TakeWorld(World world) => Of(world, world.WorldState());
@@ -155,7 +155,7 @@ namespace Eirora.Simulation
 
         /// <summary>
         /// Rebuilds the world from a snapshot made by <see cref="TakeWorld"/>, completed with the contribution state that
-        /// followed it in the fingerprint; without it, the world goes on with its game days so far closed (D-100).
+        /// followed it in the fingerprint; without it, the world goes on with its game days so far closed (D-101).
         /// </summary>
         internal World RestoreWorld(WorldMap map, string? contributions, IReadOnlyList<StateMigration> migrations)
         {

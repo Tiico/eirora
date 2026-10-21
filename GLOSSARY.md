@@ -235,6 +235,10 @@ _Avoid_: datapaket, innehållsuppdatering (när versionen avses)
 Den ordnade följden av kommandon och avläsningar som en värld har fått sedan den fick sin regelversion.
 _Avoid_: logg, historik (som är världens berättelse för spelaren)
 
+**Replay** (`Replay`):
+En världs start och indata utan regelversion, som körs med de regler bygget har; replay-korpusen visar att servern och klienten får samma tillstånd.
+_Avoid_: inspelning, testfall
+
 **Snapshot** (`SimulationSnapshot`):
 Hela en världs tillstånd vid en tidpunkt, märkt med regelversion och innehållsversion.
 _Avoid_: ögonblicksbild, sparfil
@@ -304,7 +308,7 @@ Den del av sparningen som servern kan läsa: kartan och senaste snapshoten utom 
 _Avoid_: grunddata, publik del
 
 **Bidragsdel** (`Save.ToParts().Contributions`):
-Den del av sparningen som krypteras på enheten: egenvården och krediteringen per spelardygn, de använda idempotensnycklarna, segmentens start och journalerna (D-99).
+Den del av sparningen som krypteras på enheten: egenvården och krediteringen per spelardygn, de använda idempotensnycklarna, segmentens start och journalerna (D-100).
 _Avoid_: hälsodata (som aldrig lämnar telefonen), krypterad backup
 
 **Bidragsnyckel** (`ContributionKey`):

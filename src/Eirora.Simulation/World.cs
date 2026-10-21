@@ -20,7 +20,8 @@ namespace Eirora.Simulation
         private readonly ForceBalances _forces;
         private readonly SelfCareLedger _selfCare;
         private readonly Settlement _settlement;
-        private readonly Dictionary<string, CommandResult> _results = new(StringComparer.Ordinal);
+        // Sorted by key, so the state is written in the same order on every runtime.
+        private readonly SortedDictionary<string, CommandResult> _results = new(StringComparer.Ordinal);
 
         // Self-care changes waiting for dawn (INV-T9): reconciled when the world is next active.
         private readonly SortedSet<(int Day, Habit Habit)> _unreconciled = new();
@@ -110,7 +111,7 @@ namespace Eirora.Simulation
 
         /// <summary>
         /// The last game day that takes no more self-care, because the world went on without its contribution part
-        /// (D-100); null when every recent day is open.
+        /// (D-101); null when every recent day is open.
         /// </summary>
         public int? LastClosedGameDay => _selfCare.ClosedThrough;
 
@@ -209,7 +210,7 @@ namespace Eirora.Simulation
 
         /// <summary>
         /// The first part of the state, everything but what is kept per game day: what the save's world part holds
-        /// (ADR-0008, D-99).
+        /// (ADR-0008, D-100).
         /// </summary>
         internal string WorldState()
         {
@@ -231,7 +232,7 @@ namespace Eirora.Simulation
 
         /// <summary>
         /// Reads a world written by <see cref="Fingerprint"/>, on the map its state names; or, without its contributions,
-        /// one written by <see cref="WorldState"/>, whose game days so far are then closed (D-100).
+        /// one written by <see cref="WorldState"/>, whose game days so far are then closed (D-101).
         /// </summary>
         internal static World Read(StateReader reader, WorldMap map, bool withContributions = true)
         {
@@ -301,12 +302,10 @@ namespace Eirora.Simulation
                 writer.Line("unreconciled").Long(day).Enum(habit);
             }
 
-            var keys = new List<string>(_results.Keys);
-            keys.Sort(StringComparer.Ordinal);
-            foreach (string key in keys)
+            foreach (var entry in _results)
             {
-                var result = _results[key];
-                writer.Line("command").Text(key).Long(result.Events.Count);
+                var result = entry.Value;
+                writer.Line("command").Text(entry.Key).Long(result.Events.Count);
                 foreach (var gameEvent in result.Events)
                 {
                     GameEventCodec.Write(writer, gameEvent);

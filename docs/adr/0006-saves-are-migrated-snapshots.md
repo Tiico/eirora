@@ -76,7 +76,7 @@ En värld kan alltså aldrig förlora något på grund av en ny regelversion: al
   Den första versionen med sparformatet har därför samma regelversion som den sista prototypen och spelar upp journalen en gång innan den skriver sin första snapshot.
   Höjs regelversionen i prototypen innan dess kan en äldre journal inte laddas, och prototypen säger det i stället för att visa en annan värld (TASK-014).
 - Att journalen sparas trots att laddningen utgår från snapshoten gör att fel kan återskapas, att en migration kan göras om och att konflikter mellan enheter kan lösas (TASK-023).
-- Från sparformat 3 består sparningen av en världsdel och en bidragsdel ([ADR-0008](./0008-backend-hosting-accounts-and-database.md), D-99).
-  På telefonen ligger båda i samma fil; i molnsparningen krypteras bidragsdelen, och utan den laddas världen från världsdelen i ett nytt segment (D-100).
+- Från sparformat 3 består sparningen av en världsdel och en bidragsdel ([ADR-0008](./0008-backend-hosting-accounts-and-database.md), D-100).
+  På telefonen ligger båda i samma fil; i molnsparningen krypteras bidragsdelen, och utan den laddas världen från världsdelen i ett nytt segment (D-101).
 - Möjliggörs av [ADR-0001](./0001-local-world-server-for-shared-state.md), eftersom servern bara behöver gamla regelversioner för det delade.
 - Kompletterar [ADR-0004](./0004-shared-libraries-as-source-packages.md): klienten bygger fortfarande bara aktuell källkod, medan servern dessutom laddar frysta byggen.

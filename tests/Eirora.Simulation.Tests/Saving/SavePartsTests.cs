@@ -9,9 +9,9 @@ using FsCheck.Xunit;
 namespace Eirora.Simulation.Tests.Saving;
 
 /// <summary>
-/// The save's world part and contribution part (ADR-0008, D-57, D-99): the cloud save keeps the world part readable and
+/// The save's world part and contribution part (ADR-0008, D-57, D-100): the cloud save keeps the world part readable and
 /// the contribution part encrypted, so the world part holds nothing per game day, and it carries on the world alone
-/// when the contribution key is lost (D-100).
+/// when the contribution key is lost (D-101).
 /// </summary>
 public sealed class SavePartsTests
 {

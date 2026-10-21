@@ -35,11 +35,11 @@ namespace Eirora.Simulation.SelfCare
 
         /// <summary>
         /// The last game day that takes no more self-care, or null. Set when the world goes on without its contribution
-        /// part; the days up to it count as empty, as for a new world (D-63, D-100).
+        /// part; the days up to it count as empty, as for a new world (D-63, D-101).
         /// </summary>
         public int? ClosedThrough { get; private set; }
 
-        /// <summary>Closes the game days up to and including <paramref name="day"/> to self-care (D-100).</summary>
+        /// <summary>Closes the game days up to and including <paramref name="day"/> to self-care (D-101).</summary>
         public void CloseThrough(int day) => ClosedThrough = day;
 
         public void Record(int day, Habit habit, ContributionSource source, int total)
