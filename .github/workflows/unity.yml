@@ -158,8 +158,8 @@ jobs:
           path: build/Android
           retention-days: 14
 
-      # Google Play takes completed releases through its API only after the app's first release has been rolled out by
-      # hand in Play Console (docs/development.md#google-play).
+      # Also uploads the app's first release; testers get it once Google has approved the health declaration
+      # (docs/development.md#google-play).
       - name: Upload to Google Play's internal test track
         if: env.RELEASE == 'true'
         uses: r0adkll/upload-google-play@v1
