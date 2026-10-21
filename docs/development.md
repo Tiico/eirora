@@ -323,21 +323,21 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
    gh secret set PLAY_SERVICE_ACCOUNT_JSON < play-service-account.json
    ```
 
-6. Kör Unity-workflowen på `main` under **Actions → Unity → Run workflow**.
-   Google tar inte emot en färdig version via API:t förrän appens första version är släppt, så uppladdningen misslyckas den här gången.
-   Ladda ner artefakten från körningen, ladda upp `.aab`-filen under **Internt test → Skapa ny version** och släpp den.
-   Från och med nästa push till `main` sköter workflowen uppladdningen.
-7. Avinstallera den sidladdade prototypen från telefonen en gång och installera Eirora från Play Store (D-77).
-   Byggena hittills har andra signaturer än appen från Google Play, så Android vägrar installera den ena över den andra, och världen från de tidigare byggena försvinner med avinstallationen.
+6. Kör Unity-workflowen på `main` under **Actions → Unity → Run workflow**, eller pusha till `main`.
+   Workflowen laddar upp app-paketet till det interna testet, också den första versionen.
+   Under **Appinnehåll** dyker då deklarationen för hälsobehörigheterna upp; fyll i den och skicka in.
+   Testarna får versionen först när Google har godkänt deklarationen, vilket kan ta några dagar.
+7. Installera Eirora från Play Store via testlänken från steg 4.
+   De sidladdade prototyperna har paketnamnet `com.eirora.game` och är en annan app än den från Google Play, så båda kan vara installerade; världen följer inte med från den gamla (D-77).
 
 Android säkerhetskopierar appens data, sparningen med, till spelarens eget Google-konto som vilken app som helst, så världen kan följa med till en ny telefon (D-78).
 
 | Fel | Orsak |
 |---|---|
 | `Google Play secret missing` | `PLAY_SERVICE_ACCOUNT_JSON` saknas; jobbet stoppar innan något byggs. |
-| `Package not found` | Appen har ingen version i Play än; den första laddas upp för hand, se steg 6. |
+| `Package not found` | Byggets paketnamn finns inte som app i Play Console; appen ska ha `se.eirora.app`, se steg 2. |
 | `APK-filen eller AAB-arkivet måste ha paketnamnet …` | Bygget och appen i Play Console har olika paketnamn; Play Consoles kan inte ändras, så bygget följer det. |
-| `Only releases with status draft may be created on draft app` | Appens första version är inte släppt för hand än, se steg 6. |
+| `Only releases with status draft may be created on draft app` | Google vill att appens första version släpps för hand: ladda upp `.aab`-filen från körningens artefakt under **Internt test → Skapa ny version**. |
 | `Version code N has already been used` | Samma commit byggdes två gånger; nästa commit på `main` får ett högre nummer. |
 | Play Store erbjuder ingen uppdatering | Nya versioner i internt test syns oftast inom några minuter; sök igen under **Hantera appar och enheter**. |
-| Play Store kan inte installera appen | En APK från CI eller datorn är installerad; se steg 7. |
+| Play Store kan inte installera appen | En APK med `se.eirora.app` från CI eller datorn är installerad och har en annan signatur än appen från Google Play; avinstallera den först. |
