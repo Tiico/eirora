@@ -1,0 +1,33 @@
+# The version of a build: a release's tag names it (v0.3.0 becomes 0.3.0), other builds are 0.0.<commits> like local
+# builds (BuildVersion). The Android version code is always the number of commits, so every later build installs over
+# the one before. Needs a checkout with the full history.
+name: Build version
+description: Names the build from the release tag or the number of commits, and gives the Android version code.
+
+outputs:
+  name:
+    description: The version people see, such as 0.3.0.
+    value: ${{ steps.version.outputs.name }}
+  code:
+    description: The Android version code.
+    value: ${{ steps.version.outputs.code }}
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        TAG: ${{ github.event.release.tag_name }}
+      run: |
+        commits="$(git rev-list --count HEAD)"
+        name="0.0.$commits"
+        if [ -n "$TAG" ]; then
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=Release tag not a version::The tag $TAG must look like v0.3.0, see docs/development.md#släppa-en-version."
+            exit 1
+          fi
+          name="${TAG#v}"
+        fi
+        echo "name=$name" >> "$GITHUB_OUTPUT"
+        echo "code=$commits" >> "$GITHUB_OUTPUT"

@@ -285,12 +285,17 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess action som frigör diskutrymme ([`free-disk-space`](../.github/actions/free-disk-space/action.yml)), samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
-| [`Site`](../.github/workflows/site.yml) | Push som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
+| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
+| [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
-Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
+Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.
+En release kostar runt 75 minuter, varav 40 för Xcode på macOS, och en körning av Unity-testerna runt 7; därför bygger CI appen bara när en version släpps.
+En gren utan pull request kör ingen CI; öppna en pull request, gärna som utkast, eller kör en workflow manuellt under **Actions → \<workflow\> → Run workflow**.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
+
+Unity-jobben återställer projektets `Library` från GitHubs cache, men en körning kan bara läsa cache från sin egen gren eller tagg och från `main`.
+Eftersom `main` inte längre bygger Unity börjar en release oftast utan cache, och byggena tar då längre tid.
 
 ### Secrets
 
@@ -322,6 +327,7 @@ gh secret set UNITY_PASSWORD
 ```
 
 5. Kör Unity-workflowen manuellt under **Actions → Unity → Run workflow** och kontrollera att alla jobb blir gröna.
+   En manuell körning bygger en APK att sidladda men släpper inget i Google Play.
 
 Licensfilen är bunden till datorn där den skapades, så CI avvisar den och aktiverar i stället med `UNITY_EMAIL` och `UNITY_PASSWORD`.
 Kontot får därför inte ha tvåstegsverifiering; licensfilen behövs ändå, eftersom GameCI börjar med den.
@@ -355,17 +361,18 @@ Utan dem signeras ett lokalt bygge med datorns debugnyckel och kan inte installe
 
 ### Versioner
 
-Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
+Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
+En release heter som sin tagg utan `v`, till exempel `0.3.0`; ett lokalt bygge eller en manuell körning i CI heter `0.0.<antal commits>` ([`build-version`](../.github/actions/build-version/action.yml)).
 Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
 Klienten sparar världen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
 En sparning från äldre regler migreras; en från en nyare version laddas inte och skrivs aldrig över, och appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
 
 ### Google Play
 
-Telefonen får nya versioner genom Google Plays interna test (D-75).
-Varje push till `main` som ändrar bygget blir ett app-paket som Unity-workflowen signerar med uppladdningsnyckeln och släpper i det interna testet.
+Telefonen får nya versioner genom Google Plays interna test (D-98).
+Varje publicerad release blir ett app-paket som Unity-workflowen signerar med uppladdningsnyckeln och släpper i det interna testet, se [Släppa en version](#släppa-en-version).
 Play Store uppdaterar sedan appen som vilken app som helst, utan kabel och utan avinstallation, och världen finns kvar.
-Versionen i appen är samma som versionens namn i Play Console och i artefakten `eirora-android-<version>` på körningen.
+Versionen i appen är samma som versionens namn i Play Console, i artefakten `eirora-android-<version>` på körningen och i app-paketet `eirora-<version>.aab` som bifogas releasen.
 
 Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till en agent.
 
@@ -385,7 +392,7 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
    gh secret set PLAY_SERVICE_ACCOUNT_JSON < play-service-account.json
    ```
 
-6. Kör Unity-workflowen på `main` under **Actions → Unity → Run workflow**, eller pusha till `main`.
+6. Släpp en version enligt [Släppa en version](#släppa-en-version).
    Workflowen laddar upp app-paketet till det interna testet, också den första versionen.
    Under **Appinnehåll** dyker då deklarationen för hälsobehörigheterna upp; fyll i den och skicka in.
    Testarna får versionen först när Google har godkänt deklarationen, vilket kan ta några dagar.
@@ -400,6 +407,22 @@ Android säkerhetskopierar appens data, sparningen med, till spelarens eget Goog
 | `Package not found` | Byggets paketnamn finns inte som app i Play Console; appen ska ha `se.eirora.app`, se steg 2. |
 | `APK-filen eller AAB-arkivet måste ha paketnamnet …` | Bygget och appen i Play Console har olika paketnamn; Play Consoles kan inte ändras, så bygget följer det. |
 | `Only releases with status draft may be created on draft app` | Google vill att appens första version släpps för hand: ladda upp `.aab`-filen från körningens artefakt under **Internt test → Skapa ny version**. |
-| `Version code N has already been used` | Samma commit byggdes två gånger; nästa commit på `main` får ett högre nummer. |
+| `Version code N has already been used` | Samma commit släpptes två gånger, eller taggen pekar på en äldre commit än förra releasen; tagga en senare commit på `main`. |
+| `Release tag not a version` | Taggen ser inte ut som `v0.3.0`; ta bort releasen och taggen och släpp igen med rätt namn. |
+| `Release tag not on main` | Taggen pekar på en commit som inte finns på `main`; merga först och tagga sedan `main`. |
 | Play Store erbjuder ingen uppdatering | Nya versioner i internt test syns oftast inom några minuter; sök igen under **Hantera appar och enheter**. |
 | Play Store kan inte installera appen | En APK med `se.eirora.app` från CI eller datorn är installerad och har en annan signatur än appen från Google Play; avinstallera den först. |
+
+### Släppa en version
+
+En ny version till telefonen är en GitHub-release med en tagg på `main` (D-98).
+Taggen namnger versionen: `v0.3.0` blir `0.3.0` i appen och i Play Console.
+Välj ett högre nummer än förra releasen; Android-versionskoden är ändå antalet commits.
+
+```bash
+gh release create v0.3.0 --target main --generate-notes
+```
+
+Samma sak går under **Releases → Draft a new release** på GitHub; Unity-workflowen startar när releasen publiceras, inte när den sparas som utkast.
+Workflowen kör Unity-testerna, bygger Android och iOS, släpper app-paketet i det interna testet och bifogar det till releasen som `eirora-<version>.aab`.
+Testarna får versionen i Play Store några minuter efter att körningen blivit grön.
