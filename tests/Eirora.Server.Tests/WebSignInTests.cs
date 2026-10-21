@@ -72,6 +72,7 @@ public sealed class WebSignInTests(ServerFixture fixture)
         Assert.Equal("text/html", response.Content.Headers.ContentType!.MediaType);
         Assert.Contains("Radera ditt konto i Eirora", html, StringComparison.Ordinal);
         Assert.Contains("30 dagar", html, StringComparison.Ordinal);
+        Assert.Contains("Molnsparningen av din värld", html, StringComparison.Ordinal);
         Assert.Contains("frame-ancestors 'none'", response.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
         Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
     }

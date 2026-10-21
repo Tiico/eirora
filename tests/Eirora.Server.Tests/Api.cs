@@ -58,6 +58,33 @@ public sealed class Api(HttpClient http) : IDisposable
     public async Task<HttpStatusCode> DeleteAccountAsync(string accessToken, ExternalLogin confirmation, CancellationToken? hangUp = null) =>
         await SendAsync(Authorized(HttpMethod.Post, "/api/account/deletion", accessToken, confirmation), hangUp);
 
+    public async Task<(HttpStatusCode Status, CloudSave? Save)> GetCloudSaveAsync(string accessToken)
+    {
+        using var request = Authorized(HttpMethod.Get, "/api/account/cloud-save", accessToken);
+        using var response = await http.SendAsync(request, Cancel);
+        return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<CloudSave>(Cancel) : null);
+    }
+
+    /// <summary>Uploads <paramref name="upload"/>, a <see cref="CloudSaveUpload"/> or any other body; the version comes back with 200 and 409.</summary>
+    public async Task<(HttpStatusCode Status, CloudSaveVersion? Version)> UploadCloudSaveAsync(string accessToken, object upload)
+    {
+        using var request = Authorized(HttpMethod.Put, "/api/account/cloud-save", accessToken, upload);
+        using var response = await http.SendAsync(request, Cancel);
+        return (response.StatusCode, response.StatusCode is HttpStatusCode.OK or HttpStatusCode.Conflict
+            ? await response.Content.ReadFromJsonAsync<CloudSaveVersion>(Cancel)
+            : null);
+    }
+
+    public async Task<(HttpStatusCode Status, LockedContributions[]? Locked)> GetLockedContributionsAsync(string accessToken)
+    {
+        using var request = Authorized(HttpMethod.Get, "/api/account/cloud-save/locked", accessToken);
+        using var response = await http.SendAsync(request, Cancel);
+        return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<LockedContributions[]>(Cancel) : null);
+    }
+
+    public async Task<HttpStatusCode> DeleteLockedContributionsAsync(string accessToken, int keyEpoch) =>
+        await SendAsync(Authorized(HttpMethod.Delete, $"/api/account/cloud-save/locked/{keyEpoch}", accessToken));
+
     public void Dispose() => http.Dispose();
 
     public async Task<TokenResponse> TokenAsync(Dictionary<string, string> form)
