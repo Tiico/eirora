@@ -85,6 +85,9 @@ namespace Eirora.Client.UI
             Rejection.AlreadyDone => "Det är redan gjort.",
             Rejection.NothingLeftToSurvey => "Hela ön är kartlagd.",
             Rejection.NothingToRush => "Det finns inget bygge att rusta.",
+            Rejection.NotNextToTheKnown => "Dimman lättar från kanten av det kända. Lyft en bricka närmare först.",
+            Rejection.FoundBySurvey => "Något ligger gömt här. Kartlägg ön för att se vad.",
+            Rejection.FoundByExpedition => "Här ligger en okänd ö. En expedition kan hitta den.",
             Rejection.NoBuildingThere => "Det behövs en byggnad för det här först.",
             Rejection.GameDayOutOfRange => "Det går att fylla i de senaste sju dygnen.",
             Rejection.AmountOutOfRange => "Värdet verkar inte stämma.",
@@ -102,10 +105,47 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
             SitesRevealed => "Dimman lättade över nya platser.",
             ExpeditionReturned => "Expeditionen kom hem. Den hittade Nyön i öster.",
+            FogLifted => FogLiftedOver(1),
             _ => null,
         };
 
-        public static IEnumerable<string> Report(IEnumerable<GameEvent> events) =>
-            events.Select(Describe).Where(line => line is not null).Select(line => line!);
+        /// <summary>
+        /// The daily report: one line per event, except that all the fog the player lifted is one line where the first
+        /// lift was, since a day can lift tens of tiles.
+        /// </summary>
+        public static IEnumerable<string> Report(IEnumerable<GameEvent> events)
+        {
+            var lines = new List<string>();
+            int lifted = 0;
+            int fogLine = -1;
+            foreach (var gameEvent in events)
+            {
+                if (gameEvent is FogLifted)
+                {
+                    if (lifted++ == 0)
+                    {
+                        fogLine = lines.Count;
+                        lines.Add(string.Empty);
+                    }
+
+                    continue;
+                }
+
+                if (Describe(gameEvent) is string line)
+                {
+                    lines.Add(line);
+                }
+            }
+
+            if (fogLine >= 0)
+            {
+                lines[fogLine] = FogLiftedOver(lifted);
+            }
+
+            return lines;
+        }
+
+        private static string FogLiftedOver(int tiles) =>
+            tiles == 1 ? "Dimman lättade över en bricka." : $"Dimman lättade över {tiles} brickor.";
     }
 }

@@ -87,6 +87,7 @@ public sealed class SimulationSnapshotTests
             new ProjectCompleted(9, ProjectKind.Road, BuildingKind.Quarry, "M1"),
             new SitesRevealed(10, ["M2", "F3"]),
             new ExpeditionReturned(11, ["N0", "N1", "N2"]),
+            new FogLifted(12, -5, 3),
         };
         var writer = new StateWriter();
         foreach (var sample in samples)

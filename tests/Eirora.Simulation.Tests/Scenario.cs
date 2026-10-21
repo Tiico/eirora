@@ -148,11 +148,15 @@ internal sealed class Scenario
             case 6:
                 return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad) ?? site : site);
             case 7:
-                int which = random.Next(3);
+                int which = random.Next(4);
+                // Around Hemön and out to Nyön, and now and then off the map.
+                int q = random.Next(-14, 15) * (random.Next(20) == 0 ? 3 : 1);
+                int r = random.Next(-14, 15);
                 return _ => which switch
                 {
                     0 => new Survey(),
                     1 => new SendExpedition(),
+                    2 => new LiftFog(q, r),
                     _ => new Rush(),
                 };
             case 8:

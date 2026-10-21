@@ -76,6 +76,7 @@ _Avoid_: kartkontroll
 
 **Dimma** (`Fog`):
 Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
+Den hör till världens tillstånd bricka för bricka, inte till kartan; kartläggningar och expeditioner lyfter den också (D-96, D-97).
 _Avoid_: fog of war, mörker
 
 ## Civilisation och ekonomi

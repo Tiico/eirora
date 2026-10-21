@@ -203,7 +203,7 @@ Prototypen i M1 behöver inget av detta: den bygger på ekonomi v1 och epokens f
   Utan fynd ligger Utforskningen på taket 800 från vecka 9 i profilen utan träning, samma lärdom som i ekonomi v1 (lärdom 1).
 - **Gryningskraftens användning:** forskningen kostar ingen kraft (D-66), så Gryningskraften har fortfarande bara dagsverke och rustning.
   Dagsverke på runstenen ger den ett morgonval till; om det räcker prövas i prototypen (H1) innan fler morgondrag läggs till.
-- **Ytteröns innehåll och kartgeneratorns placering** av öar och innerhav, och att startön får en enda högsta bricka till krönet (D-92) och fler berg än stenådern (O-16) (M3).
+- **Ytteröns innehåll och kartgeneratorns placering** av öar och innerhav, och att startön får en enda högsta bricka till krönet (D-92) och fler berg än stenådern (D-95) (M3).
 - **Exakta siffror** för etapperna, handkraften, forskningsstegen och dimman (O-01), med balansbotar och längre körningar i M4 och M5.
 - **Guidens repliker** och introduktionernas utseende (M9).
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Serialization;
 
 namespace Eirora.Simulation.Economy
@@ -42,17 +43,22 @@ namespace Eirora.Simulation.Economy
         private readonly List<Building> _buildings = new();
         private readonly List<Project> _projects = new();
         private readonly SortedDictionary<string, long> _forest = new(StringComparer.Ordinal);
-        private readonly SortedSet<string> _revealed = new(StringComparer.Ordinal);
+        private readonly WorldMap _map;
         private readonly Dictionary<string, Site> _sites = new(StringComparer.Ordinal);
         private long _expeditionLeft;
 
-        private Settlement()
+        private Settlement(WorldMap map, Fog fog)
         {
+            _map = map;
+            Fog = fog;
             foreach (var site in PrototypeIsland.Sites)
             {
                 _sites[site.Id] = site;
             }
         }
+
+        /// <summary>What of the map is known; a site is revealed when the fog has lifted from its tile (TASK-032).</summary>
+        public Fog Fog { get; private set; }
 
         public int Villagers { get; private set; }
 
@@ -97,16 +103,20 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>The settlement a new world starts with on the home island.</summary>
-        public static Settlement Found()
+        public static Settlement Found(WorldMap map)
         {
-            var settlement = new Settlement();
+            var hidden = new List<Hex>();
             foreach (var site in PrototypeIsland.Sites)
             {
-                if (!site.Hidden)
+                if (site.Hidden)
                 {
-                    settlement._revealed.Add(site.Id);
+                    hidden.Add(site.Hex);
                 }
+            }
 
+            var settlement = new Settlement(map, Fog.AtStart(map, hidden));
+            foreach (var site in PrototypeIsland.Sites)
+            {
                 if (site.ForestTiles > 0)
                 {
                     settlement._forest[site.Id] = ForestPerTile * site.ForestTiles;
@@ -133,7 +143,44 @@ namespace Eirora.Simulation.Economy
 
         public long Stock(IslandId island, Resource resource) => _stores[island][(int)resource];
 
-        public bool IsRevealed(string siteId) => _revealed.Contains(siteId);
+        public bool IsRevealed(string siteId) => _sites.TryGetValue(siteId, out var site) && Fog.IsKnown(site.Hex);
+
+        /// <summary>
+        /// Whether the fog can be lifted from a tile with Exploration (TASK-032): at the edge of the known, and neither
+        /// a site that a survey will reveal nor land of an island an expedition has yet to find, so surveys and
+        /// expeditions keep their worth.
+        /// </summary>
+        public Rejection CheckLiftFog(Hex hex)
+        {
+            if (Fog.IsKnown(hex))
+            {
+                return Rejection.AlreadyDone;
+            }
+
+            // An island the expedition finds says so wherever it is tapped, not "lift closer first" only to refuse later.
+            if (_map.Contains(hex) && _map.IslandAt(hex) is string island && island != _map.IslandAt(_map.Start) && !IslandFound(island))
+            {
+                return Rejection.FoundByExpedition;
+            }
+
+            if (!Fog.CanLift(hex))
+            {
+                return Rejection.NotNextToTheKnown;
+            }
+
+            for (int survey = SurveysDone; survey < PrototypeIsland.Surveys.Count; survey++)
+            {
+                foreach (var id in PrototypeIsland.Surveys[survey].Reveals)
+                {
+                    if (_sites[id].Hex == hex)
+                    {
+                        return Rejection.FoundBySurvey;
+                    }
+                }
+            }
+
+            return Rejection.None;
+        }
 
         public bool HasBuilt(BuildingKind kind, IslandId? island = null)
         {
@@ -167,7 +214,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whether <paramref name="kind"/> can stand on <paramref name="siteId"/> right now.</summary>
         public Rejection CheckSite(BuildingKind kind, string siteId)
         {
-            if (!_sites.TryGetValue(siteId, out var site) || !_revealed.Contains(siteId))
+            if (!_sites.TryGetValue(siteId, out var site) || !Fog.IsKnown(site.Hex))
             {
                 return Rejection.SiteUnavailable;
             }
@@ -245,13 +292,27 @@ namespace Eirora.Simulation.Economy
             return best;
         }
 
+        private bool IslandFound(string island)
+        {
+            for (int index = 0; index < _map.Disc.Count; index++)
+            {
+                var hex = _map.Disc[index];
+                if (_map.IslandAt(hex) == island && Fog.IsKnown(hex))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>Reveals the next survey area (economy-v1.md, section 6).</summary>
         public IReadOnlyList<string> CompleteSurvey()
         {
             var reveals = PrototypeIsland.Surveys[SurveysDone].Reveals;
             foreach (var id in reveals)
             {
-                _revealed.Add(id);
+                Fog.Lift(_sites[id].Hex);
             }
 
             SurveysDone++;
@@ -273,7 +334,7 @@ namespace Eirora.Simulation.Economy
 
             foreach (var id in PrototypeIsland.ExpeditionReveals)
             {
-                if (!_revealed.Contains(id))
+                if (!IsRevealed(id))
                 {
                     return Rejection.None;
                 }
@@ -366,15 +427,12 @@ namespace Eirora.Simulation.Economy
                 writer.Line("forest").Text(forest.Key).Long(forest.Value);
             }
 
-            foreach (string siteId in _revealed)
-            {
-                writer.Line("revealed").Text(siteId);
-            }
+            writer.Line("fog").Text(Fog.ToText());
         }
 
-        public static Settlement Read(StateReader reader)
+        public static Settlement Read(StateReader reader, WorldMap map)
         {
-            var settlement = new Settlement();
+            var settlement = new Settlement(map, Fog.Unknown(map));
             reader.Expect("settlement");
             settlement.Villagers = reader.Int();
             settlement.SurveysDone = reader.Int();
@@ -433,11 +491,8 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            while (reader.Next("revealed"))
-            {
-                settlement._revealed.Add(settlement.SiteOf(reader.Text()).Id);
-            }
-
+            reader.Expect("fog");
+            settlement.Fog = Fog.Parse(map, reader.Text());
             return settlement;
         }
 
@@ -580,10 +635,19 @@ namespace Eirora.Simulation.Economy
                 return;
             }
 
+            // The expedition finds the island and the sea along its coast.
             _expeditionLeft = 0;
             foreach (var id in PrototypeIsland.ExpeditionReveals)
             {
-                _revealed.Add(id);
+                var hex = _sites[id].Hex;
+                if (_map.IslandAt(hex) is string island)
+                {
+                    Fog.LiftIsland(island);
+                }
+                else
+                {
+                    Fog.Lift(hex);
+                }
             }
 
             events.Add(new ExpeditionReturned(utcSeconds, PrototypeIsland.ExpeditionReveals));

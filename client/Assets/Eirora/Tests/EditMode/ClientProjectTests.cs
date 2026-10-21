@@ -71,7 +71,7 @@ namespace Eirora.Client.Tests
             var android = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android);
             var ios = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.iOS);
 
-            Assert.That(android, Is.EqualTo("com.eirora.game"));
+            Assert.That(android, Is.EqualTo("se.eirora.app"));
             Assert.That(ios, Is.EqualTo(android));
         }
 

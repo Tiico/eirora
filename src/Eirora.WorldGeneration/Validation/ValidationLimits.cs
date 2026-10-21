@@ -24,7 +24,7 @@ namespace Eirora.WorldGeneration.Validation
         public const int StartFishingWater = 2;
         public const int StartHarbours = 1;
 
-        /// <summary>Mountains to quarry besides the crest, which bears only the Vårdkase (D-92, O-16).</summary>
+        /// <summary>Mountains to quarry besides the crest, which bears only the Vårdkase (D-92, D-95).</summary>
         public const int StartQuarries = 2;
 
         /// <summary>The crest the Vårdkase stands on is the start island's single highest tile, and a hill.</summary>

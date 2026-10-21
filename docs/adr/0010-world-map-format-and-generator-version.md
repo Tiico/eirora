@@ -150,6 +150,7 @@ Produktägarens värld från M1 lever vidare utan att något den sett eller bygg
 2. Regelmigrationen 1 → 2 (ADR-0006) ger den sparade världen kartan: tillståndet får raden `map <hex>` först, och inget annat ändras.
    Platserna i `PrototypeIsland` ligger kvar som innehåll, på brickor vars terräng passar dem.
    En prototypjournal från M1 spelas fortfarande upp, eftersom regelversion 2 bara lade till kartan (`RulesVersion.ReplaysJournalsFrom`).
+   Regelversion 3 gjorde de upptäckta platserna till dimma per bricka utan att ändra vad journalens kommandon gör (TASK-032), så journalen spelas upp även efter den.
 3. TASK-037 skriver om tillståndets plats-id till brickornas koordinater, till exempel `building Longhouse S` till `building Longhouse 0 0`, i samma regeländring som gör varje landbricka till en byggplats.
    Ett byte och en migration i stället för två, och inget som byggts flyttas.
 4. När generator v1 finns (TASK-031) fyller en regelmigration en gång den del av kartan som prototypen aldrig visat med generatorns hav och öar.

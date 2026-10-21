@@ -276,7 +276,7 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `tests/Replays/`, determinismskriptet eller workflowen, samt manuellt | Unity-tester, jämförelse av replay-korpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
+| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, determinismkorpusen (`tests/Replays/`, de gyllene sparningarna och kartorna), determinismskriptet, workflowen eller dess action som frigör diskutrymme ([`free-disk-space`](../.github/actions/free-disk-space/action.yml)), samt manuellt | Unity-tester, jämförelse av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
 | [`Site`](../.github/workflows/site.yml) | Push som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
@@ -360,7 +360,8 @@ Versionen i appen är samma som versionens namn i Play Console och i artefakten 
 Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till en agent.
 
 1. Skapa nyckeln med guiden under [Signering](#signering) om den inte redan finns.
-2. Skapa appen **Eirora** i [Play Console](https://play.google.com/console) och låt Google skapa och förvara appens signeringsnyckel (Play App Signing, D-76).
+2. Skapa appen **Eirora** i [Play Console](https://play.google.com/console) med paketnamnet `se.eirora.app`, samma som `applicationIdentifier` i Unity-projektet, och låt Google skapa och förvara appens signeringsnyckel (Play App Signing, D-76).
+   Paketnamnet kan aldrig ändras i Google Play.
    Nyckeln från guiden blir uppladdningsnyckel och kan bytas ut via Play Console om den försvinner.
 3. Publicera integritetspolicyn på servern enligt [deploy/site](../deploy/site/README.md).
    Fyll sedan i **Appinnehåll**: policyns adress, dataskydd och deklarationen för Health Connect-behörigheterna.
@@ -386,6 +387,8 @@ Android säkerhetskopierar appens data, sparningen med, till spelarens eget Goog
 | Fel | Orsak |
 |---|---|
 | `Google Play secret missing` | `PLAY_SERVICE_ACCOUNT_JSON` saknas; jobbet stoppar innan något byggs. |
+| `Package not found` | Appen har ingen version i Play än; den första laddas upp för hand, se steg 6. |
+| `APK-filen eller AAB-arkivet måste ha paketnamnet …` | Bygget och appen i Play Console har olika paketnamn; Play Consoles kan inte ändras, så bygget följer det. |
 | `Only releases with status draft may be created on draft app` | Appens första version är inte släppt för hand än, se steg 6. |
 | `Version code N has already been used` | Samma commit byggdes två gånger; nästa commit på `main` får ett högre nummer. |
 | Play Store erbjuder ingen uppdatering | Nya versioner i internt test syns oftast inom några minuter; sök igen under **Hantera appar och enheter**. |

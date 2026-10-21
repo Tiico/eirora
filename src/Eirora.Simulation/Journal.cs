@@ -220,6 +220,7 @@ namespace Eirora.Simulation
             Workday c => $"workday {c.SiteId}",
             Rush => "rush",
             SendExpedition => "expedition",
+            LiftFog c => $"fog {Text(c.Q)} {Text(c.R)}",
             _ => throw new ArgumentException($"{command.GetType().Name} cannot be journalled.", nameof(command)),
         };
 
@@ -234,6 +235,7 @@ namespace Eirora.Simulation
             "workday" when f.Length == 4 => new Workday(f[3]),
             "rush" when f.Length == 3 => new Rush(),
             "expedition" when f.Length == 3 => new SendExpedition(),
+            "fog" when f.Length == 5 => new LiftFog(Int(f[3]), Int(f[4])),
             _ => throw new FormatException($"Unknown command: '{string.Join(" ", f)}'."),
         };
 

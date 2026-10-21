@@ -2,6 +2,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -96,6 +97,20 @@ public sealed class ExpeditionTests
         // Stock is read in whole units, so the measured day can differ by one either way.
         Assert.InRange(Home() - homeBefore, 39, 41);
         Assert.True(Nyon() - nyonBefore >= 2, $"Nyön {nyonBefore} → {Nyon()}");
+    }
+
+    [Fact]
+    public void AWorldThatFoundNyonUnderRulesTwoKnowsNyonAndItsCoastAfterMigrating()
+    {
+        var world = Discovered();
+        string state = world.Fingerprint();
+
+        // The same world under rules 2 listed its revealed sites where the fog line is now.
+        var revealed = PrototypeIsland.Sites.Where(s => world.IsRevealed(s.Id)).Select(s => "revealed " + s.Id).ToList();
+        string rulesTwo = string.Join("\n", state.Split('\n').SelectMany(l => l.StartsWith("fog ", StringComparison.Ordinal) ? revealed : [l]));
+
+        Assert.Contains("revealed N2", revealed);
+        Assert.Equal(state, new FogArrives().Migrate(rulesTwo));
     }
 
     private static World WithJetty()
