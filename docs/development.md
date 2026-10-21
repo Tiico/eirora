@@ -230,6 +230,14 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
 
+Testerna, Android-bygget och iOS-bygget startar samtidigt när licenskontrollen har gått igenom, så en körning tar ungefär så lång tid som det längsta av dem.
+Bara släppet till Google Play väntar på testerna: på `main` laddas app-paketet upp av ett eget jobb när både testerna och Android-bygget är gröna.
+
+Varje Unity-jobb återställer projektets `Library` från GitHubs cache, och Android-jobbet också Gradles cache.
+Bara `main` sparar dem; andra grenar börjar från `main`s senaste, eftersom repot har 10 GB cache och en `Library` är runt 2 GB per jobb.
+Med en `Library` från cachen kompilerar IL2CPP bara om C++-koden för ändrade assemblies; utan den tar Android-bygget runt 20 minuter längre.
+Unitys avbildningar är större än det diskutrymme en GitHub-runner har ledigt, så jobben tar först bort förinstallerade SDK:er de inte använder med [free-disk-space](../.github/actions/free-disk-space/action.yml), snabbast först och bara tills jobbets uppmätta behov är ledigt.
+
 ### Secrets
 
 Unity-workflowen kräver en Unity-licens och misslyckas med en tydlig instruktion om någon av dessa saknas:

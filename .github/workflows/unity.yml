@@ -150,7 +150,7 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
         with:
-          required-gb: 999
+          required-gb: 60
 
       - name: Watch disk use
         run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &

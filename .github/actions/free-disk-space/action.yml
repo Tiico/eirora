@@ -57,6 +57,11 @@ runs:
         if [ "$KEEP_ANDROID_SDK" != "true" ]; then
           remove "Android SDK" sudo rm -rf /usr/local/lib/android
         fi
+        remove Swift sudo rm -rf /usr/share/swift
+        remove Boost sudo rm -rf /usr/local/share/boost
+        remove "Tool cache" sudo rm -rf /opt/hostedtoolcache
+        remove PowerShell sudo rm -rf /usr/local/share/powershell
+        remove Chromium sudo rm -rf /usr/local/share/chromium /opt/google/chrome /opt/microsoft
 
         if [ "$(free_gb)" -lt "$REQUIRED_GB" ]; then
           echo "::warning title=Little disk space for Unity::$(free_gb) GiB free, the job needs $REQUIRED_GB GiB. It may fail with \"no space left on device\"."
