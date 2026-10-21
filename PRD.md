@@ -121,7 +121,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
 | D-75 | **Prototypen når telefonen genom Google Plays interna test:** varje push till `main` som ändrar bygget blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation ([development.md](./docs/development.md#google-play)) | [BESLUTAT] |
 | D-76 | **Google förvarar appens signeringsnyckel (Play App Signing);** prototypens nyckel är uppladdningsnyckel, så en APK från CI eller datorn kan inte installeras över appen från Google Play | [BESLUTAT] |
-| D-77 | **Övergången till Google Play kräver en avinstallation,** innan dagboken börjar; världen från de sidladdade provbyggena följer inte med | [BESLUTAT] |
+| D-77 | **Appen från Google Play är en ny app,** `se.eirora.app`, och dagboken börjar i den; de sidladdade provbyggena (`com.eirora.game`) kan ligga kvar, men deras värld följer inte med | [BESLUTAT] |
 | D-78 | **Androids säkerhetskopiering till spelarens eget Google-konto är påslagen** och tar med journalen, så att världen kan följa med till en ny telefon; journalen innehåller bara dygnssummor, aldrig enskilda hälsoposter (HLT-10) | [BESLUTAT] |
 | D-79 | **Varje landbricka är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-80 | **En världs karta är en hexskiva med radie 24, 1 801 brickor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
@@ -139,6 +139,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-92 | **Krönet är startöns enda högsta bricka och bär bara Vårdkasen,** även när det är ett berg; en karta måste ha en enda sådan bricka, och på prototypens karta är det västra berget (-4,0) högst ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md), [ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
 | D-93 | **Skogskravet räknar bara skog som huggarkojan kan fälla:** upptäckta skogsbrickor på eller intill brickan som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
 | D-94 | **Epok 1:s tempo med byggplatser på brickor är målet:** 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning ([epok 1](./docs/design/epoch-1.md#5-tempo)) | [BESLUTAT] |
+| D-95 | **Startön har minst två berg att bryta sten i utom krönet,** så att det rikaste berget är ett val: prototypens karta får ett vanligt berg på (-3,-1) intill krönet, och kartvalideringen kräver det; besvarar O-16 ([kartvalidering](./docs/design/map-validation.md), [ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | [BESLUTAT] |
 | D-96 | **En ny värld känner startön och havet längs dess kust;** allt bortom kusten ligger under dimma, och de dolda platserna ligger under små dimfläckar tills en kartläggning lyfter dem (TASK-032) | [BESLUTAT] |
 | D-97 | **Dimman lyfts bricka för bricka med Utforskning, 10 per bricka vid kanten av det kända,** men inte från platser som en kartläggning visar eller land på öar som en expedition hittar, så att kartläggningar och expeditioner behåller sitt värde (TASK-032) | [BESLUTAT] |
 
@@ -677,7 +678,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-75–D-78 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-014 |
 | D-79–D-81 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-027 |
 | D-82–D-87 | 2026-10-18 | Se avsnitt 1.1 | Grind A0 i TASK-012 |
-| D-88–D-94 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
+| D-88–D-95 | 2026-10-18 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | D-96–D-97 | 2026-10-19 | Se avsnitt 1.1 | Produktägarens val i TASK-032 |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
@@ -703,7 +704,6 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | O-07 | Schemaregler vid resor och skiftarbete | Användartest | M7 |
 | O-10 | Rimlighetskontroll av handel och gruppbidrag | Delad simulering + tak | M8 |
 | O-13 | Kvantitativa kvalitetsmål och målenheter | Mät i prototyp | M2 |
-| O-16 | Hur många berg att bryta sten i behöver startön, så att stenådern blir ett val och kravet i D-34 nås? | Fler än stenådern; prototypens nästa karta och generatorn ([ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | M3 |
 
 ---
 

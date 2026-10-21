@@ -16,6 +16,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- The requests the Unity client sends, which ClientRequestTests send to the server. -->
+  <ItemGroup>
+    <None Include="..\..\src\Eirora.Contracts\Requests~\*" LinkBase="Requests" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Eirora.Server\Eirora.Server.csproj" />
   </ItemGroup>

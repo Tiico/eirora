@@ -16,13 +16,17 @@ using UnityEngine;
 namespace Eirora.Editor
 {
     /// <summary>
-    /// Fails every Android build, APK or app bundle, local or in CI, whose Health Connect adapter is missing or whose
-    /// permissions break ADR-0007 and D-70: AGP 9 skips the Kotlin sources without any error unless gradle.properties turns built-in
-    /// Kotlin on, and the game reads steps, exercise and sleep only, never in the background, never history or writes.
+    /// Fails every Android build, APK or app bundle, local or in CI, whose Health Connect adapter or sign-in module is
+    /// missing or whose permissions break ADR-0007 and D-70: AGP 9 skips the Kotlin sources without any error unless
+    /// gradle.properties turns built-in Kotlin on, and the game reads steps, exercise and sleep only, never in the
+    /// background, never history or writes.
     /// </summary>
     public sealed class AndroidHealthCheck : IPostprocessBuildWithReport
     {
         public const string BridgeClass = "com.eirora.health.HealthBridge";
+
+        /// <summary>Sign in with Apple and Google and the keystore (ADR-0008), in SignIn.androidlib.</summary>
+        public const string SignInBridgeClass = "com.eirora.signin.SignInBridge";
 
         public static readonly string[] HealthPermissions =
         {
@@ -45,6 +49,11 @@ namespace Eirora.Editor
             if (!PackageContainsClass(package, BridgeClass))
             {
                 problems.Add($"{BridgeClass} is not in {Path.GetFileName(package)}: the Kotlin sources in HealthConnect.androidlib were not compiled");
+            }
+
+            if (!PackageContainsClass(package, SignInBridgeClass))
+            {
+                problems.Add($"{SignInBridgeClass} is not in {Path.GetFileName(package)}: the Kotlin sources in SignIn.androidlib were not compiled");
             }
 
             problems.AddRange(PermissionProblems(PackagePermissions(package)));

@@ -65,7 +65,6 @@ jobs:
           # The image and the Library peaked at 17 GiB in October 2026.
           required-gb: 23
 
-
       - uses: actions/cache/restore@v6
         id: library
         with:
@@ -86,7 +85,6 @@ jobs:
           name: unity-test-results
           path: ${{ steps.tests.outputs.artifactsPath }}
           retention-days: 14
-
 
       - uses: actions/cache/save@v6
         if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
@@ -146,7 +144,6 @@ jobs:
           # The image and the build peaked at 34 GiB in October 2026.
           required-gb: 40
 
-
       - name: Version from the number of commits
         id: version
         run: |
@@ -190,7 +187,6 @@ jobs:
           path: build/Android
           retention-days: 14
 
-
       - uses: actions/cache/save@v6
         if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
         with:
@@ -208,8 +204,8 @@ jobs:
           path: ~/.gradle/caches
           key: ${{ steps.gradle.outputs.cache-primary-key }}
 
-  # Google Play takes completed releases through its API only after the app's first release has been rolled out by hand in
-  # Play Console (docs/development.md#google-play).
+  # Also uploads the app's first release; testers get it once Google has approved the health declaration
+  # (docs/development.md#google-play).
   release:
     name: Release to Google Play
     needs: [test, android]
@@ -239,12 +235,13 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: ./.github/actions/free-disk-space
         with:
           # The image and the build peaked at 18 GiB in October 2026.
           required-gb: 24
-
 
       - uses: actions/cache/restore@v6
         id: library
@@ -267,7 +264,6 @@ jobs:
           name: eirora-ios-xcode
           path: eirora-ios-xcode.tar.gz
           retention-days: 3
-
 
       - uses: actions/cache/save@v6
         if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'

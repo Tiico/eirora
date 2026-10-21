@@ -29,6 +29,7 @@ public sealed class ServerFactory(string connectionString) : WebApplicationFacto
         builder.UseSetting("SignIn:Apple:KeyId", AppleStub.KeyId);
         builder.UseSetting("SignIn:Apple:PrivateKey", Apple.PrivateKeyPem);
         builder.UseSetting("SignIn:Apple:Timeout", "00:00:01");
+        builder.UseSetting("SignIn:Web:AppleServicesId", TestProviders.AppleServicesId);
         builder.ConfigureLogging(logging => logging.AddProvider(new CapturingLoggerProvider(Logs)));
         builder.ConfigureTestServices(services =>
         {
