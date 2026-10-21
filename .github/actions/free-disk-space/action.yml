@@ -22,8 +22,8 @@ inputs:
 runs:
   using: composite
   steps:
-    # Ordered by GiB freed per second on ubuntu-24.04: the Android SDK frees the most but takes 1-2 minutes, so it goes
-    # last and only when the rest is not enough.
+    # Ordered by GiB freed per second: the Android SDK frees the most but takes 1-2 minutes, so it goes last and only
+    # when the rest is not enough.
     - name: Free disk space
       shell: bash
       env:
@@ -47,21 +47,21 @@ runs:
           echo "Removed $label: $before -> $(free_gb) GiB free in $((SECONDS - start)) s"
         }
 
+        # Measured on ubuntu-24.04 in October 2026, in GiB freed and seconds taken.
         echo "Free: $(free_gb) GiB, the job needs $REQUIRED_GB GiB"
-        remove Haskell sudo rm -rf /opt/ghc /usr/local/.ghcup
-        remove CodeQL sudo rm -rf /opt/hostedtoolcache/CodeQL
+        remove "Chrome and Edge" sudo rm -rf /usr/local/share/chromium /opt/google/chrome /opt/microsoft # 2 GiB, 0 s
+        remove Swift sudo rm -rf /usr/share/swift # 3 GiB, 1 s
+        remove PowerShell sudo rm -rf /usr/local/share/powershell # 1 GiB, 1 s
+        remove Haskell sudo rm -rf /opt/ghc /usr/local/.ghcup # 3-4 GiB, 1-6 s
+        remove CodeQL sudo rm -rf /opt/hostedtoolcache/CodeQL # 1-2 GiB, 6-10 s
         if [ "$KEEP_DOTNET" != "true" ]; then
-          remove .NET sudo rm -rf /usr/share/dotnet
+          remove .NET sudo rm -rf /usr/share/dotnet # 5-6 GiB, 7-17 s
         fi
-        remove "Docker images" sudo docker image prune --all --force
+        remove "Docker images" sudo docker image prune --all --force # 2 GiB, 10-23 s
+        remove "Tool cache" sudo rm -rf /opt/hostedtoolcache # 4 GiB, 32 s
         if [ "$KEEP_ANDROID_SDK" != "true" ]; then
-          remove "Android SDK" sudo rm -rf /usr/local/lib/android
+          remove "Android SDK" sudo rm -rf /usr/local/lib/android # 11 GiB, 49-134 s
         fi
-        remove Swift sudo rm -rf /usr/share/swift
-        remove Boost sudo rm -rf /usr/local/share/boost
-        remove "Tool cache" sudo rm -rf /opt/hostedtoolcache
-        remove PowerShell sudo rm -rf /usr/local/share/powershell
-        remove Chromium sudo rm -rf /usr/local/share/chromium /opt/google/chrome /opt/microsoft
 
         if [ "$(free_gb)" -lt "$REQUIRED_GB" ]; then
           echo "::warning title=Little disk space for Unity::$(free_gb) GiB free, the job needs $REQUIRED_GB GiB. It may fail with \"no space left on device\"."

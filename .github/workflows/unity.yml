@@ -62,10 +62,9 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
         with:
+          # The image and the Library peaked at 17 GiB in October 2026.
           required-gb: 23
 
-      - name: Watch disk use
-        run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
 
       - uses: actions/cache/restore@v6
         id: library
@@ -88,12 +87,6 @@ jobs:
           path: ${{ steps.tests.outputs.artifactsPath }}
           retention-days: 14
 
-      - name: Report peak disk use
-        if: always()
-        run: |
-          echo "Peak used: $(sort -n -k2 "$RUNNER_TEMP/disk.log" | tail -n 1)"
-          awk 'NR % 5 == 1' "$RUNNER_TEMP/disk.log" | paste -sd ' '
-          df -h /
 
       - uses: actions/cache/save@v6
         if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
@@ -150,10 +143,9 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
         with:
-          required-gb: 60
+          # The image and the build peaked at 34 GiB in October 2026.
+          required-gb: 40
 
-      - name: Watch disk use
-        run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
 
       - name: Version from the number of commits
         id: version
@@ -198,13 +190,6 @@ jobs:
           path: build/Android
           retention-days: 14
 
-      - name: Report peak disk use
-        if: always()
-        run: |
-          echo "Peak used: $(sort -n -k2 "$RUNNER_TEMP/disk.log" | tail -n 1)"
-          awk 'NR % 5 == 1' "$RUNNER_TEMP/disk.log" | paste -sd ' '
-          df -h /
-          sudo du -sh ~/.gradle ~/.gradle/* ~/.gradle/caches/* || true
 
       - uses: actions/cache/save@v6
         if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
@@ -214,11 +199,11 @@ jobs:
 
       # Gradle writes as root inside the container.
       - name: Make Gradle's caches readable for the cache
-        if: (env.SAVE_CACHES == 'true' || github.ref == 'refs/heads/claude/unity-ci-speed') && steps.gradle.outputs.cache-hit != 'true'
+        if: env.SAVE_CACHES == 'true' && steps.gradle.outputs.cache-hit != 'true'
         run: sudo chown -R "$(id -u):$(id -g)" ~/.gradle
 
       - uses: actions/cache/save@v6
-        if: (env.SAVE_CACHES == 'true' || github.ref == 'refs/heads/claude/unity-ci-speed') && steps.gradle.outputs.cache-hit != 'true'
+        if: env.SAVE_CACHES == 'true' && steps.gradle.outputs.cache-hit != 'true'
         with:
           path: ~/.gradle/caches
           key: ${{ steps.gradle.outputs.cache-primary-key }}
@@ -257,10 +242,9 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
         with:
+          # The image and the build peaked at 18 GiB in October 2026.
           required-gb: 24
 
-      - name: Watch disk use
-        run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
 
       - uses: actions/cache/restore@v6
         id: library
@@ -284,12 +268,6 @@ jobs:
           path: eirora-ios-xcode.tar.gz
           retention-days: 3
 
-      - name: Report peak disk use
-        if: always()
-        run: |
-          echo "Peak used: $(sort -n -k2 "$RUNNER_TEMP/disk.log" | tail -n 1)"
-          awk 'NR % 5 == 1' "$RUNNER_TEMP/disk.log" | paste -sd ' '
-          df -h /
 
       - uses: actions/cache/save@v6
         if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
