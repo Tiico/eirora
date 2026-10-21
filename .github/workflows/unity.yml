@@ -62,10 +62,10 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
         with:
-          required-gb: 999
+          required-gb: 23
 
       - name: Watch disk use
-        run: nohup bash -c 'while true; do df --output=used -BM / | tail -n 1; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
+        run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
 
       - uses: actions/cache/restore@v6
         id: library
@@ -91,7 +91,8 @@ jobs:
       - name: Report peak disk use
         if: always()
         run: |
-          echo "Peak used: $(sort -n "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          echo "Peak used: $(sort -n -k2 "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          awk 'NR % 5 == 1' "$RUNNER_TEMP/disk.log" | paste -sd ' '
           df -h /
 
       - uses: actions/cache/save@v6
@@ -152,7 +153,7 @@ jobs:
           required-gb: 999
 
       - name: Watch disk use
-        run: nohup bash -c 'while true; do df --output=used -BM / | tail -n 1; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
+        run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
 
       - name: Version from the number of commits
         id: version
@@ -200,7 +201,8 @@ jobs:
       - name: Report peak disk use
         if: always()
         run: |
-          echo "Peak used: $(sort -n "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          echo "Peak used: $(sort -n -k2 "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          awk 'NR % 5 == 1' "$RUNNER_TEMP/disk.log" | paste -sd ' '
           df -h /
           sudo du -sh ~/.gradle ~/.gradle/* ~/.gradle/caches/* || true
 
@@ -255,10 +257,10 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
         with:
-          required-gb: 999
+          required-gb: 24
 
       - name: Watch disk use
-        run: nohup bash -c 'while true; do df --output=used -BM / | tail -n 1; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
+        run: nohup bash -c 'while true; do echo "$(date +%T) $(df --output=used -BM / | tail -n 1)"; sleep 2; done' > "$RUNNER_TEMP/disk.log" 2>&1 &
 
       - uses: actions/cache/restore@v6
         id: library
@@ -285,7 +287,8 @@ jobs:
       - name: Report peak disk use
         if: always()
         run: |
-          echo "Peak used: $(sort -n "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          echo "Peak used: $(sort -n -k2 "$RUNNER_TEMP/disk.log" | tail -n 1)"
+          awk 'NR % 5 == 1' "$RUNNER_TEMP/disk.log" | paste -sd ' '
           df -h /
 
       - uses: actions/cache/save@v6
