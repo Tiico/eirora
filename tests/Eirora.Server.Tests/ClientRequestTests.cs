@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Eirora.Contracts;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -12,7 +13,7 @@ namespace Eirora.Server.Tests;
 /// the Unity client sends (its own <c>ClientRequestTests</c>), and here they reach the real server, with real tokens in
 /// place of the placeholders. Either side drifting from the other fails one of the two.
 /// </summary>
-public sealed class ClientRequestTests(ServerFixture fixture)
+public sealed partial class ClientRequestTests(ServerFixture fixture)
 {
     private readonly ServerFactory _server = fixture.Server;
 
@@ -165,14 +166,17 @@ public sealed class ClientRequestTests(ServerFixture fixture)
 
     private static string Fill(string text, Dictionary<string, string> values, Func<string, string> encode)
     {
-        foreach (var (name, value) in values)
+        // Checked before filling in, since real tokens are base64url and may themselves contain "__".
+        foreach (var name in Placeholder().Matches(text).Select(m => m.Groups[1].Value))
         {
-            text = text.Replace($"__{name}__", encode(value), StringComparison.Ordinal);
+            Assert.True(values.ContainsKey(name), $"No value for __{name}__.");
         }
 
-        Assert.DoesNotContain("__", text, StringComparison.Ordinal);
-        return text;
+        return Placeholder().Replace(text, m => encode(values[m.Groups[1].Value]));
     }
+
+    [GeneratedRegex("__([A-Z_]+?)__")]
+    private static partial Regex Placeholder();
 
     /// <summary>
     /// Every property the client reads in the fixture is in the server's answer, with the same kind of value; the server
