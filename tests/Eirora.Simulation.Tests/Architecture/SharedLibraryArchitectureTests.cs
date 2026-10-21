@@ -83,6 +83,10 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.StartsWithByCulture), "culture-dependent System.String::StartsWith")]
     [InlineData(nameof(ImpureFixture.LowersByCulture), "culture-dependent System.String::ToLower")]
     [InlineData(nameof(ImpureFixture.SortsStringsByCulture), "culture-dependent System.Collections.Generic.SortedSet`1::.ctor without a comparer")]
+    [InlineData(nameof(ImpureFixture.AppendsNumberByCulture), "culture-dependent System.Text.StringBuilder::Append of a number")]
+    [InlineData(nameof(ImpureFixture.OrdersStringsByCulture), "culture-dependent System.Linq.Enumerable::OrderBy of strings without a comparer")]
+    [InlineData(nameof(ImpureFixture.SortsStringListByCulture), "culture-dependent System.Collections.Generic.List`1::Sort of strings without a comparer")]
+    [InlineData(nameof(ImpureFixture.SortsStringArrayByCulture), "culture-dependent System.Array::Sort of strings without a comparer")]
     [InlineData(nameof(ImpureFixture.IteratesDictionary), "hash order System.Collections.Generic.Dictionary`2::GetEnumerator")]
     [InlineData(nameof(ImpureFixture.IteratesDictionaryKeys), "hash order System.Collections.Generic.Dictionary`2::get_Keys")]
     [InlineData(nameof(ImpureFixture.IteratesReadOnlyDictionary), "hash order System.Collections.Generic.IEnumerable`1::GetEnumerator over key-value pairs")]
@@ -100,6 +104,8 @@ public sealed class SharedLibraryArchitectureTests
     [InlineData(nameof(ImpureFixture.FormatsNumberInvariantly))]
     [InlineData(nameof(ImpureFixture.FindsCharacterOrdinally))]
     [InlineData(nameof(ImpureFixture.SortsStringsOrdinally))]
+    [InlineData(nameof(ImpureFixture.AppendsNumberInvariantly))]
+    [InlineData(nameof(ImpureFixture.OrdersStringsOrdinally))]
     [InlineData(nameof(ImpureFixture.IteratesSortedDictionary))]
     public void ScannerAllowsInvariantAndOrdinalForms(string method)
     {

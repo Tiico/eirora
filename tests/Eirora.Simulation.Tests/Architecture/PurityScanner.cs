@@ -221,7 +221,7 @@ internal static class PurityScanner
 
     /// <summary>
     /// Catches what gives a different result on another runtime or device (INV-D1, docs/development.md#determinism):
-    /// culture-dependent formatting, parsing and string comparison, and enumeration in hash order.
+    /// culture-dependent formatting, parsing, string comparison and string sorting, and enumeration in hash order.
     /// </summary>
     private static void CheckOrderAndCulture(MethodReference called, string where, List<string> violations)
     {
@@ -232,6 +232,25 @@ internal static class PurityScanner
         if (s_numberTypes.Contains(type) && called.Name is "ToString" or "Parse" or "TryParse" && !Takes("System.IFormatProvider"))
         {
             violations.Add($"{where}: culture-dependent {member}");
+        }
+
+        if (type == "System.Text.StringBuilder" && called.Name is "Append" or "Insert" && called.Parameters.Any(p => s_numberTypes.Contains(p.ParameterType.FullName)))
+        {
+            violations.Add($"{where}: culture-dependent {member} of a number");
+        }
+
+        // Sorting strings without a comparer compares them by the current culture.
+        bool comparer = called.Parameters.Any(p => p.ParameterType.GetElementType().FullName is "System.Collections.Generic.IComparer`1" or "System.Comparison`1");
+        bool ordersStrings = type == "System.Linq.Enumerable"
+            && called.Name is "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending"
+            && called is GenericInstanceMethod ordered
+            && ordered.GenericArguments[1].FullName == "System.String";
+        bool sortsStrings = called.Name == "Sort"
+            && ((type == "System.Collections.Generic.List`1" && called.DeclaringType is GenericInstanceType list && list.GenericArguments[0].FullName == "System.String")
+                || (type == "System.Array" && called is GenericInstanceMethod array && array.GenericArguments[0].FullName == "System.String"));
+        if ((ordersStrings || sortsStrings) && !comparer)
+        {
+            violations.Add($"{where}: culture-dependent {member} of strings without a comparer");
         }
 
         bool byCharacter = called.Parameters.Count > 0 && called.Parameters[0].ParameterType.FullName == "System.Char";

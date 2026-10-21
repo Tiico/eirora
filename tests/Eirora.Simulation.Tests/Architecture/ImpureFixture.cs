@@ -51,6 +51,15 @@ internal static class ImpureFixture
     public static string LowersByCulture(string text) => text.ToLower();
 
     public static SortedSet<string> SortsStringsByCulture() => [];
+
+    public static string AppendsNumberByCulture(System.Text.StringBuilder text, int value) => text.Append(value).ToString();
+
+    public static List<string> OrdersStringsByCulture(IEnumerable<string> names) => names.OrderBy(n => n).ToList();
+
+    public static void SortsStringListByCulture(List<string> names) => names.Sort();
+
+    public static void SortsStringArrayByCulture(string[] names) => Array.Sort(names);
+
 #pragma warning restore CA1304, CA1305, CA1307, CA1309, CA1310, CA1311, CA1862
 
     public static string FormatsNumberInvariantly(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -58,6 +67,11 @@ internal static class ImpureFixture
     public static bool FindsCharacterOrdinally(string text) => text.IndexOf('x') == 1;
 
     public static SortedSet<string> SortsStringsOrdinally() => new(StringComparer.Ordinal);
+
+    public static string AppendsNumberInvariantly(System.Text.StringBuilder text, int value) =>
+        text.Append(value.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToString();
+
+    public static List<string> OrdersStringsOrdinally(IEnumerable<string> names) => names.OrderBy(n => n, StringComparer.Ordinal).ToList();
 
     public static int IteratesDictionary(Dictionary<string, int> values)
     {
