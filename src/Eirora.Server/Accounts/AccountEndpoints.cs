@@ -110,7 +110,8 @@ public static class AccountEndpoints
         CancellationToken cancellationToken) =>
         login is null ? null : await validator.ValidateAsync(login.Provider, login.IdToken, login.Nonce, cancellationToken);
 
-    private static Guid AccountId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(Claims.Subject)!);
+    /// <summary>The account a token was issued for: always its <c>sub</c>, never a route value (threat model: IDOR).</summary>
+    internal static Guid AccountId(ClaimsPrincipal user) => Guid.Parse(user.FindFirstValue(Claims.Subject)!);
 
     private static ProblemHttpResult InvalidSignIn() =>
         TypedResults.Problem("The sign-in could not be verified.", statusCode: StatusCodes.Status400BadRequest);

@@ -90,6 +90,7 @@ public static class DeletionPage
             <ul>
             <li>Kontot: dess id och när det skapades.</li>
             <li>De kopplade inloggningarna med Apple och Google: vilken leverantör det är och det id leverantören gett dig för Eirora.</li>
+            <li>Molnsparningen av din värld: kartan och världens läge, och dina bidrag, som är krypterade på telefonen så att servern aldrig kan läsa dem. Även äldre bidrag som sparats i väntan på en förlorad nyckel raderas.</li>
             <li>Alla inloggningar på dina enheter, så att ingen av dem når kontot längre.</li>
             </ul>
             <p>Det är allt servern sparar för ett konto. Inget namn och ingen e-post sparas.</p>

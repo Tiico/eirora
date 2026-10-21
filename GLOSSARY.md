@@ -305,6 +305,14 @@ _Avoid_: hälsodata (som aldrig lämnar telefonen), krypterad backup
 Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per spelardygn; förloras den går bidragshistoriken förlorad, aldrig världen.
 _Avoid_: lösenord, återställningskod (som är en av nyckelns kopior)
 
+**Nyckelepok** (`CloudSave.KeyEpoch`):
+Bidragsnyckelns generation, från 1; en ny telefon utan nyckeln börjar en ny epok, och molnsparningens epok sjunker aldrig.
+_Avoid_: nyckelversion, nyckel-id
+
+**Låst bidragsdel** (`LockedContributions`):
+En bidragsdel från en tidigare nyckelepok, som servern sparar i 90 dagar om nyckeln skulle dyka upp och sedan raderar.
+_Avoid_: arkiv, gammal backup
+
 ## Socialt
 
 **Grupp** (`Group`):

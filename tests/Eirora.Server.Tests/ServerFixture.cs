@@ -40,7 +40,10 @@ public sealed class ServerFixture : IAsyncLifetime
             await db.Database.MigrateAsync();
         }
 
+        // Started here, before any test: the factory builds its host on first use without a lock, so tests that start at
+        // once could each build one, with its own token keys, and a token from one host would then be rejected by another.
         Server = new ServerFactory(ConnectionString);
+        Server.StartServer();
     }
 
     public EiroraDbContext CreateDbContext()

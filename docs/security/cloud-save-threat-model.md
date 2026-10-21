@@ -1,0 +1,83 @@
+# Hotmodell: molnsparning
+
+> **Ärende:** TASK-023 (#38) · **PRD:** ACC-01, ACC-03, ACC-05, HLT-10, NFR-10 · **Beslut:** [ADR-0008](../adr/0008-backend-hosting-accounts-and-database.md), [ADR-0001](../adr/0001-local-world-server-for-shared-state.md), D-57, D-99–D-101
+
+Hotmodellen gäller hur `Eirora.Server` lagrar och lämnar ut kontots molnsparning: världsdelen, den krypterade bidragsdelen och låsta bidragsdelar från tidigare nyckelepoker.
+Krypteringen på enheten och sammanslagningen av journaler (TASK-023 del 3) och nyckelns väg till en ny telefon (TASK-023b, #108) fyller i sina rader när de byggs.
+Inloggningen och kontot har en egen hotmodell, [sign-in-threat-model.md](./sign-in-threat-model.md), och allt här förutsätter den.
+
+## Det som skyddas
+
+- **Bidragsdelen:** egenvården per spelardygn, de använda idempotensnycklarna och journalerna (D-100).
+  Den är personuppgifter av särskild kategori, och servern ser den bara som chiffertext.
+- **Världsdelen:** kartan och senaste snapshoten utom det som hålls per spelardygn.
+  Den hör till ett känt konto men avslöjar inget om egenvården.
+- **Spelarens värld:** att bara spelarens egna enheter ersätter molnsparningen, och att två av dem inte skriver över varandras spel (ACC-03).
+- **Servern:** att en uppladdning inte kan fälla den eller fylla dess minne.
+
+## Flödet
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant Server as Eirora.Server
+    participant DB as PostgreSQL
+    App->>Server: GET /api/account/cloud-save
+    Server-->>App: 200 (version, nyckelepok, världsdel, bidragsdel) eller 404
+    App->>App: kryptera bidragsdelen (konto-id, nyckelepok, version + 1)
+    App->>Server: PUT /api/account/cloud-save (basversion, nyckelepok, båda delarna)
+    Server->>Server: storlek, världsdelen laddas som världsdel
+    Server->>DB: lås kontots rad, jämför version och nyckelepok
+    Server-->>App: 200 ny version, eller 409 nuvarande version
+    App->>Server: vid 409: hämta, slå ihop journalerna (D-99), ladda upp igen
+```
+
+| Anrop | Svar |
+|---|---|
+| `GET /api/account/cloud-save` | 200 `CloudSave`, 404 när kontot inte har någon |
+| `PUT /api/account/cloud-save` | 200 `CloudSaveVersion`; 409 `CloudSaveVersion` med den nuvarande; 400 när formatet är fel; 413 över gränserna |
+| `GET /api/account/cloud-save/locked` | 200 med kontots låsta bidragsdelar |
+| `DELETE /api/account/cloud-save/locked/{keyEpoch}` | 204, eller 404 när kontot inte har någon sådan |
+
+## Gränser
+
+- **Världsdelen** får vara högst 1 MiB (`CloudSaveUpload.MaxWorldBytes`).
+  Den är kartan och en snapshot, ungefär 8 KiB på prototypens karta med radie 24, så gränsen rymmer kartor hundra gånger större.
+- **Bidragsdelen** får vara högst 8 MiB (`CloudSaveUpload.MaxContributionBytes`).
+  Den växer med journalen, med långt under 1 KiB per spelat dygn, tills en ny regelversion börjar ett nytt segment; 8 MiB räcker för mer än tio års spel med båda segmenten kvar.
+- **Hela begäran** får vara högst delarnas gränser i base64 och 64 KiB till, ungefär 12 MiB; Kestrel avbryter en större begäran redan medan den läses.
+- **En molnsparning per konto**, som varje uppladdning ersätter, och en låst bidragsdel per tidigare nyckelepok i högst 90 dagar.
+
+## Hot och skydd
+
+| Hot (STRIDE) | Exempel | Skydd | Test |
+|---|---|---|---|
+| Behörighet (IDOR) | En spelare läser eller ersätter någon annans molnsparning | Ingen route tar ett konto-id; molnsparningen är alltid tokenens `sub`, som i resten av `/api/account` | `AnotherPlayersTokenOnlyEverReachesThatPlayersOwnCloudSave`, `WithoutAValidTokenTheCloudSaveIsNotReached` |
+| Informationsläckage | Databasen läcker, eller en administratör läser bidragen | Bidragsdelen krypteras på enheten och lagras som exakt de byte som laddades upp; servern har ingen nyckel och dekrypterar aldrig | `TheContributionPartIsStoredAsTheBytesThatWereUploaded` |
+| Informationsläckage | En klient lägger egenvård per spelardygn i världsdelen | Världsdelen måste laddas som en världsdel: bara kartan och snapshoten, och en snapshot som skrivs tillbaka till exakt samma text, så att ingen extra rad följer med | `AnUploadWhoseWorldPartDoesNotLoadIsRejectedAndNothingIsStored` |
+| Informationsläckage | Molnsparningens innehåll hamnar i loggar | Uppladdningar loggas inte; bara att en bidragsdel låstes, utan värden | `LogsNeverContainTokensNoncesOrIdentifiers` |
+| Manipulering | Två enheter som spelat offline skriver över varandras spel | Uppladdningen anger vilken version den bygger på, kontots rad är låst medan versionen jämförs och skrivs, och en annan bas ger 409 med den nuvarande versionen, så att klienten slår ihop journalerna (D-99) | `AnUploadBasedOnAnotherVersionConflictsAndSaysWhichIsCurrent`, `OfUploadsAtOnceFromTheSameVersionOnlyOneIsStored` |
+| Manipulering | En ny telefon skriver över kontots molnsparning med en ny värld vid första inloggningen | Basversion 0 godtas bara när kontot saknar molnsparning | `AnUploadBasedOnAnotherVersionConflictsAndSaysWhichIsCurrent` (0) |
+| Manipulering | En enhet med en gammal nyckel ersätter en bidragsdel från en nyare nyckelepok | Nyckelepoken sjunker aldrig; en äldre epok ger 409 | `AnUploadOfAnOlderKeyEpochConflicts` |
+| Manipulering | En ny nyckelepok raderar bidragen från den förra | Den ersatta bidragsdelen låses och sparas i 90 dagar om nyckeln skulle dyka upp (ADR-0008) | `ANewKeyEpochLocksTheContributionPartItReplaces`, `TheSameKeyEpochLocksNothing` |
+| Manipulering | Servern, eller den som når databasen, byter bidragsdelar mellan spelare eller versioner | Bidragsdelens associerade data är konto-id, nyckelepok och den version uppladdningen blir (basversionen + 1), som servern sätter exakt så; enheten upptäcker en utbytt del | – (klienten, del 3) |
+| Förnekande av tjänst | Stora uppladdningar fyller minnet, disken eller WAL-arkivet | Gränser per del och för hela begäran, och en molnsparning per konto | `AnUploadOverItsLimitsIsRejectedAsTooLarge`, `AContributionPartAtItsLimitIsStored` |
+| Förnekande av tjänst | En liten men tillverkad världsdel med rätt hash får servern att allokera en enorm karta | Kartläsaren avvisar en radie som texten inte rymmer innan några rutor allokeras; godtyckliga ändringar i en världsdel ger bara 400 | `ARadiusTheTextCannotHoldIsRejectedBeforeAnyTileIsAllocated`, `ACraftedWorldPartIsRejectedOrAcceptedButNeverBreaksTheServer` |
+| Upphöjning | En tillverkad världsdel får servern att köra spelets logik | Servern laddar världsdelen bara för att kontrollera formatet och kastar resultatet; den simulerar aldrig den egna världen (ADR-0001) | – |
+| Kvarvarande data | Molnsparningen lever kvar efter att kontot raderats | Molnsparningen och de låsta bidragsdelarna raderas med kontots rad (främmande nycklar med kaskad) | `ADeletedAccountLeavesNoAccountDataOnTheServer` |
+| Kvarvarande data | En låst bidragsdel sparas för länge | Den raderas efter 90 dagar, eller tidigare om spelaren väljer det | `ALockedContributionPartIsDeletedAfterNinetyDays`, `APlayerCanDeleteALockedContributionPartEarly` |
+
+## Accepterade risker
+
+- **En stulen access-token kan ersätta molnsparningen** inom sina 15 minuter, utan färsk inloggning, eftersom uppladdningar sker i bakgrunden.
+  Tjuven kan inte läsa bidragen och inte tillverka en bidragsdel som går att dekryptera, men kan byta ut världsdelen.
+  Telefonen har kvar sin värld; del 3 måste därför aldrig slå ihop en molnsparning vars bidragsdel inte dekrypteras med nyckeln.
+- **Världsdelen är inte krypterad.** Den visar kartan, byn, krafternas saldon, dimman och klockan för ett känt konto, men inget per spelardygn (D-100).
+- **Metadata syns för servern:** när molnsparningen senast laddades upp, hur många gånger och hur stor bidragsdelen är, och därmed ungefär hur mycket spelaren spelar.
+- **En app som är nyare än servern** kan inte ladda upp en världsdel som servern inte kan läsa (400) förrän servern uppdaterats; servern driftsätts därför före appen.
+- **Kestrels gräns för hela begäran** prövas inte av integrationstesterna, eftersom testservern inte begränsar storleken; gränserna per del gör det.
+
+## Kvar till kommande ärenden
+
+- Krypteringen med XChaCha20-Poly1305, de associerade data, sammanslagningen av journaler och flödet på en ny telefon (TASK-023 del 3).
+- Bidragsnyckelns väg till en ny telefon, och att den tas bort från enheten och nyckelringen när kontot raderas (TASK-023b, #108).

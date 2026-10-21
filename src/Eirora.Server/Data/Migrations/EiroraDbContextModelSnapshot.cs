@@ -60,6 +60,58 @@ namespace Eirora.Server.Data.Migrations
                     b.ToTable("AccountLogins");
                 });
 
+            modelBuilder.Entity("Eirora.Server.CloudSaves.StoredCloudSave", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Contributions")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("KeyEpoch")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("SavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("World")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.HasKey("AccountId");
+
+                    b.ToTable("CloudSaves");
+                });
+
+            modelBuilder.Entity("Eirora.Server.CloudSaves.StoredLockedContributions", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("KeyEpoch")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("Contributions")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset>("LockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("AccountId", "KeyEpoch");
+
+                    b.HasIndex("LockedAt");
+
+                    b.ToTable("LockedContributions");
+                });
+
             modelBuilder.Entity("Eirora.Server.SignIn.RedeemedIdToken", b =>
                 {
                     b.Property<string>("Hash")
@@ -288,6 +340,24 @@ namespace Eirora.Server.Data.Migrations
                 {
                     b.HasOne("Eirora.Server.Accounts.Account", null)
                         .WithMany("Logins")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Eirora.Server.CloudSaves.StoredCloudSave", b =>
+                {
+                    b.HasOne("Eirora.Server.Accounts.Account", null)
+                        .WithOne()
+                        .HasForeignKey("Eirora.Server.CloudSaves.StoredCloudSave", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Eirora.Server.CloudSaves.StoredLockedContributions", b =>
+                {
+                    b.HasOne("Eirora.Server.Accounts.Account", null)
+                        .WithMany()
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

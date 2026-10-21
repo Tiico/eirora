@@ -140,6 +140,9 @@ Hög tillgänglighet slås på när intäkterna motiverar det; utan den ger ett 
 ## Consequences
 
 - TASK-022 bygger konto och inloggning enligt ovan: OpenIddict, Apple- och Google-token, radering med återkallelse hos Apple, EF Core-migrationer, Testcontainers i CI och compose-filen med Traefik-etiketter.
+- TASK-023 lagrar en molnsparning per konto med en version som varje uppladdning höjer med ett.
+  En uppladdning som bygger på en annan version eller en äldre nyckelepok får 409 med den nuvarande versionen, så att klienten slår ihop journalerna (D-99); sparningens version i bidragsdelens associerade data är den version uppladdningen blir.
+  Servern tar högst 1 MiB världsdel och 8 MiB bidragsdel, och kontrollerar bara att världsdelen laddas ([hotmodell](../security/cloud-save-threat-model.md)).
 - TASK-020 och TASK-023 delar sparningen i världsdel och bidragsdel; TASK-019:s snapshot och fingeravtryck måste därför kunna laddas med bidragsdelen saknad, och spelardygnen före en ny nyckelepok räknas som stängda.
 - Klienten får två nya native-delar: iCloud-nyckelringen och Block Store, vid sidan av hälsoadaptrarna (ADR-0007).
 - Spelare utan konto har ingen molnbackup.
