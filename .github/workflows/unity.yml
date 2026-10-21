@@ -141,8 +141,8 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # The x86_64 image runs the ARM64 build through Android's ARM translation. The build renders with OpenGL ES 3,
-      # which the emulator's software renderer (SwiftShader) provides.
+      # The emulator runs the build's x86_64 code natively: Android's ARM translation cannot run Unity's ARM64 engine. The
+      # build renders with OpenGL ES 3, which the emulator's software renderer (SwiftShader) provides.
       - uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34

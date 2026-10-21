@@ -57,12 +57,13 @@ namespace Eirora.Editor
         public static void Windows() => ExitOnFailure(Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe"));
 
         /// <summary>
-        /// The determinism build (TASK-021): IL2CPP for ARM64 that only plays the determinism corpus (the replays in
+        /// The determinism build (TASK-021): IL2CPP for ARM64 and x86_64 that only plays the determinism corpus (the replays in
         /// tests/Replays, the golden saves and the golden maps) and logs each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
-        /// own package name, so it never replaces the game on a phone. It renders with OpenGL ES 3 only, because on the
-        /// emulator's software renderer (SwiftShader) the player crashed with SIGILL when graphics started with the
-        /// default APIs, Vulkan first. It has no version, so it needs no git history, which CI's container may refuse
-        /// to read ("dubious ownership").
+        /// own package name, so it never replaces the game on a phone. A phone runs its ARM64 code; an x86_64 emulator
+        /// runs its x86_64 code, because Android's ARM translation lacks an instruction (SEVL) that Unity's own ARM64
+        /// engine uses and kills it with SIGILL. It renders with OpenGL ES 3, which the emulator's software renderer
+        /// provides. It has no version, so it needs no git history, which CI's container may refuse to read ("dubious
+        /// ownership").
         /// </summary>
         public static void AndroidDeterminism()
         {
@@ -73,6 +74,7 @@ namespace Eirora.Editor
             bool defaultGraphics = PlayerSettings.GetUseDefaultGraphicsAPIs(BuildTarget.Android);
             var graphics = PlayerSettings.GetGraphicsAPIs(BuildTarget.Android);
             bool storedGraphics = AndroidGraphicsEntry() >= 0;
+            var architectures = PlayerSettings.Android.targetArchitectures;
             var openScenes = EditorSceneManager.GetSceneManagerSetup();
             bool succeeded;
             try
@@ -83,6 +85,7 @@ namespace Eirora.Editor
                 PlayerSettings.productName = productName + " determinism";
                 PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
                 PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.OpenGLES3 });
+                PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64;
                 succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraDeterminism.apk", scene, versioned: false);
             }
             finally
@@ -92,6 +95,7 @@ namespace Eirora.Editor
                 PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, graphics);
                 PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, defaultGraphics);
                 RemoveAndroidGraphicsEntryUnless(storedGraphics);
+                PlayerSettings.Android.targetArchitectures = architectures;
                 // An untitled scene cannot be reopened, so an empty one takes its place.
                 if (openScenes.Length > 0 && openScenes.All(s => s.path.Length > 0))
                 {

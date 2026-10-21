@@ -174,7 +174,7 @@ Varje kommando i en handgjord replay måste godtas, utom de nekanden som fallet 
 De slumpade sekvenserna kommer från `Scenario`, som anpassar tre av fyra kommandon efter världen och väntar till efter gryningen innan de flesta kommandon som annars skulle komma under vilan; de övriga är blinda, så att nekanden också spelas.
 Testet kräver att korpusens slumpade replays godtar mer än hälften av sina kommandon och att var och en nekar något.
 
-`ReplayCorpusTests` skriver tillståndets hash för varje post till `artifacts/determinism/dotnet.txt`, och determinismbygget (IL2CPP för ARM64, spelets paketnamn plus `.determinism`) gör samma sak på Android.
+`ReplayCorpusTests` skriver tillståndets hash för varje post till `artifacts/determinism/dotnet.txt`, och determinismbygget (IL2CPP för ARM64 och x86_64, spelets paketnamn plus `.determinism`) gör samma sak på Android.
 Servern, spelarnas telefoner och emulatorn (en-US) kör i olika kulturer, så `ReplayCorpusTests` spelar också upp korpusen under sv-SE och tr-TR och kräver samma hash som under invariant kultur.
 Med ICU skriver sv-SE minustecken som U+2212, och tr-TR gör om `I` till ett prickfritt `ı`.
 Jämför .NET och IL2CPP på en emulator eller telefon:
@@ -190,7 +190,10 @@ scripts/check-determinism.sh
 Skriptet läser paketnamnet ur APK:n med `aapt2` från Android SDK:ns build-tools (eller `AAPT2=<sökväg>`), och installerar och avinstallerar bara determinismbygget, aldrig spelet.
 Om appen försvinner innan den har rapporterat underkänner skriptet direkt och skriver ut kraschloggen; hela logcat sparas i `artifacts/determinism/logcat.txt`.
 Determinismbygget har en egen scen med bara `DeterminismBootstrap`, som `Builds.AndroidDeterminism` gör för bygget och tar bort efteråt; korpusen ligger i `client/Assets/Eirora/Determinism/` bara medan bygget pågår.
-Bygget renderar bara med OpenGL ES 3, eftersom appen kraschade med SIGILL när grafiken startade med standardvalet (Vulkan först) på emulatorns programvarurenderare (SwiftShader).
+En telefon kör byggets ARM64-kod och en x86_64-emulator dess x86_64-kod.
+Androids ARM-översättning i emulatorn kan inte köra Unitys ARM64-motor: den saknar instruktionen SEVL (`0xd50320bf`) som `libunity.so` använder, och appen dör med SIGILL innan någon scenkod körs.
+Emulatorn prövar därför IL2CPP för x86_64; IL2CPP för ARM64 prövas bara på en telefon.
+Bygget renderar med OpenGL ES 3, som emulatorns programvarurenderare (SwiftShader) ger.
 Det har ingen version, så det behöver ingen git-historik.
 Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `client/Assets/`, `client/Packages/`, `tests/Replays/` eller de gyllene sparningarna och kartorna.
 `client/ProjectSettings/` jämförs inte, eftersom bygget självt sparar den efter att APK:n skrivits; bygg om efter en ändring där.
@@ -202,7 +205,7 @@ Ta då bort `tests/Replays/*.replay` och kör `ReplayCorpusTests`, som skriver o
 
 Unity-workflowen jämför korpusen i två jobb.
 `Determinism build` bygger APK:n med GameCI på en runner som frigör allt diskutrymme som Unitys Android-avbildning behöver.
-`Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34, som kör ARM64-bygget genom Androids ARM-översättning.
+`Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34.
 Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
 Titta därför på jobbet innan en PR som rör simuleringen mergas.
 
