@@ -119,6 +119,15 @@
     margin-left: 6px;
 }
 
+/* The account button at the end of the bar: a square with a person (ADR-0008). */
+.button-icon {
+    flex-grow: 0;
+    flex-basis: 120px;
+    width: 120px;
+    align-items: center;
+    justify-content: center;
+}
+
 .button-wide {
     flex-grow: 0;
     flex-basis: auto;
@@ -294,6 +303,11 @@
 .tab-selected {
     background-color: rgb(43, 42, 51);
     color: rgb(251, 247, 239);
+}
+
+.link {
+    color: rgb(180, 71, 58);
+    -unity-font-style: bold;
 }
 
 .report-line {

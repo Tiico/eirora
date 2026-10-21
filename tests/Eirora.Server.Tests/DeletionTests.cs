@@ -106,6 +106,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         var exchange = Assert.Single(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code).Form;
         Assert.Equal(TestProviders.AppleAudience, exchange["client_id"]);
         Assert.Equal("authorization_code", exchange["grant_type"]);
+        Assert.False(exchange.ContainsKey("redirect_uri"), "The iOS app's native sign-in has no return URL.");
         await AssertAppleClientSecretAsync(exchange["client_secret"]);
         Assert.Contains(_server.Apple.Requests, r => r.Path == "/auth/revoke"
             && r.Form["token"] == AppleStub.RefreshToken

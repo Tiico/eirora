@@ -1,0 +1,111 @@
+/* The deletion page in the game's colours: light panel, dark text (docs/design/art-direction.md). */
+
+:root {
+  --background: rgb(240, 233, 220);
+  --panel: rgb(251, 247, 239);
+  --text: rgb(43, 42, 51);
+  --muted: rgb(104, 101, 117);
+  --danger: rgb(180, 71, 58);
+  --danger-pressed: rgb(160, 60, 49);
+  --line: rgba(43, 42, 51, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px 48px;
+  background: var(--background);
+  color: var(--text);
+  font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 28px 32px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+
+h2 {
+  font-size: 20px;
+  margin: 28px 0 8px;
+}
+
+p,
+li {
+  margin: 0 0 10px;
+}
+
+ul {
+  padding-left: 22px;
+  margin: 0 0 10px;
+}
+
+#sign-in,
+#confirm {
+  margin-top: 18px;
+}
+
+.provider {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  min-height: 44px;
+}
+
+#appleid-signin {
+  width: 260px;
+  height: 44px;
+  cursor: pointer;
+}
+
+button {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 12px auto 0;
+  padding: 14px 20px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger-pressed);
+  color: var(--panel);
+}
+
+button.danger:active {
+  background: var(--danger-pressed);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#message {
+  margin-top: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+#message:empty {
+  display: none;
+}

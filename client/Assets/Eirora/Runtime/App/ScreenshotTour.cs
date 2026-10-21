@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Simulation.Economy;
@@ -29,6 +31,14 @@ namespace Eirora.Client.App
             client.Begin(session);
             yield return client.Frames(5);
             yield return Capture(client, folder, "01-first-launch");
+
+            // The account against a fake server, so the bar looks as in a build with sign-in (TASK-022).
+            var account = new AccountSession(
+                FakeAccountServer.Url,
+                new FakeAccountServer(() => DateTimeOffset.UtcNow),
+                new MemorySecureStore(),
+                new ILoginProvider[] { new FakeLogin(Contracts.LoginProviders.Apple, "tour"), new FakeLogin(Contracts.LoginProviders.Google, "tour") });
+            client.Hud.UseAccount(account);
 
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
             foreach (string refusal in ScriptedWeek.Play(session, clock))
@@ -78,6 +88,18 @@ namespace Eirora.Client.App
             client.Hud.Select(null);
             client.Hud.OpenHealthExplanation();
             yield return Capture(client, folder, "12-health-explanation");
+            client.Hud.Select(null);
+
+            // The account: signed out, signed in with Google, and the confirmation before deleting it (TASK-022).
+            client.Hud.OpenAccount();
+            yield return Capture(client, folder, "14-account");
+            client.Hud.Select(null);
+            _ = account.SignInAsync(Contracts.LoginProviders.Google);
+            client.Hud.OpenAccount();
+            yield return Capture(client, folder, "15-account-signed-in");
+            client.Hud.Select(null);
+            client.Hud.OpenAccountDeletion();
+            yield return Capture(client, folder, "16-account-deletion");
             client.Hud.Select(null);
 
             // The sawmill upgraded on day 4, next to the level-1 storehouse: how a level reads on the island (ADR-0009).

@@ -2,7 +2,7 @@
 
 Integritetspolicyn som Google Play och Health Connect länkar till ligger på `https://<värdnamn>/privacy/` (ADR-0007).
 Sidorna körs med [compose.yaml](./compose.yaml) som ett eget compose-projekt bakom samma Traefik som backenden, så att policyn finns kvar även när backenden ligger nere eller inte är driftsatt.
-Utvecklarnamnet och kontaktadressen står bara i `.env` på servern och fylls i när sidan skickas.
+Utvecklarnamnet, kontaktadressen och adressen till serverns raderingssida står bara i `.env` på servern och fylls i när sidan skickas.
 
 ## Första gången
 
@@ -14,7 +14,7 @@ Utvecklarnamnet och kontaktadressen står bara i `.env` på servern och fylls i 
 docker compose --env-file .env up -d
 ```
 
-4. Öppna `https://<värdnamn>/privacy/` och kontrollera att namnet och adressen syns.
+4. Öppna `https://<värdnamn>/privacy/` och kontrollera att namnet, kontaktadressen och länken till raderingssidan syns.
    Samma adress anges som integritetspolicy i Play Console under **Appinnehåll** och på butikssidan.
 
 ## Ändra policyn

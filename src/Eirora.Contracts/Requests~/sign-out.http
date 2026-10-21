@@ -1,0 +1,4 @@
+POST /connect/revoke
+Content-Type: application/x-www-form-urlencoded
+
+token=__REFRESH_TOKEN__&token_type_hint=refresh_token

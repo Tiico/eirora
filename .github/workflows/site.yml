@@ -27,6 +27,7 @@ jobs:
       EIRORA_SITE_HOST: site.example.test
       EIRORA_DEVELOPER_NAME: Test Developer
       EIRORA_PRIVACY_CONTACT: privacy@example.test
+      EIRORA_ACCOUNT_DELETION_URL: https://api.example.test/account/delete
     steps:
       - uses: actions/checkout@v7
 
@@ -35,7 +36,7 @@ jobs:
 
       - run: docker compose up --detach --wait --wait-timeout 60
 
-      - name: The policy names the developer and the contact, and keeps its headers
+      - name: The policy names the developer, the contact and the deletion page, and keeps its headers
         run: |
           get() { docker compose exec -T site wget -q -S -O - "http://127.0.0.1:8080$1" 2>&1 || true; }
           failed=0
@@ -48,6 +49,7 @@ jobs:
           expect "$page" "Ansvarig för appen: Test Developer."
           expect "$page" "Developer: Test Developer."
           expect "$page" 'href="mailto:privacy@example.test"'
+          expect "$page" 'href="https://api.example.test/account/delete"'
           if grep -q "{{" <<<"$page"; then echo "::error::A placeholder was not filled in"; failed=1; fi
           expect "$(get /site.css)" "HTTP/1.1 200"
           expect "$(get /)" "Location: .*/privacy/"

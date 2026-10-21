@@ -1,0 +1,5 @@
+POST /api/account/logins
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"login":{"provider":"apple","idToken":"__LOGIN_ID_TOKEN__","nonce":"__LOGIN_NONCE__","authorizationCode":""},"confirmation":{"provider":"google","idToken":"__CONFIRMATION_ID_TOKEN__","nonce":"__CONFIRMATION_NONCE__","authorizationCode":""}}

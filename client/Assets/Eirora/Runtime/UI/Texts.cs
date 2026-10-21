@@ -76,6 +76,30 @@ namespace Eirora.Client.UI
         /// <summary>Which build this is, so the prototype diary can refer to it (TASK-014).</summary>
         public static string Build(string appVersion) => $"Version {appVersion} · regelversion {RulesVersion.Current}";
 
+        public static string Provider(string provider) => provider switch
+        {
+            Contracts.LoginProviders.Apple => "Apple",
+            Contracts.LoginProviders.Google => "Google",
+            _ => provider,
+        };
+
+        /// <summary>What to tell the player after an account action, or null when there is nothing to say.</summary>
+        public static string? Account(Accounts.AccountOutcome outcome) => outcome switch
+        {
+            Accounts.AccountOutcome.Created => "Kontot är skapat. Välkommen!",
+            Accounts.AccountOutcome.Deleted => "Kontot är raderat. Din värld finns kvar på telefonen.",
+            Accounts.AccountOutcome.Offline => "Servern går inte att nå just nu. Spelet fungerar som vanligt.",
+            Accounts.AccountOutcome.SignedOut => "Du är utloggad. Logga in igen för att fortsätta.",
+            Accounts.AccountOutcome.SignInFailed => "Inloggningen gick inte. Försök igen.",
+            Accounts.AccountOutcome.ProviderUnavailable => "Den inloggningen finns inte på den här telefonen.",
+            Accounts.AccountOutcome.LoginOfAnotherAccount => "Den inloggningen hör redan till ett annat konto.",
+            Accounts.AccountOutcome.LastLogin => "Kontot behöver minst en inloggning.",
+            Accounts.AccountOutcome.NotThisAccount => "Bekräfta med en inloggning som hör till det här kontot.",
+            Accounts.AccountOutcome.ConfirmationUnavailable => "Telefonen kan inte logga in med någon av kontots inloggningar.",
+            Accounts.AccountOutcome.Failed => "Det gick inte just nu. Försök igen om en stund.",
+            _ => null,
+        };
+
         public static string Reason(Rejection rejection) => rejection switch
         {
             Rejection.Resting => "Byborna sover. Det här kan du göra i morgon.",

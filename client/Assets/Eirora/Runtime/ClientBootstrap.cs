@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Eirora.Client.Accounts;
 using Eirora.Client.App;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
@@ -80,6 +81,8 @@ namespace Eirora.Client
             _healthSource = new AndroidHealthSource();
             _healthSync = new HealthSync(_healthSource);
 #endif
+            // Only offered where the build has a server and a provider; the world never waits for it (ACC-04).
+            _hud.UseAccount(DeviceAccounts.Create(AccountConfig.Load()));
             Begin(new GameSession(new DeviceClock(), GameSession.DefaultSavePath));
             SyncHealth();
         }

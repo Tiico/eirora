@@ -19,9 +19,10 @@ namespace Eirora.Client.UI
 {
     /// <summary>
     /// The prototype's interface, built in code with UI Toolkit (NFR-14): forces and stock at the top, actions at
-    /// the bottom, a sheet for the selected place, self-care input, the daily report and the night view (RST-03).
+    /// the bottom, a sheet for the selected place, self-care input, the daily report, the account and the night view
+    /// (RST-03).
     /// </summary>
-    public sealed class Hud
+    public sealed partial class Hud
     {
         private readonly Func<GameCommand, CommandResult> _apply;
         private readonly IHealthControls? _health;
@@ -82,6 +83,7 @@ namespace Eirora.Client.UI
             Fog,
             SelfCare,
             Report,
+            Account,
         }
 
         /// <summary>The selected tile changed; the island marks it.</summary>
@@ -277,12 +279,19 @@ namespace Eirora.Client.UI
             }
 
             Button("button", _bar, "Rapport", () => Open(Sheet.Report));
+            if (_account is not null)
+            {
+                // Always there, also during rest (RST-07), but never in the way of playing (ACC-04).
+                var account = Button("button button-icon", _bar, string.Empty, OpenAccount);
+                account.Add(new AccountIcon());
+            }
         }
 
         private void Open(Sheet sheet)
         {
             _open = _open == sheet ? Sheet.None : sheet;
             _explainingHealth = false;
+            _confirmingDeletion = false;
             if (sheet == Sheet.SelfCare && _world is not null)
             {
                 _selfCare.Reset(_world.GameDay);
@@ -330,6 +339,9 @@ namespace Eirora.Client.UI
                     break;
                 case Sheet.Report:
                     ReportSheet();
+                    break;
+                case Sheet.Account:
+                    AccountSheet();
                     break;
             }
         }
