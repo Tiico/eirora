@@ -186,7 +186,8 @@ namespace Eirora.Editor
             var options = new BuildPlayerOptions
             {
                 scenes = scene is null ? EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray() : new[] { scene },
-                locationPathName = Argument("-buildOutput") ?? defaultOutput,
+                // GameCI names its output with -customBuildPath and fails when nothing is there.
+                locationPathName = Argument("-buildOutput") ?? Argument("-customBuildPath") ?? defaultOutput,
                 target = target,
                 targetGroup = group,
                 options = BuildOptions.StrictMode,
@@ -342,7 +343,7 @@ namespace Eirora.Editor
         {
             var args = Environment.GetCommandLineArgs();
             int index = Array.IndexOf(args, name);
-            return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+            return index >= 0 && index + 1 < args.Length && args[index + 1].Length > 0 && !args[index + 1].StartsWith("-", StringComparison.Ordinal) ? args[index + 1] : null;
         }
     }
 }
