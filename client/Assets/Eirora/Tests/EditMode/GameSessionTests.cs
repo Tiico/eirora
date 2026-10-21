@@ -177,6 +177,23 @@ namespace Eirora.Client.Tests
             Assert.That(File.ReadAllText(journalPath + ".taken-over", Encoding.UTF8), Is.EqualTo(journal.ToText()));
         }
 
+        // Rules 4 builds on tiles (TASK-037), so a journal from M1 would replay to another world; it is kept and the player told (D-102).
+        [Test]
+        public void APrototypeJournalFromRulesNoLongerReplayedIsKeptAndExplained()
+        {
+            var journal = Journal.Start(Clock().Now(), Night);
+            string journalPath = Path.Combine(_folder, GameSession.PrototypeJournalFile);
+            string fromM1 = journal.ToText().Replace($"rules {RulesVersion.Current}", "rules 1");
+            File.WriteAllText(journalPath, fromM1);
+
+            var session = Session();
+
+            Assert.That(session.TryLoad(), Is.False);
+            Assert.That(session.LoadProblem, Is.EqualTo(SaveProblem.FromOlderPrototype));
+            Assert.That(File.ReadAllText(journalPath), Is.EqualTo(fromM1));
+            Assert.That(session.SetAsideSave().Select(File.ReadAllText), Is.EquivalentTo(new[] { fromM1 }));
+        }
+
         /// <summary>A save's frame around <paramref name="body"/>, as a newer app would write it.</summary>
         private static string Sealed(string header, string body)
         {

@@ -1,5 +1,6 @@
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -61,11 +62,19 @@ public sealed class JournalTests
     [InlineData("")]
     [InlineData("something else\ncreate 0 Europe/Stockholm 0 1380 480\n")]
     [InlineData("eirora-journal 1 rules 999\ncreate 0 Europe/Stockholm 0 1380 480\n")]
-    [InlineData("eirora-journal 1 rules 1\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 teleport\n")]
-    [InlineData("eirora-journal 1 rules 1\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Castle S\n")]
-    [InlineData("eirora-journal 1 rules 1\ncreate zero Europe/Stockholm 0 1380 480\n")]
+    [InlineData("eirora-journal 1 rules 4\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 teleport\n")]
+    [InlineData("eirora-journal 1 rules 4\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Castle 0 0\n")]
+    [InlineData("eirora-journal 1 rules 4\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Cottage L1\n")]
+    [InlineData("eirora-journal 1 rules 4\ncreate zero Europe/Stockholm 0 1380 480\n")]
     public void TextThatIsNotAJournalIsRejected(string text) =>
         Assert.Throws<FormatException>(() => Journal.Load(text));
+
+    // Rules 4 builds on tiles (TASK-037), so a journal under earlier rules would replay to another world (ADR-0006, D-102).
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void AJournalUnderRulesThatAreNoLongerReplayedIsRefused(int rules) =>
+        Assert.Throws<JournalFromOlderRulesException>(() => Journal.Load($"eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\n"));
 
     private static Journal PlayedWeek()
     {

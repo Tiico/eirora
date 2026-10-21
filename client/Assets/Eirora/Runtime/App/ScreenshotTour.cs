@@ -52,6 +52,8 @@ namespace Eirora.Client.App
 
             client.Hud.Select(ScriptedWeek.EmptyFarmland);
             yield return Capture(client, folder, "03-site");
+            client.Hud.ShowHousingAndWorkshops();
+            yield return Capture(client, folder, "03-site-housing");
 
             client.Hud.Select(ScriptedWeek.FishingHut);
             yield return Capture(client, folder, "04-building");

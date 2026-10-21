@@ -14,6 +14,7 @@ using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using UnityEngine;
 using UnityEngine.UIElements;
+using MapTerrain = Eirora.Simulation.Map.Terrain;
 
 namespace Eirora.Client.UI
 {
@@ -27,6 +28,7 @@ namespace Eirora.Client.UI
         private readonly Func<GameCommand, CommandResult> _apply;
         private readonly IHealthControls? _health;
         private bool _explainingHealth;
+        private bool _anyLandShown;
         private readonly VisualElement _root;
         private readonly VisualElement _screen;
         private readonly VisualElement _top;
@@ -130,6 +132,11 @@ namespace Eirora.Client.UI
                 Text("sheet-text", card, "Din värld sparades av en nyare version av Eirora. Uppdatera appen för att spela vidare. Världen är kvar och ingenting har skrivits över.");
                 Text("sheet-text", card, "Du kan också börja en ny värld. Den gamla sparas då undan.");
             }
+            else if (problem == SaveProblem.FromOlderPrototype)
+            {
+                Text("sheet-text", card, "Din värld kommer från den första prototypen. Nu bygger byborna på vilken bricka som helst, och den gamla världen skulle bli en annan om den spelades upp igen. Den finns kvar på telefonen och ingenting har skrivits över.");
+                Text("sheet-text", card, "Börja en ny värld. Den gamla sparas då undan.");
+            }
             else
             {
                 Text("sheet-text", card, "Den sparade världen och dess reservkopia kunde inte läsas. De finns kvar på telefonen och ingenting har skrivits över.");
@@ -189,9 +196,17 @@ namespace Eirora.Client.UI
             }
 
             _tile = tile;
+            _anyLandShown = false;
             _fog = null;
             _open = tile is null ? Sheet.None : Sheet.Tile;
             SelectionChanged?.Invoke(tile);
+            ShowSheet();
+        }
+
+        /// <summary>Lists the housing and workshops that any land takes on the selected tile, in place of what it is special for.</summary>
+        public void ShowHousingAndWorkshops()
+        {
+            _anyLandShown = true;
             ShowSheet();
         }
 
@@ -398,15 +413,28 @@ namespace Eirora.Client.UI
 
             Text("sheet-title", _sheet, ground);
             Text("sheet-subtitle", _sheet, Texts.Uses(uses));
-            // What only this kind of tile allows comes first, then what any land allows.
+            if (world.Map.TerrainAt(tile) == MapTerrain.Forest)
+            {
+                Text("sheet-text", _sheet, Texts.Timber(world.TimberLeft(tile)));
+            }
+
+            // What only this kind of tile allows comes first; housing and workshops, which any land takes, wait behind
+            // one row, so that the sheet leaves the island in view.
             var buildable = Enum.GetValues(typeof(BuildingKind)).Cast<BuildingKind>()
                 .Where(kind => world.CheckBuild(kind, tile) == Rejection.None)
-                .OrderBy(kind => BuildingSpec.For(kind).Requirement == TileUse.Land)
                 .ToList();
-            foreach (var kind in buildable)
+            var special = buildable.Where(kind => BuildingSpec.For(kind).Requirement != TileUse.Land).ToList();
+            var anyLand = buildable.Except(special).ToList();
+            bool folded = special.Count > 0 && anyLand.Count > 0 && !_anyLandShown;
+            foreach (var kind in folded ? special : _anyLandShown ? anyLand : buildable)
             {
                 var spec = BuildingSpec.For(kind);
                 AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)));
+            }
+
+            if (folded)
+            {
+                AddAction("Bostad eller verkstad", Capital(Texts.List(anyLand.Select(k => Texts.Name(k).ToLowerInvariant()))), true, ShowHousingAndWorkshops);
             }
 
             if (buildable.Count == 0 && (uses & TileUse.Crest) != 0)

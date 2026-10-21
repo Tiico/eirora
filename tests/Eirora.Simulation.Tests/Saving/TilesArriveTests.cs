@@ -90,4 +90,65 @@ public sealed class TilesArriveTests
     }
 
     private static World NewWorld() => World.Create(At("2026-10-14 14:00", 2), Night);
+
+    // Acceptance, on a world a player could have saved: the golden save from rules 3 keeps every building, road and
+    // lifted tile, and every balance.
+    [Fact]
+    public void TheGoldenSaveFromRulesThreeKeepsItsBuildingsRoadsFogAndBalances()
+    {
+        byte[] bytes = File.ReadAllBytes(Path.Combine(Root(), "tests", "Eirora.Simulation.Tests", "Saving", "Golden", "save-2-rules-3.save"));
+        var before = Section(System.Text.Encoding.UTF8.GetString(bytes), "latest").Split('\n');
+        Assert.Contains("rules 3", before);
+
+        var after = Save.Load(bytes).World.Fingerprint().Split('\n');
+
+        // Everything but the records that named sites is the same, line for line.
+        string[] renamed = ["building ", "project ", "forest ", "sites-revealed ", "tiles-revealed ", "project-completed ", "expedition-returned "];
+        bool Kept(string line) => !renamed.Any(prefix => line.StartsWith(prefix, StringComparison.Ordinal));
+        Assert.Equal(before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(Kept), after.Where(Kept));
+
+        // Each building is the same kind, level, staff, road, workday and harvest, on its site's tile.
+        var buildingsBefore = before.Where(l => l.StartsWith("building ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
+        var buildingsAfter = after.Where(l => l.StartsWith("building ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
+        Assert.NotEmpty(buildingsBefore);
+        Assert.Equal(buildingsBefore.Count, buildingsAfter.Count);
+        Assert.All(buildingsBefore.Zip(buildingsAfter), pair =>
+        {
+            var site = PrototypeSites.HexOf(pair.First[2]);
+            Assert.Equal(pair.First[1], pair.Second[1]);
+            Assert.Equal((site.Q, site.R), (int.Parse(pair.Second[2], CultureInfo.InvariantCulture), int.Parse(pair.Second[3], CultureInfo.InvariantCulture)));
+            Assert.Equal(pair.First[3..], pair.Second[4..]);
+        });
+    }
+
+    /// <summary>A section of a save's text, by the save's framing (Save.cs).</summary>
+    private static string Section(string save, string name)
+    {
+        int at = save.IndexOf('\n', save.IndexOf('\n') + 1) + 1;
+        while (at < save.Length)
+        {
+            int lineEnd = save.IndexOf('\n', at);
+            string[] header = save[at..lineEnd].Split(' ');
+            int length = int.Parse(header[1], CultureInfo.InvariantCulture);
+            if (header[0] == name)
+            {
+                return save.Substring(lineEnd + 1, length);
+            }
+
+            at = lineEnd + 1 + length;
+        }
+
+        throw new InvalidOperationException($"The save has no '{name}' section.");
+    }
+
+    private static string Root()
+    {
+        var folder = new DirectoryInfo(AppContext.BaseDirectory);
+        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "Eirora.slnx")))
+        {
+            folder = folder.Parent;
+        }
+
+        return folder?.FullName ?? throw new InvalidOperationException("The tests run outside the repository.");
+    }
 }

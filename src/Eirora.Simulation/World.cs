@@ -133,6 +133,9 @@ namespace Eirora.Simulation
         /// <summary>Why a building cannot be built on a tile right now, or <see cref="Rejection.None"/>; costs aside.</summary>
         public Rejection CheckBuild(BuildingKind building, Hex tile) => _settlement.CheckBuild(building, tile);
 
+        /// <summary>Whole units of timber left on a forest tile; woodcutters fell it and it grows back to 40.</summary>
+        public long TimberLeft(Hex tile) => Quantity.Whole(_settlement.ForestLeft(tile));
+
         /// <summary>Steps over land from a tile to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
         public int DepotDistance(Hex tile) => _settlement.DepotDistance(tile);
 
