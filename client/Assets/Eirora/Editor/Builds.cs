@@ -26,7 +26,7 @@ namespace Eirora.Editor
     /// </remarks>
     public static class Builds
     {
-        // Made for the determinism build and deleted after it, so its replays never reach the game (git ignores it).
+        // Made for the determinism build and deleted after it, so its corpus never reaches the game (git ignores it).
         private const string DeterminismFolder = "Assets/Eirora/Determinism";
 
         public static void Android()
@@ -57,8 +57,8 @@ namespace Eirora.Editor
         public static void Windows() => ExitOnFailure(Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe"));
 
         /// <summary>
-        /// The determinism build (TASK-021): IL2CPP for ARM64 that only plays the replay corpus in tests/Replays and logs
-        /// each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
+        /// The determinism build (TASK-021): IL2CPP for ARM64 that only plays the determinism corpus (the replays in
+        /// tests/Replays, the golden saves and the golden maps) and logs each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
         /// own package name, so it never replaces the game on a phone. It renders with OpenGL ES 3 only, because on the
         /// emulator's software renderer (SwiftShader) the player crashed with SIGILL when graphics started with the
         /// default APIs, Vulkan first. It has no version, so it needs no git history, which CI's container may refuse
@@ -76,7 +76,7 @@ namespace Eirora.Editor
             bool succeeded;
             try
             {
-                CopyCorpus(Path.Combine(DeterminismFolder, "Resources", "Replays"));
+                CopyCorpus(Path.Combine(DeterminismFolder, "Resources", DeterminismRun.ResourceFolder));
                 string scene = DeterminismScene();
                 PlayerSettings.SetApplicationIdentifier(android, identifier + ".determinism");
                 PlayerSettings.productName = productName + " determinism";
@@ -107,25 +107,34 @@ namespace Eirora.Editor
             ExitOnFailure(succeeded);
         }
 
-        /// <summary>Copies the replays into the project as text assets, only for the determinism build.</summary>
+        /// <summary>Copies the determinism corpus into the project as text assets, only for the determinism build.</summary>
         private static void CopyCorpus(string folder)
         {
-            string corpus = DeterminismRun.CorpusFolder;
-            var replays = Directory.GetFiles(corpus, "*.replay");
-            if (replays.Length == 0)
+            var replays = Directory.GetFiles(DeterminismRun.ReplayFolder, "*.replay");
+            var saves = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.save");
+            var journals = Directory.GetFiles(DeterminismRun.GoldenSaveFolder, "*.journal");
+            if (replays.Length == 0 || saves.Length == 0 || journals.Length == 0 || !File.Exists(DeterminismRun.GoldenMapList))
             {
-                throw new BuildFailedException($"There are no replays in {corpus}.");
+                throw new BuildFailedException($"The corpus is incomplete: replays in {DeterminismRun.ReplayFolder}, golden saves and journals in {DeterminismRun.GoldenSaveFolder} and {DeterminismRun.GoldenMapList}.");
             }
 
-            // A build that was killed leaves the folder behind, perhaps with replays that are no longer in the corpus.
+            // A build that was killed leaves the folder behind, perhaps with files that are no longer in the corpus.
             RemoveDeterminismFolder();
-            Directory.CreateDirectory(folder);
-            foreach (string replay in replays)
-            {
-                File.Copy(replay, Path.Combine(folder, Path.GetFileNameWithoutExtension(replay) + ".txt"));
-            }
-
+            Copy(replays, Path.Combine(folder, "Replays"), ".txt");
+            Copy(saves, Path.Combine(folder, "Saves"), ".bytes");
+            Copy(journals, Path.Combine(folder, "Journals"), ".txt");
+            File.Copy(DeterminismRun.GoldenMapList, Path.Combine(folder, "maps.txt"));
             AssetDatabase.Refresh();
+        }
+
+        /// <summary>Copies files as TextAssets with the extension that keeps them as they are: .txt for text, .bytes for bytes.</summary>
+        private static void Copy(string[] files, string folder, string extension)
+        {
+            Directory.CreateDirectory(folder);
+            foreach (string file in files)
+            {
+                File.Copy(file, Path.Combine(folder, Path.GetFileNameWithoutExtension(file) + extension));
+            }
         }
 
         /// <summary>Saves a scene with nothing but DeterminismBootstrap in it.</summary>

@@ -11,6 +11,8 @@ on:
       - src/Eirora.Contracts/**
       - src/Eirora.WorldGeneration/**
       - tests/Replays/**
+      - tests/Eirora.Simulation.Tests/Saving/Golden/**
+      - tests/Eirora.Simulation.Tests/WorldGeneration/Golden/**
       - scripts/check-determinism.sh
       - .github/workflows/unity.yml
       - .github/actions/free-disk-space/**
@@ -87,20 +89,18 @@ jobs:
           path: ${{ steps.tests.outputs.artifactsPath }}
           retention-days: 14
 
-  # The replay corpus must give the same state in .NET and in the IL2CPP build on Android (TASK-021, NFR-02).
-  determinism:
-    name: Determinism (.NET and IL2CPP on Android)
+  # The determinism corpus must give the same state in .NET and in the IL2CPP build on Android (TASK-021, NFR-02). The
+  # build and the comparison run on separate runners: Unity's Android image needs the disk that the runner's Android SDK
+  # takes, and the emulator needs that SDK.
+  determinism-build:
+    name: Determinism build (IL2CPP for Android)
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
 
-      # The emulator and the .NET half of the comparison run on the runner, outside Unity's image.
       - uses: ./.github/actions/free-disk-space
-        with:
-          keep-android-sdk: true
-          keep-dotnet: true
 
       - uses: actions/cache@v6
         with:
@@ -116,9 +116,30 @@ jobs:
           buildMethod: Eirora.Editor.Builds.AndroidDeterminism
           versioning: None
 
+      - uses: actions/upload-artifact@v7
+        with:
+          name: determinism-apk
+          path: client/Builds/Android/EiroraDeterminism.apk
+          if-no-files-found: error
+          retention-days: 3
+
+  determinism:
+    name: Determinism (.NET and IL2CPP on Android)
+    needs: determinism-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+
+      # Downloaded after the checkout, so the APK is newer than the code, as check-determinism.sh requires.
+      - uses: actions/download-artifact@v8
+        with:
+          name: determinism-apk
+          path: client/Builds/Android
 
       - name: Enable KVM for the emulator
         run: |

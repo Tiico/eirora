@@ -15,6 +15,4 @@ cmd steps-5 selfcare 2 Steps Verified 9500
 cmd sleep-5 selfcare 2 Sleep Verified 430
 cmd steps-6 selfcare 1 Steps Verified 10400
 cmd sleep-6 selfcare 1 Sleep Verified 440
-cmd steps-7 selfcare 0 Steps Verified 11300
-cmd sleep-7 selfcare 0 Sleep Verified 450
 cmd upgrade upgrade K1

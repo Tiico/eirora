@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Compares the state hashes of the replay corpus (tests/Replays) from .NET with those from the IL2CPP determinism
-# build on an Android emulator or device (TASK-021, NFR-02). Fails when any replay differs.
+# Compares the state hashes of the determinism corpus (the replays in tests/Replays, the golden saves and the golden
+# maps) from .NET with those from the IL2CPP determinism build on an Android emulator or device (TASK-021, NFR-02).
+# Fails when any entry differs.
 #
 # Usage: scripts/check-determinism.sh [EiroraDeterminism.apk]
 # Needs: dotnet, adb (or ADB=<path>), aapt2 from the Android SDK's build tools (or AAPT2=<path>) and one running
@@ -26,7 +27,7 @@ rm -f "$out/dotnet.txt" "$out/android.txt" "$out/logcat.txt"
 # An APK older than the code it is built from or the corpus would compare yesterday's code. ProjectSettings is left
 # out because the build itself saves it after writing the APK.
 [[ -f "$apk" ]] || { echo "::error::$apk does not exist; build it with Eirora.Editor.Builds.AndroidDeterminism."; exit 1; }
-newer="$(find "$root/src/Eirora.Simulation" "$root/src/Eirora.Contracts" "$root/src/Eirora.WorldGeneration" "$root/client/Assets" "$root/client/Packages" "$root/tests/Replays" -type f -newer "$apk" | head -n 1)"
+newer="$(find "$root/src/Eirora.Simulation" "$root/src/Eirora.Contracts" "$root/src/Eirora.WorldGeneration" "$root/client/Assets" "$root/client/Packages" "$root/tests/Replays" "$root/tests/Eirora.Simulation.Tests/Saving/Golden" "$root/tests/Eirora.Simulation.Tests/WorldGeneration/Golden" -type f -newer "$apk" | head -n 1)"
 if [[ -n "$newer" ]]; then
   echo "::error::$apk is older than $newer; build it again."
   exit 1
@@ -36,7 +37,8 @@ fi
 sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$(dirname "$(dirname "$(command -v "$adb")")")}}"
 aapt2="${AAPT2:-$(find "$sdk/build-tools" -maxdepth 2 \( -name aapt2 -o -name aapt2.exe \) 2>/dev/null | sort -V | tail -n 1)}"
 [[ -n "$aapt2" ]] || { echo "::error::aapt2 was not found in $sdk/build-tools; set AAPT2."; exit 1; }
-package="$("$aapt2" dump packagename "$apk" | tr -d '')"
+package="$("$aapt2" dump packagename "$apk" | tr -d '
+')"
 [[ "$package" == *.determinism ]] || { echo "::error::$apk is $package, not a determinism build."; exit 1; }
 
 echo "Hashing the corpus with .NET..."
@@ -66,7 +68,8 @@ for ((second = 0; second < timeout_seconds; second += 2)); do
   if grep -q "$marker-DONE\|$marker-FAILED" <<<"$log"; then
     break
   fi
-  if [[ -n "$("$adb" shell pidof "$package" | tr -d '' || true)" ]]; then
+  if [[ -n "$("$adb" shell pidof "$package" | tr -d '
+' || true)" ]]; then
     started=1
   elif ((started || second >= launch_seconds)); then
     gone=1
@@ -100,8 +103,8 @@ grep -o "$marker [^ ]* [0-9a-f]\{64\}" <<<"$log" | cut -d ' ' -f 2- | sort > "$o
 sort "$out/dotnet.txt" -o "$out/dotnet.txt"
 
 if ! diff -u "$out/dotnet.txt" "$out/android.txt"; then
-  echo "::error::The IL2CPP build on Android and .NET give different states for the replays above."
+  echo "::error::The IL2CPP build on Android and .NET give different states for the entries above."
   exit 1
 fi
 
-echo "All $(wc -l < "$out/dotnet.txt") replays give the same state in .NET and in IL2CPP on Android."
+echo "All $(wc -l < "$out/dotnet.txt") entries give the same state in .NET and in IL2CPP on Android."

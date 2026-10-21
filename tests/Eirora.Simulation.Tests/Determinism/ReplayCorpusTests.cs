@@ -2,17 +2,19 @@ using System.Globalization;
 using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
+using Eirora.WorldGeneration;
 using static Eirora.Simulation.Tests.TestClock;
 
 namespace Eirora.Simulation.Tests.Determinism;
 
 /// <summary>
 /// The replay corpus that proves the simulation gives the same state on the server and in the client (TASK-021,
-/// NFR-02): hand-made scenarios from the UX journeys and economy v1, and random sequences. This test writes each
-/// replay's state hash to artifacts/determinism/dotnet.txt, which scripts/check-determinism.sh compares with the hashes
-/// the IL2CPP build reports on Android.
+/// NFR-02): hand-made scenarios from the UX journeys and economy v1, and random sequences. This test writes the state
+/// hash of each replay, golden save and golden map to artifacts/determinism/dotnet.txt, under the names DeterminismRun
+/// gives them, and scripts/check-determinism.sh compares it with the hashes the IL2CPP build reports on Android.
 /// </summary>
 public sealed class ReplayCorpusTests
 {
@@ -22,6 +24,8 @@ public sealed class ReplayCorpusTests
     private static readonly RestSchedule s_night = new(23 * 60, 8 * 60);
     private static readonly string s_root = RepositoryRoot();
     private static readonly string s_folder = Path.Combine(s_root, "tests", "Replays");
+    private static readonly string s_goldenSaves = Path.Combine(s_root, "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
+    private static readonly string s_goldenMaps = Path.Combine(s_root, "tests", "Eirora.Simulation.Tests", "WorldGeneration", "Golden", "maps.txt");
 
     private static readonly (string Name, Func<Journal> Make)[] s_handMade =
     [
@@ -32,6 +36,15 @@ public sealed class ReplayCorpusTests
         ("economy-sea", () => Week(Sea)),
         ("time-daylight-saving-and-travel", DaylightSavingAndTravel),
     ];
+
+    // A hand-made replay proves what its commands do only if they are carried out, so each is accepted unless the
+    // scenario is about its rejection.
+    private static readonly Dictionary<string, (string Key, Rejection Rejection)[]> s_rejectedOnPurpose = new(StringComparer.Ordinal)
+    {
+        ["ux-evening-with-rest-lock"] = [("build-at-night", Rejection.Resting), ("too-late", Rejection.Resting)],
+    };
+
+    public static TheoryData<string> HandMade => [.. s_handMade.Select(s => s.Name)];
 
     // Replays are inputs, not results, so they never change with the rules; a missing one is written to be committed.
     [Fact]
@@ -56,23 +69,44 @@ public sealed class ReplayCorpusTests
         Assert.True(written.Count == 0, $"Wrote the replays {string.Join(", ", written)}; review and commit them.");
     }
 
-    [Fact]
-    public void EveryReplayGivesTheSameStateTwiceAndIsReportedForComparison()
+    [Theory]
+    [MemberData(nameof(HandMade))]
+    public void AHandMadeReplaysCommandsAreAcceptedUnlessItIsAboutTheirRejection(string name)
     {
-        var replays = Corpus();
-        Assert.NotEmpty(replays);
+        var replay = Corpus().Single(r => r.Name == name).Replay;
 
-        var lines = new StringBuilder();
-        foreach (var (name, replay) in replays)
+        Assert.Equal(s_rejectedOnPurpose.GetValueOrDefault(name, []), Replay.Rejections(replay));
+    }
+
+    // Scenario makes most commands suit the world, so a random replay changes the world rather than bounce off it,
+    // and makes the rest blind, so rejections are still played.
+    [Fact]
+    public void ARandomReplaysCommandsAreMostlyAccepted()
+    {
+        var random = Corpus().Where(r => r.Name.StartsWith("random-", StringComparison.Ordinal)).ToList();
+        Assert.Equal(RandomReplays, random.Count);
+
+        Assert.All(random, r =>
         {
-            string hash = Replay.StateHash(replay);
-            Assert.Equal(hash, Replay.StateHash(replay));
-            lines.Append(name).Append(' ').Append(hash).Append('\n');
-        }
+            int commands = r.Replay.Split('\n').Count(line => line.StartsWith("cmd ", StringComparison.Ordinal));
+            int rejected = Replay.Rejections(r.Replay).Count;
+            Assert.True(rejected > 0 && rejected * 2 < commands, $"{r.Name} rejects {rejected} of {commands} commands.");
+        });
+    }
 
-        string report = Path.Combine(s_root, "artifacts", "determinism");
-        Directory.CreateDirectory(report);
-        File.WriteAllText(Path.Combine(report, "dotnet.txt"), lines.ToString(), new UTF8Encoding(false));
+    [Fact]
+    public void TheCorpusGivesTheSameStateTwiceAndIsReportedForComparison()
+    {
+        var report = Report();
+        Assert.Contains(report, line => line.StartsWith("replay/", StringComparison.Ordinal));
+        Assert.Contains(report, line => line.StartsWith("save/", StringComparison.Ordinal));
+        Assert.Contains(report, line => line.StartsWith("map/procedural-archipelago-", StringComparison.Ordinal));
+
+        Assert.Equal(report, Report());
+
+        string folder = Path.Combine(s_root, "artifacts", "determinism");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "dotnet.txt"), string.Concat(report.Select(line => line + "\n")), new UTF8Encoding(false));
     }
 
     // The server and the players' phones run in different cultures, while the comparison on Android runs in the
@@ -86,10 +120,9 @@ public sealed class ReplayCorpusTests
         Assert.True(
             culture.NumberFormat.NegativeSign != "-" || culture.TextInfo.ToLower('I') != 'i',
             $"{name} formats like the invariant culture here (no ICU data?), so this test would prove nothing.");
-        var replays = Corpus();
 
-        var invariant = HashesIn(CultureInfo.InvariantCulture, replays);
-        var local = HashesIn(culture, replays);
+        var invariant = ReportIn(CultureInfo.InvariantCulture);
+        var local = ReportIn(culture);
 
         Assert.Equal(invariant, local);
     }
@@ -116,7 +149,7 @@ public sealed class ReplayCorpusTests
         var journal = Journal.Start(At("2026-10-14 12:00", 2), s_night);
         journal.Apply("woodcutter", new Build(BuildingKind.Woodcutter, "F2"));
         journal.AdvanceTo(At("2026-10-21 18:00", 2));
-        for (int back = 0; back <= RecordSelfCare.DaysBack; back++)
+        for (int back = 0; back < RecordSelfCare.DaysBack; back++)
         {
             int day = journal.World.GameDay - back;
             journal.Apply($"steps-{back}", new RecordSelfCare(day, Habit.Steps, ContributionSource.Verified, 5_000 + (back * 900)));
@@ -155,7 +188,7 @@ public sealed class ReplayCorpusTests
             3 => [("sawmill-e2", new Build(BuildingKind.Sawmill, "E2")), ("rush", new Rush())],
             4 => [("longhouse-l1", new Build(BuildingKind.Longhouse, "L1")), ("workday-e2", new Workday("E2"))],
             5 => [("fishing-k2", new Build(BuildingKind.FishingHut, "K2"))],
-            _ => [("field-o2", new Build(BuildingKind.Field, "O2")), ("road-m2", new BuildRoad("M2"))],
+            _ => [("field-o2", new Build(BuildingKind.Field, "O2")), ("road-f3", new BuildRoad("F3"))],
         };
 
         foreach (var (key, command) in plan)
@@ -170,12 +203,12 @@ public sealed class ReplayCorpusTests
         (string Key, GameCommand Command)[] plan = day switch
         {
             0 => [("jetty-h1", new Build(BuildingKind.Jetty, "H1")), ("woodcutter-f2", new Build(BuildingKind.Woodcutter, "F2"))],
-            1 => [("sawmill-e2", new Build(BuildingKind.Sawmill, "E2")), ("workday-e2", new Workday("E2"))],
-            2 => [("expedition", new SendExpedition()), ("rush", new Rush())],
-            3 => [("expedition-again", new SendExpedition()), ("workday-f2", new Workday("F2"))],
-            4 => [("jetty-n0", new Build(BuildingKind.Jetty, "N0")), ("sheep-n1", new Build(BuildingKind.SheepFarm, "N1"))],
-            5 => [("quarry-n2", new Build(BuildingKind.Quarry, "N2")), ("weavery-l3", new Build(BuildingKind.Weavery, "L3"))],
-            _ => [("longhouse-l1", new Build(BuildingKind.Longhouse, "L1")), ("workday-n1", new Workday("N1"))],
+            1 => [("sawmill-e2", new Build(BuildingKind.Sawmill, "E2")), ("rush", new Rush()), ("workday-f2", new Workday("F2"))],
+            2 => [("expedition", new SendExpedition()), ("workday-e2", new Workday("E2"))],
+            3 => [("workday-f2", new Workday("F2"))],
+            4 => [("jetty-n0", new Build(BuildingKind.Jetty, "N0")), ("workday-e2", new Workday("E2"))],
+            5 => [("sheep-n1", new Build(BuildingKind.SheepFarm, "N1")), ("quarry-n2", new Build(BuildingKind.Quarry, "N2"))],
+            _ => [("weavery-l3", new Build(BuildingKind.Weavery, "L3")), ("longhouse-l1", new Build(BuildingKind.Longhouse, "L1")), ("workday-n1", new Workday("N1"))],
         };
 
         foreach (var (key, command) in plan)
@@ -238,13 +271,33 @@ public sealed class ReplayCorpusTests
             .Select(path => (Path.GetFileNameWithoutExtension(path), File.ReadAllText(path, Encoding.UTF8)))
             .ToList();
 
-    private static List<string> HashesIn(CultureInfo culture, List<(string Name, string Replay)> replays)
+    /// <summary>
+    /// The state hash of everything the determinism build plays, under the names DeterminismRun gives them: each replay,
+    /// each golden save and prototype journal after loading (and migrating) and saving again, and each golden map made
+    /// again by its generator.
+    /// </summary>
+    private static List<string> Report()
+    {
+        IEnumerable<(string Name, string Hash)> entries = Corpus().Select(r => ($"replay/{r.Name}", Replay.StateHash(r.Replay)))
+            .Concat(Golden("*.save").Select(path => ($"save/{Path.GetFileNameWithoutExtension(path)}", Replay.StateHashAfterSaving(Save.Load(File.ReadAllBytes(path))))))
+            .Concat(Golden("*.journal").Select(path => ($"journal/{Path.GetFileNameWithoutExtension(path)}", Replay.StateHashAfterSaving(Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8))))))
+            .Concat(GoldenMaps().Select(m => ($"map/{m.Id}-{m.Version}-{m.Seed}", WorldGenerators.Get(m.Id, int.Parse(m.Version, CultureInfo.InvariantCulture)).Generate(ulong.Parse(m.Seed, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture)).Hash)));
+        return entries.OrderBy(e => e.Name, StringComparer.Ordinal).Select(e => $"{e.Name} {e.Hash}").ToList();
+    }
+
+    private static IEnumerable<string> Golden(string pattern) => Directory.GetFiles(s_goldenSaves, pattern).Order(StringComparer.Ordinal);
+
+    /// <summary>The generator, version and seed in hex of each golden map.</summary>
+    private static IEnumerable<(string Id, string Version, string Seed)> GoldenMaps() =>
+        File.ReadAllLines(s_goldenMaps, Encoding.UTF8).Where(line => line.Length > 0).Select(line => line.Split(' ')).Select(f => (f[0], f[1], f[2]));
+
+    private static List<string> ReportIn(CultureInfo culture)
     {
         var (current, currentUi) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
         try
         {
             (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (culture, culture);
-            return replays.Select(r => $"{r.Name} {Replay.StateHash(r.Replay)}").ToList();
+            return Report();
         }
         finally
         {
