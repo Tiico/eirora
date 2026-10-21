@@ -1,5 +1,6 @@
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -11,8 +12,9 @@ namespace Eirora.Simulation.Tests;
 /// duplicate keys, self-care late and out of range, and time across zones, offsets and absences.
 /// </summary>
 /// <remarks>
-/// Three in four commands are made to suit the world when they are applied (an affordable building on a revealed free
-/// site, a producing building that can still be upgraded, given a road or worked, self-care within the window), and three in four commands that would come
+/// Three in four commands are made to suit the world when they are applied (an affordable building on a site that takes
+/// it, a producing building that can still be upgraded, given a road or worked, a tile at the fog's edge, self-care
+/// within the window), and three in four commands that would come
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
@@ -144,19 +146,19 @@ internal sealed class Scenario
                 var building = s_buildings[random.Next(s_buildings.Length)];
                 return world => suited && FreeSite(world, pick) is { } free ? new Build(free.Kind, free.Site) : new Build(building, site);
             case 5:
-                return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < BuildingSpec.For(b.Kind).MaxLevel) ?? site : site);
+                return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < BuildingSpec.For(b.Kind).MaxLevel && world.Settlement.CanAfford(BuildingSpec.Upgrade.Cost)) ?? site : site);
             case 6:
-                return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad) ?? site : site);
+                return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad && world.Settlement.DepotDistance(b.Site) > 1 && !world.Settlement.IsQueued(b.Site.Id, ProjectKind.Road)) ?? site : site);
             case 7:
                 int which = random.Next(4);
                 // Around Hemön and out to Nyön, and now and then off the map.
                 int q = random.Next(-14, 15) * (random.Next(20) == 0 ? 3 : 1);
                 int r = random.Next(-14, 15);
-                return _ => which switch
+                return world => which switch
                 {
                     0 => new Survey(),
                     1 => new SendExpedition(),
-                    2 => new LiftFog(q, r),
+                    2 => suited && FogEdge(world, pick) is Hex edge ? new LiftFog(edge.Q, edge.R) : new LiftFog(q, r),
                     _ => new Rush(),
                 };
             case 8:
@@ -167,22 +169,22 @@ internal sealed class Scenario
         }
     }
 
-    /// <summary>One of the affordable buildings that fit a revealed site with nothing on it, or none.</summary>
+    /// <summary>One of the affordable buildings that the settlement would take on a site, or none.</summary>
     private static (BuildingKind Kind, string Site)? FreeSite(World world, int pick)
     {
-        var taken = world.Buildings.Select(b => b.Site.Id)
-            .Concat(world.Projects.Where(p => p.Kind == ProjectKind.Build).Select(p => p.Site.Id))
-            .ToHashSet(StringComparer.Ordinal);
-        bool jettyAway = world.Buildings.Any(b => b.Kind == BuildingKind.Jetty && b.Site.Island != IslandId.Home);
         var free = PrototypeIsland.Sites
-            .Where(s => world.IsRevealed(s.Id) && !taken.Contains(s.Id))
-            .SelectMany(s => s_buildings.Where(k => (s.Kinds & BuildingSpec.For(k).Site) != 0 && Affords(world, k) && (s.Island == IslandId.Home || k == BuildingKind.Jetty || jettyAway)).Select(k => (k, s.Id)))
+            .SelectMany(s => s_buildings.Select(k => (Kind: k, Site: s.Id)))
+            .Where(c => world.Settlement.CheckSite(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(BuildingSpec.For(c.Kind).Cost))
             .ToList();
         return free.Count > 0 ? free[pick % free.Count] : null;
     }
 
-    private static bool Affords(World world, BuildingKind kind) =>
-        Enum.GetValues<Resource>().All(r => !BuildingSpec.For(kind).Cost.TryGetValue(r, out int cost) || world.Stock(r) >= cost);
+    /// <summary>One of the tiles whose fog can be lifted now, or none.</summary>
+    private static Hex? FogEdge(World world, int pick)
+    {
+        var edge = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i]).Where(world.CanLiftFog).ToList();
+        return edge.Count > 0 ? edge[pick % edge.Count] : null;
+    }
 
     /// <summary>The site of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>
     private static string? BuiltSite(World world, int pick, Func<Building, bool> can)

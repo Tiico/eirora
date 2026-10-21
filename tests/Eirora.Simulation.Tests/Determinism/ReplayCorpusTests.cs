@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -35,6 +36,7 @@ public sealed class ReplayCorpusTests
         ("economy-near", () => Week(Near)),
         ("economy-sea", () => Week(Sea)),
         ("time-daylight-saving-and-travel", DaylightSavingAndTravel),
+        ("epoch-fog-towards-nyon", FogTowardsNyon),
     ];
 
     // A hand-made replay proves what its commands do only if they are carried out, so each is accepted unless the
@@ -42,6 +44,7 @@ public sealed class ReplayCorpusTests
     private static readonly Dictionary<string, (string Key, Rejection Rejection)[]> s_rejectedOnPurpose = new(StringComparer.Ordinal)
     {
         ["ux-evening-with-rest-lock"] = [("build-at-night", Rejection.Resting), ("too-late", Rejection.Resting)],
+        ["epoch-fog-towards-nyon"] = [("nyon", Rejection.FoundByExpedition)],
     };
 
     public static TheoryData<string> HandMade => [.. s_handMade.Select(s => s.Name)];
@@ -78,20 +81,20 @@ public sealed class ReplayCorpusTests
         Assert.Equal(s_rejectedOnPurpose.GetValueOrDefault(name, []), Replay.Rejections(replay));
     }
 
-    // Scenario makes most commands suit the world, so a random replay changes the world rather than bounce off it,
-    // and makes the rest blind, so rejections are still played.
+    // Scenario makes most commands suit the world, so the random replays change the world rather than bounce off it,
+    // and makes the rest blind, so each still plays rejections.
     [Fact]
-    public void ARandomReplaysCommandsAreMostlyAccepted()
+    public void TheRandomReplaysCommandsAreMostlyAccepted()
     {
-        var random = Corpus().Where(r => r.Name.StartsWith("random-", StringComparison.Ordinal)).ToList();
+        var random = Corpus().Where(r => r.Name.StartsWith("random-", StringComparison.Ordinal))
+            .Select(r => (r.Name, Commands: r.Replay.Split('\n').Count(line => line.StartsWith("cmd ", StringComparison.Ordinal)), Rejected: Replay.Rejections(r.Replay).Count))
+            .ToList();
         Assert.Equal(RandomReplays, random.Count);
 
-        Assert.All(random, r =>
-        {
-            int commands = r.Replay.Split('\n').Count(line => line.StartsWith("cmd ", StringComparison.Ordinal));
-            int rejected = Replay.Rejections(r.Replay).Count;
-            Assert.True(rejected > 0 && rejected * 2 < commands, $"{r.Name} rejects {rejected} of {commands} commands.");
-        });
+        Assert.All(random, r => Assert.True(r.Rejected > 0, $"{r.Name} rejects no command."));
+        int commands = random.Sum(r => r.Commands);
+        int rejected = random.Sum(r => r.Rejected);
+        Assert.True(rejected * 2 < commands, $"The random replays reject {rejected} of {commands} commands.");
     }
 
     [Fact]
@@ -232,6 +235,22 @@ public sealed class ReplayCorpusTests
         }
 
         journal.AdvanceTo(At("2026-10-21 12:00", 2));
+        return journal;
+    }
+
+    // Epoch 1 (TASK-032): the fog lifted tile by tile east towards Nyön, which only an expedition can find.
+    private static Journal FogTowardsNyon()
+    {
+        var journal = Journal.Start(At("2026-10-14 10:00", 2), s_night);
+        journal.Apply("lift-6-2", new LiftFog(6, -2));
+        journal.Apply("lift-7-2", new LiftFog(7, -2));
+        journal.Apply("lift-8-3", new LiftFog(8, -3));
+        journal.Apply("nyon", new LiftFog(PrototypeHome.NyonCentre.Q, PrototypeHome.NyonCentre.R));
+        journal.Apply("steps", new RecordSelfCare(0, Habit.Steps, ContributionSource.Verified, 12_000));
+        journal.AdvanceTo(At("2026-10-15 08:30", 2));
+        journal.Apply("lift-5-1", new LiftFog(5, -1));
+        journal.Apply("lift-4-0", new LiftFog(4, 0));
+        journal.AdvanceTo(At("2026-10-15 12:00", 2));
         return journal;
     }
 

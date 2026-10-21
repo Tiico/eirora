@@ -152,17 +152,29 @@ Arkitekturtestet underkänner det som kan skilja mellan körmiljöer eller enhet
 - väggklocka, slump, filer, nätverk, miljövariabler och reflektion (som avslöjar vilken runtime som kör);
 - `string.GetHashCode` och iteration över `Dictionary` och `HashSet`, vars ordning beror på hashning och runtimens implementation;
 - `Keys`, `Values` och nyckel–värde-par genom `IDictionary` och `IReadOnlyDictionary`, med `foreach`, LINQ eller en samling som byggs av dem, eftersom IL inte visar om ordboken bakom är sorterad (gå över en sorterad samling med `foreach`, eller över nycklarna i fast ordning);
-- tal som formateras eller tolkas utan `CultureInfo.InvariantCulture`, och strängjämförelser och sorterade strängsamlingar utan ordinal jämförelse.
+- tal som formateras eller tolkas utan `CultureInfo.InvariantCulture`, också tal som läggs till med `StringBuilder.Append` eller `Insert`;
+- strängjämförelser utan `StringComparison`, och strängar som sorteras utan jämförare: sorterade strängsamlingar, `OrderBy`, `OrderByDescending`, `ThenBy` och `ThenByDescending` med en strängnyckel, samt `List<string>.Sort` och `Array.Sort` för strängar.
 
 Testet kan inte se allt.
-Det här är också förbjudet men upptäcks bara av replay-korpusen nedan och vid granskning:
+Det här är också förbjudet men upptäcks bara av determinismkorpusen nedan, kulturtestet och granskning:
 
 - ordning som beror på något annat än nycklarna, till exempel sortering med lika nycklar;
 - en `HashSet` som gås igenom som `IEnumerable<T>` eller `ISet<T>`, till exempel med LINQ, eftersom IL inte visar vilken samling som ligger bakom;
-- strängar som byggs med `$"{tal}"`, som blir `string.Format` med aktuell kultur, och sedan påverkar tillståndet.
+- strängar som byggs med `$"{tal}"`, `string.Format` eller `string.Concat` med ett tal som objekt, som formateras med aktuell kultur, och sedan påverkar tillståndet; i IL syns bara att talet görs till ett objekt, vilket varje felmeddelande också gör;
+- sortering efter en nyckel som jämför strängar på annat sätt, till exempel en tupel med en sträng, en egen `IComparable` eller en `Comparison<string>` som jämför med aktuell kultur.
 
-Replay-korpusen i `tests/Replays/` är handgjorda fall från UX-resorna och ekonomin plus slumpade sekvenser, som start och indata utan regelversion.
-`ReplayCorpusTests` skriver tillståndets hash för varje replay till `artifacts/determinism/dotnet.txt`, och determinismbygget (IL2CPP för ARM64, paketet `com.eirora.game.determinism`) spelar upp samma korpus på Android.
+Determinismkorpusen är det som determinismbygget spelar upp på Android och `ReplayCorpusTests` i .NET, med samma namn:
+
+- `replay/…`: replays i `tests/Replays/`, handgjorda fall från UX-resorna, ekonomin och dimman plus slumpade sekvenser, som start och indata utan regelversion;
+- `save/…` och `journal/…`: de gyllene sparningarna och prototypjournalen, som laddas (och migreras) och sparas igen;
+- `map/…`: de gyllene kartorna, som deras generator gör om från seeden, så att även `ProceduralArchipelagoV1` prövas.
+
+Varje replay blir en sparning som skrivs till bytes och återställs innan tillståndet hashas, som när klienten sparar världen.
+Varje kommando i en handgjord replay måste godtas, utom de nekanden som fallet handlar om och listar (vilolåset i `ux-evening-with-rest-lock`, Nyön i dimman i `epoch-fog-towards-nyon`).
+De slumpade sekvenserna kommer från `Scenario`, som anpassar tre av fyra kommandon efter världen och väntar till efter gryningen innan de flesta kommandon som annars skulle komma under vilan; de övriga är blinda, så att nekanden också spelas.
+Testet kräver att korpusens slumpade replays godtar mer än hälften av sina kommandon och att var och en nekar något.
+
+`ReplayCorpusTests` skriver tillståndets hash för varje post till `artifacts/determinism/dotnet.txt`, och determinismbygget (IL2CPP för ARM64, spelets paketnamn plus `.determinism`) gör samma sak på Android.
 Servern, spelarnas telefoner och emulatorn (en-US) kör i olika kulturer, så `ReplayCorpusTests` spelar också upp korpusen under sv-SE och tr-TR och kräver samma hash som under invariant kultur.
 Med ICU skriver sv-SE minustecken som U+2212, och tr-TR gör om `I` till ett prickfritt `ı`.
 Jämför .NET och IL2CPP på en emulator eller telefon:
@@ -175,9 +187,12 @@ Jämför .NET och IL2CPP på en emulator eller telefon:
 scripts/check-determinism.sh
 ```
 
-Skriptet installerar och avinstallerar bara determinismbygget, aldrig spelet.
+Skriptet läser paketnamnet ur APK:n med `aapt2` från Android SDK:ns build-tools (eller `AAPT2=<sökväg>`), och installerar och avinstallerar bara determinismbygget, aldrig spelet.
+Om appen försvinner innan den har rapporterat underkänner skriptet direkt och skriver ut kraschloggen; hela logcat sparas i `artifacts/determinism/logcat.txt`.
 Determinismbygget har en egen scen med bara `DeterminismBootstrap`, som `Builds.AndroidDeterminism` gör för bygget och tar bort efteråt; korpusen ligger i `client/Assets/Eirora/Determinism/` bara medan bygget pågår.
-Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `client/Assets/`, `client/Packages/` eller `tests/Replays/`.
+Bygget renderar bara med OpenGL ES 3, eftersom appen kraschade med SIGILL när grafiken startade med standardvalet (Vulkan först) på emulatorns programvarurenderare (SwiftShader).
+Det har ingen version, så det behöver ingen git-historik.
+Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `client/Assets/`, `client/Packages/`, `tests/Replays/` eller de gyllene sparningarna och kartorna.
 `client/ProjectSettings/` jämförs inte, eftersom bygget självt sparar den efter att APK:n skrivits; bygg om efter en ändring där.
 
 Replays är indata, inte resultat, så de ändras inte när reglerna ändras.
@@ -185,15 +200,11 @@ Saknas en replay i korpusen skapar testet den och underkänner körningen, så a
 När journalens format för start eller indata ändras går replays inte längre att läsa.
 Ta då bort `tests/Replays/*.replay` och kör `ReplayCorpusTests`, som skriver om hela korpusen från de handgjorda fallen och de fasta fröna för de slumpade sekvenserna; granska och checka in den nya korpusen tillsammans med formatändringen.
 
-Determinism-jobbet i Unity-workflowen bygger determinismbygget och kör skriptet på en Android-emulator.
+Unity-workflowen jämför korpusen i två jobb.
+`Determinism build` bygger APK:n med GameCI på en runner som frigör allt diskutrymme som Unitys Android-avbildning behöver.
+`Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34, som kör ARM64-bygget genom Androids ARM-översättning.
 Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
 Titta därför på jobbet innan en PR som rör simuleringen mergas.
-Jobbet har ännu inte kört i CI, eftersom Unity-jobben hoppas över så länge Unity-licensen saknas bland hemligheterna.
-Tills det har kört grönt och rött en gång var är de här antagandena otestade:
-
-- att `git rev-list --count HEAD` fungerar i GameCI:s container, där `Builds.CommitCount` hämtar versionen (ett fel om ägarskap, `safe.directory`, stoppar bygget);
-- att emulatorn med API 34 för x86_64 kör ARM64-bygget genom Androids ARM-översättning;
-- att APK:n hamnar i `client/Builds/Android/EiroraDeterminism.apk` när GameCI kör `buildMethod`.
 
 ### Kartor och gyllene kartor
 
