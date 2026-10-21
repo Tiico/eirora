@@ -104,6 +104,9 @@ public sealed class GoldenSaveTests
         File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
     }
 
+    /// <summary>The bytes of a checked-in golden save.</summary>
+    internal static byte[] Bytes(string name) => File.ReadAllBytes(Path.Combine(s_folder, name + ".save"));
+
     private static string Expected(string name) => File.ReadAllText(Path.Combine(s_folder, name + ".expected"), Encoding.UTF8);
 
     private static string Name(int format, int rules) => $"save-{format}-rules-{rules}";

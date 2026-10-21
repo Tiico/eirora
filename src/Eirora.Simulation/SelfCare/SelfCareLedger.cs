@@ -33,6 +33,15 @@ namespace Eirora.Simulation.SelfCare
         private readonly SortedDictionary<int, int> _buildPower = new();
         private int _buildPowerStaleFrom = int.MaxValue;
 
+        /// <summary>
+        /// The last game day that takes no more self-care, or null. Set when the world goes on without its contribution
+        /// part; the days up to it count as empty, as for a new world (D-63, D-101).
+        /// </summary>
+        public int? ClosedThrough { get; private set; }
+
+        /// <summary>Closes the game days up to and including <paramref name="day"/> to self-care (D-101).</summary>
+        public void CloseThrough(int day) => ClosedThrough = day;
+
         public void Record(int day, Habit habit, ContributionSource source, int total)
         {
             _totals[(day, habit, source)] = total;
@@ -116,6 +125,11 @@ namespace Eirora.Simulation.SelfCare
 
         public void Write(StateWriter writer)
         {
+            if (ClosedThrough is int closed)
+            {
+                writer.Line("closed-through").Long(closed);
+            }
+
             foreach (var entry in _totals)
             {
                 writer.Line("selfcare").Long(entry.Key.Day).Enum(entry.Key.Habit).Enum(entry.Key.Source).Long(entry.Value);
@@ -140,6 +154,11 @@ namespace Eirora.Simulation.SelfCare
         public static SelfCareLedger Read(StateReader reader)
         {
             var ledger = new SelfCareLedger();
+            if (reader.Next("closed-through"))
+            {
+                ledger.CloseThrough(reader.Int());
+            }
+
             while (reader.Next("selfcare"))
             {
                 int day = reader.Int();
