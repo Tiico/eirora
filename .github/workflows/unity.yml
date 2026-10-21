@@ -1,21 +1,22 @@
-# Tests the Unity client, builds it for Android and iOS, and releases main to Google Play's internal test track.
-# Runs on pushes that can change a build (the client or the libraries it compiles) and on demand.
-# Needs the Unity license secrets in docs/development.md#ci and, to release from main, those in docs/development.md#google-play.
+# Tests the Unity client, builds it for Android and iOS, and releases a published GitHub release to Google Play's
+# internal test track.
+# Pull requests that can change a build (the client or the libraries it compiles) only run the tests: Unity builds are
+# slow and macOS minutes cost ten times as much in a private repository. Releases and manual runs also build.
+# Needs the Unity license secrets in docs/development.md#ci and, to release, those in docs/development.md#google-play.
 name: Unity
 
 on:
-  push:
+  pull_request:
     paths:
       - client/**
       - src/Eirora.Simulation/**
       - src/Eirora.Contracts/**
       - src/Eirora.WorldGeneration/**
-      - tests/Replays/**
-      - tests/Eirora.Simulation.Tests/Saving/Golden/**
-      - tests/Eirora.Simulation.Tests/WorldGeneration/Golden/**
-      - scripts/check-determinism.sh
       - .github/workflows/unity.yml
       - .github/actions/free-disk-space/**
+      - .github/actions/build-version/**
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -24,16 +25,19 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # A release to Google Play that has started is allowed to finish.
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
 
 env:
   UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+  BUILD: ${{ github.event_name != 'pull_request' }}
+  RELEASE: ${{ github.event_name == 'release' }}
 
 jobs:
-  license:
-    name: Check Unity license secrets
+  # Fails within seconds rather than after the tests when a secret is missing or a release cannot be released.
+  preflight:
+    name: Check secrets and release tag
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -48,9 +52,59 @@ jobs:
             exit 1
           fi
 
+      # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
+      # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
+      - name: Fail with instructions when the signing key is missing
+        if: env.BUILD == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEYALIAS_NAME: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          ANDROID_KEYALIAS_PASS: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+        run: |
+          missing=""
+          [ -n "$ANDROID_KEYSTORE_BASE64" ] || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$ANDROID_KEYSTORE_PASS" ] || missing="$missing ANDROID_KEYSTORE_PASS"
+          [ -n "$ANDROID_KEYALIAS_NAME" ] || missing="$missing ANDROID_KEYALIAS_NAME"
+          [ -n "$ANDROID_KEYALIAS_PASS" ] || missing="$missing ANDROID_KEYALIAS_PASS"
+          if [ -n "$missing" ]; then
+            echo "::error title=Android signing secrets missing::Missing:$missing. Run scripts/create-android-keystore.sh, see docs/development.md#signering."
+            exit 1
+          fi
+
+      - name: Fail with instructions when the Google Play secret is missing
+        if: env.RELEASE == 'true'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error title=Google Play secret missing::Missing: PLAY_SERVICE_ACCOUNT_JSON. See docs/development.md#google-play."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        if: env.RELEASE == 'true'
+        with:
+          fetch-depth: 0
+
+      # Checks that the tag names a version.
+      - uses: ./.github/actions/build-version
+        if: env.RELEASE == 'true'
+
+      # A release from another branch would give Google Play a version code that later releases from main stay below.
+      - name: Fail when the release tag is not on main
+        if: env.RELEASE == 'true'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error title=Release tag not on main::Tag $TAG must point at a commit on main, see docs/development.md#släppa-en-version."
+            exit 1
+          fi
+
   test:
     name: Unity tests
-    needs: license
+    needs: preflight
     runs-on: ubuntu-latest
     # The test runner reports its results as a check run on the commit.
     permissions:
@@ -84,10 +138,12 @@ jobs:
 
   # The determinism corpus must give the same state in .NET and in the IL2CPP build on Android (TASK-021, NFR-02). The
   # build and the comparison run on separate runners: Unity's Android image needs the disk that the runner's Android SDK
-  # takes, and the emulator needs that SDK.
+  # takes, and the emulator needs that SDK. Like the app's builds, they run on releases and manual runs only, since
+  # together they take over two hours of the Actions budget.
   determinism-build:
     name: Determinism build (IL2CPP for Android)
     needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -159,56 +215,24 @@ jobs:
           path: artifacts/determinism
           retention-days: 14
 
-  # Main ships an app bundle to Google Play's internal test track (D-75), so the product owner's phone updates without a
-  # cable and keeps its world; other branches build an APK to sideload.
+  # A release ships an app bundle to Google Play's internal test track (D-98), so the product owner's phone updates
+  # without a cable and keeps its world; a manual run builds an APK to sideload.
   android:
     name: Android build
     needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    env:
-      RELEASE: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write
     steps:
-      # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
-      # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
-      - name: Fail with instructions when the signing key is missing
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-          ANDROID_KEYALIAS_NAME: ${{ secrets.ANDROID_KEYALIAS_NAME }}
-          ANDROID_KEYALIAS_PASS: ${{ secrets.ANDROID_KEYALIAS_PASS }}
-        run: |
-          missing=""
-          [ -n "$ANDROID_KEYSTORE_BASE64" ] || missing="$missing ANDROID_KEYSTORE_BASE64"
-          [ -n "$ANDROID_KEYSTORE_PASS" ] || missing="$missing ANDROID_KEYSTORE_PASS"
-          [ -n "$ANDROID_KEYALIAS_NAME" ] || missing="$missing ANDROID_KEYALIAS_NAME"
-          [ -n "$ANDROID_KEYALIAS_PASS" ] || missing="$missing ANDROID_KEYALIAS_PASS"
-          if [ -n "$missing" ]; then
-            echo "::error title=Android signing secrets missing::Missing:$missing. Run scripts/create-android-keystore.sh, see docs/development.md#signering."
-            exit 1
-          fi
-
-      - name: Fail with instructions when the Google Play secret is missing
-        if: env.RELEASE == 'true'
-        env:
-          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error title=Google Play secret missing::Missing: PLAY_SERVICE_ACCOUNT_JSON. See docs/development.md#google-play."
-            exit 1
-          fi
-
       - uses: actions/checkout@v7
         with:
-          # The version is the number of commits, the same rule as local builds (BuildVersion).
+          # The version code is the number of commits.
           fetch-depth: 0
 
-      - name: Version from the number of commits
+      - uses: ./.github/actions/build-version
         id: version
-        run: |
-          commits="$(git rev-list --count HEAD)"
-          echo "name=0.0.$commits" >> "$GITHUB_OUTPUT"
-          echo "code=$commits" >> "$GITHUB_OUTPUT"
 
       - uses: ./.github/actions/free-disk-space
 
@@ -252,9 +276,20 @@ jobs:
           track: internal
           status: completed
 
+      # Keeps the app bundle after the run's artifact has expired.
+      - name: Attach the app bundle to the release
+        if: env.RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          cp build/Android/*.aab "eirora-${{ steps.version.outputs.name }}.aab"
+          gh release upload "$TAG" "eirora-${{ steps.version.outputs.name }}.aab"
+
   ios-project:
     name: iOS Xcode project
     needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -270,11 +305,16 @@ jobs:
           key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
           restore-keys: unity-library-ios-
 
+      - uses: ./.github/actions/build-version
+        id: version
+
       - uses: game-ci/unity-builder@v6
         with:
           projectPath: client
           targetPlatform: iOS
           buildName: Eirora
+          versioning: Custom
+          version: ${{ steps.version.outputs.name }}
 
       # Artifacts drop file modes; tar keeps the executable bit on the Xcode project's build scripts.
       - run: tar -czf eirora-ios-xcode.tar.gz -C build iOS
