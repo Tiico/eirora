@@ -1,5 +1,5 @@
 create 1791972000 Europe/Stockholm 7200 1380 480
-cmd woodcutter build Woodcutter F2
+cmd woodcutter build Woodcutter 3 -2
 time 1792598400 Europe/Stockholm 7200
 cmd steps-0 selfcare 7 Steps Verified 5000
 cmd sleep-0 selfcare 7 Sleep Verified 380
@@ -15,4 +15,4 @@ cmd steps-5 selfcare 2 Steps Verified 9500
 cmd sleep-5 selfcare 2 Sleep Verified 430
 cmd steps-6 selfcare 1 Steps Verified 10400
 cmd sleep-6 selfcare 1 Sleep Verified 440
-cmd upgrade upgrade K1
+cmd upgrade upgrade 1 0

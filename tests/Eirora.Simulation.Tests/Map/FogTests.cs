@@ -18,11 +18,11 @@ public sealed class FogTests
     private static readonly RestSchedule s_night = new(23 * 60, 8 * 60);
 
     [Fact]
-    public void ANewWorldKnowsHemonAndItsCoastButNotTheHiddenSitesOrBeyond()
+    public void ANewWorldKnowsHemonAndItsCoastButNotWhatTheSurveysFindOrBeyond()
     {
         var world = NewWorld();
         var coast = Tiles().Where(h => !s_map.TerrainAt(h).IsLand() && Neighbours(h).Any(n => s_map.IslandAt(n) == PrototypeHome.Home));
-        var hidden = PrototypeIsland.Sites.Where(s => s.Hidden).Select(s => s.Hex).ToHashSet();
+        var hidden = PrototypeIsland.Surveys.SelectMany(s => s.Reveals).ToHashSet();
 
         Assert.All(Tiles().Where(h => s_map.IslandAt(h) == PrototypeHome.Home && !hidden.Contains(h)), h => Assert.True(world.IsKnown(h), h.ToString()));
         Assert.All(coast.Where(h => !hidden.Contains(h)), h => Assert.True(world.IsKnown(h), h.ToString()));
@@ -89,10 +89,10 @@ public sealed class FogTests
     }
 
     [Fact]
-    public void ASiteASurveyRevealsIsNotLiftedTileByTile()
+    public void ATileASurveyRevealsIsNotLiftedTileByTile()
     {
         var world = NewWorld();
-        var vein = PrototypeIsland.Sites.Single(s => s.Id == "M2").Hex;
+        var vein = new Hex(3, -1);
 
         Assert.False(world.CanLiftFog(vein));
         Assert.Equal(Rejection.FoundBySurvey, world.Apply("vein", new LiftFog(vein.Q, vein.R)).Rejection);
@@ -138,14 +138,14 @@ public sealed class FogTests
     }
 
     [Fact]
-    public void ASurveyLiftsTheFogFromItsSites()
+    public void ASurveyLiftsTheFogFromItsTiles()
     {
         var world = NewWorld();
 
         Assert.True(world.Apply("survey", new Survey()).Accepted);
 
-        Assert.All(PrototypeIsland.Surveys[0].Reveals, id => Assert.True(world.IsRevealed(id), id));
-        Assert.All(PrototypeIsland.Surveys[1].Reveals, id => Assert.False(world.IsRevealed(id), id));
+        Assert.All(PrototypeIsland.Surveys[0].Reveals, tile => Assert.True(world.IsKnown(tile), tile.ToString()));
+        Assert.All(PrototypeIsland.Surveys[1].Reveals, tile => Assert.False(world.IsKnown(tile), tile.ToString()));
     }
 
     [Fact]
@@ -167,13 +167,13 @@ public sealed class FogTests
         string folder = Path.Combine(Root(), "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
         var world = Save.Load(File.ReadAllBytes(Path.Combine(folder, "save-1-rules-1.save"))).World;
 
-        Assert.All(PrototypeIsland.Sites, site => Assert.Equal(site.Island == IslandId.Home, world.IsRevealed(site.Id)));
+        Assert.All(PrototypeSites.All, site => Assert.Equal(!PrototypeSites.ExpeditionFound.Contains(site.Id), world.IsKnown(site.Hex)));
     }
 
     [Fact]
     public void TheFogIsTheSameTextAfterARoundTrip()
     {
-        var fog = Fog.AtStart(s_map, PrototypeIsland.Sites.Where(s => s.Hidden).Select(s => s.Hex));
+        var fog = Fog.AtStart(s_map, PrototypeIsland.Surveys.SelectMany(s => s.Reveals));
         fog.Lift(new Hex(6, 0));
 
         var read = Fog.Parse(s_map, fog.ToText());

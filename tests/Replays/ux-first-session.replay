@@ -1,9 +1,9 @@
 create 1791991800 Europe/Stockholm 7200 1380 480
 cmd survey survey
-cmd cottage build Cottage L1
+cmd cottage build Cottage -1 0
 cmd steps selfcare 0 Steps SelfReported 6400
 time 1792010700 Europe/Stockholm 7200
 cmd workout selfcare 0 Workouts SelfReported 1
 time 1792041000 Europe/Stockholm 7200
 cmd sleep selfcare 1 Sleep SelfReported 450
-cmd workday workday O1
+cmd workday workday 0 1

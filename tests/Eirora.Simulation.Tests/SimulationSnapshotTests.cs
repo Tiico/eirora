@@ -84,9 +84,9 @@ public sealed class SimulationSnapshotTests
             new ForceCredited(4, Force.BuildPower, 5),
             new ForceWithdrawn(6, Force.DawnPower, 7),
             new VillagersMovedIn(8, 2),
-            new ProjectCompleted(9, ProjectKind.Road, BuildingKind.Quarry, "M1"),
-            new SitesRevealed(10, ["M2", "F3"]),
-            new ExpeditionReturned(11, ["N0", "N1", "N2"]),
+            new ProjectCompleted(9, ProjectKind.Road, BuildingKind.Quarry, new Hex(-3, -1)),
+            new TilesRevealed(10, [new Hex(3, -1), new Hex(-2, 0)]),
+            new ExpeditionReturned(11, "nyon"),
             new FogLifted(12, -5, 3),
         };
         var writer = new StateWriter();
@@ -116,7 +116,7 @@ public sealed class SimulationSnapshotTests
 
     [Theory]
     [InlineData("settlement 12 ", "settlement 012 ")] // Not the canonical form of the number.
-    [InlineData("forest F1 ", "forest X9 ")] // A site that does not exist.
+    [InlineData("building Storehouse 0 0 ", "building Storehouse 99 0 ")] // A tile off the map.
     public void AStateThatDoesNotRestoreToItselfIsRejected(string original, string replacement)
     {
         var text = Encoding.UTF8.GetString(SimulationSnapshot.Take(World.Create(At("2026-10-14 14:00", 2), Night)).ToBytes());

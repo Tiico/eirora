@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using Eirora.Simulation.Economy;
 
 namespace Eirora.Simulation.Map
 {
     /// <summary>
-    /// The prototype's handmade map, <c>prototype-home</c> version 1: Hemön with its sites and Nyön across the sea to the
+    /// The prototype's handmade map, <c>prototype-home</c> version 1: Hemön with the prototype's sites and Nyön across the sea to the
     /// east, exactly as the client drew them in M1, so every world from the prototype keeps what it has seen (D-81,
     /// ADR-0010). What was scenery around the sites, such as woods and beaches, is now real terrain. Beyond the sea the
     /// prototype drew, the map is deep sea until generator v1 fills it once (TASK-031). Three things differ from M1's
@@ -37,7 +36,7 @@ namespace Eirora.Simulation.Map
         public static readonly Hex NyonBay = new(9, 0);
 
         /// <summary>Hemön's crest, where the Vårdkase stands: the western mountain, a step above the stone vein.</summary>
-        public const string CrestSite = "M1";
+        public static readonly Hex Crest = new(-4, 0);
         public const int CrestHeight = 6;
 
         /// <summary>
@@ -64,44 +63,10 @@ namespace Eirora.Simulation.Map
         /// <summary>Whether a hex was drawn as part of the prototype's sea and land.</summary>
         public static bool WasDrawn(Hex hex) => hex.DistanceTo(Hex.Origin) <= HomeSeaRadius || hex.DistanceTo(NyonCentre) <= NyonSeaRadius;
 
-        /// <summary>The ground of a site: what it offers decides what it is.</summary>
-        public static Terrain TerrainOf(SiteKind kinds)
-        {
-            if ((kinds & SiteKind.FishingWater) != 0)
-            {
-                return Terrain.ShallowSea;
-            }
-
-            if ((kinds & SiteKind.Forest) != 0)
-            {
-                return Terrain.Forest;
-            }
-
-            if ((kinds & SiteKind.Mountain) != 0)
-            {
-                return Terrain.Mountain;
-            }
-
-            if ((kinds & SiteKind.Farmland) != 0)
-            {
-                return Terrain.Farmland;
-            }
-
-            if ((kinds & SiteKind.Pasture) != 0)
-            {
-                return Terrain.Pasture;
-            }
-
-            return (kinds & SiteKind.HarborSpot) != 0 ? Terrain.Beach : Terrain.Grassland;
-        }
-
-        /// <summary>The map's island id for an island of the economy.</summary>
-        public static string IslandOf(IslandId island) => island == IslandId.Nyon ? Nyon : Home;
-
         private static WorldMap Create()
         {
-            var sites = new Dictionary<Hex, Site>();
-            foreach (var site in PrototypeIsland.Sites)
+            var sites = new Dictionary<Hex, PrototypeSites.Named>();
+            foreach (var site in PrototypeSites.All)
             {
                 sites[site.Hex] = site;
             }
@@ -132,11 +97,11 @@ namespace Eirora.Simulation.Map
                 }
             }
 
-            foreach (var site in PrototypeIsland.Sites)
+            foreach (var site in PrototypeSites.All)
             {
                 var hex = site.Hex;
-                int height = site.Id == CrestSite ? CrestHeight : Height(map.TerrainAt(hex));
-                map.Set(hex, map.TerrainAt(hex), height, site.RichnessPercent);
+                int height = hex == Crest ? CrestHeight : Height(map.TerrainAt(hex));
+                map.Set(hex, map.TerrainAt(hex), height, site.Richness);
             }
 
             Set(map, WesternQuarry, Terrain.Mountain);
@@ -146,11 +111,11 @@ namespace Eirora.Simulation.Map
             return map.Build();
         }
 
-        private static Terrain LandTerrain(Hex hex, int distance, Dictionary<Hex, Site> sites)
+        private static Terrain LandTerrain(Hex hex, int distance, Dictionary<Hex, PrototypeSites.Named> sites)
         {
             if (sites.TryGetValue(hex, out var site))
             {
-                return TerrainOf(site.Kinds);
+                return site.Terrain;
             }
 
             // Woods near the forest sites, a beach on the outer ring, meadow in between.

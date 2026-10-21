@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 
@@ -15,6 +16,19 @@ namespace Eirora.Client.App
     public static class ScriptedWeek
     {
         private const string Zone = "Europe/Stockholm";
+
+        /// <summary>The start fishing hut, which the tour shows with its sheet.</summary>
+        public static readonly Hex FishingHut = new(1, 0);
+
+        /// <summary>Farmland the second survey finds and the week leaves empty, which the tour shows with its sheet.</summary>
+        public static readonly Hex EmptyFarmland = new(-1, 2);
+
+        /// <summary>The sawmill the week upgrades.</summary>
+        public static readonly Hex Sawmill = new(2, -2);
+
+        // The tiles the week builds on, by the names the economy model gives them (economy_v1.py, NAMES).
+        private static readonly Hex F3 = new(-2, 0), M2 = new(3, -1), H1 = new(1, 1), E1 = new(2, -1), L1 = new(-1, 0), L2 = new(0, -1);
+        private static readonly Hex L3 = new(-1, 1), K2 = new(-3, 3), N0 = new(10, 0), N1 = new(10, 1), N2 = new(11, 0);
 
         /// <summary>
         /// Plays game days 1–7 with self-care and the Havet path of economy-v1.md, section 7, from the first survey to a
@@ -57,20 +71,20 @@ namespace Eirora.Client.App
         // longhouse, the cottage and Nyön's jetty; the jetty must stand before anything else is built on Nyön.
         private static GameCommand[] Plan(int day) => day switch
         {
-            0 => new GameCommand[] { new Survey(), new Build(BuildingKind.Woodcutter, "F3"), new Build(BuildingKind.Quarry, "M2"), new Build(BuildingKind.Jetty, "H1"), new Workday("K1") },
-            1 => new GameCommand[] { new Build(BuildingKind.Sawmill, "E2"), new Build(BuildingKind.Storehouse, "E1"), new Rush(), new Workday("F3") },
-            2 => new GameCommand[] { new Workday("M2"), new Workday("F3") },
-            3 => new GameCommand[] { new Build(BuildingKind.Longhouse, "L1"), new Build(BuildingKind.Cottage, "L2"), new SendExpedition(), new Workday("F3"), new Rush(), new Rush(), new Rush(), new Rush() },
-            4 => new GameCommand[] { new Survey(), new Upgrade("E2"), new Build(BuildingKind.FishingHut, "K2"), new Rush(), new Rush(), new Rush() },
-            5 => new GameCommand[] { new Build(BuildingKind.Jetty, "N0"), new Rush(), new Rush(), new Rush(), new Build(BuildingKind.Lookout, "L3") },
-            _ => new GameCommand[] { new Build(BuildingKind.SheepFarm, "N1"), new Build(BuildingKind.Quarry, "N2") },
+            0 => new GameCommand[] { new Survey(), new Build(BuildingKind.Woodcutter, F3), new Build(BuildingKind.Quarry, M2), new Build(BuildingKind.Jetty, H1), new Workday(FishingHut) },
+            1 => new GameCommand[] { new Build(BuildingKind.Sawmill, Sawmill), new Build(BuildingKind.Storehouse, E1), new Rush(), new Workday(F3) },
+            2 => new GameCommand[] { new Workday(M2), new Workday(F3) },
+            3 => new GameCommand[] { new Build(BuildingKind.Longhouse, L1), new Build(BuildingKind.Cottage, L2), new SendExpedition(), new Workday(F3), new Rush(), new Rush(), new Rush(), new Rush() },
+            4 => new GameCommand[] { new Survey(), new Upgrade(Sawmill), new Build(BuildingKind.FishingHut, K2), new Rush(), new Rush(), new Rush() },
+            5 => new GameCommand[] { new Build(BuildingKind.Jetty, N0), new Rush(), new Rush(), new Rush(), new Build(BuildingKind.Lookout, L3) },
+            _ => new GameCommand[] { new Build(BuildingKind.SheepFarm, N1), new Build(BuildingKind.Quarry, N2) },
         };
 
         private static string Describe(GameCommand command) => command switch
         {
-            Build build => $"Build {build.Building} on {build.SiteId}",
-            Upgrade upgrade => $"Upgrade {upgrade.SiteId}",
-            Workday workday => $"Workday {workday.SiteId}",
+            Build build => $"Build {build.Building} on {build.Tile}",
+            Upgrade upgrade => $"Upgrade {upgrade.Tile}",
+            Workday workday => $"Workday {workday.Tile}",
             _ => command.GetType().Name,
         };
     }

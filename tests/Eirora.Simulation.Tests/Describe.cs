@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Tests;
 
@@ -23,6 +24,7 @@ internal static class Describe
     private static string Value(object? value) => value switch
     {
         IEnumerable<string> items => string.Join("|", items),
+        IEnumerable<Hex> tiles => string.Join("|", tiles),
         IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
         _ => value?.ToString() ?? "null",
     };

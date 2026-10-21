@@ -18,7 +18,7 @@ namespace Eirora.Simulation.Commands
         /// <summary>The amount is negative or beyond what the source can plausibly report.</summary>
         AmountOutOfRange,
 
-        /// <summary>The site is hidden, already taken or the wrong kind of land for the building.</summary>
+        /// <summary>The tile is under the fog, already taken or does not meet the building's requirement (D-79).</summary>
         SiteUnavailable,
 
         /// <summary>The store does not hold the materials the work costs.</summary>
@@ -42,7 +42,7 @@ namespace Eirora.Simulation.Commands
         /// <summary>The fog lifts only from a tile next to what is known (TASK-032).</summary>
         NotNextToTheKnown,
 
-        /// <summary>A survey reveals this site; its fog is not lifted tile by tile.</summary>
+        /// <summary>A survey reveals this tile; its fog is not lifted tile by tile.</summary>
         FoundBySurvey,
 
         /// <summary>This island is found by an expedition; its fog is not lifted tile by tile.</summary>

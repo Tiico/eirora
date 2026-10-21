@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Events
 {
@@ -74,28 +75,29 @@ namespace Eirora.Simulation.Events
     /// <summary>A building, upgrade or road in the queue was finished.</summary>
     public sealed class ProjectCompleted : GameEvent
     {
-        public ProjectCompleted(long utcSeconds, ProjectKind kind, BuildingKind building, string siteId)
+        public ProjectCompleted(long utcSeconds, ProjectKind kind, BuildingKind building, Hex tile)
             : base(utcSeconds)
         {
             Kind = kind;
             Building = building;
-            SiteId = siteId;
+            Tile = tile;
         }
 
         public ProjectKind Kind { get; }
 
         public BuildingKind Building { get; }
 
-        public string SiteId { get; }
+        /// <summary>The building site, or the building the upgrade or road was for.</summary>
+        public Hex Tile { get; }
     }
 
-    /// <summary>Surveying lifted the fog from these sites (MAP-04).</summary>
-    public sealed class SitesRevealed : GameEvent
+    /// <summary>Surveying lifted the fog from these tiles (MAP-04).</summary>
+    public sealed class TilesRevealed : GameEvent
     {
-        public SitesRevealed(long utcSeconds, IReadOnlyList<string> siteIds)
-            : base(utcSeconds) => SiteIds = siteIds;
+        public TilesRevealed(long utcSeconds, IReadOnlyList<Hex> tiles)
+            : base(utcSeconds) => Tiles = tiles;
 
-        public IReadOnlyList<string> SiteIds { get; }
+        public IReadOnlyList<Hex> Tiles { get; }
     }
 
     /// <summary>The fog lifted from one tile, paid with Exploration (TASK-032, MAP-04).</summary>
@@ -113,12 +115,13 @@ namespace Eirora.Simulation.Events
         public int R { get; }
     }
 
-    /// <summary>The expedition came home and found new places across the sea (EXP-01, EXP-02).</summary>
+    /// <summary>The expedition came home and found an island across the sea (EXP-01, EXP-02).</summary>
     public sealed class ExpeditionReturned : GameEvent
     {
-        public ExpeditionReturned(long utcSeconds, IReadOnlyList<string> siteIds)
-            : base(utcSeconds) => SiteIds = siteIds;
+        public ExpeditionReturned(long utcSeconds, string island)
+            : base(utcSeconds) => Island = island;
 
-        public IReadOnlyList<string> SiteIds { get; }
+        /// <summary>The map's id of the island it found.</summary>
+        public string Island { get; }
     }
 }
