@@ -189,7 +189,10 @@ public sealed partial class AccountService(
         return DeleteResult.Deleted;
     }
 
-    /// <summary>Deletes an account whose deletion has been confirmed; not cancellable, since the confirmation is spent.</summary>
+    /// <summary>
+    /// Deletes an account whose deletion has been confirmed; not cancellable, since the confirmation is spent. The logins,
+    /// the cloud save and its locked contributions go with the account's row (cascading foreign keys).
+    /// </summary>
     private async Task DeleteConfirmedAsync(Account account)
     {
         // Through OpenIddict's managers, so that no cached entry keeps an access token valid. Collected first, since

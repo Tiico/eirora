@@ -283,7 +283,7 @@ dotnet ef migrations add <Namn> --project src/Eirora.Server --output-dir Data/Mi
 
 Serverns integrationstester startar PostgreSQL med Testcontainers och kräver Docker.
 På en dator utan Docker kan de köras mot en befintlig databas genom att miljövariabeln `EIRORA_TEST_POSTGRES` sätts till en anslutningssträng.
-Hur servern körs på produktägarens server står i [deploy/README.md](../deploy/README.md), och hotmodellen för inloggningen i [docs/security/sign-in-threat-model.md](./security/sign-in-threat-model.md).
+Hur servern körs på produktägarens server står i [deploy/README.md](../deploy/README.md), hotmodellen för inloggningen i [docs/security/sign-in-threat-model.md](./security/sign-in-threat-model.md) och den för molnsparningen i [docs/security/cloud-save-threat-model.md](./security/cloud-save-threat-model.md).
 
 ## Inloggning
 

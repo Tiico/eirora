@@ -21,6 +21,9 @@ public sealed class PrivacyTests(ServerFixture fixture)
         var removalConfirmation = _server.Providers.Again(google);
         await api.RemoveLoginAsync(tokens.Access, LoginProviders.Google, removalConfirmation);
         await api.SignInAsync(apple);
+        var upload = TestSaves.Upload(baseVersion: 0, keyEpoch: 1);
+        await api.UploadCloudSaveAsync(tokens.Access, upload);
+        await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 1, keyEpoch: 2));
         var code = AppleStub.UnreachablePrefix + Guid.NewGuid().ToString("N");
         var confirmation = _server.Providers.Again(apple, code);
         await api.DeleteAccountAsync(tokens.Access, confirmation);
@@ -30,6 +33,7 @@ public sealed class PrivacyTests(ServerFixture fixture)
             apple.Subject, apple.Nonce, apple.IdToken, google.Subject, google.Nonce, google.IdToken,
             linkConfirmation.IdToken, removalConfirmation.IdToken, confirmation.IdToken, code,
             tokens.Access, tokens.Refresh, accountId,
+            Convert.ToBase64String(upload.Contributions!)[..32], Convert.ToHexString(upload.Contributions!)[..32],
         ];
         var logs = string.Join('\n', _server.Logs);
         Assert.All(secrets, secret => Assert.DoesNotContain(secret, logs, StringComparison.Ordinal));
