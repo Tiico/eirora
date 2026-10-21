@@ -54,7 +54,8 @@ namespace Eirora.WorldGeneration
         {
             private readonly ulong _seed;
             private readonly int _number;
-            private readonly Dictionary<Hex, int> _island = new(); // Land tile → island number, from 0.
+            // Land tile → island number, from 0; sorted, so the land is gone through in the same order on every runtime.
+            private readonly SortedDictionary<Hex, int> _island = new();
             private readonly List<(string Id, Hex Anchor)> _islands = new();
             private readonly Dictionary<Hex, (Terrain Terrain, int Height, int Richness)> _ground = new();
             private readonly List<Hex> _islandCentres = new();
@@ -119,7 +120,7 @@ namespace Eirora.WorldGeneration
             /// <summary>A free spot a few tiles off the coast of some island, where the next skerry of a chain lies.</summary>
             private Hex? Near(Pcg32 random)
             {
-                var coasts = _island.Keys.OrderBy(h => h).ToList();
+                var coasts = _island.Keys.ToList();
                 for (int tries = 0; tries < 12; tries++)
                 {
                     var from = coasts[random.Below(coasts.Count)];
@@ -296,14 +297,26 @@ namespace Eirora.WorldGeneration
                 }
             }
 
-            private List<Hex> Tiles(int island) => _island.Where(t => t.Value == island).Select(t => t.Key).OrderBy(h => h).ToList();
+            private List<Hex> Tiles(int island)
+            {
+                var tiles = new List<Hex>();
+                foreach (var tile in _island)
+                {
+                    if (tile.Value == island)
+                    {
+                        tiles.Add(tile.Key);
+                    }
+                }
+
+                return tiles;
+            }
 
             /// <summary>Steps from each land tile to the nearest sea: 1 on the coast.</summary>
             private Dictionary<Hex, int> Depth()
             {
                 var depth = new Dictionary<Hex, int>();
                 var queue = new Queue<Hex>();
-                foreach (var hex in _island.Keys.OrderBy(h => h))
+                foreach (var hex in _island.Keys)
                 {
                     if (Enumerable.Range(0, Hex.Directions).Any(d => !_island.ContainsKey(hex.Neighbour(d))))
                     {

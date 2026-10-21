@@ -1,0 +1,184 @@
+create 1781931600 Europe/Stockholm 3600 645 600
+time 1781986519 Europe/Stockholm 3600
+cmd k2 workday 1 -1
+cmd k3 selfcare -1 Sleep Verified 290
+time 1782005472 Europe/Stockholm 3600
+cmd k5 road -1 0
+time 1782190551 Europe/Stockholm 3600
+cmd k7 expedition
+time 1782246105 Europe/Stockholm 3600
+cmd k9 selfcare 2 Workouts SelfReported 1
+cmd k10 upgrade 1 0
+cmd k11 road 0 1
+time 1782284192 Europe/Stockholm 3600
+cmd k14 build Jetty -2 2
+cmd k15 workday 2 -1
+cmd k1 build Jetty -1 1
+cmd k17 selfcare 3 Sleep SelfReported 242
+cmd k18 build Woodcutter -2 4
+time 1782294857 America/New_York -18000
+cmd k20 schedule 30 450
+cmd k21 build Storehouse -2 6
+time 1782706425 America/New_York -18000
+cmd k24 schedule 315 300
+cmd k25 road -2 4
+time 1782858614 America/New_York -18000
+cmd k27 selfcare 11 Sleep Verified 401
+cmd k28 build FishingHut 2 0
+cmd k29 road 11 0
+cmd k30 build Jetty 2 -1
+cmd k31 road 11 0
+time 1782862465 America/New_York -18000
+cmd k33 selfcare 9 Workouts SelfReported 1
+time 1782874220 America/New_York -18000
+cmd k35 workday 1 0
+time 1782878162 America/New_York -18000
+cmd k0 schedule 795 450
+cmd k38 build Woodcutter 2 1
+cmd k39 selfcare 10 Steps SelfReported 17694
+cmd k5 build Sawmill -1 -3
+cmd k41 build FishingHut -3 -2
+cmd k42 selfcare 10 Sleep SelfReported 310
+cmd k43 selfcare 8 Sleep Verified 304
+time 1783388774 America/New_York -18000
+cmd k48 selfcare 14 Workouts SelfReported 3
+time 1785061652 America/New_York -18000
+cmd k53 selfcare 35 Steps SelfReported 1633
+time 1785907321 America/New_York -18000
+cmd k57 selfcare 45 Steps Verified 4779
+cmd k7 build Woodcutter 1 -3
+cmd k59 road -1 -3
+cmd k60 selfcare 47 Sleep Verified 319
+time 1785917370 America/New_York -18000
+cmd k62 schedule 330 330
+cmd k63 build Woodcutter 4 -2
+cmd k64 upgrade 3 -1
+cmd k65 survey
+cmd k66 build Woodcutter 0 -2
+time 1785924006 America/New_York -18000
+cmd k68 workday -1 1
+time 1785932633 America/New_York -18000
+cmd k70 selfcare 40 Steps SelfReported 14664
+cmd k71 selfcare 42 Steps Verified 1172
+time 1785954069 America/New_York -14400
+time 1785980294 America/New_York -14400
+cmd k75 upgrade 0 3
+cmd k76 selfcare 49 Workouts Verified 0
+time 1785992060 America/New_York -14400
+cmd k78 selfcare 46 Workouts Verified 1
+cmd k79 build Quarry -2 -1
+cmd k80 build SheepFarm 11 0
+cmd k81 schedule 810 660
+time 1786556645 Europe/Stockholm 7200
+time 1787527111 Europe/Stockholm 7200
+cmd k84 upgrade 1 1
+time 1787546336 Europe/Stockholm 7200
+cmd k86 workday 2 1
+cmd k87 selfcare 63 Steps Verified 70000
+cmd k88 build Woodcutter 9 1
+cmd k89 build Jetty 0 -3
+cmd k90 build Cottage 0 6
+time 1787556968 Europe/Stockholm 7200
+cmd k92 survey
+cmd k93 build Sawmill -2 -1
+time 1787563704 Europe/Stockholm 7200
+cmd k95 selfcare 61 Sleep SelfReported 359
+cmd k96 rush
+cmd k97 workday -5 -4
+cmd k98 build Woodcutter -2 1
+cmd k58 road 2 0
+cmd k100 workday -2 4
+cmd k101 selfcare 64 Workouts SelfReported 3
+cmd k102 schedule 120 300
+time 1787569647 Europe/Stockholm 7200
+cmd k104 build Quarry -3 -1
+cmd k105 selfcare 64 Sleep Verified 91
+cmd k106 selfcare 63 Workouts SelfReported 3
+time 1787575444 America/New_York -18000
+cmd k5 build FishingHut 5 -4
+time 1787586914 America/New_York -18000
+cmd k110 selfcare 61 Workouts Verified 3
+time 1788188683 Europe/Stockholm 3600
+cmd k112 build Woodcutter -2 0
+time 1788207163 Europe/Stockholm 3600
+cmd k113 workday 2 0
+cmd k114 build Lookout -2 0
+time 1788552711 Europe/Stockholm 3600
+cmd k116 build Jetty 2 -1
+cmd k81 selfcare 73 Steps Verified 15557
+time 1788812153 Europe/Stockholm 3600
+cmd k119 road -1 -3
+cmd k120 build Jetty 3 -3
+cmd k121 road -1 -3
+time 1788831353 America/New_York -18000
+cmd k123 rush
+cmd k124 schedule 1050 360
+cmd k125 selfcare 75 Sleep Verified 430
+cmd k126 rush
+cmd k127 selfcare 74 Steps Verified 13272
+time 1788837462 America/New_York -18000
+cmd k23 workday 0 1
+time 1789404681 America/New_York -18000
+cmd k131 selfcare 86 Sleep Verified 411
+cmd k132 rush
+time 1789670678 America/New_York -18000
+time 1789748608 Europe/Stockholm 7200
+time 1789767142 Europe/Stockholm 7200
+cmd k138 selfcare 85 Workouts Verified 1
+cmd k139 fog 6 -4
+cmd k140 selfcare 86 Workouts SelfReported 0
+time 1789771351 Europe/Stockholm 7200
+cmd k142 selfcare 85 Sleep Verified 511
+cmd k143 selfcare 84 Steps Verified 24785
+time 1789780131 Europe/Stockholm 7200
+cmd k127 build Jetty -4 3
+time 1789780486 Europe/Stockholm 7200
+cmd k138 schedule 975 420
+time 1790942809 Europe/Stockholm 7200
+cmd k150 schedule 825 600
+cmd k151 upgrade 3 -2
+cmd k152 selfcare 96 Workouts SelfReported 1
+cmd k153 selfcare 102 Steps SelfReported 5346
+cmd k154 road 2 1
+time 1791499301 Europe/Stockholm 7200
+cmd k156 schedule 465 450
+cmd k122 build Jetty 4 -3
+cmd k158 upgrade 3 -1
+time 1791584046 Europe/Stockholm 7200
+cmd k161 selfcare 109 Sleep Verified 152
+cmd k162 workday 1 -1
+cmd k163 schedule 585 360
+cmd k164 schedule 555 420
+cmd k165 selfcare 111 Workouts SelfReported 2
+time 1791605099 Europe/Stockholm 7200
+cmd k167 build FishingHut 5 -2
+cmd k168 road 1 1
+cmd k169 selfcare 108 Sleep Verified 322
+cmd k170 build Lookout -6 5
+cmd k171 schedule 150 570
+cmd k11 build Jetty 1 3
+cmd k173 build Field -1 2
+time 1791641441 Europe/Stockholm 7200
+cmd k175 build Lookout 10 0
+cmd k176 upgrade 1 0
+cmd k177 selfcare 106 Workouts Verified 0
+cmd k178 selfcare 110 Steps SelfReported 14152
+cmd k179 schedule 0 570
+cmd k173 upgrade 4 0
+time 1792661372 Europe/Stockholm 7200
+cmd k182 build Lookout -1 2
+cmd k183 selfcare 118 Sleep SelfReported 456
+time 1792682090 Europe/Stockholm 7200
+cmd k185 selfcare 124 Steps SelfReported 20758
+time 1793381474 Europe/Stockholm 7200
+cmd k158 build FishingHut -4 -1
+cmd k133 selfcare 132 Steps Verified 15765
+cmd k190 workday -1 -3
+cmd k183 build FishingHut 4 -4
+cmd k192 workday -2 4
+time 1793393548 America/New_York -18000
+cmd k194 build Jetty -3 0
+time 1793630661 America/New_York -18000
+cmd k197 schedule 990 390
+cmd k198 build Field -3 -1
+cmd k199 selfcare 129 Sleep SelfReported 169

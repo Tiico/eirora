@@ -63,9 +63,9 @@ namespace Eirora.Simulation.Saving
                 }
             }
 
-            if (forestAt >= 0)
+            foreach (var forest in felled)
             {
-                lines.InsertRange(forestAt, felled.Select(f => $"forest {Coordinates(f.Key)} {f.Value.ToString(CultureInfo.InvariantCulture)}"));
+                lines.Insert(forestAt++, "forest " + Coordinates(forest.Key) + " " + forest.Value.ToString(CultureInfo.InvariantCulture));
             }
 
             return string.Join("\n", lines.Where((line, i) => line.Length > 0 || i == lines.Count - 1));

@@ -45,12 +45,15 @@ namespace Eirora.Simulation
         /// <summary>The inputs since the journal began, one per line, without the prototype journal's start.</summary>
         internal string Inputs => _inputs.ToString();
 
+        /// <summary>The first line of a journal written by this build.</summary>
+        internal static string CurrentHeader => $"{Header} {Text(FormatVersion)} rules {Text(RulesVersion.Current)}";
+
         /// <summary>Creates a new world and starts its journal.</summary>
         public static Journal Start(TimeReading install, RestSchedule restSchedule) =>
             new(
                 World.Create(install, restSchedule),
-                $"{Header} {FormatVersion} rules {RulesVersion.Current}\n"
-                + $"create {Reading(install)} {restSchedule.StartMinuteOfDay} {restSchedule.DurationMinutes}\n");
+                CurrentHeader + "\n"
+                + $"create {Reading(install)} {Text(restSchedule.StartMinuteOfDay)} {Text(restSchedule.DurationMinutes)}\n");
 
         /// <summary>Rebuilds a world by replaying a saved prototype journal.</summary>
         /// <exception cref="FormatException">The text is not a journal this version can read.</exception>
@@ -58,9 +61,10 @@ namespace Eirora.Simulation
 
         /// <summary>
         /// Rebuilds a world from a prototype journal like <see cref="Load(string)"/>, and gives the world as it was
-        /// created, before any input, as <paramref name="start"/>.
+        /// created, before any input, as <paramref name="start"/>. <paramref name="played"/> hears each replayed
+        /// command's key and result.
         /// </summary>
-        internal static Journal Load(string text, out SimulationSnapshot start)
+        internal static Journal Load(string text, out SimulationSnapshot start, Action<string, CommandResult>? played = null)
         {
             if (text is null)
             {
@@ -95,7 +99,7 @@ namespace Eirora.Simulation
 
             var journal = Start(ParseReading(create, 1), schedule);
             start = SimulationSnapshot.Take(journal.World);
-            journal.Replay(lines, 2);
+            journal.Replay(lines, 2, played);
             return journal;
         }
 
@@ -175,7 +179,7 @@ namespace Eirora.Simulation
 
         private void Line(string line) => _inputs.Append(line).Append('\n');
 
-        private void Replay(string[] lines, int first)
+        private void Replay(string[] lines, int first, Action<string, CommandResult>? played = null)
         {
             for (int i = first; i < lines.Length; i++)
             {
@@ -194,7 +198,8 @@ namespace Eirora.Simulation
                             throw new FormatException($"A command needs a key and a type: '{lines[i]}'.");
                         }
 
-                        Apply(fields[1], ParseCommand(fields));
+                        var result = Apply(fields[1], ParseCommand(fields));
+                        played?.Invoke(fields[1], result);
                         break;
                     default:
                         throw new FormatException($"Unknown journal line: '{lines[i]}'.");

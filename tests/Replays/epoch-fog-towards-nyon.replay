@@ -1,0 +1,9 @@
+create 1791964800 Europe/Stockholm 7200 1380 480
+cmd lift-6-2 fog 6 -2
+cmd lift-7-2 fog 7 -2
+cmd lift-8-3 fog 8 -3
+cmd nyon fog 10 0
+cmd steps selfcare 0 Steps Verified 12000
+time 1792045800 Europe/Stockholm 7200
+cmd lift-5-1 fog 5 -1
+cmd lift-4-0 fog 4 0
