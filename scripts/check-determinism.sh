@@ -37,8 +37,7 @@ fi
 sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$(dirname "$(dirname "$(command -v "$adb")")")}}"
 aapt2="${AAPT2:-$(find "$sdk/build-tools" -maxdepth 2 \( -name aapt2 -o -name aapt2.exe \) 2>/dev/null | sort -V | tail -n 1)}"
 [[ -n "$aapt2" ]] || { echo "::error::aapt2 was not found in $sdk/build-tools; set AAPT2."; exit 1; }
-package="$("$aapt2" dump packagename "$apk" | tr -d '
-')"
+package="$("$aapt2" dump packagename "$apk" | tr -d '\r')"
 [[ "$package" == *.determinism ]] || { echo "::error::$apk is $package, not a determinism build."; exit 1; }
 
 echo "Hashing the corpus with .NET..."
@@ -68,8 +67,7 @@ for ((second = 0; second < timeout_seconds; second += 2)); do
   if grep -q "$marker-DONE\|$marker-FAILED" <<<"$log"; then
     break
   fi
-  if [[ -n "$("$adb" shell pidof "$package" | tr -d '
-' || true)" ]]; then
+  if [[ -n "$("$adb" shell pidof "$package" | tr -d '\r' || true)" ]]; then
     started=1
   elif ((started || second >= launch_seconds)); then
     gone=1
