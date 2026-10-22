@@ -5,6 +5,7 @@ using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 
@@ -44,12 +45,15 @@ namespace Eirora.Simulation
         /// <summary>The inputs since the journal began, one per line, without the prototype journal's start.</summary>
         internal string Inputs => _inputs.ToString();
 
+        /// <summary>The first line of a journal written by this build.</summary>
+        internal static string CurrentHeader => $"{Header} {Text(FormatVersion)} rules {Text(RulesVersion.Current)}";
+
         /// <summary>Creates a new world and starts its journal.</summary>
         public static Journal Start(TimeReading install, RestSchedule restSchedule) =>
             new(
                 World.Create(install, restSchedule),
-                $"{Header} {FormatVersion} rules {RulesVersion.Current}\n"
-                + $"create {Reading(install)} {restSchedule.StartMinuteOfDay} {restSchedule.DurationMinutes}\n");
+                CurrentHeader + "\n"
+                + $"create {Reading(install)} {Text(restSchedule.StartMinuteOfDay)} {Text(restSchedule.DurationMinutes)}\n");
 
         /// <summary>Rebuilds a world by replaying a saved prototype journal.</summary>
         /// <exception cref="FormatException">The text is not a journal this version can read.</exception>
@@ -57,9 +61,10 @@ namespace Eirora.Simulation
 
         /// <summary>
         /// Rebuilds a world from a prototype journal like <see cref="Load(string)"/>, and gives the world as it was
-        /// created, before any input, as <paramref name="start"/>.
+        /// created, before any input, as <paramref name="start"/>. <paramref name="played"/> hears each replayed
+        /// command's key and result.
         /// </summary>
-        internal static Journal Load(string text, out SimulationSnapshot start)
+        internal static Journal Load(string text, out SimulationSnapshot start, Action<string, CommandResult>? played = null)
         {
             if (text is null)
             {
@@ -94,7 +99,7 @@ namespace Eirora.Simulation
 
             var journal = Start(ParseReading(create, 1), schedule);
             start = SimulationSnapshot.Take(journal.World);
-            journal.Replay(lines, 2);
+            journal.Replay(lines, 2, played);
             return journal;
         }
 
@@ -174,7 +179,7 @@ namespace Eirora.Simulation
 
         private void Line(string line) => _inputs.Append(line).Append('\n');
 
-        private void Replay(string[] lines, int first)
+        private void Replay(string[] lines, int first, Action<string, CommandResult>? played = null)
         {
             for (int i = first; i < lines.Length; i++)
             {
@@ -193,7 +198,8 @@ namespace Eirora.Simulation
                             throw new FormatException($"A command needs a key and a type: '{lines[i]}'.");
                         }
 
-                        Apply(fields[1], ParseCommand(fields));
+                        var result = Apply(fields[1], ParseCommand(fields));
+                        played?.Invoke(fields[1], result);
                         break;
                     default:
                         throw new FormatException($"Unknown journal line: '{lines[i]}'.");
@@ -208,11 +214,11 @@ namespace Eirora.Simulation
         {
             ChangeRestSchedule c => $"schedule {Text(c.Schedule.StartMinuteOfDay)} {Text(c.Schedule.DurationMinutes)}",
             RecordSelfCare c => $"selfcare {Text(c.GameDay)} {c.Habit} {c.Source} {Text(c.Total)}",
-            Build c => $"build {c.Building} {c.SiteId}",
-            Upgrade c => $"upgrade {c.SiteId}",
-            BuildRoad c => $"road {c.SiteId}",
+            Build c => $"build {c.Building} {Text(c.Tile)}",
+            Upgrade c => $"upgrade {Text(c.Tile)}",
+            BuildRoad c => $"road {Text(c.Tile)}",
             Survey => "survey",
-            Workday c => $"workday {c.SiteId}",
+            Workday c => $"workday {Text(c.Tile)}",
             Rush => "rush",
             SendExpedition => "expedition",
             LiftFog c => $"fog {Text(c.Q)} {Text(c.R)}",
@@ -223,16 +229,18 @@ namespace Eirora.Simulation
         {
             "schedule" when f.Length == 5 => new ChangeRestSchedule(new RestSchedule(Int(f[3]), Int(f[4]))),
             "selfcare" when f.Length == 7 => new RecordSelfCare(Int(f[3]), Enum<Habit>(f[4]), Enum<ContributionSource>(f[5]), Int(f[6])),
-            "build" when f.Length == 5 => new Build(Enum<BuildingKind>(f[3]), f[4]),
-            "upgrade" when f.Length == 4 => new Upgrade(f[3]),
-            "road" when f.Length == 4 => new BuildRoad(f[3]),
+            "build" when f.Length == 6 => new Build(Enum<BuildingKind>(f[3]), Tile(f, 4)),
+            "upgrade" when f.Length == 5 => new Upgrade(Tile(f, 3)),
+            "road" when f.Length == 5 => new BuildRoad(Tile(f, 3)),
             "survey" when f.Length == 3 => new Survey(),
-            "workday" when f.Length == 4 => new Workday(f[3]),
+            "workday" when f.Length == 5 => new Workday(Tile(f, 3)),
             "rush" when f.Length == 3 => new Rush(),
             "expedition" when f.Length == 3 => new SendExpedition(),
             "fog" when f.Length == 5 => new LiftFog(Int(f[3]), Int(f[4])),
             _ => throw new FormatException($"Unknown command: '{string.Join(" ", f)}'."),
         };
+
+        private static Hex Tile(string[] fields, int start) => new(Int(fields[start]), Int(fields[start + 1]));
 
         private static TimeReading ParseReading(string[] fields, int start) =>
             new(Long(fields[start]), fields[start + 1], Int(fields[start + 2]));
@@ -264,5 +272,7 @@ namespace Eirora.Simulation
                 : throw new FormatException($"'{text}' is not a whole number.");
 
         private static string Text(long value) => value.ToString(CultureInfo.InvariantCulture);
+
+        private static string Text(Hex tile) => $"{Text(tile.Q)} {Text(tile.R)}";
     }
 }

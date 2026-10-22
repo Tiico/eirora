@@ -2,9 +2,11 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
+using static Eirora.Simulation.Tests.Tiles;
 
 namespace Eirora.Simulation.Tests.Economy;
 
@@ -13,8 +15,8 @@ public sealed class EconomyTests
 {
     private const long Hour = 3600;
     private static readonly long[] s_startingStock = [30, 0, 40, 20, 20, 0, 0];
-    private static readonly string[] s_startingBuildings = ["Storehouse@S", "FishingHut@K1", "Field@O1", "Woodcutter@F1"];
-    private static readonly string[] s_firstSurvey = ["M2", "F3"];
+    private static readonly string[] s_startingBuildings = ["Storehouse@(0, 0)", "FishingHut@(1, 0)", "Field@(0, 1)", "Woodcutter@(1, -1)"];
+    private static readonly Hex[] s_firstSurvey = [M2, F3, new(-3, 1)];
     private static int s_key;
 
     [Fact]
@@ -28,7 +30,7 @@ public sealed class EconomyTests
             Enum.GetValues<Resource>().Select(world.Stock).ToArray());
         Assert.Equal(
             s_startingBuildings,
-            world.Buildings.Select(b => $"{b.Kind}@{b.Site.Id}"));
+            world.Buildings.Select(b => $"{b.Kind}@{b.Tile}"));
     }
 
     [Fact]
@@ -73,20 +75,20 @@ public sealed class EconomyTests
     }
 
     [Fact]
-    public void AHiddenSiteCanBeBuiltOnOnlyAfterSurveying()
+    public void ATileUnderTheFogCanBeBuiltOnOnlyAfterSurveying()
     {
         var world = Morning();
 
-        Assert.Equal(Rejection.SiteUnavailable, Apply(world, new Build(BuildingKind.Woodcutter, "F3")).Rejection);
+        Assert.Equal(Rejection.SiteUnavailable, Apply(world, new Build(BuildingKind.Woodcutter, F3)).Rejection);
 
         var survey = Apply(world, new Survey());
-        Assert.Equal(s_firstSurvey, Assert.IsType<SitesRevealed>(Assert.Single(survey.Events)).SiteIds);
+        Assert.Equal(s_firstSurvey, Assert.IsType<TilesRevealed>(Assert.Single(survey.Events)).Tiles);
         Assert.Equal(40, world.Available(Force.Exploration));
-        Assert.True(Apply(world, new Build(BuildingKind.Woodcutter, "F3")).Accepted);
+        Assert.True(Apply(world, new Build(BuildingKind.Woodcutter, F3)).Accepted);
 
         var events = world.AdvanceTo(At("2026-10-15 12:00", 2));
-        Assert.Contains(events, e => e is ProjectCompleted { Building: BuildingKind.Woodcutter, SiteId: "F3" });
-        Assert.True(world.Buildings.Single(b => b.Site.Id == "F3").Staffed);
+        Assert.Contains(events, e => e is ProjectCompleted { Building: BuildingKind.Woodcutter } done && done.Tile == F3);
+        Assert.True(world.BuildingAt(F3)!.Staffed);
     }
 
     [Fact]
@@ -94,10 +96,10 @@ public sealed class EconomyTests
     {
         var world = Morning();
         var before = world.Fingerprint();
-        Apply(world, new Upgrade("K1")); // Spends 50 of 100 Build Power.
+        Apply(world, new Upgrade(K1)); // Spends 50 of 100 Build Power.
         var afterUpgrade = Stocks(world);
 
-        var rejected = Apply(world, new Build(BuildingKind.Weavery, "L2")); // Needs 60 Build Power.
+        var rejected = Apply(world, new Build(BuildingKind.Weavery, L2)); // Needs 60 Build Power.
 
         Assert.Equal(Rejection.InsufficientForces, rejected.Rejection);
         Assert.Equal(afterUpgrade, Stocks(world));
@@ -117,13 +119,13 @@ public sealed class EconomyTests
     public void AnUpgradeStopsAtTheHighestLevel()
     {
         var world = Morning();
-        Assert.True(Apply(world, new Upgrade("K1")).Accepted);
+        Assert.True(Apply(world, new Upgrade(K1)).Accepted);
 
         world.AdvanceTo(At("2026-10-16 20:00", 2));
 
-        var hut = world.Buildings.Single(b => b.Site.Id == "K1");
+        var hut = world.BuildingAt(K1)!;
         Assert.Equal(BuildingSpec.For(hut.Kind).MaxLevel, hut.Level);
-        Assert.Equal(Rejection.AlreadyDone, Apply(world, new Upgrade("K1")).Rejection);
+        Assert.Equal(Rejection.AlreadyDone, Apply(world, new Upgrade(K1)).Rejection);
     }
 
     [Fact]
@@ -132,7 +134,7 @@ public sealed class EconomyTests
         var world = Morning();
         world.Apply("spend", new SpendAll(Force.BuildPower));
 
-        Assert.True(Apply(world, new Build(BuildingKind.Cottage, "L1")).Accepted);
+        Assert.True(Apply(world, new Build(BuildingKind.Cottage, L1)).Accepted);
     }
 
     [Fact]
@@ -140,7 +142,7 @@ public sealed class EconomyTests
     {
         var plain = Morning();
         var boosted = Morning();
-        Assert.True(Apply(boosted, new Workday("K1")).Accepted);
+        Assert.True(Apply(boosted, new Workday(K1)).Accepted);
         long plainBefore = plain.Stock(Resource.Fish), boostedBefore = boosted.Stock(Resource.Fish);
 
         plain.AdvanceTo(At("2026-10-15 15:00", 2));
@@ -148,14 +150,14 @@ public sealed class EconomyTests
 
         Assert.Equal(10, plain.Stock(Resource.Fish) - plainBefore); // 8 hours × 1.25 fish.
         Assert.Equal(15, boosted.Stock(Resource.Fish) - boostedBefore);
-        Assert.Equal(Rejection.AlreadyDone, Apply(boosted, new Workday("K1")).Rejection);
+        Assert.Equal(Rejection.AlreadyDone, Apply(boosted, new Workday(K1)).Rejection);
     }
 
     [Fact]
     public void RushingPutsEightHoursOfWorkIntoTheFirstProject()
     {
         var world = Morning();
-        Apply(world, new Build(BuildingKind.Cottage, "L1"));
+        Apply(world, new Build(BuildingKind.Cottage, L1));
 
         Assert.True(Apply(world, new Rush()).Accepted);
 
@@ -167,7 +169,7 @@ public sealed class EconomyTests
     public void TheSawmillLeavesTimberForBuilding()
     {
         var world = Morning();
-        Apply(world, new Build(BuildingKind.Sawmill, "L1"));
+        Apply(world, new Build(BuildingKind.Sawmill, L1));
 
         world.AdvanceTo(At("2026-10-16 22:00", 2));
 
@@ -181,8 +183,8 @@ public sealed class EconomyTests
     {
         var world = Morning();
 
-        Assert.Equal(Rejection.AlreadyDone, Apply(world, new BuildRoad("K1")).Rejection); // Next to the store.
-        Assert.Equal(Rejection.NoBuildingThere, Apply(world, new BuildRoad("M1")).Rejection);
+        Assert.Equal(Rejection.AlreadyDone, Apply(world, new BuildRoad(K1)).Rejection); // Next to the store.
+        Assert.Equal(Rejection.NoBuildingThere, Apply(world, new BuildRoad(M1)).Rejection);
     }
 
     // INV-D4 with play: the same commands at the same times give the same world however time is advanced.
@@ -219,12 +221,12 @@ public sealed class EconomyTests
             advance(world, at);
             world.Apply($"steps-{day}", new RecordSelfCare(world.GameDay, Habit.Steps, ContributionSource.Verified, 7_500));
             world.Apply($"survey-{day}", new Survey());
-            world.Apply($"f3-{day}", new Build(BuildingKind.Woodcutter, "F3"));
-            world.Apply($"m2-{day}", new Build(BuildingKind.Quarry, "M2"));
-            world.Apply($"e1-{day}", new Build(BuildingKind.Storehouse, "E1"));
-            world.Apply($"e2-{day}", new Build(BuildingKind.Sawmill, "E2"));
-            world.Apply($"l1-{day}", new Build(BuildingKind.Cottage, "L1"));
-            world.Apply($"workday-{day}", new Workday("K1"));
+            world.Apply($"f3-{day}", new Build(BuildingKind.Woodcutter, F3));
+            world.Apply($"m2-{day}", new Build(BuildingKind.Quarry, M2));
+            world.Apply($"e1-{day}", new Build(BuildingKind.Storehouse, E1));
+            world.Apply($"e2-{day}", new Build(BuildingKind.Sawmill, E2));
+            world.Apply($"l1-{day}", new Build(BuildingKind.Cottage, L1));
+            world.Apply($"workday-{day}", new Workday(K1));
             world.Apply($"rush-{day}", new Rush());
         }
 
@@ -246,7 +248,7 @@ public sealed class EconomyTests
     }
 
     private static int[] Monotone(World world) =>
-        [world.Villagers, world.Buildings.Count, world.Buildings.Sum(b => b.Level), PrototypeIsland.Sites.Count(s => world.IsRevealed(s.Id))];
+        [world.Villagers, world.Buildings.Count, world.Buildings.Sum(b => b.Level), Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i]))];
 
     private static long[] Stocks(World world) => Enum.GetValues<Resource>().Select(world.Stock).ToArray();
 

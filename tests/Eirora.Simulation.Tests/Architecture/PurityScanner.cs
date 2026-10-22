@@ -13,6 +13,8 @@ internal static class PurityScanner
     [
         "System.IO",
         "System.Net",
+        // Reflection reveals which runtime and assemblies run the simulation.
+        "System.Reflection",
         "UnityEngine",
         "UnityEditor",
         "Unity",
@@ -53,6 +55,9 @@ internal static class PurityScanner
     [
         // Compiler-generated iterators (yield return) check which thread owns them.
         "System.Environment::get_CurrentManagedThreadId",
+
+        // A type's name, which the simulation only puts in exception messages.
+        "System.Reflection.MemberInfo::get_Name",
     ];
 
     private static readonly HashSet<Code> s_floatingPointOpCodes =
@@ -71,6 +76,46 @@ internal static class PurityScanner
         Code.Stelem_R4,
         Code.Stelem_R8,
         Code.Ckfinite,
+    ];
+
+    // Number types whose formatting and parsing follow the current culture unless given a format provider.
+    private static readonly HashSet<string> s_numberTypes =
+    [
+        "System.Byte",
+        "System.SByte",
+        "System.Int16",
+        "System.UInt16",
+        "System.Int32",
+        "System.UInt32",
+        "System.Int64",
+        "System.UInt64",
+        "System.Decimal",
+    ];
+
+    // String members that compare or change case by the current culture unless given a StringComparison.
+    private static readonly HashSet<string> s_cultureStringMembers =
+        ["Compare", "CompareTo", "StartsWith", "EndsWith", "IndexOf", "LastIndexOf", "ToLower", "ToUpper"];
+
+    // Enumerations whose order depends on hashing and on the runtime's implementation of the collection.
+    // Through an interface the collection behind it is unknown, so it may be a Dictionary.
+    private static readonly HashSet<string> s_hashOrderMembers =
+    [
+        "System.Collections.Generic.Dictionary`2::GetEnumerator",
+        "System.Collections.Generic.Dictionary`2::get_Keys",
+        "System.Collections.Generic.Dictionary`2::get_Values",
+        "System.Collections.Generic.HashSet`1::GetEnumerator",
+        "System.Collections.Generic.IDictionary`2::get_Keys",
+        "System.Collections.Generic.IDictionary`2::get_Values",
+        "System.Collections.Generic.IReadOnlyDictionary`2::get_Keys",
+        "System.Collections.Generic.IReadOnlyDictionary`2::get_Values",
+    ];
+
+    // Sorted collections whose default comparer for strings follows the current culture.
+    private static readonly HashSet<string> s_sortedCollections =
+    [
+        "System.Collections.Generic.SortedSet`1",
+        "System.Collections.Generic.SortedDictionary`2",
+        "System.Collections.Generic.SortedList`2",
     ];
 
     public static IReadOnlyList<string> FindViolations(IEnumerable<TypeDefinition> types)
@@ -140,6 +185,7 @@ internal static class PurityScanner
             {
                 case MethodReference called:
                     CheckMember(called.DeclaringType, called.Name, where, violations);
+                    CheckOrderAndCulture(called, where, violations);
                     CheckType(called.ReturnType, where, violations);
                     foreach (var parameter in called.Parameters)
                     {
@@ -171,6 +217,86 @@ internal static class PurityScanner
         {
             violations.Add($"{where}: uses {member}");
         }
+    }
+
+    /// <summary>
+    /// Catches what gives a different result on another runtime or device (INV-D1, docs/development.md#determinism):
+    /// culture-dependent formatting, parsing, string comparison and string sorting, and enumeration in hash order.
+    /// </summary>
+    private static void CheckOrderAndCulture(MethodReference called, string where, List<string> violations)
+    {
+        string type = called.DeclaringType.GetElementType().FullName;
+        string member = $"{type}::{called.Name}";
+        bool Takes(string parameterType) => called.Parameters.Any(p => p.ParameterType.FullName == parameterType);
+
+        if (s_numberTypes.Contains(type) && called.Name is "ToString" or "Parse" or "TryParse" && !Takes("System.IFormatProvider"))
+        {
+            violations.Add($"{where}: culture-dependent {member}");
+        }
+
+        if (type == "System.Text.StringBuilder" && called.Name is "Append" or "Insert" && called.Parameters.Any(p => s_numberTypes.Contains(p.ParameterType.FullName)))
+        {
+            violations.Add($"{where}: culture-dependent {member} of a number");
+        }
+
+        // Sorting strings without a comparer compares them by the current culture.
+        bool comparer = called.Parameters.Any(p => p.ParameterType.GetElementType().FullName is "System.Collections.Generic.IComparer`1" or "System.Comparison`1");
+        bool ordersStrings = type == "System.Linq.Enumerable"
+            && called.Name is "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending"
+            && called is GenericInstanceMethod ordered
+            && ordered.GenericArguments[1].FullName == "System.String";
+        bool sortsStrings = called.Name == "Sort"
+            && ((type == "System.Collections.Generic.List`1" && called.DeclaringType is GenericInstanceType list && list.GenericArguments[0].FullName == "System.String")
+                || (type == "System.Array" && called is GenericInstanceMethod array && array.GenericArguments[0].FullName == "System.String"));
+        if ((ordersStrings || sortsStrings) && !comparer)
+        {
+            violations.Add($"{where}: culture-dependent {member} of strings without a comparer");
+        }
+
+        bool byCharacter = called.Parameters.Count > 0 && called.Parameters[0].ParameterType.FullName == "System.Char";
+        if (type == "System.String" && s_cultureStringMembers.Contains(called.Name) && !Takes("System.StringComparison") && !byCharacter)
+        {
+            violations.Add($"{where}: culture-dependent {member}");
+        }
+
+        if (s_hashOrderMembers.Contains(member))
+        {
+            violations.Add($"{where}: hash order {member}");
+        }
+
+        if (EnumeratesKeyValuePairs(called))
+        {
+            violations.Add($"{where}: hash order {member} over key-value pairs");
+        }
+
+        if (called.Name == ".ctor"
+            && s_sortedCollections.Contains(type)
+            && called.DeclaringType is GenericInstanceType sorted
+            && sorted.GenericArguments[0].FullName == "System.String"
+            && !called.Parameters.Any(p => p.ParameterType.GetElementType().FullName == "System.Collections.Generic.IComparer`1"))
+        {
+            violations.Add($"{where}: culture-dependent {member} without a comparer");
+        }
+    }
+
+    /// <summary>
+    /// Key-value pairs come from a dictionary. Enumerated as an <c>IEnumerable&lt;T&gt;</c> (foreach over an interface,
+    /// LINQ, a collection built from them), the IL does not show whether that dictionary is sorted, so only foreach over
+    /// a concrete sorted collection is allowed.
+    /// </summary>
+    private static bool EnumeratesKeyValuePairs(MethodReference called)
+    {
+        const string enumerable = "System.Collections.Generic.IEnumerable`1";
+        var arguments = (called as GenericInstanceMethod)?.GenericArguments ?? Enumerable.Empty<TypeReference>();
+        if (called.DeclaringType is GenericInstanceType declaring)
+        {
+            arguments = arguments.Concat(declaring.GenericArguments);
+        }
+
+        bool pairs = arguments.Any(a => a.GetElementType().FullName == "System.Collections.Generic.KeyValuePair`2");
+        bool enumerates = (called.Name == "GetEnumerator" && called.DeclaringType.GetElementType().FullName == enumerable)
+            || called.Parameters.Any(p => p.ParameterType.GetElementType().FullName == enumerable);
+        return pairs && enumerates;
     }
 
     private static void CheckType(TypeReference type, string where, List<string> violations)

@@ -20,7 +20,8 @@ namespace Eirora.Simulation
         private readonly ForceBalances _forces;
         private readonly SelfCareLedger _selfCare;
         private readonly Settlement _settlement;
-        private readonly Dictionary<string, CommandResult> _results = new(StringComparer.Ordinal);
+        // Sorted by key, so the state is written in the same order on every runtime.
+        private readonly SortedDictionary<string, CommandResult> _results = new(StringComparer.Ordinal);
 
         // Self-care changes waiting for dawn (INV-T9): reconciled when the world is next active.
         private readonly SortedSet<(int Day, Habit Habit)> _unreconciled = new();
@@ -108,6 +109,12 @@ namespace Eirora.Simulation
         /// <summary>When a recent game day began, for reading health data per game day (D-40, D-71); null if too old.</summary>
         public long? GameDayStartUtc(int day) => Cycle.GameDayStartUtc(day);
 
+        /// <summary>
+        /// The last game day that takes no more self-care, because the world went on without its contribution part
+        /// (D-101); null when every recent day is open.
+        /// </summary>
+        public int? LastClosedGameDay => _selfCare.ClosedThrough;
+
         /// <summary>What has been recorded for a game day, habit and source, so the client records only changes.</summary>
         public int? RecordedSelfCare(int day, Habit habit, ContributionSource source) => _selfCare.Total(day, habit, source);
 
@@ -117,8 +124,17 @@ namespace Eirora.Simulation
         /// <summary>Whether ships sail between the islands.</summary>
         public bool SeaRouteOpen => _settlement.SeaRouteOpen;
 
-        /// <summary>Whether a site has been found; hidden sites are under the fog (MAP-04).</summary>
-        public bool IsRevealed(string siteId) => _settlement.IsRevealed(siteId);
+        /// <summary>The building on a tile, if any.</summary>
+        public Building? BuildingAt(Hex tile) => _settlement.BuildingAt(tile);
+
+        /// <summary>What a known tile is good for now (D-79); nothing is told about what lies under the fog (D-93).</summary>
+        public TileUse UsesOf(Hex tile) => _settlement.UsesOf(tile);
+
+        /// <summary>Why a building cannot be built on a tile right now, or <see cref="Rejection.None"/>; costs aside.</summary>
+        public Rejection CheckBuild(BuildingKind building, Hex tile) => _settlement.CheckBuild(building, tile);
+
+        /// <summary>Steps over land from a tile to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
+        public int DepotDistance(Hex tile) => _settlement.DepotDistance(tile);
 
         /// <summary>Whether the fog has lifted from a tile (TASK-032); what lies under the fog stays unknown.</summary>
         public bool IsKnown(Hex hex) => _settlement.Fog.IsKnown(hex);
@@ -196,12 +212,38 @@ namespace Eirora.Simulation
         public string Fingerprint()
         {
             var writer = new StateWriter();
-            Write(writer);
+            WriteWorld(writer);
+            WriteContributions(writer);
             return writer.ToString();
         }
 
-        /// <summary>Reads a world written by <see cref="Write"/>, on the map its state names.</summary>
-        internal static World Read(StateReader reader, WorldMap map)
+        /// <summary>
+        /// The first part of the state, everything but what is kept per game day: what the save's world part holds
+        /// (ADR-0008, D-100).
+        /// </summary>
+        internal string WorldState()
+        {
+            var writer = new StateWriter();
+            WriteWorld(writer);
+            return writer.ToString();
+        }
+
+        /// <summary>
+        /// The rest of the state: self-care per game day, the force each day was credited, and the used keys with their
+        /// outcomes. It follows <see cref="WorldState"/> in the fingerprint.
+        /// </summary>
+        internal string ContributionState()
+        {
+            var writer = new StateWriter();
+            WriteContributions(writer);
+            return writer.ToString();
+        }
+
+        /// <summary>
+        /// Reads a world written by <see cref="Fingerprint"/>, on the map its state names; or, without its contributions,
+        /// one written by <see cref="WorldState"/>, whose game days so far are then closed (D-101).
+        /// </summary>
+        internal static World Read(StateReader reader, WorldMap map, bool withContributions = true)
         {
             // In the order Write writes them.
             reader.Expect("map");
@@ -213,6 +255,14 @@ namespace Eirora.Simulation
             var cycle = DayCycle.Read(reader);
             var forces = ForceBalances.Read(reader);
             var settlement = Settlement.Read(reader, map);
+            if (!withContributions)
+            {
+                // What each day was credited went with the part, so recording those days again could credit them twice.
+                var closed = new SelfCareLedger();
+                closed.CloseThrough(cycle.GameDay);
+                return new World(map, cycle, forces, closed, settlement);
+            }
+
             var selfCare = SelfCareLedger.Read(reader);
             var world = new World(map, cycle, forces, selfCare, settlement);
             while (reader.Next("unreconciled"))
@@ -237,27 +287,34 @@ namespace Eirora.Simulation
         }
 
         /// <summary>
-        /// Writes the whole state: everything that can change what the world does next, and nothing derived (ADR-0006).
-        /// Used keys keep their outcomes, so a command sent again after loading gets its first result (INV-D6).
+        /// Writes the state but what is kept per game day. Followed by <see cref="WriteContributions"/>, it is the whole
+        /// state: everything that can change what the world does next, and nothing derived (ADR-0006).
         /// </summary>
-        private void Write(StateWriter writer)
+        private void WriteWorld(StateWriter writer)
         {
             writer.Line("map").Text(Map.Hash);
             Cycle.Write(writer);
             _forces.Write(writer);
             _settlement.Write(writer);
+        }
+
+        /// <summary>
+        /// Writes self-care per game day and the used keys. Used keys keep their outcomes, so a command sent again after
+        /// loading gets its first result (INV-D6); they belong here because a self-care command's outcome tells what a
+        /// day was credited.
+        /// </summary>
+        private void WriteContributions(StateWriter writer)
+        {
             _selfCare.Write(writer);
             foreach (var (day, habit) in _unreconciled)
             {
                 writer.Line("unreconciled").Long(day).Enum(habit);
             }
 
-            var keys = new List<string>(_results.Keys);
-            keys.Sort(StringComparer.Ordinal);
-            foreach (string key in keys)
+            foreach (var entry in _results)
             {
-                var result = _results[key];
-                writer.Line("command").Text(key).Long(result.Events.Count);
+                var result = entry.Value;
+                writer.Line("command").Text(entry.Key).Long(result.Events.Count);
                 foreach (var gameEvent in result.Events)
                 {
                     GameEventCodec.Write(writer, gameEvent);

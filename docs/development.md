@@ -143,6 +143,72 @@ När `RulesVersion` höjs läggs en `StateMigration` från den förra versionen 
 Gyllene sparningar ligger i `tests/Eirora.Simulation.Tests/Saving/Golden/`, en per regel- och formatversion, med det fingeravtryck som laddning med aktuell kod ska ge.
 Saknas den aktuella versionens gyllene sparning skapar testerna den och underkänner körningen, så att den granskas och checkas in; förväntade fingeravtryck ändras bara när regler eller migrationer ändras.
 
+### Determinism
+
+Simuleringen ska ge samma tillstånd på servern (.NET) och i klienten (IL2CPP på telefonen) för samma indata (INV-D1, NFR-02).
+Arkitekturtestet underkänner det som kan skilja mellan körmiljöer eller enheter:
+
+- flyttal och `System.Math`;
+- väggklocka, slump, filer, nätverk, miljövariabler och reflektion (som avslöjar vilken runtime som kör);
+- `string.GetHashCode` och iteration över `Dictionary` och `HashSet`, vars ordning beror på hashning och runtimens implementation;
+- `Keys`, `Values` och nyckel–värde-par genom `IDictionary` och `IReadOnlyDictionary`, med `foreach`, LINQ eller en samling som byggs av dem, eftersom IL inte visar om ordboken bakom är sorterad (gå över en sorterad samling med `foreach`, eller över nycklarna i fast ordning);
+- tal som formateras eller tolkas utan `CultureInfo.InvariantCulture`, också tal som läggs till med `StringBuilder.Append` eller `Insert`;
+- strängjämförelser utan `StringComparison`, och strängar som sorteras utan jämförare: sorterade strängsamlingar, `OrderBy`, `OrderByDescending`, `ThenBy` och `ThenByDescending` med en strängnyckel, samt `List<string>.Sort` och `Array.Sort` för strängar.
+
+Testet kan inte se allt.
+Det här är också förbjudet men upptäcks bara av determinismkorpusen nedan, kulturtestet och granskning:
+
+- ordning som beror på något annat än nycklarna, till exempel sortering med lika nycklar;
+- en `HashSet` som gås igenom som `IEnumerable<T>` eller `ISet<T>`, till exempel med LINQ, eftersom IL inte visar vilken samling som ligger bakom;
+- strängar som byggs med `$"{tal}"`, `string.Format` eller `string.Concat` med ett tal som objekt, som formateras med aktuell kultur, och sedan påverkar tillståndet; i IL syns bara att talet görs till ett objekt, vilket varje felmeddelande också gör;
+- sortering efter en nyckel som jämför strängar på annat sätt, till exempel en tupel med en sträng, en egen `IComparable` eller en `Comparison<string>` som jämför med aktuell kultur.
+
+Determinismkorpusen är det som determinismbygget spelar upp på Android och `ReplayCorpusTests` i .NET, med samma namn:
+
+- `replay/…`: replays i `tests/Replays/`, handgjorda fall från UX-resorna, ekonomin och dimman plus slumpade sekvenser, som start och indata utan regelversion;
+- `save/…`: de gyllene sparningarna, som laddas (och migreras) och sparas igen; prototypjournalen spelas inte, eftersom regelversion 4 nekar den;
+- `map/…`: de gyllene kartorna, som deras generator gör om från seeden, så att även `ProceduralArchipelagoV1` prövas.
+
+Varje replay blir en sparning som skrivs till bytes och återställs innan tillståndet hashas, som när klienten sparar världen.
+Varje kommando i en handgjord replay måste godtas, utom de nekanden som fallet handlar om och listar (vilolåset i `ux-evening-with-rest-lock`, Nyön i dimman i `epoch-fog-towards-nyon`).
+De slumpade sekvenserna kommer från `Scenario`, som anpassar tre av fyra kommandon efter världen och väntar till efter gryningen innan de flesta kommandon som annars skulle komma under vilan; de övriga är blinda, så att nekanden också spelas.
+Testet kräver att korpusens slumpade replays godtar mer än hälften av sina kommandon och att var och en nekar något.
+
+`ReplayCorpusTests` skriver tillståndets hash för varje post till `artifacts/determinism/dotnet.txt`, och determinismbygget (IL2CPP för ARM64 och x86_64, spelets paketnamn plus `.determinism`) gör samma sak på Android.
+Servern, spelarnas telefoner och emulatorn (en-US) kör i olika kulturer, så `ReplayCorpusTests` spelar också upp korpusen under sv-SE och tr-TR och kräver samma hash som under invariant kultur.
+Med ICU skriver sv-SE minustecken som U+2212, och tr-TR gör om `I` till ett prickfritt `ı`.
+Jämför .NET och IL2CPP på en emulator eller telefon:
+
+```bash
+"C:/Program Files/Unity/Hub/Editor/6000.3.26f1/Editor/Unity.exe" -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.AndroidDeterminism
+```
+
+```bash
+scripts/check-determinism.sh
+```
+
+Skriptet läser paketnamnet ur APK:n med `aapt2` från Android SDK:ns build-tools (eller `AAPT2=<sökväg>`), och installerar och avinstallerar bara determinismbygget, aldrig spelet.
+Om appen försvinner innan den har rapporterat underkänner skriptet direkt och skriver ut kraschloggen; hela logcat sparas i `artifacts/determinism/logcat.txt`.
+Determinismbygget har en egen scen med bara `DeterminismBootstrap`, som `Builds.AndroidDeterminism` gör för bygget och tar bort efteråt; korpusen ligger i `client/Assets/Eirora/Determinism/` bara medan bygget pågår.
+En telefon kör byggets ARM64-kod och en x86_64-emulator dess x86_64-kod.
+Androids ARM-översättning i emulatorn kan inte köra Unitys ARM64-motor: den saknar instruktionen SEVL (`0xd50320bf`) som `libunity.so` använder, och appen dör med SIGILL innan någon scenkod körs.
+Emulatorn prövar därför IL2CPP för x86_64; IL2CPP för ARM64 prövas bara på en telefon.
+Bygget renderar med OpenGL ES 3, som emulatorns programvarurenderare (SwiftShader) ger.
+Det har ingen version, så det behöver ingen git-historik.
+Skriptet vägrar en APK som är äldre än någon fil i `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `client/Assets/`, `client/Packages/`, `tests/Replays/` eller de gyllene sparningarna och kartorna.
+`client/ProjectSettings/` jämförs inte, eftersom bygget självt sparar den efter att APK:n skrivits; bygg om efter en ändring där.
+
+Replays är indata, inte resultat, så de ändras inte när reglerna ändras.
+Saknas en replay i korpusen skapar testet den och underkänner körningen, så att den granskas och checkas in.
+När journalens format för start eller indata ändras går replays inte längre att läsa.
+Ta då bort `tests/Replays/*.replay` och kör `ReplayCorpusTests`, som skriver om hela korpusen från de handgjorda fallen och de fasta fröna för de slumpade sekvenserna; granska och checka in den nya korpusen tillsammans med formatändringen.
+
+Unity-workflowen jämför korpusen i två jobb, vid en release och när den körs manuellt, inte på pull requests: tillsammans tar de över två timmar av Actions-budgeten.
+`Determinism build` bygger APK:n med GameCI på en runner som frigör allt diskutrymme som Unitys Android-avbildning behöver.
+`Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34.
+Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
+Kör därför Unity-workflowen manuellt på grenen (**Actions → Unity → Run workflow**) innan en PR som rör simuleringen eller korpusen mergas.
+
 ### Kartor och gyllene kartor
 
 En världs karta skapas en gång och sparas hel i sparningen ([ADR-0010](./adr/0010-world-map-format-and-generator-version.md)).
@@ -217,7 +283,7 @@ dotnet ef migrations add <Namn> --project src/Eirora.Server --output-dir Data/Mi
 
 Serverns integrationstester startar PostgreSQL med Testcontainers och kräver Docker.
 På en dator utan Docker kan de köras mot en befintlig databas genom att miljövariabeln `EIRORA_TEST_POSTGRES` sätts till en anslutningssträng.
-Hur servern körs på produktägarens server står i [deploy/README.md](../deploy/README.md), och hotmodellen för inloggningen i [docs/security/sign-in-threat-model.md](./security/sign-in-threat-model.md).
+Hur servern körs på produktägarens server står i [deploy/README.md](../deploy/README.md), hotmodellen för inloggningen i [docs/security/sign-in-threat-model.md](./security/sign-in-threat-model.md) och den för molnsparningen i [docs/security/cloud-save-threat-model.md](./security/cloud-save-threat-model.md).
 
 ## Inloggning
 
@@ -285,18 +351,21 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Varje push | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Push som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess action som frigör diskutrymme ([`free-disk-space`](../.github/actions/free-disk-space/action.yml)), samt manuellt | Unity-tester, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. På `main` blir Android-bygget ett app-paket som går till Google Plays interna test. |
-| [`Site`](../.github/workflows/site.yml) | Push som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
+| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
+| [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
-Unity-workflowen körs bara när något som påverkar bygget ändras, eftersom Unity-byggen är långsamma och macOS-minuter kostar tio gånger mer i ett privat repo.
+Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.
+En release kostar runt 75 minuter, varav 40 för Xcode på macOS, och en körning av Unity-testerna runt 7; därför bygger CI appen bara när en version släpps.
+En gren utan pull request kör ingen CI; öppna en pull request, gärna som utkast, eller kör en workflow manuellt under **Actions → \<workflow\> → Run workflow**.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
 
-Testerna, Android-bygget och iOS-bygget startar samtidigt när licenskontrollen har gått igenom, så en körning tar ungefär så lång tid som det längsta av dem.
-Bara släppet till Google Play väntar på testerna: på `main` laddas app-paketet upp av ett eget jobb när både testerna och Android-bygget är gröna.
+Testerna, determinismbygget, Android-bygget och iOS-projektet startar samtidigt när förkontrollen har gått igenom, så en körning tar ungefär så lång tid som det längsta av dem.
+Bara släppet till Google Play väntar på testerna: vid en release laddas app-paketet upp av ett eget jobb när både testerna och Android-bygget är gröna.
 
 Varje Unity-jobb återställer projektets `Library` från GitHubs cache, och Android-jobbet också Gradles cache.
-Bara `main` sparar dem; andra grenar börjar från `main`s senaste, eftersom repot har 10 GB cache och en `Library` är runt 2 GB per jobb.
+En körning kan bara läsa cache från sin egen gren eller tagg och från `main`, och bara körningar på `main` sparar, eftersom repot har 10 GB cache och en `Library` är runt 2 GB per jobb.
+`main` kör inte Unity av sig själv, så kör Unity-workflowen manuellt på `main` efter en merge som ändrar klienten; annars börjar pull requests och releaser utan cache och tar längre tid.
 Med en `Library` från cachen kompilerar IL2CPP bara om C++-koden för ändrade assemblies; utan den tar Android-bygget runt 20 minuter längre.
 Unitys avbildningar är större än det diskutrymme en GitHub-runner har ledigt, så jobben tar först bort förinstallerade SDK:er de inte använder med [free-disk-space](../.github/actions/free-disk-space/action.yml), snabbast först och bara tills jobbets uppmätta behov är ledigt.
 
@@ -330,6 +399,7 @@ gh secret set UNITY_PASSWORD
 ```
 
 5. Kör Unity-workflowen manuellt under **Actions → Unity → Run workflow** och kontrollera att alla jobb blir gröna.
+   En manuell körning bygger en APK att sidladda men släpper inget i Google Play.
 
 Licensfilen är bunden till datorn där den skapades, så CI avvisar den och aktiverar i stället med `UNITY_EMAIL` och `UNITY_PASSWORD`.
 Kontot får därför inte ha tvåstegsverifiering; licensfilen behövs ändå, eftersom GameCI börjar med den.
@@ -363,17 +433,18 @@ Utan dem signeras ett lokalt bygge med datorns debugnyckel och kan inte installe
 
 ### Versioner
 
-Versionen är `0.0.<antal commits>` och Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
+Android-versionskoden är antalet commits, både i CI och lokalt (`BuildVersion`), så varje senare bygge installeras över det förra.
+En release heter som sin tagg utan `v`, till exempel `0.3.0`; ett lokalt bygge eller en manuell körning i CI heter `0.0.<antal commits>` ([`build-version`](../.github/actions/build-version/action.yml)).
 Appen visar version och regelversion i rapporten och på startkorten, så att dagboken kan hänvisa till byggen.
 Klienten sparar världen i `Application.persistentDataPath`, som Android behåller vid uppdatering.
 En sparning från äldre regler migreras; en från en nyare version laddas inte och skrivs aldrig över, och appen säger det och låter spelaren börja en ny värld med den gamla undanlagd (ADR-0006).
 
 ### Google Play
 
-Telefonen får nya versioner genom Google Plays interna test (D-75).
-Varje push till `main` som ändrar bygget blir ett app-paket som Unity-workflowen signerar med uppladdningsnyckeln och släpper i det interna testet.
+Telefonen får nya versioner genom Google Plays interna test (D-98).
+Varje publicerad release blir ett app-paket som Unity-workflowen signerar med uppladdningsnyckeln och släpper i det interna testet, se [Släppa en version](#släppa-en-version).
 Play Store uppdaterar sedan appen som vilken app som helst, utan kabel och utan avinstallation, och världen finns kvar.
-Versionen i appen är samma som versionens namn i Play Console och i artefakten `eirora-android-<version>` på körningen.
+Versionen i appen är samma som versionens namn i Play Console, i artefakten `eirora-android-<version>` på körningen och i app-paketet `eirora-<version>.aab` som bifogas releasen.
 
 Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till en agent.
 
@@ -393,7 +464,7 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
    gh secret set PLAY_SERVICE_ACCOUNT_JSON < play-service-account.json
    ```
 
-6. Kör Unity-workflowen på `main` under **Actions → Unity → Run workflow**, eller pusha till `main`.
+6. Släpp en version enligt [Släppa en version](#släppa-en-version).
    Workflowen laddar upp app-paketet till det interna testet, också den första versionen.
    Under **Appinnehåll** dyker då deklarationen för hälsobehörigheterna upp; fyll i den och skicka in.
    Testarna får versionen först när Google har godkänt deklarationen, vilket kan ta några dagar.
@@ -408,6 +479,22 @@ Android säkerhetskopierar appens data, sparningen med, till spelarens eget Goog
 | `Package not found` | Byggets paketnamn finns inte som app i Play Console; appen ska ha `se.eirora.app`, se steg 2. |
 | `APK-filen eller AAB-arkivet måste ha paketnamnet …` | Bygget och appen i Play Console har olika paketnamn; Play Consoles kan inte ändras, så bygget följer det. |
 | `Only releases with status draft may be created on draft app` | Google vill att appens första version släpps för hand: ladda upp `.aab`-filen från körningens artefakt under **Internt test → Skapa ny version**. |
-| `Version code N has already been used` | Samma commit byggdes två gånger; nästa commit på `main` får ett högre nummer. |
+| `Version code N has already been used` | Samma commit släpptes två gånger, eller taggen pekar på en äldre commit än förra releasen; tagga en senare commit på `main`. |
+| `Release tag not a version` | Taggen ser inte ut som `v0.3.0`; ta bort releasen och taggen och släpp igen med rätt namn. |
+| `Release tag not on main` | Taggen pekar på en commit som inte finns på `main`; merga först och tagga sedan `main`. |
 | Play Store erbjuder ingen uppdatering | Nya versioner i internt test syns oftast inom några minuter; sök igen under **Hantera appar och enheter**. |
 | Play Store kan inte installera appen | En APK med `se.eirora.app` från CI eller datorn är installerad och har en annan signatur än appen från Google Play; avinstallera den först. |
+
+### Släppa en version
+
+En ny version till telefonen är en GitHub-release med en tagg på `main` (D-98).
+Taggen namnger versionen: `v0.3.0` blir `0.3.0` i appen och i Play Console.
+Välj ett högre nummer än förra releasen; Android-versionskoden är ändå antalet commits.
+
+```bash
+gh release create v0.3.0 --target main --generate-notes
+```
+
+Samma sak går under **Releases → Draft a new release** på GitHub; Unity-workflowen startar när releasen publiceras, inte när den sparas som utkast.
+Workflowen kör Unity-testerna, bygger Android och iOS, släpper app-paketet i det interna testet och bifogar det till releasen som `eirora-<version>.aab`.
+Testarna får versionen i Play Store några minuter efter att körningen blivit grön.

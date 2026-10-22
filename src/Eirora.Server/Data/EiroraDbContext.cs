@@ -1,15 +1,22 @@
 using Eirora.Server.Accounts;
+using Eirora.Server.CloudSaves;
 using Eirora.Server.SignIn;
 using Microsoft.EntityFrameworkCore;
 
 namespace Eirora.Server.Data;
 
-/// <summary>The server's database: accounts, redeemed provider tokens and OpenIddict's token entries (ADR-0008).</summary>
+/// <summary>
+/// The server's database: accounts, their cloud saves, redeemed provider tokens and OpenIddict's token entries (ADR-0008).
+/// </summary>
 public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) : DbContext(options)
 {
     public DbSet<Account> Accounts => Set<Account>();
 
     public DbSet<AccountLogin> AccountLogins => Set<AccountLogin>();
+
+    public DbSet<StoredCloudSave> CloudSaves => Set<StoredCloudSave>();
+
+    public DbSet<StoredLockedContributions> LockedContributions => Set<StoredLockedContributions>();
 
     public DbSet<RedeemedIdToken> RedeemedIdTokens => Set<RedeemedIdToken>();
 
@@ -27,6 +34,20 @@ public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) :
             login.Property(l => l.Provider).HasMaxLength(16);
             login.Property(l => l.Subject).HasMaxLength(255);
             login.HasIndex(l => new { l.AccountId, l.Provider }).IsUnique();
+        });
+
+        // Both go with the account (ACC-05).
+        modelBuilder.Entity<StoredCloudSave>(save =>
+        {
+            save.HasKey(s => s.AccountId);
+            save.HasOne<Account>().WithOne().HasForeignKey<StoredCloudSave>(s => s.AccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<StoredLockedContributions>(locked =>
+        {
+            locked.HasKey(l => new { l.AccountId, l.KeyEpoch });
+            locked.HasOne<Account>().WithMany().HasForeignKey(l => l.AccountId).OnDelete(DeleteBehavior.Cascade);
+            locked.HasIndex(l => l.LockedAt);
         });
 
         modelBuilder.Entity<RedeemedIdToken>(token =>

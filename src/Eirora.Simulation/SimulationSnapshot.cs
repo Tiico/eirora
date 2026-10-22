@@ -59,9 +59,14 @@ namespace Eirora.Simulation
                 throw new ArgumentNullException(nameof(world));
             }
 
-            string state = world.Fingerprint();
-            return new SimulationSnapshot(FormatVersion, RulesVersion.Current, ContentVersion.Current, world.Now.UtcSeconds, Hash(state), state);
+            return Of(world, world.Fingerprint());
         }
+
+        /// <summary>
+        /// A snapshot of the world's state without what is kept per game day (ADR-0008, D-100); it is restored with
+        /// <see cref="RestoreWorld"/>, and its <see cref="StateHash"/> is what the contributions that complete it name.
+        /// </summary>
+        internal static SimulationSnapshot TakeWorld(World world) => Of(world, world.WorldState());
 
         /// <summary>Reads a snapshot and checks its hash, whatever its rules and content versions.</summary>
         /// <exception cref="FormatException">The bytes are not an intact snapshot of this format.</exception>
@@ -146,7 +151,24 @@ namespace Eirora.Simulation
         /// </exception>
         public World Restore(WorldMap map) => Restore(map, Migrations.All);
 
-        internal World Restore(WorldMap map, IReadOnlyList<StateMigration> migrations)
+        internal World Restore(WorldMap map, IReadOnlyList<StateMigration> migrations) => Restore(map, _state, withContributions: true, migrations);
+
+        /// <summary>
+        /// Rebuilds the world from a snapshot made by <see cref="TakeWorld"/>, completed with the contribution state that
+        /// followed it in the fingerprint; without it, the world goes on with its game days so far closed (D-101).
+        /// </summary>
+        internal World RestoreWorld(WorldMap map, string? contributions, IReadOnlyList<StateMigration> migrations)
+        {
+            // Every record ends its line, so the two parts join as the fingerprint writes them.
+            return contributions is null
+                ? Restore(map, _state, withContributions: false, migrations)
+                : Restore(map, _state + contributions, withContributions: true, migrations);
+        }
+
+        private static SimulationSnapshot Of(World world, string state) =>
+            new(FormatVersion, RulesVersion.Current, ContentVersion.Current, world.Now.UtcSeconds, Hash(state), state);
+
+        private World Restore(WorldMap map, string state, bool withContributions, IReadOnlyList<StateMigration> migrations)
         {
             if (map is null)
             {
@@ -159,12 +181,12 @@ namespace Eirora.Simulation
                     $"The snapshot has rules version {Rules} and content version {Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
             }
 
-            string state = Migrations.ToCurrent(_state, Rules, migrations);
+            state = Migrations.ToCurrent(state, Rules, migrations);
             World world;
             try
             {
                 var reader = new StateReader(state);
-                world = World.Read(reader, map);
+                world = World.Read(reader, map, withContributions);
                 reader.End();
             }
             catch (ArgumentException e)
@@ -172,7 +194,8 @@ namespace Eirora.Simulation
                 throw new FormatException("The snapshot holds a state the rules do not allow.", e);
             }
 
-            if (!string.Equals(world.Fingerprint(), state, StringComparison.Ordinal) || world.Now.UtcSeconds != UtcSeconds)
+            string restored = withContributions ? world.Fingerprint() : world.WorldState();
+            if (!string.Equals(restored, state, StringComparison.Ordinal) || world.Now.UtcSeconds != UtcSeconds)
             {
                 throw new FormatException("The snapshot does not restore to the state it holds.");
             }

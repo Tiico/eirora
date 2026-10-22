@@ -29,16 +29,13 @@ stock Nyon Planks 0
 stock Nyon Stone 0
 stock Nyon Wool 0
 stock Nyon Wadmal 0
-building Storehouse S 1 1 0 0 0
-building FishingHut K1 2 1 0 0 0
-building Field O1 1 1 0 0 849000000
-building Woodcutter F1 1 1 0 0 0
-building Woodcutter F3 1 1 1 0 0
-building Cottage L2 1 0 0 0 0
-building Cottage E2 1 0 0 0 0
-forest F1 40000000
-forest F2 120000000
-forest F3 160000000
+building Storehouse 0 0 1 1 0 0 0
+building FishingHut 1 0 2 1 0 0 0
+building Field 0 1 1 1 0 0 849000000
+building Woodcutter 1 -1 1 1 0 0 0
+building Woodcutter -2 0 1 1 1 0 0
+building Cottage 0 -1 1 0 0 0 0
+building Cottage 2 -2 1 0 0 0 0
 fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c0000000007f0000000003fc000000000ff8000000001ff0000000001ff0000000000ff8000000000ff0000000001fe0000000007f0000000000f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 selfcare 8 Workouts SelfReported 1
 selfcare 9 Steps Verified 1520
@@ -343,7 +340,7 @@ spends-at-credit 82 Sleep 0
 spends-at-credit 83 Sleep 0
 spends-at-credit 84 Sleep 0
 command k0 1
-sites-revealed 1780304400 M2 F3
+tiles-revealed 1780304400 3 -1 -2 0
 command k10 0
 command k100 1
 force-credited 1785524163 DawnPower 0
@@ -364,7 +361,7 @@ force-credited 1781341075 DawnPower 15
 command k141 0
 command k144 0
 command k21 1
-sites-revealed 1781353285 K2 O2
+tiles-revealed 1781353285 -3 3 -1 2
 command k25 1
 force-credited 1781438835 DawnPower 6
 command k26 1

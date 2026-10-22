@@ -36,7 +36,7 @@ namespace Eirora.Simulation.Commands
                 return Rejection.InsufficientForces;
             }
 
-            world.Report(new SitesRevealed(world.Now.UtcSeconds, world.Settlement.CompleteSurvey()));
+            world.Report(new TilesRevealed(world.Now.UtcSeconds, world.Settlement.CompleteSurvey()));
             return Rejection.None;
         }
     }

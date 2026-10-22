@@ -76,6 +76,21 @@ public sealed class WorldMapTests
         Assert.Throws<FormatException>(() => WorldMap.Parse(text));
     }
 
+    // The server reads the maps players upload (ADR-0008), so a few bytes must never make it allocate a huge map.
+    [Theory]
+    [InlineData(5_000)]
+    [InlineData(30_000)] // More tiles than an int counts.
+    [InlineData(-1)]
+    public void ARadiusTheTextCannotHoldIsRejectedBeforeAnyTileIsAllocated(int radius)
+    {
+        string text = SmallMap().ToText().Replace("radius 2", $"radius {radius}", StringComparison.Ordinal);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Throws<FormatException>(() => WorldMap.Parse(text));
+
+        Assert.True(GC.GetAllocatedBytesForCurrentThread() - before < 1_000_000, "Parsing allocated the radius' tiles.");
+    }
+
     [Fact]
     public void OnlyAProceduralMapHasASeed()
     {

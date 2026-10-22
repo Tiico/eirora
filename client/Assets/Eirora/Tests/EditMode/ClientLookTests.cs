@@ -33,13 +33,13 @@ namespace Eirora.Client.Tests
             // A day can lift tens of tiles; the report says how many where the first was lifted (TASK-032).
             var events = new GameEvent[]
             {
-                new DawnBroke(0, 2), new FogLifted(1, 6, 0), new SitesRevealed(2, new[] { "M2" }), new FogLifted(3, 7, 0),
+                new DawnBroke(0, 2), new FogLifted(1, 6, 0), new TilesRevealed(2, new[] { new Hex(3, -1) }), new FogLifted(3, 7, 0),
                 new FogLifted(4, 7, -1),
             };
 
             Assert.That(Texts.Report(events), Is.EqualTo(new[]
             {
-                "Byn vaknade till spelardygn 2.", "Dimman lättade över 3 brickor.", "Dimman lättade över nya platser.",
+                "Byn vaknade till spelardygn 2.", "Dimman lättade över 3 brickor.", "Kartläggningen lyfte dimman över nya brickor.",
             }));
             Assert.That(Texts.Report(new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en bricka." }));
         }
@@ -83,24 +83,23 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
-        public void FishingWaterIsWaterAndEveryOtherPlaceIsLand()
+        public void TheIslandIsLandExactlyWhereTheMapIs()
         {
             var map = new IslandMap(PrototypeHome.Map);
 
-            foreach (var site in PrototypeIsland.Sites)
+            foreach (var tile in map.Tiles)
             {
-                bool water = (site.Kinds & SiteKind.FishingWater) != 0;
-                Assert.That(map.IsLand(IslandMap.HexOf(site)), Is.EqualTo(!water), site.Id);
+                Assert.That(map.IsLand(tile.Key), Is.EqualTo(PrototypeHome.Map.TerrainAt(tile.Key).IsLand()), tile.Key.ToString());
             }
         }
 
         [Test]
         public void TappingAHexCentreFindsThatHex()
         {
-            foreach (var site in PrototypeIsland.Sites)
+            // Every tile drawn is a tile the player can tap (D-79).
+            foreach (var hex in new IslandMap(PrototypeHome.Map).Tiles.Keys)
             {
-                var hex = IslandMap.HexOf(site);
-                Assert.That(HexLayout.FromWorld(hex.Center()), Is.EqualTo(hex), site.Id);
+                Assert.That(HexLayout.FromWorld(hex.Center()), Is.EqualTo(hex), hex.ToString());
             }
         }
 
@@ -114,7 +113,7 @@ namespace Eirora.Client.Tests
             var island = new IslandView(parent.transform, flat, glow, Looks.Load());
             try
             {
-                var selected = IslandMap.HexOf(PrototypeIsland.Sites.First());
+                var selected = Hex.Origin;
                 island.Refresh(world);
                 island.Select(selected);
                 int meshes = Resources.FindObjectsOfTypeAll<Mesh>().Length;

@@ -3,11 +3,11 @@
 > **Ärende:** TASK-022 · **PRD:** ACC-01, ACC-04, ACC-05, NFR-05, NFR-06, NFR-10 · **Beslut:** [ADR-0008](../adr/0008-backend-hosting-accounts-and-database.md), D-72
 
 Hotmodellen gäller kontot och inloggningen i `Eirora.Server` och klienten: hur ett konto skapas, nås, kopplas och raderas, i appen och på raderingssidan.
-Molnsparningen och de krypterade bidragen (TASK-023) får en egen genomgång.
+Molnsparningen och de krypterade bidragen (TASK-023) har en egen hotmodell, [cloud-save-threat-model.md](./cloud-save-threat-model.md).
 
 ## Det som skyddas
 
-- **Kontot:** att bara spelaren själv når sitt konto och sin kommande molnsparning.
+- **Kontot:** att bara spelaren själv når sitt konto och sin molnsparning.
 - **Kopplingen mellan konto och person:** leverantörernas `sub` för Apple och Google.
   Servern lagrar inget namn och ingen e-post (D-72).
 - **Tillgängligheten** för inloggning och radering.
@@ -47,7 +47,7 @@ På raderingssidan loggar spelaren in med Apple eller Google i webbläsaren på 
 | Kontoövertagande | Någon kopplar in en inloggning som tillhör ett annat konto och slår ihop dem | Konton slås aldrig ihop; en inloggning tillhör högst ett konto | `ALoginOfAnotherAccountCannotBeLinked` |
 | Informationsläckage | Token, nonce eller identifierare hamnar i loggar | Loggar anger bara skäl, aldrig värden; OpenIddict loggar från nivå Warning | `LogsNeverContainTokensNoncesOrIdentifiers` |
 | Informationsläckage | Databasen läcker | Ingen e-post, inget namn och inga lösenord; refresh-token lagras inte i klartext; disken är krypterad (ADR-0008) | `TheAccountHoldsNoNameEmailOrProviderIdentifier` |
-| Kvarvarande data | Ett raderat konto lever kvar i token eller tabeller | Radering tar bort kontot, inloggningarna och alla OpenIddict-poster för kontot, och access-token kontrolleras mot sina poster vid varje anrop | `ADeletedAccountLeavesNoAccountDataOnTheServer`, `TheDeletedAccountsTokensStopWorkingAtOnce` |
+| Kvarvarande data | Ett raderat konto lever kvar i token eller tabeller | Radering tar bort kontot, inloggningarna, molnsparningen och alla OpenIddict-poster för kontot, och access-token kontrolleras mot sina poster vid varje anrop | `ADeletedAccountLeavesNoAccountDataOnTheServer`, `TheDeletedAccountsTokensStopWorkingAtOnce` |
 | Förnekande | Gissningar eller översvämning av `/connect`, `/signin` och raderingssidan | Traefik begränsar dem per klientadress (deploy/compose.yaml) | – |
 | Kontoövertagande | En stulen telefon eller en kopia av appens data ger refresh-token | Refresh-token ligger i iOS nyckelring (bara den här enheten, efter första upplåsningen) eller krypterad med en nyckel i Android Keystore som aldrig lämnar enheten; access-token bara i minnet | `ARefreshTokenSurvivesARestart` (Unity) |
 | Förfalskning | En annan app på telefonen fångar Apples svar på Android | Servern skickar svaret som en `intent:`-adress med appens paketnamn, så bara Eirora tar emot det; appen kräver sitt eget `state`, och ID-token är ändå bunden till appens nonce | `ApplesAnswerIsHandedToTheAndroidAppOnly`, `AnAnswerToAnotherSignInIsRejected` (Unity) |
@@ -76,5 +76,5 @@ På raderingssidan loggar spelaren in med Apple eller Google i webbläsaren på 
 
 ## Kvar till kommande ärenden
 
-- Molnsparningens behörighet och de krypterade bidragen (TASK-023), och att bidragsnyckeln tas bort från enheten när kontot raderas.
+- Att bidragsnyckeln tas bort från enheten när kontot raderas (TASK-023b, #108).
 - Backup med pgBackRest och test av återställning (NFR-01).

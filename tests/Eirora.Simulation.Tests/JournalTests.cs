@@ -3,6 +3,7 @@ using Eirora.Simulation.Economy;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
+using static Eirora.Simulation.Tests.Tiles;
 
 namespace Eirora.Simulation.Tests;
 
@@ -78,11 +79,11 @@ public sealed class JournalTests
             journal.Apply($"sleep-{day}", new RecordSelfCare(today, Habit.Sleep, ContributionSource.SelfReported, 400));
             journal.Apply($"train-{day}", new RecordSelfCare(today, Habit.Workouts, ContributionSource.Verified, day % 2));
             journal.Apply($"survey-{day}", new Survey());
-            journal.Apply($"f3-{day}", new Build(BuildingKind.Woodcutter, "F3"));
-            journal.Apply($"e2-{day}", new Build(BuildingKind.Sawmill, "E2"));
-            journal.Apply($"road-{day}", new BuildRoad("F2"));
-            journal.Apply($"upgrade-{day}", new Upgrade("K1"));
-            journal.Apply($"workday-{day}", new Workday("O1"));
+            journal.Apply($"f3-{day}", new Build(BuildingKind.Woodcutter, F3));
+            journal.Apply($"e2-{day}", new Build(BuildingKind.Sawmill, E2));
+            journal.Apply($"road-{day}", new BuildRoad(F2));
+            journal.Apply($"upgrade-{day}", new Upgrade(K1));
+            journal.Apply($"workday-{day}", new Workday(O1));
             journal.Apply($"rush-{day}", new Rush());
             journal.Apply($"schedule-{day}", new ChangeRestSchedule(new RestSchedule((22 * 60) + (day * 15), 8 * 60)));
         }

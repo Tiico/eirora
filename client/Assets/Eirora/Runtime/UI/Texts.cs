@@ -5,6 +5,8 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
+using Eirora.Simulation.Map;
+using MapTerrain = Eirora.Simulation.Map.Terrain;
 
 namespace Eirora.Client.UI
 {
@@ -48,18 +50,48 @@ namespace Eirora.Client.UI
             _ => "Gryningskraft",
         };
 
-        public static string Describe(Site site)
+        /// <summary>What a tile is: its ground, or the crest, and whether it is rich.</summary>
+        public static string Ground(WorldMap map, Hex tile, TileUse uses)
         {
-            var kinds = site.Kinds;
-            string place =
-                (kinds & SiteKind.FishingWater) != 0 ? "Fiskevatten" :
-                (kinds & SiteKind.HarborSpot) != 0 ? "Hamnläge" :
-                (kinds & SiteKind.Farmland) != 0 ? "Odlingsmark" :
-                (kinds & SiteKind.Forest) != 0 ? "Skog" :
-                (kinds & SiteKind.Mountain) != 0 ? "Berg" :
-                (kinds & SiteKind.Pasture) != 0 ? "Bete" : "Mark";
-            return site.RichnessPercent > 100 ? $"{place}, rikt" : place;
+            string ground = (uses & TileUse.Crest) != 0 ? "Krönet" : map.TerrainAt(tile) switch
+            {
+                MapTerrain.DeepSea => "Djupt hav",
+                MapTerrain.ShallowSea => "Grunt vatten",
+                MapTerrain.Beach => "Strand",
+                MapTerrain.Forest => "Skog",
+                MapTerrain.Farmland => "Åker",
+                MapTerrain.Pasture => "Bete",
+                MapTerrain.Mountain => "Berg",
+                _ => "Äng",
+            };
+            return map.RichnessAt(tile) > 100 ? $"{ground}, rik" : ground;
         }
+
+        /// <summary>What a tile is good for, as a building site (D-79, economy-v1.md, section 3.1).</summary>
+        public static string Uses(TileUse uses)
+        {
+            var parts = new List<string>();
+            void Add(TileUse use, string name)
+            {
+                if ((uses & use) != 0)
+                {
+                    parts.Add(name);
+                }
+            }
+
+            Add(TileUse.Land, "byggmark");
+            Add(TileUse.Farmland, "åker");
+            Add(TileUse.Pasture, "bete");
+            Add(TileUse.Forest, "skog att fälla");
+            Add(TileUse.Mountain, "berg att bryta");
+            Add(TileUse.FishingWater, "fiskevatten");
+            Add(TileUse.HarborSpot, "hamnläge");
+            Add(TileUse.Crest, "Vårdkasens plats");
+            return parts.Count == 0 ? "Här kan inget byggas." : "Duger till " + Join(parts) + ".";
+        }
+
+        private static string Join(List<string> parts) =>
+            parts.Count == 1 ? parts[0] : string.Join(", ", parts.Take(parts.Count - 1)) + " och " + parts[parts.Count - 1];
 
         public static string Cost(BuildingSpec spec)
         {
@@ -127,7 +159,7 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Build } done => $"{Name(done.Building)} är färdig.",
             ProjectCompleted { Kind: ProjectKind.Upgrade } done => $"{Name(done.Building)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
-            SitesRevealed => "Dimman lättade över nya platser.",
+            TilesRevealed => "Kartläggningen lyfte dimman över nya brickor.",
             ExpeditionReturned => "Expeditionen kom hem. Den hittade Nyön i öster.",
             FogLifted => FogLiftedOver(1),
             _ => null,

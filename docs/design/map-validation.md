@@ -15,7 +15,8 @@ Alla gränser står i `ValidationLimits` i `src/Eirora.WorldGeneration/Validatio
 Kartan sparar bara terräng, höjd och rikedom; resten följer av brickorna (`MapFeatures`, ADR-0010).
 
 - **Fiskevatten** är grunt hav intill land.
-- **Ett hamnläge** är en strand intill grunt hav som når djupt hav.
+- **Ett hamnläge** är här en strand intill grunt hav som når djupt hav.
+  I ekonomin är varje landbricka utom berg vid sådant vatten ett hamnläge (D-89), så en strand som valideringen godtar är alltid ett hamnläge där; regeln står kvar som den var, eftersom generator v1 är låst till den.
 - **Krönet** är startöns enda högsta bricka; delar två brickor toppen finns inget krön.
 - **Avståndet till en ö** är antalet steg till sjöss från startöns närmaste hamnläge till öns närmaste hamnläge.
   Ett skepp lämnar en kust, seglar bara över hav och lägger till vid en kust.

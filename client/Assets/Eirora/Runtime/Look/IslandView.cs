@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Eirora.Simulation;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using UnityEngine;
@@ -44,8 +45,8 @@ namespace Eirora.Client.Look
         {
             var mesh = new MeshBuilder();
             var lights = new MeshBuilder();
-            var occupied = new HashSet<Hex>(world.Buildings.Select(b => IslandMap.HexOf(b.Site)));
-            occupied.UnionWith(world.Projects.Select(p => IslandMap.HexOf(p.Site)));
+            var occupied = new HashSet<Hex>(world.Buildings.Select(b => b.Tile));
+            occupied.UnionWith(world.Projects.Select(p => p.Tile));
 
             // Fog per tile from the world's state (TASK-032); Nyön's land is its own mesh, shown once it is found.
             bool nyonFound = world.IsKnown(IslandMap.NyonCentre);
@@ -76,7 +77,7 @@ namespace Eirora.Client.Look
             int villager = 0;
             foreach (var building in world.Buildings)
             {
-                var hex = IslandMap.HexOf(building.Site);
+                var hex = building.Tile;
                 var c = hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex]));
                 _looks.Building(mesh, lights, building.Kind, building.Level, c, Seed(hex));
                 if (building.Staffed && world.Phase == Phase.Active)
@@ -88,7 +89,7 @@ namespace Eirora.Client.Look
 
             foreach (var project in world.Projects)
             {
-                var hex = IslandMap.HexOf(project.Site);
+                var hex = project.Tile;
                 if (project.Kind == Simulation.Economy.ProjectKind.Build)
                 {
                     Models.Scaffold(mesh, hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex])));
@@ -152,34 +153,93 @@ namespace Eirora.Client.Look
             return mesh;
         }
 
-        /// <summary>How far a hex's side lies from its centre (half the width of a pointy-top hex), plus a sliver.</summary>
-        private const float Shore = 0.9f;
-
-        /// <summary>The fairway between the jetties once ships sail, and the expedition's boat while it is out.</summary>
+        /// <summary>
+        /// The fairway between the jetties once ships sail, and the expedition's boat while it is out: along the shortest
+        /// way by sea, from shore to shore, wherever the jetties stand (D-89).
+        /// </summary>
         private static void SeaRoute(MeshBuilder mesh, World world)
         {
-            // From shore to shore: Hemön's harbour and Nyön's, across the bay that faces Hemön.
-            var shore = new Vector3(Shore, 0f, 0f);
-            var from = new Hex(1, 1).Center() + shore;
-            var to = IslandMap.NyonCentre.Center() - shore;
+            var home = JettyOn(world, IslandId.Home);
+            if (home is null)
+            {
+                return;
+            }
+
+            var destination = world.SeaRouteOpen ? JettyOn(world, IslandId.Nyon) : PrototypeIsland.ExpeditionFinds;
+            var way = Fairway(world.Map.Features.SeaRoute(new[] { home.Value }, new[] { destination!.Value }));
+            if (way.Count < 2)
+            {
+                return;
+            }
+
             if (world.SeaRouteOpen)
             {
-                const int Dashes = 15; // Odd, so the line starts and ends with a dash at the shores.
-                for (int i = 0; i < Dashes; i += 2)
+                float length = Length(way);
+                int dashes = Mathf.Max(3, Mathf.RoundToInt(length / 0.6f) | 1); // Odd, so the line starts and ends with a dash.
+                for (int i = 0; i < dashes; i += 2)
                 {
-                    var a = Vector3.Lerp(from, to, i / (float)Dashes) + (Vector3.up * 0.01f);
-                    var b = Vector3.Lerp(from, to, (i + 1) / (float)Dashes) + (Vector3.up * 0.01f);
+                    var a = Along(way, length * i / dashes) + (Vector3.up * 0.01f);
+                    var b = Along(way, length * (i + 1) / dashes) + (Vector3.up * 0.01f);
                     var side = Vector3.Cross(b - a, Vector3.up).normalized * 0.05f;
                     mesh.Polygon(Palette.Birch, a - side, a + side, b + side, b - side);
                 }
 
-                Models.Boat(mesh, Vector3.Lerp(from, to, 0.55f), 0f);
+                Models.Boat(mesh, Along(way, length * 0.55f), 0f);
             }
             else if (world.ExpeditionHoursLeft > 0)
             {
-                float sailed = 1f - (world.ExpeditionHoursLeft / (float)Simulation.Economy.PrototypeIsland.ExpeditionHours);
-                Models.Boat(mesh, Vector3.Lerp(from, to, Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
+                float sailed = 1f - (world.ExpeditionHoursLeft / (float)PrototypeIsland.ExpeditionHours);
+                Models.Boat(mesh, Along(way, Length(way) * Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
             }
+        }
+
+        private static Hex? JettyOn(World world, IslandId island) =>
+            world.Buildings.Where(b => b.Kind == BuildingKind.Jetty && b.Island == island).Select(b => (Hex?)b.Tile).FirstOrDefault();
+
+        /// <summary>The way through the sea tiles' centres, from where it leaves one shore to where it meets the other.</summary>
+        private static List<Vector3> Fairway(IReadOnlyList<Hex> route)
+        {
+            var way = new List<Vector3>();
+            if (route.Count < 3)
+            {
+                return way;
+            }
+
+            way.Add(Vector3.Lerp(route[0].Center(), route[1].Center(), 0.5f));
+            for (int i = 1; i < route.Count - 1; i++)
+            {
+                way.Add(route[i].Center());
+            }
+
+            way.Add(Vector3.Lerp(route[route.Count - 2].Center(), route[route.Count - 1].Center(), 0.5f));
+            return way;
+        }
+
+        private static float Length(List<Vector3> way)
+        {
+            float length = 0f;
+            for (int i = 1; i < way.Count; i++)
+            {
+                length += Vector3.Distance(way[i - 1], way[i]);
+            }
+
+            return length;
+        }
+
+        private static Vector3 Along(List<Vector3> way, float distance)
+        {
+            for (int i = 1; i < way.Count; i++)
+            {
+                float step = Vector3.Distance(way[i - 1], way[i]);
+                if (distance <= step)
+                {
+                    return Vector3.Lerp(way[i - 1], way[i], step > 0f ? distance / step : 0f);
+                }
+
+                distance -= step;
+            }
+
+            return way[way.Count - 1];
         }
 
         public static NatureKind? NatureOf(Terrain terrain) => terrain switch

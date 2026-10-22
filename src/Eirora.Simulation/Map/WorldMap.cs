@@ -31,6 +31,7 @@ namespace Eirora.Simulation.Map
         private readonly int[] _island;
         private string? _text;
         private string? _hash;
+        private MapFeatures? _features;
 
         internal WorldMap(
             HexDisc disc,
@@ -85,6 +86,9 @@ namespace Eirora.Simulation.Map
 
         /// <summary>The SHA-256 hash of the map's text: its identity in the world's state.</summary>
         public string Hash => _hash ??= Sha256.Of(ToText());
+
+        /// <summary>What follows from the map's tiles, worked out once for the map.</summary>
+        public MapFeatures Features => _features ??= new MapFeatures(this);
 
         public bool Contains(Hex hex) => Disc.Contains(hex);
 
@@ -158,7 +162,7 @@ namespace Eirora.Simulation.Map
             WorldMap map;
             try
             {
-                map = Read(new StateReader(text));
+                map = Read(new StateReader(text), text.Length);
             }
             catch (ArgumentException e)
             {
@@ -180,7 +184,7 @@ namespace Eirora.Simulation.Map
             _ => "geographic",
         };
 
-        private static WorldMap Read(StateReader reader)
+        private static WorldMap Read(StateReader reader, int textLength)
         {
             reader.Expect(Magic);
             int format = reader.Int();
@@ -193,6 +197,14 @@ namespace Eirora.Simulation.Map
 
             reader.Expect("radius");
             int radius = reader.Int();
+
+            // Every tile takes at least three characters (its terrain, its height and a space), so a radius the text
+            // cannot hold is rejected before its tiles are allocated: the server reads maps that players upload (ADR-0008).
+            if (radius < 0 || radius > textLength || (3L * radius * (radius + 1L)) + 1 > textLength / 3)
+            {
+                throw new FormatException($"The map's text cannot hold a map of radius {radius}.");
+            }
+
             var source = ParseSource(reader);
             reader.Expect("generator");
             var builder = new WorldMapBuilder(radius, source, reader.Text(), reader.Int());

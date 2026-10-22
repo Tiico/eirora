@@ -65,6 +65,7 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
 - Molnsparningen har två delar: världsdelen och bidragsdelen.
   Bidragsdelen innehåller allt som avslöjar egenvården per spelardygn: bidragen, den kraft varje spelardygn har krediterats och journalens avläsningar av egenvård.
   Världsdelen innehåller resten, med krafternas saldon men inget per spelardygn som går att räkna tillbaka till egenvården.
+  _Ändrat 2026-10-21 (#38, D-100): bidragsdelen bär också de använda idempotensnycklarna, segmentens start och hela journalen, så att världsdelen bara är kartan och senaste snapshoten utom det som hålls per spelardygn._
 - Bidragsdelen krypteras på enheten med XChaCha20-Poly1305 och en slumpad nonce på 192 bitar, med konto-id, nyckelepok och sparningens version som associerade data, så att servern inte kan byta delar mellan spelare eller sparningar.
   Krypteringen kommer från BouncyCastle.Cryptography, som är netstandard och fungerar likadant i .NET och under IL2CPP; .NET:s `AesGcm` finns inte i Unitys Mono.
   Servern lagrar bara chiffertext och dekrypterar aldrig.
@@ -78,6 +79,7 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
 - Saknar en ny telefon nyckeln börjar en ny nyckelepok och världen fortsätter.
   Bidragsdelen från den gamla epoken markeras som låst och sparas i 90 dagar om nyckeln skulle dyka upp, och raderas sedan eller tidigare om spelaren väljer det.
   Världen, krafternas saldon och allt byggt finns kvar; spelardygnen före den nya epoken kan inte längre rättas i efterhand och räknas som tomma i Byggkraftens rullande vecka (D-63), som för en ny värld.
+  Det gäller spelardygnen till och med världsdelens senaste spelardygn, eftersom det dygnet redan kan ha krediterats (D-101).
 - Chiffertexten är fortfarande personuppgifter av särskild kategori enligt GDPR, eftersom den hör till ett känt konto.
   Krypteringen är en skyddsåtgärd i DPIA:n (artikel 32), och ett dataintrång som bara rör den kräver inte att spelarna underrättas (artikel 34.3 a); radering sker genom att raderna tas bort och backuperna går ut.
 
@@ -138,6 +140,9 @@ Hög tillgänglighet slås på när intäkterna motiverar det; utan den ger ett 
 ## Consequences
 
 - TASK-022 bygger konto och inloggning enligt ovan: OpenIddict, Apple- och Google-token, radering med återkallelse hos Apple, EF Core-migrationer, Testcontainers i CI och compose-filen med Traefik-etiketter.
+- TASK-023 lagrar en molnsparning per konto med en version som varje uppladdning höjer med ett.
+  En uppladdning som bygger på en annan version eller en äldre nyckelepok får 409 med den nuvarande versionen, så att klienten slår ihop journalerna (D-99); sparningens version i bidragsdelens associerade data är den version uppladdningen blir.
+  Servern tar högst 1 MiB världsdel och 8 MiB bidragsdel, och kontrollerar bara att världsdelen laddas ([hotmodell](../security/cloud-save-threat-model.md)).
 - TASK-020 och TASK-023 delar sparningen i världsdel och bidragsdel; TASK-019:s snapshot och fingeravtryck måste därför kunna laddas med bidragsdelen saknad, och spelardygnen före en ny nyckelepok räknas som stängda.
 - Klienten får två nya native-delar: iCloud-nyckelringen och Block Store, vid sidan av hälsoadaptrarna (ADR-0007).
 - Spelare utan konto har ingen molnbackup.
