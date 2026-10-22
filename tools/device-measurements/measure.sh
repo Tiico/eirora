@@ -219,27 +219,35 @@ budget() {
     [ ${#POSITIONAL[@]} -ge 1 ] || die "budget needs at least one results.tsv"
     case "$TIER" in floor | base | reference) ;; *) die "--tier must be floor, base or reference" ;; esac
     [ -f "$BUDGETS" ] || die "no budgets in $BUDGETS"
-    # Results from several runs (a day and a night pass, the day in the background) are read together; the last
-    # file that has a metric wins.
+    # Results from several runs (a day and a night pass, the day in the background) are read together. Each file is
+    # held to the budgets on its own, so a pass over budget fails even when another pass of the same metric is within.
     awk -F'\t' -v tier="$TIER" '
         FNR == NR && /^#/ { next }
         FNR == NR && $2 == tier { kind[$1] = $3; limit[$1] = $4; order[++n] = $1; next }
         FNR == NR { next }
-        $2 ~ /^-?[0-9]+(\.[0-9]+)?$/ { value[$1] = $2 }
+        FILENAME != current { current = FILENAME; name[++files] = FILENAME }
+        $2 ~ /^-?[0-9]+(\.[0-9]+)?$/ { value[files, $1] = $2; seen[$1] = 1 }
         END {
             split("skin battery", parts, " ")
-            for (p in parts) {
-                start = parts[p] "_temp_start_c"; end = parts[p] "_temp_end_c"
-                if ((start in value) && (end in value)) value[parts[p] "_warming_c"] = sprintf("%.1f", value[end] - value[start])
+            for (f = 1; f <= files; f++) {
+                for (p in parts) {
+                    start = parts[p] "_temp_start_c"; end = parts[p] "_temp_end_c"; warming = parts[p] "_warming_c"
+                    if (((f, start) in value) && ((f, end) in value)) {
+                        value[f, warming] = sprintf("%.1f", value[f, end] - value[f, start]); seen[warming] = 1
+                    }
+                }
             }
             printf "%-28s %10s %12s  %s\n", "metric (" tier ")", "measured", "budget", "verdict"
             for (i = 1; i <= n; i++) {
                 m = order[i]
                 bound = (kind[m] == "min" ? ">= " : "<= ") limit[m]
-                if (!(m in value)) { printf "%-28s %10s %12s  %s\n", m, "-", bound, "not measured"; continue }
-                over = kind[m] == "min" ? value[m] + 0 < limit[m] + 0 : value[m] + 0 > limit[m] + 0
-                if (over) failed = 1
-                printf "%-28s %10s %12s  %s\n", m, value[m], bound, over ? "OVER BUDGET" : "ok"
+                if (!(m in seen)) { printf "%-28s %10s %12s  %s\n", m, "-", bound, "not measured"; continue }
+                for (f = 1; f <= files; f++) {
+                    if (!((f, m) in value)) continue
+                    over = kind[m] == "min" ? value[f, m] + 0 < limit[m] + 0 : value[f, m] + 0 > limit[m] + 0
+                    if (over) failed = 1
+                    printf "%-28s %10s %12s  %s%s\n", m, value[f, m], bound, over ? "OVER BUDGET" : "ok", (files > 1 ? "  " name[f] : "")
+                }
             }
             exit failed
         }' "$BUDGETS" "${POSITIONAL[@]}"

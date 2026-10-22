@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Regression for measure.sh budget (TASK-024): a run within the budgets passes, a run over any budget fails and names
-# it, the warming is worked out from the start and end temperatures, and an unmeasured metric does not fail.
+# it, the warming is worked out from the start and end temperatures, an unmeasured metric does not fail, and each of
+# several results files is held to the budgets on its own.
 set -euo pipefail
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 tmp="$(mktemp -d)"
@@ -30,6 +31,13 @@ if "$here/measure.sh" budget "$tmp/good.tsv" "$tmp/day.tsv" --tier base >"$tmp/b
     cat "$tmp/both.out"; echo "FAIL: the day's share over budget passed"; exit 1
 fi
 grep -q '^app_share_of_drain_pct .*OVER BUDGET' "$tmp/both.out" || { cat "$tmp/both.out"; echo "FAIL: second file not read"; exit 1; }
+
+# Each file is held to the budgets on its own: a day pass over budget fails even when a night pass after it is within.
+if "$here/measure.sh" budget "$tmp/slow.tsv" "$tmp/good.tsv" --tier reference >"$tmp/day-night.out"; then
+    cat "$tmp/day-night.out"; echo "FAIL: a pass over budget passed because a later pass was within"; exit 1
+fi
+grep -q "^frame_p95_ms .*OVER BUDGET  $tmp/slow.tsv\$" "$tmp/day-night.out" && grep -q "^frame_p95_ms .* ok  $tmp/good.tsv\$" "$tmp/day-night.out" ||
+    { cat "$tmp/day-night.out"; echo "FAIL: the rows do not say which pass broke the budget"; exit 1; }
 
 "$here/measure.sh" budget "$tmp/good.tsv" --tier top 2>/dev/null && { echo "FAIL: an unknown tier was accepted"; exit 1; }
 echo "measure.sh budget: all checks passed"

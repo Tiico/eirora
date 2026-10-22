@@ -64,7 +64,8 @@ tools/device-measurements/measure.sh budget measurements/day-1/results.tsv measu
 
 Skriptet skriver varje mått med uppmätt värde, gräns och `ok` eller `OVER BUDGET`, och avslutar med fel om något mått går över.
 Ett mått som inte mättes skrivs som `not measured` och underkänner inte, så ett pass utan dygnsmätning går att pröva.
-Testet `tools/device-measurements/test-budget.sh` prövar kommandot med påhittade resultat.
+Varje resultatfil hålls mot budgeten för sig, så ett dagspass över budgeten underkänns även om nattpasset håller den, och raden säger vilken fil som bröt den.
+Testet `tools/device-measurements/test-budget.sh` prövar kommandot med påhittade resultat och körs i CI.
 
 ## 4. Vad CI mäter
 
