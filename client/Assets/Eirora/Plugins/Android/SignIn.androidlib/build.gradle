@@ -1,4 +1,4 @@
-// Eirora's sign-in with Apple and Google and its keystore (ADR-0008), packaged like the Health Connect adapter (ADR-0007).
+// Eirora's sign-in with Apple and Google, its keystore and the contribution key's Block Store backup (ADR-0008), packaged like the Health Connect adapter (ADR-0007).
 // Unity includes this folder as a Gradle library module of unityLibrary; its Kotlin needs the built-in Kotlin that
 // Assets/Plugins/Android/gradleTemplate.properties turns on, and Eirora.Editor.AndroidHealthCheck fails a build without it.
 plugins {
@@ -36,5 +36,7 @@ dependencies {
     // 1.2.x is compiled with Kotlin 2.4, which the built-in Kotlin 2.2 of Unity 6.3's AGP 9.1.1 cannot read.
     implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
     implementation 'androidx.browser:browser:1.10.0'
+    // The contribution key's backup to a new phone (KeyBackup.kt, TASK-023b).
+    implementation 'com.google.android.gms:play-services-auth-blockstore:16.4.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 }

@@ -76,5 +76,4 @@ På raderingssidan loggar spelaren in med Apple eller Google i webbläsaren på 
 
 ## Kvar till kommande ärenden
 
-- Att bidragsnyckeln tas bort ur plattformens nyckelring och Block Store när kontot raderas (TASK-023b, #108); ur enhetens keystore tas den bort redan nu, när raderingen bekräftats (`CloudSaveSyncTests.SigningOutTurnsTheCloudSaveOffAndDeletingTheAccountForgetsTheKey`).
 - Backup med pgBackRest och test av återställning (NFR-01).

@@ -457,6 +457,153 @@ namespace Eirora.Client.Tests
             Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Off));
         }
 
+        // On the same platform with a screen lock, the key follows through iCloud Keychain or Block Store (TASK-023b): the
+        // new phone reads the island with its self-care and asks nothing.
+        [Test]
+        public void ANewPhoneOnTheSamePlatformFindsTheKeyInTheBackupAndAsksNothing()
+        {
+            var backup = new MemoryKeyBackup();
+            var old = Phone("a", withWorld: true, backup: backup);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var account = old.Account.Account!.Id;
+            Assert.That(backup[KeyBackups.Name(account)], Is.EqualTo(old.Storage.Key(account)!.ToText()));
+            Assert.That(old.Cloud.KeyReach, Is.EqualTo(KeyBackupReach.EndToEnd));
+            var fresh = Phone("b", withWorld: false, backup: backup);
+
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(fresh.Cloud.Choice, Is.Null);
+            Assert.That(fresh.Game.World!.Fingerprint(), Is.EqualTo(old.Game.World!.Fingerprint()));
+            Assert.That(fresh.Cloud.Welcome, Is.True);
+            Assert.That(fresh.Cloud.KeyEpochBegan, Is.False);
+            Assert.That(fresh.Storage.Key(account)!.ToText(), Is.EqualTo(old.Storage.Key(account)!.ToText()));
+            Assert.That(_server.CloudSaveOf("player")!.KeyEpoch, Is.EqualTo(1));
+        }
+
+        // Without a screen lock the key stays on the phone: the old phone says so, and the new one is asked as before.
+        [Test]
+        public void WithoutAScreenLockTheKeyStaysOnThePhoneAndTheNewPhoneIsAsked()
+        {
+            var old = Phone("a", withWorld: true, backup: new MemoryKeyBackup { Reach = KeyBackupReach.ThisPhone });
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false, backup: new MemoryKeyBackup());
+
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+
+            Assert.That(old.Cloud.KeyReach, Is.EqualTo(KeyBackupReach.ThisPhone));
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+            Assert.That(fresh.Game.World, Is.Null);
+        }
+
+        // A key kept before there was a backup, or before the phone got a screen lock, goes there at the next launch.
+        [Test]
+        public void AKeyFromBeforeTheBackupIsBackedUpAtTheNextLaunch()
+        {
+            var keystore = new MemorySecureStore();
+            var before = Phone("a", withWorld: true, keystore: keystore);
+            before.SignIn();
+            Wait(before.Cloud.ReconcileAsync());
+            var account = before.Account.Account!.Id;
+            var backup = new MemoryKeyBackup { Reach = KeyBackupReach.ThisPhone };
+
+            var launched = Phone("a", withWorld: false, keystore: keystore, signedInBefore: true, backup: backup);
+            Wait(launched.Cloud.ReconcileAsync());
+            Assert.That(backup[KeyBackups.Name(account)], Is.EqualTo(before.Storage.Key(account)!.ToText()));
+            Assert.That(launched.Cloud.KeyReach, Is.EqualTo(KeyBackupReach.ThisPhone));
+
+            backup.Reach = KeyBackupReach.EndToEnd; // The player turned the screen lock on.
+            Wait(launched.Cloud.ReconcileAsync());
+
+            Assert.That(launched.Cloud.KeyReach, Is.EqualTo(KeyBackupReach.EndToEnd));
+        }
+
+        // The backup holds a key the cloud save no longer opens with, or does not answer: the player is asked, and
+        // nothing from the backup replaces a key.
+        [Test]
+        public void AStaleOrSilentBackupLeavesTheChoiceToThePlayer()
+        {
+            var backup = new MemoryKeyBackup();
+            var old = Phone("a", withWorld: true, backup: backup);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var account = old.Account.Account!.Id;
+            string staleKey = ContributionKey.Generate(1).ToText();
+            Wait(backup.KeepAsync(KeyBackups.Name(account), staleKey));
+            var fresh = Phone("b", withWorld: false, backup: backup);
+
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+            Assert.That(fresh.Storage.Key(account), Is.Null, "a key that does not open the part is not kept");
+
+            backup.Failing = true;
+            var silent = Phone("c", withWorld: false, backup: backup);
+            silent.SignIn();
+            Wait(silent.Cloud.ReconcileAsync());
+
+            Assert.That(silent.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+            Wait(old.Cloud.ReconcileAsync());
+            Assert.That(old.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced), "a backup that does not answer never stops the sync");
+            Assert.That(old.Cloud.KeyReach, Is.Null);
+        }
+
+        // A phone that played on while another began a new key epoch takes the new key from the backup before it asks:
+        // the islands still differ, since the new epoch's island came down without the old game days, but the choice is
+        // between two readable islands, and keeping the phone's begins no further epoch.
+        [Test]
+        public void APhoneWithAnOlderKeyTakesTheNewEpochsKeyFromTheBackupBeforeItAsks()
+        {
+            var backup = new MemoryKeyBackup();
+            var old = Phone("a", withWorld: true, backup: backup);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var account = old.Account.Account!.Id;
+            var other = Phone("b", withWorld: false, backup: new MemoryKeyBackup());
+            other.SignIn();
+            Wait(other.Cloud.ReconcileAsync());
+            Wait(other.Cloud.ChooseAsync(WorldChoice.TakeCloud)); // Epoch 2 on the server, without the backup.
+            Wait(backup.KeepAsync(KeyBackups.Name(account), other.Storage.Key(account)!.ToText())); // Then it syncs.
+
+            Wait(old.Cloud.ReconcileAsync());
+
+            Assert.That(old.Cloud.Status, Is.EqualTo(CloudSyncStatus.ChoiceNeeded));
+            Assert.That(old.Cloud.Choice!.ContributionsUnreadable, Is.False);
+            Assert.That(old.Storage.Key(account)!.Epoch, Is.EqualTo(2));
+
+            Wait(old.Cloud.ChooseAsync(WorldChoice.KeepPhone));
+
+            Assert.That(old.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(old.Cloud.ContributionPartLocked, Is.False);
+            Assert.That(_server.CloudSaveOf("player")!.KeyEpoch, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void DeletingTheAccountRemovesTheKeyFromTheBackup()
+        {
+            var backup = new MemoryKeyBackup();
+            var phone = Phone("a", withWorld: true, backup: backup);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            var account = phone.Account.Account!.Id;
+
+            Wait(phone.Account.SignOutAsync());
+            Assert.That(backup[KeyBackups.Name(account)], Is.Not.Null, "signing out keeps the key for the next sign-in");
+
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            Assert.That(Wait(phone.Account.DeleteAsync()), Is.EqualTo(AccountOutcome.Deleted));
+
+            Assert.That(backup[KeyBackups.Name(account)], Is.Null);
+            Assert.That(phone.Storage.Key(account), Is.Null);
+            Assert.That(phone.Cloud.KeyReach, Is.Null);
+        }
+
         [Test]
         public void WithoutASignInNothingIsUploaded()
         {
@@ -475,7 +622,8 @@ namespace Eirora.Client.Tests
         private static void Wait(Task task) => task.GetAwaiter().GetResult();
 
         /// <param name="signedInBefore">Signed in on an earlier launch, so that creating the sync starts nothing.</param>
-        private Phone Phone(string name, bool withWorld, MemorySecureStore? keystore = null, int installOffset = 0, bool signedInBefore = false)
+        /// <param name="backup">The platform's backup of the key, shared by the phones of one player, or null for none.</param>
+        private Phone Phone(string name, bool withWorld, MemorySecureStore? keystore = null, int installOffset = 0, bool signedInBefore = false, MemoryKeyBackup? backup = null)
         {
             string folder = Path.Combine(_folder, name);
             Directory.CreateDirectory(folder);
@@ -497,7 +645,7 @@ namespace Eirora.Client.Tests
                 phone.SignIn();
             }
 
-            phone.Cloud = new CloudSaveSync(account, game, storage, phone.Delay, () => _now);
+            phone.Cloud = new CloudSaveSync(account, game, storage, phone.Delay, () => _now, backup);
             return phone;
         }
     }

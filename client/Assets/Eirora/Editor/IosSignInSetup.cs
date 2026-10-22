@@ -9,7 +9,7 @@ namespace Eirora.Editor
 {
     /// <summary>
     /// Prepares the Xcode project for sign-in (ADR-0008): the Sign in with Apple capability on the app, and the frameworks
-    /// EiroraSignIn.mm uses on UnityFramework, where Unity compiles the plugins.
+    /// EiroraSignIn.mm and EiroraKeyBackup.mm use on UnityFramework, where Unity compiles the plugins.
     /// </summary>
     public sealed class IosSignInSetup : IPostprocessBuildWithReport
     {
@@ -28,6 +28,7 @@ namespace Eirora.Editor
             string framework = project.GetUnityFrameworkTargetGuid();
             project.AddFrameworkToProject(framework, "AuthenticationServices.framework", false);
             project.AddFrameworkToProject(framework, "Security.framework", false);
+            project.AddFrameworkToProject(framework, "LocalAuthentication.framework", false); // EiroraKeyBackup.mm
             project.WriteToFile(projectPath);
 
             var capabilities = new ProjectCapabilityManager(projectPath, "Unity-iPhone/Eirora.entitlements", targetGuid: project.GetUnityMainTargetGuid());

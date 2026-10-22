@@ -318,6 +318,7 @@ Kontot behövs aldrig för att spela, och knappen syns bara i ett bygge som har 
 
 Allt ligger bakom `ILoginProvider` i `client/Assets/Eirora/Runtime/Accounts/`, och `AccountSession` sköter token, förnyelse, koppling och bortkoppling, utloggning och radering.
 Refresh-token ligger i iOS nyckelring eller krypterad med en nyckel i Android Keystore (`SignIn.androidlib`), aldrig i en vanlig fil.
+Molnsparningens bidragsnyckel ligger bredvid den, och dessutom i plattformens end-to-end-krypterade backup (`IKeyBackup`): iCloud-nyckelringen (`EiroraKeyBackup.mm`) och Block Store (`KeyBackup.kt` i `SignIn.androidlib`), så att en ny telefon på samma plattform hittar den utan att fråga.
 Webbsidan för radering som Google Play kräver finns på `/account/delete` på servern.
 
 ### Identifierare hos Apple och Google

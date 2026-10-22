@@ -41,6 +41,34 @@ namespace Eirora.Client.Accounts
         public void Delete(string key) => IosSignIn.EiroraKeychainDelete(key);
     }
 
+    /// <summary>The contribution key in iCloud Keychain (EiroraKeyBackup.mm); the keychain answers at once.</summary>
+    public sealed class IosKeyBackup : IKeyBackup
+    {
+        public Task<string?> ReadAsync(string name) => Task.FromResult(EiroraKeyBackupRead(name));
+
+        public Task<KeyBackupReach> KeepAsync(string name, string value) => EiroraKeyBackupKeep(name, value) switch
+        {
+            1 => Task.FromResult(KeyBackupReach.EndToEnd),
+            0 => Task.FromResult(KeyBackupReach.ThisPhone),
+            _ => Task.FromException<KeyBackupReach>(new KeyBackupException("The keychain did not keep the key")),
+        };
+
+        public Task ForgetAsync(string name)
+        {
+            EiroraKeyBackupForget(name);
+            return Task.CompletedTask;
+        }
+
+        [DllImport("__Internal")]
+        private static extern string? EiroraKeyBackupRead(string name);
+
+        [DllImport("__Internal")]
+        private static extern int EiroraKeyBackupKeep(string name, string value);
+
+        [DllImport("__Internal")]
+        private static extern void EiroraKeyBackupForget(string name);
+    }
+
     /// <summary>The native calls and their answers, which arrive on the main thread.</summary>
     internal static class IosSignIn
     {

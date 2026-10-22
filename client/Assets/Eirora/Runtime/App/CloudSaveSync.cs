@@ -68,7 +68,9 @@ namespace Eirora.Client.App
     /// </summary>
     /// <remarks>
     /// One sync runs at a time; a change during a run makes it go once more. The world never waits for any of this
-    /// (ACC-04): everything here follows a save that is already on the phone.
+    /// (ACC-04): everything here follows a save that is already on the phone. The key also goes to the platform's
+    /// end-to-end encrypted backup (<see cref="IKeyBackup"/>), where a new phone on the same platform finds it before
+    /// the player is asked (TASK-023b).
     /// </remarks>
     public sealed class CloudSaveSync
     {
@@ -79,6 +81,7 @@ namespace Eirora.Client.App
         private readonly CloudSync _sync;
         private readonly AccountKeyTransferStore _transfers;
         private readonly KeyTransferReceiver _receiver;
+        private readonly IKeyBackup? _backup;
         private readonly Func<Task> _delay;
         private readonly Func<DateTimeOffset> _now;
         private bool _dirty;
@@ -87,9 +90,11 @@ namespace Eirora.Client.App
         private bool _wasSignedIn;
         private bool _lockPending;
         private Task? _running;
+        private string? _backedUpKey;
 
         /// <param name="delay">How long an upload waits after a save, so that a burst becomes one upload.</param>
-        public CloudSaveSync(AccountSession account, GameSession session, ICloudSyncStorage storage, Func<Task>? delay = null, Func<DateTimeOffset>? now = null)
+        /// <param name="backup">The platform's backup of the key, or null where there is none.</param>
+        public CloudSaveSync(AccountSession account, GameSession session, ICloudSyncStorage storage, Func<Task>? delay = null, Func<DateTimeOffset>? now = null, IKeyBackup? backup = null)
         {
             _account = account;
             _storage = storage;
@@ -98,6 +103,7 @@ namespace Eirora.Client.App
             _receiver = new KeyTransferReceiver(_transfers, _sync);
             _delay = delay ?? (() => Task.Delay(TimeSpan.FromSeconds(2)));
             _now = now ?? (() => DateTimeOffset.UtcNow);
+            _backup = backup;
             _wasSignedIn = account.IsSignedIn;
             session.Saved += Schedule;
             account.Changed += OnAccountChanged;
@@ -134,6 +140,13 @@ namespace Eirora.Client.App
         /// <summary>The account's contribution key as a recovery code (TASK-023b), or null before the account or the key is known.</summary>
         public string? RecoveryCode =>
             _account.Account is { } known && _storage.Key(known.Id) is { } key ? CloudSaving.RecoveryCode.Of(key) : null;
+
+        /// <summary>
+        /// How far the account's key reaches beyond this phone, once it was kept in the platform's backup; null before
+        /// that, or when the backup did not answer. Without a screen lock (<see cref="KeyBackupReach.ThisPhone"/>) the
+        /// account sheet suggests the recovery code or a key transfer for a new phone (ADR-0008).
+        /// </summary>
+        public KeyBackupReach? KeyReach { get; private set; }
 
         /// <summary>
         /// A new key epoch began on this phone: the contribution part could not be read here, so the game days so far
@@ -331,8 +344,106 @@ namespace Eirora.Client.App
         {
             DropKeyTransfer();
             _sync.Forget(accountId);
+            _ = ForgetBackedUpKeyAsync(accountId);
             Choice = null;
             Set(CloudSyncStatus.Off);
+        }
+
+        /// <summary>
+        /// Takes the key from the platform's backup when the cloud's contribution part cannot be read here, so that a new
+        /// phone on the same platform asks nothing (TASK-023b). The key is kept only once the cloud save confirms it, as
+        /// a recovery code is; true when it was.
+        /// </summary>
+        private async Task<bool> RestoreBackedUpKeyAsync(Guid accountId)
+        {
+            if (_backup is null)
+            {
+                return false;
+            }
+
+            string? text;
+            try
+            {
+                text = await _backup.ReadAsync(KeyBackups.Name(accountId));
+            }
+            catch (KeyBackupException)
+            {
+                return false; // The player is asked, as without a backup.
+            }
+
+            // The phone's own key already failed to open the part; the same key from the backup would too.
+            if (ContributionKey.TryParse(text) is not { } key || _storage.Key(accountId)?.ToText() == key.ToText())
+            {
+                return false;
+            }
+
+            return await _sync.AcceptKeyAsync(accountId, key) == KeyAcceptance.Accepted;
+        }
+
+        /// <summary>
+        /// Keeps the phone's key in the platform's backup once the cloud save holds it: a new key, and once a launch
+        /// for a key kept before there was a backup, or before the phone got a screen lock.
+        /// </summary>
+        private async Task BackUpKeyAsync(Guid accountId, bool again)
+        {
+            if (_storage.Key(accountId) is not { } key)
+            {
+                return;
+            }
+
+            string text = key.ToText();
+            if (text == _backedUpKey && !again)
+            {
+                return;
+            }
+
+            if (_backup is null)
+            {
+                _backedUpKey = text;
+                SetKeyReach(KeyBackupReach.ThisPhone);
+                return;
+            }
+
+            try
+            {
+                var reach = await _backup.KeepAsync(KeyBackups.Name(accountId), text);
+                _backedUpKey = text;
+                SetKeyReach(reach);
+            }
+            catch (KeyBackupException)
+            {
+                // The next sync tries again; until then the account sheet suggests nothing it cannot back up.
+                SetKeyReach(null);
+            }
+        }
+
+        /// <summary>Removes the deleted account's key from the platform's backup, which syncs the removal to the player's other phones.</summary>
+        private async Task ForgetBackedUpKeyAsync(Guid accountId)
+        {
+            _backedUpKey = null;
+            KeyReach = null;
+            if (_backup is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await _backup.ForgetAsync(KeyBackups.Name(accountId));
+            }
+            catch (KeyBackupException)
+            {
+                // Without the account, a key left in the backup opens nothing the server still keeps (ADR-0008).
+            }
+        }
+
+        private void SetKeyReach(KeyBackupReach? reach)
+        {
+            if (KeyReach != reach)
+            {
+                KeyReach = reach;
+                Changed?.Invoke();
+            }
         }
 
         /// <summary>Forgets an open transfer without the server: the sign-in it needs is gone, and so is the transfer soon.</summary>
@@ -380,6 +491,7 @@ namespace Eirora.Client.App
             }
 
             int loadAttempts = 0;
+            bool backupTried = false;
             while (_dirty || _reconcile)
             {
                 if (!_account.IsSignedIn)
@@ -415,7 +527,22 @@ namespace Eirora.Client.App
                 _dirty = _reconcile = false;
                 _choice = null;
                 var result = reconcile ? await _sync.ReconcileAsync(accountId.Value, choice) : await _sync.UploadAsync(accountId.Value);
+                if (!backupTried && result.ContributionsUnreadable && result.Outcome is SyncOutcome.KeyNeeded or SyncOutcome.ChoiceNeeded)
+                {
+                    // Before the player is asked, the key may be in the platform's backup (TASK-023b).
+                    backupTried = true;
+                    if (await RestoreBackedUpKeyAsync(accountId.Value))
+                    {
+                        _reconcile = true;
+                        continue;
+                    }
+                }
+
                 Apply(result);
+                if (result.Outcome == SyncOutcome.Synced)
+                {
+                    await BackUpKeyAsync(accountId.Value, again: reconcile);
+                }
             }
         }
 
