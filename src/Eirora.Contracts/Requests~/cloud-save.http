@@ -1,0 +1,2 @@
+GET /api/account/cloud-save
+Authorization: Bearer __ACCESS_TOKEN__

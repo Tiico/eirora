@@ -146,8 +146,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-99 | **Två enheter som spelat offline slår ihop sina journaler:** klienten spelar upp båda enheternas kommandon från den gemensamma snapshoten i tidsordning, idempotensnycklarna hindrar dubbla bidrag och byggnader, och ett kommando som inte längre går avvisas, så att ingen spelad tid går förlorad (TASK-023, ACC-03) | [BESLUTAT] |
 | D-100 | **Molnsparningens bidragsdel bär hela journalen:** världsdelen är kartan och senaste snapshoten utom det som hålls per spelardygn, och bidragsdelen resten av snapshoten, segmentens start och journalerna, så att sammanslagning och omgjord migration har hela journalen och servern ser mindre än ADR-0008 tillåter ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
 | D-101 | **Utan bidragsnyckeln stängs spelardygnen till och med snapshotens spelardygn:** de tar inte emot mer egenvård och räknas som tomma i Byggkraftens rullande vecka, eftersom det de krediterats fanns i bidragsdelen; egenvården räknas igen från nästa spelardygn ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
-| D-102 | **En prototypjournal från M1 tas inte längre över:** sedan byggande på varje landbricka (regelversion 4) skulle den bli en annan värld, så den vägras, sparas undan och spelaren får veta varför i stället för att se en annan värld; sparningar migreras som vanligt (TASK-037, ADR-0006) | [BESLUTAT] |
+| D-102 | **Olika öar på telefonen och kontot avgörs av spelaren:** loggar spelaren in på ett konto vars molnsparning är en annan värld än telefonens, eller vars bidragsdel inte öppnas med telefonens nyckel, väljer spelaren mellan att hämta kontots ö och att behålla telefonens; den som inte väljs sparas undan på telefonen och raderas inte, och en bidragsdel som inte öppnas slås aldrig ihop utan låses under en ny nyckelepok ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023, ACC-03) | [BESLUTAT] |
 | D-103 | **Avstånd, nivå 2 och dagsverke skalar hur fort åkern och fårgården växer,** som de skalar all annan produktion: en åker 2–3 steg från förrådet mognar med 75 % av takten, och nivå 2 och dagsverke ger 50 % mer; skörden tömmer bara det som vuxit ([ekonomi v1](./docs/design/economy-v1.md#3-byggnader), TASK-038) | [BESLUTAT] |
+| D-104 | **En prototypjournal från M1 tas inte längre över:** sedan byggande på varje landbricka (regelversion 4) skulle den bli en annan värld, så den vägras, sparas undan och spelaren får veta varför i stället för att se en annan värld; sparningar migreras som vanligt (TASK-037, ADR-0006) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -688,8 +689,9 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-96–D-97 | 2026-10-19 | Se avsnitt 1.1 | Produktägarens val i TASK-032 |
 | D-98 | 2026-10-21 | Se avsnitt 1.1; ersätter D-75 | Produktägarens val för att hålla Actions-budgeten |
 | D-99–D-101 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-023 |
-| D-102 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
+| D-102 | 2026-10-22 | Se avsnitt 1.1 | Produktägarens val i TASK-023 del 3 |
 | D-103 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-038 efter avvikelsen som grind A0 hittade |
+| D-104 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

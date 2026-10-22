@@ -56,6 +56,9 @@ namespace Eirora.Editor
 
         public static void Windows() => ExitOnFailure(Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe"));
 
+        /// <summary>A macOS player for the screenshot tour on a Mac, like <see cref="Windows"/>.</summary>
+        public static void MacOS() => ExitOnFailure(Build(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, "Builds/MacOS/Eirora.app"));
+
         /// <summary>
         /// The determinism build (TASK-021): IL2CPP for ARM64 and x86_64 that only plays the determinism corpus (the replays in
         /// tests/Replays, the golden saves and the golden maps) and logs each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its
@@ -233,7 +236,31 @@ namespace Eirora.Editor
             }
 
             Debug.Log($"Build {summary.result}: {summary.outputPath} ({summary.totalSize} bytes, {summary.totalErrors} errors).");
+            ReportBuildResults(summary);
             return summary.result == BuildResult.Succeeded;
+        }
+
+        /// <summary>
+        /// Writes the summary GameCI reads to tell whether a build succeeded (UnityBuildValidation in game-ci/cli). GameCI's
+        /// own build method writes it; without it GameCI fails a custom method's build even when Unity succeeded, which
+        /// is what kept the determinism build red (TASK-021).
+        /// </summary>
+        private static void ReportBuildResults(BuildSummary summary)
+        {
+            string errors = summary.result == BuildResult.Succeeded
+                ? summary.totalErrors.ToString(CultureInfo.InvariantCulture)
+                : Math.Max(summary.totalErrors, 1).ToString(CultureInfo.InvariantCulture); // A failed build is never reported as clean.
+            Console.WriteLine(string.Join(
+                Environment.NewLine,
+                "###########################",
+                "#      Build results      #",
+                "###########################",
+                string.Empty,
+                $"Duration: {summary.totalTime}",
+                $"Warnings: {summary.totalWarnings.ToString(CultureInfo.InvariantCulture)}",
+                $"Errors: {errors}",
+                $"Size: {summary.totalSize.ToString(CultureInfo.InvariantCulture)} bytes",
+                "###########################"));
         }
 
         /// <summary>

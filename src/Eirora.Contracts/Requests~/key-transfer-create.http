@@ -1,0 +1,5 @@
+POST /api/account/key-transfers
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"receiverPublicKey":"__RECEIVER_PUBLIC_KEY__"}

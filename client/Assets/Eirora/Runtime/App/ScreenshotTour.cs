@@ -8,6 +8,7 @@ using Eirora.Client.Look;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
+using Eirora.WorldGeneration;
 using UnityEngine;
 
 namespace Eirora.Client.App
@@ -26,7 +27,7 @@ namespace Eirora.Client.App
             Directory.CreateDirectory(folder);
 
             var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
-            var session = new GameSession(clock, null);
+            var session = new GameSession(clock, null, () => PrototypeHome.Map); // The scripted week is played on Hemön.
             client.Begin(session);
             yield return client.Frames(5);
             yield return Capture(client, folder, "01-first-launch");
@@ -113,7 +114,7 @@ namespace Eirora.Client.App
             client.Hud.Select(null);
 
             // Nyön, found by the expedition and joined by the sea route.
-            client.Focus(IslandMap.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
+            client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
             // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
@@ -123,6 +124,18 @@ namespace Eirora.Client.App
             client.Focus(edge.Center());
             client.Hud.SelectFog(edge);
             yield return Capture(client, folder, "14-fog");
+
+            // A new world on a generated map (TASK-033): the village at dawn, then the whole archipelago from afar.
+            var generatedClock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
+            var generated = new GameSession(generatedClock, null, () => new ProceduralArchipelagoV1().Generate(42));
+            client.Begin(generated);
+            generated.Begin(new RestSchedule(23 * 60, 8 * 60));
+            generatedClock.Current = ScriptedWeek.At("2026-10-15 09:00");
+            generated.CatchUp();
+            client.Refresh();
+            yield return Capture(client, folder, "17-generated-world");
+            client.ZoomTo(2);
+            yield return Capture(client, folder, "18-generated-archipelago");
 
             Application.Quit();
         }

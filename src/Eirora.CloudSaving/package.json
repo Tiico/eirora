@@ -1,0 +1,14 @@
+{
+  "name": "com.eirora.cloudsaving",
+  "version": "0.1.0",
+  "displayName": "Eirora Cloud Saving",
+  "description": "The cloud save on the device: the contribution key, the encrypted contribution part and the reconciliation with the server. Built from the same sources as src/Eirora.CloudSaving/Eirora.CloudSaving.csproj.",
+  "unity": "6000.3",
+  "author": {
+    "name": "Eirora"
+  },
+  "dependencies": {
+    "com.eirora.simulation": "0.1.0",
+    "com.eirora.contracts": "0.1.0"
+  }
+}

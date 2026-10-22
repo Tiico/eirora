@@ -177,7 +177,7 @@ namespace Eirora.Client.Tests
             Assert.That(File.ReadAllText(journalPath + ".taken-over", Encoding.UTF8), Is.EqualTo(journal.ToText()));
         }
 
-        // Rules 4 builds on tiles (TASK-037), so a journal from M1 would replay to another world; it is kept and the player told (D-102).
+        // Rules 4 builds on tiles (TASK-037), so a journal from M1 would replay to another world; it is kept and the player told (D-104).
         [Test]
         public void APrototypeJournalFromRulesNoLongerReplayedIsKeptAndExplained()
         {
@@ -202,9 +202,33 @@ namespace Eirora.Client.Tests
             return $"{header}sha256 {BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant()}\n{body}";
         }
 
+        // The cloud save's reconciliation replaces the world (TASK-023): a merge or a download just writes it, the
+        // player's choice keeps the phone's save aside, and a world kept aside is never deleted.
+        [Test]
+        public void AReplacedWorldIsWrittenAndAChosenAwayOneKeptAside()
+        {
+            var session = Played();
+            var other = Simulation.Saving.Save.Begin(new TimeReading(1_792_000_100, "Europe/Stockholm", 7200), Night);
+            int saves = 0;
+            session.Saved += () => saves++;
+
+            session.Replace(other, CloudSaving.ReplaceReason.Merged);
+            Assert.That(session.World!.Fingerprint(), Is.EqualTo(other.World.Fingerprint()));
+            Assert.That(Directory.GetFiles(_folder, "*.replaced"), Is.Empty);
+
+            session.Replace(Simulation.Saving.Save.Begin(new TimeReading(1_792_000_200, "Europe/Stockholm", 7200), Night), CloudSaving.ReplaceReason.CloudChosen);
+            session.KeepAside(other);
+
+            Assert.That(saves, Is.EqualTo(2));
+            Assert.That(Directory.GetFiles(_folder, "*.replaced"), Has.Length.EqualTo(1));
+            Assert.That(Simulation.Saving.Save.Load(File.ReadAllBytes(Directory.GetFiles(_folder, "*.replaced")[0])).World.Fingerprint(), Is.EqualTo(other.World.Fingerprint()));
+            Assert.That(Directory.GetFiles(_folder, "*.cloud"), Has.Length.EqualTo(1));
+            Assert.That(Session().TryLoad(), Is.True);
+        }
+
         private static FixedClock Clock() =>new(new TimeReading(1_792_000_000, "Europe/Stockholm", 7200));
 
-        private GameSession Session() => new(Clock(), SavePath);
+        private GameSession Session() => new(Clock(), SavePath, () => PrototypeHome.Map);
 
         private GameSession Played()
         {

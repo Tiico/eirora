@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FsCheck.Xunit.v3" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Eirora.CloudSaving\Eirora.CloudSaving.csproj" />
+    <ProjectReference Include="..\..\src\Eirora.Contracts\Eirora.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Eirora.Simulation\Eirora.Simulation.csproj" />
+  </ItemGroup>
+</Project>

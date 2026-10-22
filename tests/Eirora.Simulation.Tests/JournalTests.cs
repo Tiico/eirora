@@ -71,7 +71,7 @@ public sealed class JournalTests
     public void TextThatIsNotAJournalIsRejected(string text) =>
         Assert.Throws<FormatException>(() => Journal.Load(text.Replace("{rules}", RulesVersion.Current.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)));
 
-    // Every rules version before RulesVersion.ReplaysJournalsFrom would replay to another world (ADR-0006, D-102), so the
+    // Every rules version before RulesVersion.ReplaysJournalsFrom would replay to another world (ADR-0006, D-104), so the
     // cases move with it when the rules move on.
     public static TheoryData<int> RulesNoLongerReplayed => new(Enumerable.Range(1, RulesVersion.ReplaysJournalsFrom - 1));
 

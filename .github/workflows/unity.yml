@@ -1,7 +1,8 @@
 # Tests the Unity client, builds it for Android and iOS, and releases a published GitHub release to Google Play's
 # internal test track.
 # Pull requests that can change a build (the client or the libraries it compiles) only run the tests: Unity builds are
-# slow and macOS minutes cost ten times as much in a private repository. Releases and manual runs also build.
+# slow and macOS minutes cost ten times as much in a private repository. Releases and manual runs also build; a manual
+# run can build only the determinism check, which runs on Ubuntu alone.
 # Needs the Unity license secrets in docs/development.md#ci and, to release, those in docs/development.md#google-play.
 name: Unity
 
@@ -12,12 +13,21 @@ on:
       - src/Eirora.Simulation/**
       - src/Eirora.Contracts/**
       - src/Eirora.WorldGeneration/**
+      - src/Eirora.CloudSaving/**
       - .github/workflows/unity.yml
       - .github/actions/free-disk-space/**
       - .github/actions/build-version/**
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      builds:
+        description: What to build after the tests
+        type: choice
+        options:
+          - all
+          - determinism
+        default: all
 
 permissions:
   contents: read
@@ -31,9 +41,14 @@ env:
   UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-  BUILD: ${{ github.event_name != 'pull_request' }}
+  # The app's own builds; a manual run for the determinism check alone leaves them out.
+  APP_BUILDS: ${{ github.event_name != 'pull_request' && inputs.builds != 'determinism' }}
   RELEASE: ${{ github.event_name == 'release' }}
+  # Only main saves Unity's Library and Gradle's caches; other branches and pull requests start from main's. A Library is
+  # about 2 GB per job, so branches that saved their own pushed main's out of the repository's 10 GB of cache.
+  SAVE_CACHES: ${{ github.ref == 'refs/heads/main' }}
 
+# The tests and the builds run side by side after the preflight; only the release waits for the tests.
 jobs:
   # Fails within seconds rather than after the tests when a secret is missing or a release cannot be released.
   preflight:
@@ -55,7 +70,7 @@ jobs:
       # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
       # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
       - name: Fail with instructions when the signing key is missing
-        if: env.BUILD == 'true'
+        if: env.APP_BUILDS == 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
@@ -115,11 +130,15 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: ./.github/actions/free-disk-space
+        with:
+          # The image and the Library peaked at 17 GiB in October 2026.
+          required-gb: 23
 
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
+        id: library
         with:
           path: client/Library
-          key: unity-library-test-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
+          key: unity-library-test-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**', 'src/Eirora.CloudSaving/**') }}
           restore-keys: unity-library-test-
 
       - uses: game-ci/unity-test-runner@v4
@@ -136,13 +155,19 @@ jobs:
           path: ${{ steps.tests.outputs.artifactsPath }}
           retention-days: 14
 
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
+        with:
+          path: client/Library
+          key: ${{ steps.library.outputs.cache-primary-key }}
+
   # The determinism corpus must give the same state in .NET and in the IL2CPP build on Android (TASK-021, NFR-02). The
   # build and the comparison run on separate runners: Unity's Android image needs the disk that the runner's Android SDK
   # takes, and the emulator needs that SDK. Like the app's builds, they run on releases and manual runs only, since
   # together they take over two hours of the Actions budget.
   determinism-build:
     name: Determinism build (IL2CPP for Android)
-    needs: test
+    needs: preflight
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -151,10 +176,11 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
 
-      - uses: actions/cache@v6
+      # Starts from the Android build's Library and saves none of its own, which would add another 2 GB to the cache.
+      - uses: actions/cache/restore@v6
         with:
           path: client/Library
-          key: unity-library-determinism-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
+          key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**', 'src/Eirora.CloudSaving/**') }}
           restore-keys: unity-library-android-
 
       # The build has no version (Builds.AndroidDeterminism), so it needs neither the history nor GameCI's versioning.
@@ -216,15 +242,16 @@ jobs:
           retention-days: 14
 
   # A release ships an app bundle to Google Play's internal test track (D-98), so the product owner's phone updates
-  # without a cable and keeps its world; a manual run builds an APK to sideload.
+  # without a cable and keeps its world; a manual run builds an APK to sideload. The release job uploads it once the
+  # tests pass.
   android:
     name: Android build
-    needs: test
-    if: github.event_name != 'pull_request'
+    needs: preflight
+    if: github.event_name != 'pull_request' && inputs.builds != 'determinism'
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    permissions:
-      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.name }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -235,12 +262,24 @@ jobs:
         id: version
 
       - uses: ./.github/actions/free-disk-space
+        with:
+          # The image and the build peaked at 34 GiB in October 2026.
+          required-gb: 40
 
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
+        id: library
         with:
           path: client/Library
-          key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
+          key: unity-library-android-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**', 'src/Eirora.CloudSaving/**') }}
           restore-keys: unity-library-android-
+
+      # GameCI mounts the runner's home as the container's, so Gradle's dependencies and build cache land in ~/.gradle.
+      # They depend on the Gradle and Android plugin versions that come with Unity, and on the Gradle templates.
+      - uses: actions/cache/restore@v6
+        id: gradle
+        with:
+          path: ~/.gradle/caches
+          key: gradle-android-${{ hashFiles('client/ProjectSettings/ProjectVersion.txt', 'client/Assets/Plugins/Android/**') }}
 
       - uses: game-ci/unity-builder@v6
         with:
@@ -257,39 +296,77 @@ jobs:
           androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
           androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
 
+      # The one budget a build can be failed on without a device (TASK-024, docs/design/performance-budgets.md).
+      - name: Check the package against its size budget
+        run: |
+          package="$(ls build/Android/*.aab build/Android/*.apk 2>/dev/null | head -n 1)"
+          [ -n "$package" ] || { echo "::error::No Android package in build/Android to hold to its size budget."; exit 1; }
+          bytes="$(wc -c <"$package")"
+          printf 'apk_mb\t%s\n' "$(awk -v b="$bytes" 'BEGIN { printf "%.1f", b / 1048576 }')" >package-size.tsv
+          tools/device-measurements/measure.sh budget package-size.tsv --tier base
+
       - uses: actions/upload-artifact@v7
         with:
           name: eirora-android-${{ steps.version.outputs.name }}
           path: build/Android
           retention-days: 14
 
-      # Also uploads the app's first release; testers get it once Google has approved the health declaration
-      # (docs/development.md#google-play).
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
+        with:
+          path: client/Library
+          key: ${{ steps.library.outputs.cache-primary-key }}
+
+      # Gradle writes as root inside the container.
+      - name: Make Gradle's caches readable for the cache
+        if: env.SAVE_CACHES == 'true' && steps.gradle.outputs.cache-hit != 'true'
+        run: sudo chown -R "$(id -u):$(id -g)" ~/.gradle
+
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.gradle.outputs.cache-hit != 'true'
+        with:
+          path: ~/.gradle/caches
+          key: ${{ steps.gradle.outputs.cache-primary-key }}
+
+  # Also uploads the app's first release; testers get it once Google has approved the health declaration
+  # (docs/development.md#google-play). Only a tested build is released.
+  release:
+    name: Release to Google Play
+    needs: [test, android]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: eirora-android-${{ needs.android.outputs.version }}
+          path: build/Android
+
       - name: Upload to Google Play's internal test track
-        if: env.RELEASE == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: se.eirora.app
           releaseFiles: build/Android/*.aab
-          releaseName: ${{ steps.version.outputs.name }}
+          releaseName: ${{ needs.android.outputs.version }}
           track: internal
           status: completed
 
       # Keeps the app bundle after the run's artifact has expired.
       - name: Attach the app bundle to the release
-        if: env.RELEASE == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          cp build/Android/*.aab "eirora-${{ steps.version.outputs.name }}.aab"
-          gh release upload "$TAG" "eirora-${{ steps.version.outputs.name }}.aab"
+          cp build/Android/*.aab "eirora-${{ needs.android.outputs.version }}.aab"
+          gh release upload "$TAG" "eirora-${{ needs.android.outputs.version }}.aab" --repo "$GITHUB_REPOSITORY"
 
   ios-project:
     name: iOS Xcode project
-    needs: test
-    if: github.event_name != 'pull_request'
+    needs: preflight
+    if: github.event_name != 'pull_request' && inputs.builds != 'determinism'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -298,11 +375,15 @@ jobs:
           fetch-depth: 0
 
       - uses: ./.github/actions/free-disk-space
+        with:
+          # The image and the build peaked at 18 GiB in October 2026.
+          required-gb: 24
 
-      - uses: actions/cache@v6
+      - uses: actions/cache/restore@v6
+        id: library
         with:
           path: client/Library
-          key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**') }}
+          key: unity-library-ios-${{ hashFiles('client/Assets/**', 'client/Packages/**', 'client/ProjectSettings/**', 'src/Eirora.Simulation/**', 'src/Eirora.Contracts/**', 'src/Eirora.WorldGeneration/**', 'src/Eirora.CloudSaving/**') }}
           restore-keys: unity-library-ios-
 
       - uses: ./.github/actions/build-version
@@ -324,6 +405,12 @@ jobs:
           name: eirora-ios-xcode
           path: eirora-ios-xcode.tar.gz
           retention-days: 3
+
+      - uses: actions/cache/save@v6
+        if: env.SAVE_CACHES == 'true' && steps.library.outputs.cache-hit != 'true'
+        with:
+          path: client/Library
+          key: ${{ steps.library.outputs.cache-primary-key }}
 
   ios:
     name: iOS build (Xcode on macOS)

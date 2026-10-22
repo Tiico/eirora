@@ -1,5 +1,6 @@
 using System;
 using Eirora.Client.App;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
 
@@ -35,7 +36,7 @@ namespace Eirora.Client.Tests
         private static GameSession Played(string light)
         {
             var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
-            var session = new GameSession(clock, null);
+            var session = new GameSession(clock, null, () => PrototypeHome.Map);
             MeasurementScene.Play(session, clock, MeasurementScene.MomentOf(light)!.Value);
             return session;
         }

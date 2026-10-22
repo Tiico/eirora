@@ -135,7 +135,56 @@ public sealed partial class ClientRequestTests(ServerFixture fixture)
         Assert.Contains(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code);
     }
 
-    /// <summary>Sends a fixture's request with each <c>__NAME__</c> replaced by its value, encoded for the body.</summary>
+    [Fact]
+    public async Task TheClientsCloudSaveUploadIsAcceptedAndReadsBackAsTheClientExpects()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var values = new Dictionary<string, string>
+        {
+            ["ACCESS_TOKEN"] = tokens.Access,
+            ["WORLD"] = Convert.ToBase64String(TestSaves.World()),
+            ["CONTRIBUTIONS"] = Convert.ToBase64String(TestSaves.Contributions()),
+        };
+
+        var (uploaded, version) = await SendAsync("cloud-save-upload.http", values);
+        var (got, save) = await SendAsync("cloud-save.http", values);
+
+        Assert.Equal(HttpStatusCode.OK, uploaded);
+        AssertReadsAsTheClientExpects("cloud-save-version-response.json", version);
+        Assert.Equal(HttpStatusCode.OK, got);
+        AssertReadsAsTheClientExpects("cloud-save-response.json", save);
+    }
+
+    [Fact]
+    public async Task TheClientsKeyTransferCallsAreAcceptedAndReadBackAsTheClientExpects()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var values = new Dictionary<string, string>
+        {
+            ["ACCESS_TOKEN"] = tokens.Access,
+            ["RECEIVER_PUBLIC_KEY"] = Convert.ToBase64String(TestSaves.Contributions(32)),
+            ["SEALED_KEY"] = Convert.ToBase64String(TestSaves.Contributions(128)),
+        };
+
+        var (created, body) = await SendAsync("key-transfer-create.http", values);
+        values["TRANSFER_ID"] = JsonDocument.Parse(body).RootElement.GetProperty("id").GetString()!;
+        var (got, pending) = await SendAsync("key-transfer.http", values);
+        var (delivered, _) = await SendAsync("key-transfer-deliver.http", values);
+        var (taken, _) = await SendAsync("key-transfer.http", values);
+        var (deleted, _) = await SendAsync("key-transfer-delete.http", values);
+
+        Assert.Equal(HttpStatusCode.Created, created);
+        AssertReadsAsTheClientExpects("key-transfer-response.json", body);
+        Assert.Equal(HttpStatusCode.OK, got);
+        AssertReadsAsTheClientExpects("key-transfer-response.json", pending);
+        Assert.Equal(HttpStatusCode.NoContent, delivered);
+        Assert.Equal(HttpStatusCode.OK, taken);
+        Assert.Equal(HttpStatusCode.NotFound, deleted);
+    }
+
+    /// <summary>Sends a fixture's request with each <c>__NAME__</c> replaced by its value, encoded for the path, the header or the body.</summary>
     private async Task<(HttpStatusCode Status, string Body)> SendAsync(string name, Dictionary<string, string> values)
     {
         var lines = Fixture(name).Replace("\r", "", StringComparison.Ordinal).TrimEnd('\n').Split('\n');
@@ -144,7 +193,7 @@ public sealed partial class ClientRequestTests(ServerFixture fixture)
         var body = lines.Skip(1 + headers.Count + 1).SingleOrDefault();
         var contentType = headers.GetValueOrDefault("Content-Type");
 
-        using var request = new HttpRequestMessage(new HttpMethod(requestLine[0]), new Uri(requestLine[1], UriKind.Relative));
+        using var request = new HttpRequestMessage(new HttpMethod(requestLine[0]), new Uri(Fill(requestLine[1], values, Uri.EscapeDataString), UriKind.Relative));
         if (headers.TryGetValue("Authorization", out var authorization))
         {
             request.Headers.Authorization = AuthenticationHeaderValue.Parse(Fill(authorization, values, Uri.EscapeDataString));

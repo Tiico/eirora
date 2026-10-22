@@ -1,0 +1,8 @@
+prototype-home 1 0000000000000000 Storehouse@0,0 FishingHut@1,0 Field@0,1 Woodcutter@1,-1 | survey 60: 3,-1 -2,0 -3,1 | survey 120: -3,3 -1,2 | expedition nyon@10,0
+prototype-home 1 0000000000000001 Storehouse@0,0 FishingHut@1,0 Field@0,1 Woodcutter@1,-1 | survey 60: 3,-1 -2,0 -3,1 | survey 120: -3,3 -1,2 | expedition nyon@10,0
+prototype-home 1 000000000135289a Storehouse@0,0 FishingHut@1,0 Field@0,1 Woodcutter@1,-1 | survey 60: 3,-1 -2,0 -3,1 | survey 120: -3,3 -1,2 | expedition nyon@10,0
+prototype-home 1 ffffffffffffffff Storehouse@0,0 FishingHut@1,0 Field@0,1 Woodcutter@1,-1 | survey 60: 3,-1 -2,0 -3,1 | survey 120: -3,3 -1,2 | expedition nyon@10,0
+procedural-archipelago 1 0000000000000000 Storehouse@0,0 FishingHut@3,0 Field@-3,4 Woodcutter@1,0 | survey 60: -4,2 0,-3 1,-3 | survey 120: -2,4 -5,7 | expedition first@5,-14
+procedural-archipelago 1 0000000000000001 Storehouse@0,-1 FishingHut@0,-3 Field@-1,-1 Woodcutter@1,-1 | survey 60: -1,5 -1,4 -1,3 | survey 120: -2,0 4,2 | expedition first@-1,-13
+procedural-archipelago 1 000000000135289a Storehouse@1,-2 FishingHut@2,-4 Field@-1,-1 Woodcutter@2,0 | survey 60: -5,1 2,2 1,-3 | survey 120: -2,-1 2,-7 | expedition first@16,-7
+procedural-archipelago 1 ffffffffffffffff Storehouse@0,0 FishingHut@-2,-1 Field@1,-1 Woodcutter@0,-2 | survey 60: 5,-2 4,-2 3,1 | survey 120: 0,2 2,-7 | expedition first@16,-11

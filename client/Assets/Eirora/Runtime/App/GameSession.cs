@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Eirora.Client.Health;
+using Eirora.CloudSaving;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.Time;
+using Eirora.WorldGeneration;
 using UnityEngine;
 
 namespace Eirora.Client.App
@@ -22,7 +25,7 @@ namespace Eirora.Client.App
         FromNewerVersion,
 
         /// <summary>
-        /// The world is a prototype journal from rules this version no longer replays (ADR-0006, D-102): since rules 4
+        /// The world is a prototype journal from rules this version no longer replays (ADR-0006, D-104): since rules 4
         /// builds on tiles (TASK-037), a journal from M1 would become another world. It is kept, never taken over.
         /// </summary>
         FromOlderPrototype,
@@ -34,31 +37,56 @@ namespace Eirora.Client.App
     /// <remarks>
     /// Each save is written beside the old one and swapped in, keeping the previous one as a backup, so a crash or an
     /// empty battery mid-write never costs more than the latest command (NFR-01). A save that cannot be read is never
-    /// overwritten. A prototype journal from M1 is taken over once and kept.
+    /// overwritten. A prototype journal from M1 is taken over once and kept. The cloud save reconciles through
+    /// <see cref="ILocalWorld"/>: a world the player chose away is kept aside, never deleted.
     /// </remarks>
-    public sealed class GameSession
+    public sealed class GameSession : ILocalWorld
     {
         public const string SaveFile = "world.save";
         public const string PrototypeJournalFile = "world.journal";
 
         private readonly IClock _clock;
         private readonly string? _savePath;
+        private readonly Func<WorldMap> _newMap;
         private readonly List<GameEvent> _sinceDawn = new();
         private readonly List<string> _unreadable = new();
         private Save? _save;
         private bool _syncing;
 
         /// <param name="savePath">Where the save lives, or null to keep the world in memory only.</param>
-        public GameSession(IClock clock, string? savePath)
+        /// <param name="newMap">The map a new world is made on; by default a generated one (<see cref="GeneratedMap"/>).</param>
+        public GameSession(IClock clock, string? savePath, Func<WorldMap>? newMap = null)
         {
             _clock = clock;
             _savePath = savePath;
+            _newMap = newMap ?? GeneratedMap;
+        }
+
+        /// <summary>
+        /// A new world's map (TASK-033): generator v1 from a random seed. The map is stored whole in the save, so the seed
+        /// is never needed again (MAP-06).
+        /// </summary>
+        public static WorldMap GeneratedMap()
+        {
+            var bytes = new byte[8];
+            using (var random = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                random.GetBytes(bytes);
+            }
+
+            return new ProceduralArchipelagoV1().Generate(BitConverter.ToUInt64(bytes, 0));
         }
 
         /// <summary>Raised whenever the world has changed and the view should follow.</summary>
         public event Action? Changed;
 
+        /// <summary>Raised after every write of the save, for the cloud save to follow.</summary>
+        public event Action? Saved;
+
         public World? World => _save?.World;
+
+        /// <summary>The save, for the cloud save's reconciliation.</summary>
+        public Save? Current => _save;
 
         /// <summary>What has happened since the latest dawn, for the daily report (UX-02).</summary>
         public IReadOnlyList<GameEvent> SinceDawn => _sinceDawn;
@@ -124,10 +152,10 @@ namespace Eirora.Client.App
             return aside;
         }
 
-        /// <summary>Creates a new world with the chosen rest period (D-50).</summary>
+        /// <summary>Creates a new world on a new map with the chosen rest period (D-50).</summary>
         public void Begin(RestSchedule restSchedule)
         {
-            _save = Simulation.Saving.Save.Begin(_clock.Now(), restSchedule);
+            _save = Simulation.Saving.Save.Begin(_newMap(), _clock.Now(), restSchedule);
             Save();
             Changed?.Invoke();
         }
@@ -231,7 +259,50 @@ namespace Eirora.Client.App
             {
                 File.Move(temporary, _savePath);
             }
+
+            Saved?.Invoke();
         }
+
+        /// <summary>
+        /// Makes <paramref name="save"/> the world: merged with the cloud save's, brought down to a phone without one, or
+        /// chosen over the phone's, which is then kept aside under a dated name (never deleted). The world catches up
+        /// with the clock, and the report starts over.
+        /// </summary>
+        public void Replace(Save save, ReplaceReason reason)
+        {
+            if (save is null)
+            {
+                throw new ArgumentNullException(nameof(save));
+            }
+
+            if (reason == ReplaceReason.CloudChosen && _savePath is not null && File.Exists(_savePath))
+            {
+                File.Move(_savePath, Aside(_savePath, "replaced"));
+            }
+
+            _save = save;
+            _sinceDawn.Clear();
+            LoadProblem = null;
+            Save();
+            CatchUp();
+            Changed?.Invoke();
+        }
+
+        /// <summary>Keeps a world that was not chosen aside under a dated name: the cloud's, when the phone's was kept.</summary>
+        public void KeepAside(Save save)
+        {
+            if (save is null)
+            {
+                throw new ArgumentNullException(nameof(save));
+            }
+
+            if (_savePath is not null)
+            {
+                File.WriteAllBytes(Aside(_savePath, "cloud"), save.ToBytes());
+            }
+        }
+
+        private static string Aside(string path, string reason) => $"{path}.{DateTime.UtcNow:yyyyMMdd-HHmmss}.{reason}";
 
         /// <summary>
         /// Loads the save, or the backup when the save is damaged or missing: on the phone a swap cut off between its two

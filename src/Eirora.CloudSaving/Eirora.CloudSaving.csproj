@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The cloud save on the device (ADR-0008, TASK-023): the contribution key, the encryption of the contribution part and
+    the reconciliation with the server's copy, shared by the Unity client and the headless tests that drive two devices.
+    Also a local Unity package (package.json, Eirora.CloudSaving.asmdef): Unity compiles these same sources against the
+    BouncyCastle assembly under client/Assets/Plugins.
+  -->
+  <PropertyGroup>
+    <!-- Unity's compiler builds these sources too: netstandard2.1 and C# 9, so no implicit usings (C# 10). -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Eirora.CloudSaving</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Eirora.Contracts\Eirora.Contracts.csproj" />
+    <ProjectReference Include="..\Eirora.Simulation\Eirora.Simulation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Eirora.CloudSaving.Tests" />
+  </ItemGroup>
+</Project>

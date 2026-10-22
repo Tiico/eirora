@@ -78,11 +78,17 @@ namespace Eirora.Client.UI
                 return;
             }
 
+            if (_showingRecoveryCode && account.IsSignedIn && _cloud?.RecoveryCode is { } shown)
+            {
+                RecoveryCodeSheet(shown);
+                return;
+            }
+
             Text("sheet-title", _sheet, "Konto");
             if (!account.IsSignedIn)
             {
                 Text("sheet-subtitle", _sheet, "Du spelar utan konto");
-                Text("sheet-text", _sheet, "Du behöver inget konto för att spela, och din värld finns alltid kvar på telefonen. Med ett konto kan den följa med till en ny telefon när molnsparningen är på plats.");
+                Text("sheet-text", _sheet, "Du behöver inget konto för att spela, och din värld finns alltid kvar på telefonen. Med ett konto sparas den också på kontot och följer med till en ny telefon.");
                 Text("sheet-text", _sheet, "Eirora sparar inget namn och ingen e-post, bara att du loggat in med Apple eller Google.");
                 foreach (var provider in account.Providers)
                 {
@@ -97,6 +103,11 @@ namespace Eirora.Client.UI
                 ? "Du är inloggad"
                 : "Inloggad med " + string.Join(" och ", linked.Select(Texts.Provider)));
             Text("sheet-text", _sheet, "Kontot och allt du gör här fungerar även när byn vilar. Din värld på telefonen påverkas aldrig.");
+            if (CloudStatusLine() is { } cloud)
+            {
+                Text("sheet-text cloud-status", _sheet, cloud);
+            }
+
             if (linked is not null)
             {
                 var unlinked = account.Providers.Where(p => !linked.Contains(p)).ToList();
@@ -133,6 +144,11 @@ namespace Eirora.Client.UI
                             () => Run(account.RemoveLoginAsync(provider), "Inloggningen är borttagen."));
                     }
                 }
+            }
+
+            if (_cloud?.RecoveryCode is not null)
+            {
+                AddAction("Visa återställningskod", "Nyckeln som låser upp din egenvård på en ny telefon", true, OpenRecoveryCode);
             }
 
             AddAction("Logga ut", "Din värld finns kvar på telefonen", !account.IsBusy, () => Run(account.SignOutAsync(), "Du är utloggad."));

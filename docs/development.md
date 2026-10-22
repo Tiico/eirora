@@ -10,17 +10,20 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `src/Eirora.Simulation/` | Motoroberoende, deterministisk simuleringskärna (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.simulation`. |
 | `src/Eirora.Contracts/` | Kontrakt mellan klient och server (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.contracts`. |
 | `src/Eirora.WorldGeneration/` | Kartgeneratorerna och deras slumpgenerator (netstandard2.1, C# 9, [ADR-0010](./adr/0010-world-map-format-and-generator-version.md)). Också Unity-paketet `com.eirora.worldgeneration`. |
+| `src/Eirora.CloudSaving/` | Molnsparningen på enheten: bidragsnyckeln, krypteringen av bidragsdelen, avstämningen mot servern, nyckelöverföringen mellan telefoner och återställningskoden (netstandard2.1, C# 9, [ADR-0008](./adr/0008-backend-hosting-accounts-and-database.md)). Också Unity-paketet `com.eirora.cloudsaving`, som bygger mot `client/Assets/Plugins/BouncyCastle/`. |
 | `src/Eirora.Server/` | ASP.NET Core-backend (.NET 10) som äger det delade enligt ADR-0001. |
 | `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen och kartgeneratorerna, inklusive arkitekturtestet som håller dem rena. |
-| `tests/Eirora.Server.Tests/` | Integrationstester av servern. |
+| `tests/Eirora.CloudSaving.Tests/` | Headless tester av krypteringen och avstämningen, med en minnesserver som följer serverns regler. |
+| `tests/Eirora.Server.Tests/` | Integrationstester av servern, inklusive två simulerade enheter som synkar genom den riktiga servern. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som inte ingår i CI. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
-Simuleringen, kartgeneratorerna och kontrakten byggs från samma källkod av både .NET och Unity.
+Simuleringen, kartgeneratorerna, kontrakten och molnsparningen byggs från samma källkod av både .NET och Unity.
 Därför gäller C# 9 och netstandard2.1 där, och inga Unity-API:er; `dotnet build` och arkitekturtestet underkänner det som inte håller.
+Molnsparningen är det enda paketet med ett beroende utanför netstandard: BouncyCastle.Cryptography, som .NET hämtar från NuGet och Unity läser från `client/Assets/Plugins/BouncyCastle/` (samma version, se dess `README.md` och `scripts/update-bouncycastle.sh`).
 
 ## Förutsättningar
 
@@ -120,6 +123,18 @@ Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka o
 client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
 ```
 
+På en Mac byggs spelaren med `Eirora.Editor.Builds.MacOS` och startas med `open`, eftersom spelaren pausar när fönstret saknar fokus:
+
+```bash
+/Applications/Unity/Hub/Editor/6000.3.26f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath client -buildTarget OSXUniversal -executeMethod Eirora.Editor.Builds.MacOS
+```
+
+```bash
+open -W -n client/Builds/MacOS/Eirora.app --args -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots "$PWD/artifacts/screenshots"
+```
+
+Turen slutar med en ny värld på en genererad karta, nära och på långt håll.
+
 Byggnader och natur ritas från Look-assets i `client/Assets/Eirora/Resources/Looks/` ([ADR-0009](./adr/0009-looks-are-a-modular-kit-as-data.md)).
 De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas som PNG i `artifacts/looks/` (renderar, så inte med `-nographics`):
 
@@ -136,7 +151,7 @@ Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.s
 Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
 En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
 En journalfil från prototypen (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
-Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på brickor i stället för namngivna platser (TASK-037, D-102).
+Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på brickor i stället för namngivna platser (TASK-037, D-104).
 En sådan journal skrivs aldrig över: klienten säger att världen inte kan spelas vidare i stället för att visa en annan värld, och lägger journalen undan först när spelaren börjar en ny.
 
 ### Migrationer och gyllene sparningar
@@ -210,6 +225,11 @@ Unity-workflowen jämför korpusen i två jobb, vid en release och när den kör
 `Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34.
 Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
 Kör därför Unity-workflowen manuellt på grenen (**Actions → Unity → Run workflow**) innan en PR som rör simuleringen eller korpusen mergas.
+Välj `determinism` under *What to build after the tests*, så körs bara testerna och determinismjobben på Ubuntu, utan Android-bygget och iOS-bygget på macOS:
+
+```bash
+gh workflow run unity.yml --ref <gren> -f builds=determinism
+```
 
 ### Kartor och gyllene kartor
 
@@ -354,7 +374,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
+| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `src/Eirora.CloudSaving/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
 | [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.
@@ -362,8 +382,14 @@ En release kostar runt 75 minuter, varav 40 för Xcode på macOS, och en körnin
 En gren utan pull request kör ingen CI; öppna en pull request, gärna som utkast, eller kör en workflow manuellt under **Actions → \<workflow\> → Run workflow**.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
 
-Unity-jobben återställer projektets `Library` från GitHubs cache, men en körning kan bara läsa cache från sin egen gren eller tagg och från `main`.
-Eftersom `main` inte längre bygger Unity börjar en release oftast utan cache, och byggena tar då längre tid.
+Testerna, determinismbygget, Android-bygget och iOS-projektet startar samtidigt när förkontrollen har gått igenom, så en körning tar ungefär så lång tid som det längsta av dem.
+Bara släppet till Google Play väntar på testerna: vid en release laddas app-paketet upp av ett eget jobb när både testerna och Android-bygget är gröna.
+
+Varje Unity-jobb återställer projektets `Library` från GitHubs cache, och Android-jobbet också Gradles cache.
+En körning kan bara läsa cache från sin egen gren eller tagg och från `main`, och bara körningar på `main` sparar, eftersom repot har 10 GB cache och en `Library` är runt 2 GB per jobb.
+`main` kör inte Unity av sig själv, så kör Unity-workflowen manuellt på `main` efter en merge som ändrar klienten; annars börjar pull requests och releaser utan cache och tar längre tid.
+Med en `Library` från cachen kompilerar IL2CPP bara om C++-koden för ändrade assemblies; utan den tar Android-bygget runt 20 minuter längre.
+Unitys avbildningar är större än det diskutrymme en GitHub-runner har ledigt, så jobben tar först bort förinstallerade SDK:er de inte använder med [free-disk-space](../.github/actions/free-disk-space/action.yml), snabbast först och bara tills jobbets uppmätta behov är ledigt.
 
 ### Secrets
 

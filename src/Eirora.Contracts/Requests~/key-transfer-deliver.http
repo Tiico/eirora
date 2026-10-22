@@ -1,0 +1,5 @@
+PUT /api/account/key-transfers/__TRANSFER_ID__
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"sealedKey":"__SEALED_KEY__"}

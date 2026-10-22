@@ -68,13 +68,13 @@ namespace Eirora.Simulation
 
         internal Settlement Settlement => _settlement;
 
-        /// <summary>
-        /// Creates a world at the end of the guided tour. The rest schedule applies at once, even inside the rest
-        /// window (D-50), and game day 0 began at local midnight (D-51).
-        /// </summary>
-        /// <summary>Creates a world on the prototype's map, the only map until world generation (TASK-031).</summary>
+        /// <summary>Creates a world on the prototype's handmade map, as every world was before world generation (TASK-031).</summary>
         public static World Create(TimeReading install, RestSchedule restSchedule) => Create(PrototypeHome.Map, install, restSchedule);
 
+        /// <summary>
+        /// Creates a world on a map at the end of the guided tour, founded as the map gives (<see cref="Founding"/>). The
+        /// rest schedule applies at once, even inside the rest window (D-50), and game day 0 began at local midnight (D-51).
+        /// </summary>
         public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule)
         {
             if (map is null)
@@ -120,6 +120,9 @@ namespace Eirora.Simulation
 
         /// <summary>Hours the expedition at sea has left with the villagers awake, or 0 when none is out.</summary>
         public int ExpeditionHoursLeft => _settlement.ExpeditionHoursLeft;
+
+        /// <summary>A tile of the island the first expedition finds, or null when the map has none worth the journey.</summary>
+        public Hex? ExpeditionFinds => _settlement.Founding.ExpeditionFinds;
 
         /// <summary>Whether ships sail between the islands.</summary>
         public bool SeaRouteOpen => _settlement.SeaRouteOpen;
