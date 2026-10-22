@@ -22,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Eirora.CloudSaving\Eirora.CloudSaving.csproj" />
     <ProjectReference Include="..\..\src\Eirora.Server\Eirora.Server.csproj" />
   </ItemGroup>
 </Project>

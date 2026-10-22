@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.eirora.cloudsaving": "file:../../src/Eirora.CloudSaving",
     "com.eirora.contracts": "file:../../src/Eirora.Contracts",
     "com.eirora.simulation": "file:../../src/Eirora.Simulation",
     "com.eirora.worldgeneration": "file:../../src/Eirora.WorldGeneration",

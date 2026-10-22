@@ -2,6 +2,7 @@ using Eirora.Contracts;
 using Eirora.Server.Accounts;
 using Eirora.Server.CloudSaves;
 using Eirora.Server.Data;
+using Eirora.Server.KeyTransfers;
 using Eirora.Server.SignIn;
 using Eirora.Simulation;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -66,6 +67,7 @@ builder.Services.AddSingleton(ExternalProviders.FromConfiguration(builder.Config
 builder.Services.AddScoped<ExternalTokenValidator>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CloudSaveService>();
+builder.Services.AddScoped<KeyTransferService>();
 builder.Services.AddOptions<AppleOptions>()
     .Bind(builder.Configuration.GetSection("SignIn:Apple"))
     .Validate(apple => apple.Timeout > TimeSpan.Zero, "SignIn:Apple:Timeout must be greater than zero.")
@@ -79,6 +81,7 @@ builder.Services.AddHttpClient<AppleIdClient>((services, http) =>
 });
 builder.Services.AddHostedService<TokenPruning>();
 builder.Services.AddHostedService<LockedContributionPruning>();
+builder.Services.AddHostedService<KeyTransferPruning>();
 
 // Behind Traefik, which terminates TLS; the server is only reachable through it (deploy/compose.yaml).
 if (builder.Configuration.GetValue<bool>("ForwardedHeaders:TrustAll"))
@@ -110,6 +113,7 @@ app.MapGet("/api/info", () => new ServerInfo(RulesVersion.Current));
 app.MapTokenEndpoint();
 app.MapAccountEndpoints();
 app.MapCloudSaveEndpoints();
+app.MapKeyTransferEndpoints();
 app.MapAppleWebCallback();
 app.MapDeletionPage();
 

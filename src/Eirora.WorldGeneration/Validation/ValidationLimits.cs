@@ -31,13 +31,13 @@ namespace Eirora.WorldGeneration.Validation
         public const int CrestHeight = 4;
 
         /// <summary>Steps by sea from Hemön to the first expedition's island (Nyön lies 10 away in epoch 1's model).</summary>
-        public const int FirstIslandMinimum = 8;
-        public const int FirstIslandMaximum = 12;
+        public const int FirstIslandMinimum = Simulation.Economy.Founding.FirstIslandMinimum;
+        public const int FirstIslandMaximum = Simulation.Economy.Founding.FirstIslandMaximum;
 
         /// <summary>
         /// Land tiles an expedition's island has at least, besides some rich ground; a skerry never counts (Nyön has 6).
         /// </summary>
-        public const int ExpeditionIslandLand = 6;
+        public const int ExpeditionIslandLand = Simulation.Economy.Founding.ExpeditionIslandLand;
 
         /// <summary>Steps by sea to the second expedition's island (Ytterön lies 12 away in epoch 1's model).</summary>
         public const int SecondIslandMinimum = 11;

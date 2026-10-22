@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Eirora.Simulation.Map;
+using UnityEngine;
 using MapTerrain = Eirora.Simulation.Map.Terrain;
 
 namespace Eirora.Client.Look
@@ -18,35 +19,61 @@ namespace Eirora.Client.Look
     }
 
     /// <summary>
-    /// What the client draws of the world's map: the land and sea the prototype has always shown, read from the map
-    /// (ADR-0010), so distances in the picture match distances in the economy. Generated worlds are drawn in TASK-033.
+    /// What the client draws of a world's map (ADR-0010, TASK-033), read from the map so distances in the picture match
+    /// distances in the economy. A generated map is drawn whole. The prototype's map is drawn as far as the prototype
+    /// always drew it, the sea around Hemön and Nyön, so its worlds look as they did.
     /// </summary>
     public sealed class IslandMap
     {
-        /// <summary>Nyön's centre; Nyön and its sea stay hidden until an expedition finds it.</summary>
-        public static readonly Hex NyonCentre = PrototypeHome.NyonCentre;
-        private const int NyonSeaRadius = 4;
-
         private readonly Dictionary<Hex, Terrain> _terrain = new();
 
         public IslandMap(WorldMap map)
         {
+            WorldMap = map;
+            HomeIsland = map.IslandAt(map.Start);
+            bool prototype = map.Hash == PrototypeHome.Map.Hash;
+            var min = new Vector2(float.MaxValue, float.MaxValue);
+            var max = new Vector2(float.MinValue, float.MinValue);
             for (int i = 0; i < map.Disc.Count; i++)
             {
                 var hex = map.Disc[i];
-                if (PrototypeHome.WasDrawn(hex))
+                if (prototype && !PrototypeHome.WasDrawn(hex))
                 {
-                    _terrain[hex] = Look(map.TerrainAt(hex));
+                    continue;
+                }
+
+                _terrain[hex] = Look(map.TerrainAt(hex));
+                if (map.TerrainAt(hex).IsLand())
+                {
+                    var centre = hex.Center();
+                    min = Vector2.Min(min, new Vector2(centre.x, centre.z));
+                    max = Vector2.Max(max, new Vector2(centre.x, centre.z));
                 }
             }
+
+            LandMin = min;
+            LandMax = max;
         }
+
+        /// <summary>The map drawn.</summary>
+        public WorldMap WorldMap { get; }
+
+        /// <summary>The island the world is founded on, which is known from the start.</summary>
+        public string? HomeIsland { get; }
 
         public IReadOnlyDictionary<Hex, Terrain> Tiles => _terrain;
 
-        /// <summary>Whether a hex belongs to Nyön, which stays hidden until an expedition finds it.</summary>
-        public static bool OnNyon(Hex hex) => hex.DistanceTo(NyonCentre) <= NyonSeaRadius;
+        /// <summary>The south-west corner of the land on the ground plane, as x and z.</summary>
+        public Vector2 LandMin { get; }
+
+        /// <summary>The north-east corner of the land on the ground plane, as x and z.</summary>
+        public Vector2 LandMax { get; }
 
         public bool IsLand(Hex hex) => _terrain.TryGetValue(hex, out var terrain) && terrain >= Terrain.Beach;
+
+        /// <summary>The island a land tile belongs to, other than the home island; null for the sea and the home island.</summary>
+        public string? AwayIslandAt(Hex hex) =>
+            IsLand(hex) && WorldMap.IslandAt(hex) is string island && island != HomeIsland ? island : null;
 
         /// <summary>The ground a building's site usually has, to show the building on in the look gallery.</summary>
         public static Terrain GroundFor(TileUse requirement) => requirement switch

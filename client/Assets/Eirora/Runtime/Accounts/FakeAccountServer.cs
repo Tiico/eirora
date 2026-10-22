@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Eirora.Contracts;
+using Eirora.Simulation.Saving;
 using UnityEngine;
 
 namespace Eirora.Client.Accounts
@@ -11,8 +12,9 @@ namespace Eirora.Client.Accounts
     /// Eirora.Server's account API in memory for tests and the screenshot tour, with the same rules as the real one
     /// (ADR-0008): ID tokens bound to the nonce and accepted once, access tokens for 15 minutes, refresh tokens rotated
     /// and revocable, linking, removing a login and deleting confirmed with a fresh sign-in with one of the account's own
-    /// logins, and the Apple rule for deletion. Speaks the same wire format, which the contract test pins to the server's
-    /// (<c>ClientRequestTests</c>), so the client is tested down to the bytes it sends.
+    /// logins, and the Apple rule for deletion, and the cloud save with its versions and key epochs (TASK-023). Speaks
+    /// the same wire format, which the contract test pins to the server's (<c>ClientRequestTests</c>), so the client is
+    /// tested down to the bytes it sends.
     /// </summary>
     public sealed class FakeAccountServer : IHttpTransport
     {
@@ -20,6 +22,7 @@ namespace Eirora.Client.Accounts
         public static readonly TimeSpan AccessLifetime = TimeSpan.FromMinutes(15);
 
         private const string LoginsPath = "/api/account/logins/";
+        private const string TransfersPath = "/api/account/key-transfers/";
         private const string RemovalSuffix = "/removal";
 
         private readonly Func<DateTimeOffset> _now;
@@ -27,6 +30,8 @@ namespace Eirora.Client.Accounts
         private readonly Dictionary<string, (Guid Account, DateTimeOffset Expires)> _access = new();
         private readonly Dictionary<string, Guid> _refresh = new();
         private readonly Dictionary<Guid, List<(string Provider, string Subject)>> _accounts = new();
+        private readonly Dictionary<Guid, StoredCloudSave> _cloudSaves = new();
+        private readonly Dictionary<string, StoredKeyTransfer> _keyTransfers = new();
         private int _serial;
 
         public FakeAccountServer(Func<DateTimeOffset> now) => _now = now;
@@ -34,11 +39,37 @@ namespace Eirora.Client.Accounts
         /// <summary>When false, every call answers as if the network were down.</summary>
         public bool Online { get; set; } = true;
 
+        /// <summary>When false, the cloud save still comes down but an upload answers as if the connection dropped.</summary>
+        public bool TakesUploads { get; set; } = true;
+
         public List<HttpCall> Calls { get; } = new();
 
         public List<string> AppleCodesRevoked { get; } = new();
 
         public int Accounts => _accounts.Count;
+
+        /// <summary>How many contribution parts a new key epoch has locked, as the real server keeps them for 90 days.</summary>
+        public int LockedParts { get; private set; }
+
+        /// <summary>The cloud save of the account the login belongs to, or null.</summary>
+        public CloudSave? CloudSaveOf(string subject)
+        {
+            var account = _accounts.FirstOrDefault(a => a.Value.Any(l => l.Subject == subject)).Key;
+            return _cloudSaves.TryGetValue(account, out var save) ? save.ToCloudSave() : null;
+        }
+
+        /// <summary>How many key transfers are pending on the server.</summary>
+        public int PendingKeyTransfers => _keyTransfers.Count(t => t.Value.ExpiresAt > _now());
+
+        /// <summary>Lets the transfer's ten minutes run out.</summary>
+        public void ExpireKeyTransfer(string id) => _keyTransfers[id].ExpiresAt = _now();
+
+        /// <summary>Replaces the stored contribution part, as someone who reaches the database could.</summary>
+        public void TamperWithContributionsOf(string subject)
+        {
+            var account = _accounts.First(a => a.Value.Any(l => l.Subject == subject)).Key;
+            _cloudSaves[account].Contributions[_cloudSaves[account].Contributions.Length - 1] ^= 0x01;
+        }
 
         public IEnumerable<string> LoginsOf(string subject) =>
             _accounts.Values.FirstOrDefault(l => l.Any(x => x.Subject == subject))?.Select(l => l.Provider) ?? Enumerable.Empty<string>();
@@ -64,6 +95,11 @@ namespace Eirora.Client.Accounts
             }
 
             string path = call.Url.Substring(Url.Length);
+            if (!TakesUploads && call.Method == "PUT" && path == "/api/account/cloud-save")
+            {
+                return Task.FromResult(new HttpReply(0));
+            }
+
             return Task.FromResult((call.Method, path) switch
             {
                 ("POST", "/connect/token") => Token(UrlQuery.Parse(call.Body!)),
@@ -73,6 +109,12 @@ namespace Eirora.Client.Accounts
                 ("POST", _) when path.StartsWith(LoginsPath, StringComparison.Ordinal) && path.EndsWith(RemovalSuffix, StringComparison.Ordinal) =>
                     Authorized(call, account => RemoveLogin(account, Uri.UnescapeDataString(path.Substring(LoginsPath.Length, path.Length - LoginsPath.Length - RemovalSuffix.Length)), Login(call))),
                 ("POST", "/api/account/deletion") => Authorized(call, account => Delete(account, Login(call))),
+                ("GET", "/api/account/cloud-save") => Authorized(call, GetCloudSave),
+                ("PUT", "/api/account/cloud-save") => Authorized(call, account => UploadCloudSave(account, call.Body)),
+                ("POST", "/api/account/key-transfers") => Authorized(call, account => CreateKeyTransfer(account, call.Body)),
+                ("GET", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => TakeKeyTransfer(account, TransferId(path))),
+                ("PUT", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => DeliverKeyTransfer(account, TransferId(path), call.Body)),
+                ("DELETE", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => DeleteKeyTransfer(account, TransferId(path))),
                 _ => new HttpReply(404),
             });
         }
@@ -212,9 +254,173 @@ namespace Eirora.Client.Accounts
             return new HttpReply(204);
         }
 
+        private HttpReply GetCloudSave(Guid account) =>
+            _cloudSaves.TryGetValue(account, out var save) ? new HttpReply(200, save.ToJson()) : new HttpReply(404);
+
+        /// <summary>The server's rules: the world part must load as one, the base version must be current, the key epoch never sinks.</summary>
+        private HttpReply UploadCloudSave(Guid account, string? body)
+        {
+            AccountServer.CloudSaveUploadJson? upload;
+            try
+            {
+                upload = JsonUtility.FromJson<AccountServer.CloudSaveUploadJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (upload is null || upload.baseVersion < 0 || upload.keyEpoch < 1 || string.IsNullOrEmpty(upload.world) || string.IsNullOrEmpty(upload.contributions))
+            {
+                return new HttpReply(400);
+            }
+
+            byte[] world, contributions;
+            try
+            {
+                world = Convert.FromBase64String(upload.world);
+                contributions = Convert.FromBase64String(upload.contributions);
+                Save.FromParts(world, null);
+            }
+            catch (FormatException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (world.Length > CloudSaveUpload.MaxWorldBytes || contributions.Length > CloudSaveUpload.MaxContributionBytes)
+            {
+                return new HttpReply(413);
+            }
+
+            _cloudSaves.TryGetValue(account, out var current);
+            long version = current?.Version ?? 0;
+            int keyEpoch = current?.KeyEpoch ?? 0;
+            if (upload.baseVersion != version || upload.keyEpoch < keyEpoch)
+            {
+                return new HttpReply(409, VersionJson(version, keyEpoch));
+            }
+
+            if (current is not null && upload.keyEpoch > current.KeyEpoch)
+            {
+                LockedParts++;
+            }
+
+            _cloudSaves[account] = new StoredCloudSave(version + 1, upload.keyEpoch, world, contributions, _now());
+            return new HttpReply(200, VersionJson(version + 1, upload.keyEpoch));
+        }
+
+        private static string TransferId(string path) => Uri.UnescapeDataString(path.Substring(TransfersPath.Length));
+
+        private HttpReply CreateKeyTransfer(Guid account, string? body)
+        {
+            AccountServer.KeyTransferRequestJson? request;
+            try
+            {
+                request = JsonUtility.FromJson<AccountServer.KeyTransferRequestJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            byte[] publicKey;
+            try
+            {
+                publicKey = Convert.FromBase64String(request?.receiverPublicKey ?? string.Empty);
+            }
+            catch (FormatException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (publicKey.Length != KeyTransfer.PublicKeyLength)
+            {
+                return new HttpReply(400);
+            }
+
+            foreach (var pending in _keyTransfers.Where(t => t.Value.Account == account).Select(t => t.Key).ToList())
+            {
+                _keyTransfers.Remove(pending);
+            }
+
+            var transfer = new StoredKeyTransfer(account, "transfer-" + (++_serial), publicKey, _now() + KeyTransfer.Lifetime);
+            _keyTransfers[transfer.Id] = transfer;
+            return new HttpReply(201, transfer.ToJson());
+        }
+
+        private HttpReply TakeKeyTransfer(Guid account, string id)
+        {
+            if (!_keyTransfers.TryGetValue(id, out var transfer) || transfer.Account != account || transfer.ExpiresAt <= _now())
+            {
+                return new HttpReply(404);
+            }
+
+            if (transfer.SealedKey is not null)
+            {
+                _keyTransfers.Remove(id);
+            }
+
+            return new HttpReply(200, transfer.ToJson());
+        }
+
+        private HttpReply DeliverKeyTransfer(Guid account, string id, string? body)
+        {
+            AccountServer.KeyTransferDeliveryJson? delivery;
+            try
+            {
+                delivery = JsonUtility.FromJson<AccountServer.KeyTransferDeliveryJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            byte[] sealedKey;
+            try
+            {
+                sealedKey = Convert.FromBase64String(delivery?.sealedKey ?? string.Empty);
+            }
+            catch (FormatException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (sealedKey.Length == 0 || sealedKey.Length > KeyTransfer.MaxSealedKeyBytes)
+            {
+                return new HttpReply(400);
+            }
+
+            if (!_keyTransfers.TryGetValue(id, out var transfer) || transfer.Account != account || transfer.ExpiresAt <= _now())
+            {
+                return new HttpReply(404);
+            }
+
+            if (transfer.SealedKey is not null)
+            {
+                return new HttpReply(409);
+            }
+
+            transfer.SealedKey = sealedKey;
+            return new HttpReply(204);
+        }
+
+        private HttpReply DeleteKeyTransfer(Guid account, string id) =>
+            _keyTransfers.TryGetValue(id, out var transfer) && transfer.Account == account && _keyTransfers.Remove(id)
+                ? new HttpReply(204)
+                : new HttpReply(404);
+
+        private static string VersionJson(long version, int keyEpoch) =>
+            JsonUtility.ToJson(new AccountServer.CloudSaveVersionJson { version = version, keyEpoch = keyEpoch });
+
         private void Remove(Guid account)
         {
             _accounts.Remove(account);
+            _cloudSaves.Remove(account);
+            foreach (var pending in _keyTransfers.Where(t => t.Value.Account == account).Select(t => t.Key).ToList())
+            {
+                _keyTransfers.Remove(pending);
+            }
+
             foreach (var token in _access.Where(a => a.Value.Account == account).Select(a => a.Key).ToList())
             {
                 _access.Remove(token);
@@ -263,6 +469,68 @@ namespace Eirora.Client.Accounts
         private static ExternalLoginJson Login(HttpCall call) => JsonUtility.FromJson<ExternalLoginJson>(call.Body);
 
         private static HttpReply Error(string error) => new(400, $"{{\"error\":\"{error}\",\"error_description\":\"x\"}}");
+
+        private sealed class StoredCloudSave
+        {
+            public StoredCloudSave(long version, int keyEpoch, byte[] world, byte[] contributions, DateTimeOffset savedAt)
+            {
+                Version = version;
+                KeyEpoch = keyEpoch;
+                World = world;
+                Contributions = contributions;
+                SavedAt = savedAt;
+            }
+
+            public long Version { get; }
+
+            public int KeyEpoch { get; }
+
+            public byte[] World { get; }
+
+            public byte[] Contributions { get; }
+
+            public DateTimeOffset SavedAt { get; }
+
+            public CloudSave ToCloudSave() => new(Version, KeyEpoch, World, Contributions, SavedAt);
+
+            public string ToJson() => JsonUtility.ToJson(new AccountServer.CloudSaveJson
+            {
+                version = Version,
+                keyEpoch = KeyEpoch,
+                world = Convert.ToBase64String(World),
+                contributions = Convert.ToBase64String(Contributions),
+                savedAt = SavedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            });
+        }
+
+        private sealed class StoredKeyTransfer
+        {
+            public StoredKeyTransfer(Guid account, string id, byte[] receiverPublicKey, DateTimeOffset expiresAt)
+            {
+                Account = account;
+                Id = id;
+                ReceiverPublicKey = receiverPublicKey;
+                ExpiresAt = expiresAt;
+            }
+
+            public Guid Account { get; }
+
+            public string Id { get; }
+
+            public byte[] ReceiverPublicKey { get; }
+
+            public byte[]? SealedKey { get; set; }
+
+            public DateTimeOffset ExpiresAt { get; set; }
+
+            public string ToJson() => JsonUtility.ToJson(new AccountServer.KeyTransferJson
+            {
+                id = Id,
+                receiverPublicKey = Convert.ToBase64String(ReceiverPublicKey),
+                sealedKey = SealedKey is null ? string.Empty : Convert.ToBase64String(SealedKey),
+                expiresAt = ExpiresAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            });
+        }
 
 #pragma warning disable CS0649, CS8618 // Written and read by JsonUtility.
         [Serializable]

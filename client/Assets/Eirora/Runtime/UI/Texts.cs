@@ -132,6 +132,34 @@ namespace Eirora.Client.UI
             _ => null,
         };
 
+        /// <summary>What to tell the player after a recovery code was tried, or null when the island is being unlocked.</summary>
+        public static string? RecoveryCode(App.RecoveryCodeOutcome outcome) => outcome switch
+        {
+            App.RecoveryCodeOutcome.Unlocked => null,
+            App.RecoveryCodeOutcome.NotACode => "Det är inte en hel återställningskod. Kontrollera tecknen.",
+            App.RecoveryCodeOutcome.OlderCode => "Koden är från en äldre nyckel. Visa en ny kod på telefonen som har ön.",
+            App.RecoveryCodeOutcome.NotThisAccountsCode => "Koden hör inte till det här kontots ö.",
+            App.RecoveryCodeOutcome.Offline => "Servern går inte att nå just nu. Försök igen om en stund.",
+            _ => "Det gick inte just nu. Försök igen om en stund.",
+        };
+
+        /// <summary>How the cloud save stands, for the account sheet, or null when there is no sign-in.</summary>
+        public static string? CloudSync(App.CloudSyncStatus status, System.DateTimeOffset? syncedAt) => status switch
+        {
+            App.CloudSyncStatus.Off => null,
+            App.CloudSyncStatus.Working => "Molnsparning: laddar upp …",
+            App.CloudSyncStatus.Synced => syncedAt is { } at
+                ? $"Molnsparning: din ö är sparad på kontot, senast {at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}"
+                : "Molnsparning: din ö är sparad på kontot",
+            App.CloudSyncStatus.NoWorld => "Molnsparning: ingen ö att spara ännu",
+            App.CloudSyncStatus.Offline => "Molnsparning: väntar på uppkoppling, din ö sparas när servern nås",
+            App.CloudSyncStatus.ChoiceNeeded => "Molnsparning: telefonen och kontot har olika öar",
+            App.CloudSyncStatus.KeyNeeded => "Molnsparning: kontots ö väntar på nyckeln från din gamla telefon",
+            App.CloudSyncStatus.AppOutdated => "Molnsparning: kontots ö sparades av en nyare version av Eirora. Uppdatera appen.",
+            App.CloudSyncStatus.SignedOut => "Molnsparning: logga in igen för att spara din ö på kontot",
+            _ => "Molnsparning: gick inte just nu, försöker igen vid nästa ändring",
+        };
+
         public static string Reason(Rejection rejection) => rejection switch
         {
             Rejection.Resting => "Byborna sover. Det här kan du göra i morgon.",
@@ -150,6 +178,12 @@ namespace Eirora.Client.UI
             _ => "Det gick inte just nu.",
         };
 
+        /// <summary>
+        /// What the island across the sea is called: Nyön on the prototype's map, "den nya ön" on a generated one, whose
+        /// islands have no names yet and can lie in any direction.
+        /// </summary>
+        public static string IslandName(string? island) => island == PrototypeHome.Nyon ? "Nyön" : "den nya ön";
+
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
         public static string? Describe(GameEvent gameEvent) => gameEvent switch
         {
@@ -160,7 +194,8 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Upgrade } done => $"{Name(done.Building)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
             TilesRevealed => "Kartläggningen lyfte dimman över nya brickor.",
-            ExpeditionReturned => "Expeditionen kom hem. Den hittade Nyön i öster.",
+            ExpeditionReturned { Island: PrototypeHome.Nyon } => "Expeditionen kom hem. Den hittade Nyön i öster.",
+            ExpeditionReturned => "Expeditionen kom hem. Den hittade en ny ö.",
             FogLifted => FogLiftedOver(1),
             _ => null,
         };

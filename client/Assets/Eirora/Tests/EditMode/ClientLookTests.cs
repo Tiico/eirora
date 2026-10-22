@@ -44,6 +44,15 @@ namespace Eirora.Client.Tests
             Assert.That(Texts.Report(new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en bricka." }));
         }
 
+        // Only the prototype's map has Nyön in the east; a generated world's island has no name and any direction.
+        [Test]
+        public void TheExpeditionNamesNyonOnlyOnThePrototypesMap()
+        {
+            Assert.That(Texts.Describe(new ExpeditionReturned(1, PrototypeHome.Nyon)), Is.EqualTo("Expeditionen kom hem. Den hittade Nyön i öster."));
+            Assert.That(Texts.Describe(new ExpeditionReturned(1, "first")), Is.EqualTo("Expeditionen kom hem. Den hittade en ny ö."));
+            Assert.That(Texts.IslandName("first"), Is.EqualTo("den nya ön"));
+        }
+
         [Test]
         public void TheGameIsHeldUpright()
         {

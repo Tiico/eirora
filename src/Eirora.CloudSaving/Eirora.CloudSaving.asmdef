@@ -1,0 +1,19 @@
+{
+  "name": "Eirora.CloudSaving",
+  "rootNamespace": "Eirora.CloudSaving",
+  "references": [
+    "Eirora.Simulation",
+    "Eirora.Contracts"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "BouncyCastle.Cryptography.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

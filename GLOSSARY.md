@@ -129,6 +129,11 @@ _Avoid_: träningspoäng, arbetskraft
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
 _Avoid_: sömnpoäng, vilobonus
 
+**Grundande** (`Founding`):
+Det en ny värld börjar med på sin karta: startbyns byggnader, kartläggningarnas dolda brickor och ön som den första expeditionen hittar.
+Det följer av kartan och sparas aldrig; prototypens karta har sitt handgjorda grundande och en genererad karta får ett efter samma regel.
+_Avoid_: startplan, spawn
+
 **Kartläggning** (`Survey`):
 En handling som kostar Utforskning och lyfter dimman från utvalda brickor nära bosättningen.
 _Avoid_: scouting, spaning
@@ -312,6 +317,22 @@ _Avoid_: nyckelversion, nyckel-id
 **Låst bidragsdel** (`LockedContributions`):
 En bidragsdel från en tidigare nyckelepok, som servern sparar i 90 dagar om nyckeln skulle dyka upp och sedan raderar.
 _Avoid_: arkiv, gammal backup
+
+**Nyckelöverföring** (`KeyTransfer`):
+Bidragsnyckelns väg från en av spelarens telefoner till en annan via servern, som bara förmedlar den förseglad för den nya telefonens engångsnyckel och glömmer den inom tio minuter.
+_Avoid_: nyckelsynk (som är plattformens nyckelring), nyckeldelning
+
+**Biljett** (`KeyTransferTicket`):
+Det den nya telefonen visar den gamla, i en QR-kod: överföringens id och den nya telefonens publika engångsnyckel; inget i den är hemligt.
+_Avoid_: QR-nyckel, kod
+
+**Återställningskod** (`RecoveryCode`):
+Bidragsnyckeln som 64 tecken i åtta grupper, med nyckelepoken och en kontrollsumma, som spelaren kan skriva ner och skriva in på en ny telefon; en av nyckelns kopior.
+_Avoid_: lösenord, PIN
+
+**Sammanslagning** (`Save.Merge`):
+Två sparningar av samma värld som spelats var för sig blir en: journalerna spelas upp från den senaste segmentstart de delar, i tidsordning, och varje kommando räknas en gång (D-99).
+_Avoid_: konfliktlösning, synkronisering (som är hela flödet mot servern)
 
 ## Socialt
 

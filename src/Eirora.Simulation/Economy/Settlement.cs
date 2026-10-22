@@ -53,15 +53,17 @@ namespace Eirora.Simulation.Economy
         private readonly SortedDictionary<Hex, long> _felled = new();
         private readonly WorldMap _map;
         private readonly string? _homeIsland;
+        private readonly Founding _founding;
         private readonly Dictionary<Hex, int> _depotDistances = new(); // Forgotten whenever a depot is added.
         private readonly List<Hex> _woods = new();
         private readonly List<Hex> _regrowing = new();
         private long _expeditionLeft;
 
-        private Settlement(WorldMap map, Fog fog)
+        private Settlement(WorldMap map, Fog fog, Founding founding)
         {
             _map = map;
             _homeIsland = map.IslandAt(map.Start);
+            _founding = founding;
             Fog = fog;
         }
 
@@ -113,20 +115,23 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whether ships sail between the islands: a jetty stands on each.</summary>
         public bool SeaRouteOpen => HasBuilt(BuildingKind.Jetty, IslandId.Home) && HasBuilt(BuildingKind.Jetty, IslandId.Nyon);
 
-        /// <summary>The island the expedition sails for, or null when the map has no land there.</summary>
-        private string? ExpeditionTarget =>
-            _map.Contains(PrototypeIsland.ExpeditionFinds) ? _map.IslandAt(PrototypeIsland.ExpeditionFinds) : null;
+        /// <summary>What the world started with on its map, and what its surveys and first expedition find.</summary>
+        public Founding Founding => _founding;
+
+        /// <summary>The island the expedition sails for, or null when the map has none worth the journey.</summary>
+        private string? ExpeditionTarget => _founding.ExpeditionIsland;
 
         /// <summary>The settlement a new world starts with on the home island; the surveys' tiles wait under the fog.</summary>
         public static Settlement Found(WorldMap map)
         {
+            var founding = Founding.For(map);
             var hidden = new List<Hex>();
-            foreach (var survey in PrototypeIsland.Surveys)
+            foreach (var survey in founding.Surveys)
             {
                 hidden.AddRange(survey.Reveals);
             }
 
-            var settlement = new Settlement(map, Fog.AtStart(map, hidden));
+            var settlement = new Settlement(map, Fog.AtStart(map, hidden), founding);
             var home = settlement._stores[IslandId.Home];
             home[(int)Resource.Fish] = Quantity.Units(30);
             home[(int)Resource.Timber] = Quantity.Units(40);
@@ -134,7 +139,7 @@ namespace Eirora.Simulation.Economy
             home[(int)Resource.Stone] = Quantity.Units(20);
             settlement.Villagers = 12;
 
-            foreach (var (kind, tile) in PrototypeIsland.StartBuildings)
+            foreach (var (kind, tile) in founding.StartBuildings)
             {
                 settlement.Complete(kind, tile);
             }
@@ -171,9 +176,9 @@ namespace Eirora.Simulation.Economy
                 return Rejection.NotNextToTheKnown;
             }
 
-            for (int survey = SurveysDone; survey < PrototypeIsland.Surveys.Count; survey++)
+            for (int survey = SurveysDone; survey < _founding.Surveys.Count; survey++)
             {
-                foreach (var tile in PrototypeIsland.Surveys[survey].Reveals)
+                foreach (var tile in _founding.Surveys[survey].Reveals)
                 {
                     if (tile == hex)
                     {
@@ -319,7 +324,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Lifts the fog from the next survey area (economy-v1.md, section 6).</summary>
         public IReadOnlyList<Hex> CompleteSurvey()
         {
-            var reveals = PrototypeIsland.Surveys[SurveysDone].Reveals;
+            var reveals = _founding.Surveys[SurveysDone].Reveals;
             foreach (var tile in reveals)
             {
                 if (_map.Contains(tile))
@@ -437,11 +442,11 @@ namespace Eirora.Simulation.Economy
 
         public static Settlement Read(StateReader reader, WorldMap map)
         {
-            var settlement = new Settlement(map, Fog.Unknown(map));
+            var settlement = new Settlement(map, Fog.Unknown(map), Founding.For(map));
             reader.Expect("settlement");
             settlement.Villagers = reader.Int();
             settlement.SurveysDone = reader.Int();
-            if (settlement.SurveysDone < 0 || settlement.SurveysDone > PrototypeIsland.Surveys.Count)
+            if (settlement.SurveysDone < 0 || settlement.SurveysDone > settlement._founding.Surveys.Count)
             {
                 throw new FormatException($"{settlement.SurveysDone} surveys is more than the island has.");
             }

@@ -1,0 +1,2 @@
+GET /api/account/key-transfers/__TRANSFER_ID__
+Authorization: Bearer __ACCESS_TOKEN__
