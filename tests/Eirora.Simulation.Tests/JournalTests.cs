@@ -71,14 +71,25 @@ public sealed class JournalTests
     public void TextThatIsNotAJournalIsRejected(string text) =>
         Assert.Throws<FormatException>(() => Journal.Load(text.Replace("{rules}", RulesVersion.Current.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)));
 
-    // Rules 4 builds on tiles (TASK-037) and rules 5 scales how fields grow (TASK-038), so a journal under earlier rules
-    // would replay to another world (ADR-0006, D-102).
+    // Every rules version before RulesVersion.ReplaysJournalsFrom would replay to another world (ADR-0006, D-102), so the
+    // cases move with it when the rules move on.
+    public static TheoryData<int> RulesNoLongerReplayed => new(Enumerable.Range(1, RulesVersion.ReplaysJournalsFrom - 1));
+
     [Theory]
-    [InlineData(1)]
-    [InlineData(3)]
-    [InlineData(4)]
+    [MemberData(nameof(RulesNoLongerReplayed))]
     public void AJournalUnderRulesThatAreNoLongerReplayedIsRefused(int rules) =>
-        Assert.Throws<JournalFromOlderRulesException>(() => Journal.Load($"eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\n"));
+        Assert.Throws<JournalFromOlderRulesException>(() => Journal.Load(JournalUnderRules(rules)));
+
+    // No rules version 0 ever existed, and a version after today's is from a newer build, so neither is kept as older rules.
+    [Fact]
+    public void AJournalUnderRulesThatNeverExistedIsNotAJournal()
+    {
+        Assert.Throws<FormatException>(() => Journal.Load(JournalUnderRules(0)));
+        Assert.Throws<FormatException>(() => Journal.Load(JournalUnderRules(RulesVersion.Current + 1)));
+    }
+
+    private static string JournalUnderRules(int rules) =>
+        $"eirora-journal 1 rules {rules.ToString(CultureInfo.InvariantCulture)}\ncreate 0 Europe/Stockholm 0 1380 480\n";
 
     private static Journal PlayedWeek()
     {

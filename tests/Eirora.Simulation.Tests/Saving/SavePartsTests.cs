@@ -111,22 +111,13 @@ public sealed class SavePartsTests
     {
         const string Golden = "save-3-rules-3";
         string whole = Encoding.UTF8.GetString(GoldenSaveTests.Bytes(Golden));
-        byte[] worldPart = Sealed(Section(whole, "map") + Section(whole, "latest"));
+        byte[] worldPart = Sealed(SaveSections.Written(whole, "map") + SaveSections.Written(whole, "latest"));
 
         var alone = Save.FromParts(worldPart, contributions: null);
         var full = Save.Load(GoldenSaveTests.Bytes(Golden));
 
         Assert.Equal(full.World.WorldState(), alone.World.WorldState());
         Assert.Equal(full.World.GameDay, alone.World.LastClosedGameDay);
-    }
-
-    /// <summary>A section of a save's body as it is written: its name and length, then its text.</summary>
-    private static string Section(string save, string name)
-    {
-        int at = save.IndexOf($"\n{name} ", StringComparison.Ordinal) + 1;
-        int lineEnd = save.IndexOf('\n', at);
-        int length = int.Parse(save[(at + name.Length + 1)..lineEnd], System.Globalization.CultureInfo.InvariantCulture);
-        return save.Substring(at, lineEnd + 1 - at + length);
     }
 
     private static byte[] Sealed(string body)

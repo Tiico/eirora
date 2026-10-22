@@ -96,8 +96,8 @@ public sealed class TilesArriveTests
     [Fact]
     public void TheGoldenSaveFromRulesThreeKeepsItsBuildingsRoadsFogAndBalances()
     {
-        byte[] bytes = File.ReadAllBytes(Path.Combine(Root(), "tests", "Eirora.Simulation.Tests", "Saving", "Golden", "save-2-rules-3.save"));
-        var before = Section(System.Text.Encoding.UTF8.GetString(bytes), "latest").Split('\n');
+        byte[] bytes = GoldenSaveTests.Bytes("save-2-rules-3");
+        var before = SaveSections.Text(System.Text.Encoding.UTF8.GetString(bytes), "latest").Split('\n');
         Assert.Contains("rules 3", before);
 
         var after = Save.Load(bytes).World.Fingerprint().Split('\n');
@@ -119,36 +119,5 @@ public sealed class TilesArriveTests
             Assert.Equal((site.Q, site.R), (int.Parse(pair.Second[2], CultureInfo.InvariantCulture), int.Parse(pair.Second[3], CultureInfo.InvariantCulture)));
             Assert.Equal(pair.First[3..], pair.Second[4..]);
         });
-    }
-
-    /// <summary>A section of a save's text, by the save's framing (Save.cs).</summary>
-    private static string Section(string save, string name)
-    {
-        int at = save.IndexOf('\n', save.IndexOf('\n') + 1) + 1;
-        while (at < save.Length)
-        {
-            int lineEnd = save.IndexOf('\n', at);
-            string[] header = save[at..lineEnd].Split(' ');
-            int length = int.Parse(header[1], CultureInfo.InvariantCulture);
-            if (header[0] == name)
-            {
-                return save.Substring(lineEnd + 1, length);
-            }
-
-            at = lineEnd + 1 + length;
-        }
-
-        throw new InvalidOperationException($"The save has no '{name}' section.");
-    }
-
-    private static string Root()
-    {
-        var folder = new DirectoryInfo(AppContext.BaseDirectory);
-        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "Eirora.slnx")))
-        {
-            folder = folder.Parent;
-        }
-
-        return folder?.FullName ?? throw new InvalidOperationException("The tests run outside the repository.");
     }
 }
