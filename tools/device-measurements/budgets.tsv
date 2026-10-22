@@ -1,0 +1,33 @@
+# Budgets per tier of target device (TASK-024, docs/design/performance-budgets.md): metric, tier, max or min, limit.
+# Tiers: floor (Galaxy A06), base (Galaxy A16 5G, iPhone 11), reference (Pixel 7, iPhone 13).
+# Metrics are those measure.sh writes; *_warming_c is the end temperature minus the start temperature of a pass.
+apk_mb	floor	max	100
+apk_mb	base	max	100
+apk_mb	reference	max	100
+cold_start_median_ms	floor	max	5000
+cold_start_median_ms	base	max	3000
+cold_start_median_ms	reference	max	2000
+fps	floor	min	29
+fps	base	min	29
+fps	reference	min	29
+frame_p95_ms	floor	max	50
+frame_p95_ms	base	max	40
+frame_p95_ms	reference	max	36
+frames_over_50ms_pct	floor	max	3
+frames_over_50ms_pct	base	max	1
+frames_over_50ms_pct	reference	max	1
+pss_max_mb	floor	max	400
+pss_max_mb	base	max	400
+pss_max_mb	reference	max	400
+skin_warming_c	floor	max	5
+skin_warming_c	base	max	5
+skin_warming_c	reference	max	5
+battery_warming_c	floor	max	5
+battery_warming_c	base	max	5
+battery_warming_c	reference	max	5
+app_battery_mah_per_hour	floor	max	400
+app_battery_mah_per_hour	base	max	400
+app_battery_mah_per_hour	reference	max	400
+app_share_of_drain_pct	floor	max	2
+app_share_of_drain_pct	base	max	2
+app_share_of_drain_pct	reference	max	2
