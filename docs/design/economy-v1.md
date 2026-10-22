@@ -59,6 +59,8 @@ Mat har två oberoende källor, så ingen enskild flaskhals kan svälta byborna 
 | *Väg* | 2 sten per bricka | 4 h per bricka | 0 | | Höjer avståndsklassen ett steg | |
 
 Rika brickor ger mer: stenådern dubblar stenbrottet, rikt fiskevatten ger 1,5 gånger, urskogen 1,25 gånger och betet på Nyön dubblar fårgården.
+Avståndet till förrådet (avsnitt 5), nivå 2 och dagsverke skalar all produktion, även åkerns och fårgårdens: de skalar hur fort säden och ullen växer dygnet runt, och skörden under de aktiva timmarna tömmer bara det som vuxit (D-103).
+En åker 2–3 steg från förrådet ger alltså 75 % av en åker intill, och en åker på nivå 2 eller med dagsverke 150 %.
 En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 
 ### 3.1 Byggplatser
@@ -90,10 +92,13 @@ Det finns inga namngivna platser; kolumnen *Krav* ovan säger vad brickan ska du
   På `prototype-home-1` är det västra berget (-4,0) krönet, med höjd 6 mot stenåderns 5, så att stenådern förblir stenbrottets.
 - Byggregeln prövas när bygget läggs i kön.
   En byggnad som redan står kvar står kvar även på en bricka som inte längre duger, så regeländringen flyttar ingenting (INV-V1).
-- Simuleringen följer reglerna från regelversion 4.
+- Byggplatserna på brickor kom med regelversion 4.
   Migrationen dit skriver om sparningens plats-id till brickornas koordinater, så att varje byggnad, väg och lyft dimma står kvar och saldona är oförändrade (ADR-0006).
   En skogsplats som prototypen räknade som flera skogsbrickor lämnar sin andel timmer per bricka på sin egen bricka, och kartans övriga skog är full.
   Prototypens journaler från före regelversion 4 spelas inte längre upp, eftersom de skulle ge en annan värld än den spelaren byggde.
+- Från regelversion 5 skalar avstånd, nivå 2 och dagsverke åkerns och fårgårdens tillväxt (D-103).
+  Migrationen dit ändrar ingenting i sparningen: det som redan vuxit står kvar, och bara tiden efter växer med den nya regeln.
+  Journaler från regelversion 4 spelas inte längre upp, av samma skäl som ovan.
 
 Prototypens karta, `prototype-home` med samma land, vatten och terräng som klienten ritar (TASK-029), ger så här många byggplatser:
 
@@ -198,10 +203,10 @@ Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg,
 
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 324 | 180/260/440 | 461/110/229 | 1,04 |
-| Havet | måttlig | 20 | 12 | 2 | 36 | 230 | 1 201 | 250/270/360 | 426/100/260 | 0,90 |
-| Naiv | hög | 21 | 10 | 1 | 19 | 188 | 1 097 | 180/310/630 | 520/135/96 | 0,61 |
-| Utan träning | utan träning | 19 | 11 | 1 | 150 | 129 | 1 062 | 180/0/460 | 461/100/224 | 1,02 |
+| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 320 | 180/260/440 | 461/110/229 | 1,04 |
+| Havet | måttlig | 20 | 12 | 2 | 36 | 230 | 1 207 | 250/270/360 | 426/100/260 | 0,91 |
+| Naiv | hög | 20 | 10 | 1 | 19 | 188 | 1 089 | 180/310/630 | 520/135/96 | 0,61 |
+| Utan träning | utan träning | 19 | 11 | 1 | 150 | 129 | 1 055 | 180/0/460 | 461/100/224 | 1,01 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
 | Ingen spelare | måttlig | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 551/370/492 | – |
 
@@ -212,12 +217,12 @@ Startvärdet är 409.
 **Olika men jämbördiga.**
 Närområdet slutar med ett starkt produktionskluster och ett stort stenlager på en ö.
 Havet slutar med två öar, en sjöväg, en bybo till och högre dagsproduktion, men nästan tomma lager eftersom Nyön precis har kommit i gång.
-Utvecklingsvärdena skiljer sig med 10 %.
+Utvecklingsvärdena skiljer sig med 9 %.
 Havet bör dra ifrån andra veckan medan Närområdet har material för fler långhus; det prövas med längre körningar och balansbotar i M4.
 
 **Strategin hinner ikapp (D-34).**
 Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
-Den får ut 0,61 i värde per använd kraft mot 0,90–1,04, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+Den får ut 0,61 i värde per använd kraft mot 0,91–1,04, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
 Den bygger sitt stenbrott på det vanliga berget intill krönet, fyra steg från förrådet, medan de genomtänkta strategierna kartlägger och hittar stenådern.
 Utan det berget skulle stenådern vara Hemöns enda berg att bryta sten i, och då hittar även den naiva strategin dit och skillnaden blir bara 1,2 gånger (D-95).
 
@@ -225,7 +230,7 @@ Utan det berget skulle stenådern vara Hemöns enda berg att bryta sten i, och d
 En spelare som valt bort träning men går och sover måttligt bygger stugor i stället för långhus och använder ingen Byggkraft.
 Världen växer till lika många bybor, 19, men dagsproduktionen blir 129 mot 213–230 med träning, eftersom sågverk, brygga och väveri kräver Byggkraft.
 Träning syns alltså i världen, men befolkningen står aldrig still på grund av en vana som spelaren valt bort.
-Värdet per använd kraft blir högre, 1,02, eftersom stugorna inte räknas som kraftanvändning; måttet jämför bara strategier som använder alla krafter.
+Värdet per använd kraft blir högre, 1,01, eftersom stugorna inte räknas som kraftanvändning; måttet jämför bara strategier som använder alla krafter.
 
 ## 8. Sju dygn utan egenvård
 
@@ -281,3 +286,7 @@ Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 - **D-93:** skogskravet räknar bara upptäckta skogsbrickor som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman och ingen huggarkoja byggs där den inte ger något.
 
 - **D-95:** prototypens karta får ett vanligt berg på (-3,-1) intill krönet, och kartvalideringen kräver minst två berg att bryta sten i utom krönet, så att stenådern blir ett val och kravet i D-34 nås ([map-validation.md](./map-validation.md)).
+
+Produktägarens svar på avvikelsen som [grind A0](./gate-a0.md#3-avvikelser-mellan-dokument-och-kalkyl) hittade (TASK-038):
+
+- **D-103:** avstånd, nivå 2 och dagsverke skalar hur fort åkern och fårgården växer, som avsnitt 3 och 5 redan sa; tidigare skalade de bara hur mycket som kunde skördas i timmen, ett tak som aldrig nåddes.

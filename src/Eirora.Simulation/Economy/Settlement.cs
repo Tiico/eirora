@@ -527,15 +527,17 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
+            // Distance, level and a workday scale how fast a field or a sheep farm grows, as they scale every other
+            // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown.
             foreach (var building in _buildings)
             {
                 if (building.Kind == BuildingKind.Field)
                 {
-                    building.Ripe += Scale(125_000, _map.RichnessAt(building.Tile));
+                    building.Ripe += Scale(125_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
                 }
                 else if (building.Kind == BuildingKind.SheepFarm)
                 {
-                    building.Ripe += Scale(100_000, _map.RichnessAt(building.Tile));
+                    building.Ripe += Scale(100_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
                 }
             }
         }
@@ -589,8 +591,8 @@ namespace Eirora.Simulation.Economy
                 var store = _stores[b.Island];
                 long capacity = StorageCapacity(b.Island);
                 int distance = DistancePercent(b);
-                int level = b.Level == 2 ? 150 : 100;
-                int workday = b.WorkdayToday ? 150 : 100;
+                int level = LevelPercent(b);
+                int workday = WorkdayPercent(b);
                 int richness = _map.RichnessAt(b.Tile);
 
                 switch (b.Kind)
@@ -784,6 +786,12 @@ namespace Eirora.Simulation.Economy
 
             return Quantity.Units(units);
         }
+
+        /// <summary>Production at level 2 is 150 % of level 1's.</summary>
+        private static int LevelPercent(Building building) => building.Level == 2 ? 150 : 100;
+
+        /// <summary>A workday gives 150 % production until the next dawn.</summary>
+        private static int WorkdayPercent(Building building) => building.WorkdayToday ? 150 : 100;
 
         /// <summary>Share of production that reaches the store: 100, 75 or 50 % by distance, one step better with a road.</summary>
         private int DistancePercent(Building building)
