@@ -19,7 +19,7 @@ namespace Eirora.Client.Tests
         public void SetUp()
         {
             var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
-            _game = new GameSession(clock, null);
+            _game = new GameSession(clock, null, () => PrototypeHome.Map); // The tiles below are Hemön's.
             _game.Begin(new RestSchedule(23 * 60, 8 * 60));
             _root = new VisualElement();
             _hud = new Hud(_root, command => _game.Apply(command));
