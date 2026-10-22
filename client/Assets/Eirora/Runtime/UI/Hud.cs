@@ -464,7 +464,7 @@ namespace Eirora.Client.UI
             }
         }
 
-        /// <summary>The jetty: expeditions from home, the sea route, and Nyön's goods waiting for the ship.</summary>
+        /// <summary>The jetty: expeditions from home, the sea route, and the other island's goods waiting for the ship.</summary>
         private void JettyActions(World world, Building building)
         {
             if (building.Island == IslandId.Nyon)
@@ -473,7 +473,7 @@ namespace Eirora.Client.UI
                     .Where(r => world.Stock(IslandId.Nyon, r) > 0)
                     .Select(r => $"{world.Stock(IslandId.Nyon, r)} {Texts.Name(r)}")
                     .ToList();
-                Text("sheet-text", _sheet, "Skeppen tar Nyöns varor hem, 40 per dygn.");
+                Text("sheet-text", _sheet, $"Skeppen tar {Texts.IslandName(world.Map.IslandAt(building.Tile))}s varor hem, 40 per dygn.");
                 Text("sheet-text", _sheet, waiting.Count == 0 ? "Inget väntar på skeppen just nu." : "Väntar på skeppen: " + string.Join(", ", waiting) + ".");
                 return;
             }
@@ -488,11 +488,16 @@ namespace Eirora.Client.UI
                 AddAction("Skicka expedition", $"{cost} Utforskning · 32 h med vakna bybor · hittar land bortom horisonten",
                     world.Available(Force.Exploration) >= cost, () => Run(new SendExpedition()));
             }
+            else if (world.ExpeditionFinds is Hex found)
+            {
+                string island = Texts.IslandName(world.Map.IslandAt(found));
+                Text("sheet-text", _sheet, world.SeaRouteOpen
+                    ? $"Sjövägen till {island} är öppen. Skeppen tar hem 40 varor per dygn."
+                    : $"{char.ToUpperInvariant(island[0])}{island.Substring(1)} är hittad. Bygg en brygga där, så öppnar sjövägen.");
+            }
             else
             {
-                Text("sheet-text", _sheet, world.SeaRouteOpen
-                    ? "Sjövägen till Nyön är öppen. Skeppen tar hem 40 varor per dygn."
-                    : "Nyön är hittad. Bygg en brygga där, så öppnar sjövägen.");
+                Text("sheet-text", _sheet, "Ingen ö inom räckhåll är värd en expedition.");
             }
         }
 

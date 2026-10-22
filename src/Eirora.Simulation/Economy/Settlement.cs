@@ -59,11 +59,11 @@ namespace Eirora.Simulation.Economy
         private readonly List<Hex> _regrowing = new();
         private long _expeditionLeft;
 
-        private Settlement(WorldMap map, Fog fog)
+        private Settlement(WorldMap map, Fog fog, Founding founding)
         {
             _map = map;
             _homeIsland = map.IslandAt(map.Start);
-            _founding = Founding.For(map);
+            _founding = founding;
             Fog = fog;
         }
 
@@ -131,7 +131,7 @@ namespace Eirora.Simulation.Economy
                 hidden.AddRange(survey.Reveals);
             }
 
-            var settlement = new Settlement(map, Fog.AtStart(map, hidden));
+            var settlement = new Settlement(map, Fog.AtStart(map, hidden), founding);
             var home = settlement._stores[IslandId.Home];
             home[(int)Resource.Fish] = Quantity.Units(30);
             home[(int)Resource.Timber] = Quantity.Units(40);
@@ -442,7 +442,7 @@ namespace Eirora.Simulation.Economy
 
         public static Settlement Read(StateReader reader, WorldMap map)
         {
-            var settlement = new Settlement(map, Fog.Unknown(map));
+            var settlement = new Settlement(map, Fog.Unknown(map), Founding.For(map));
             reader.Expect("settlement");
             settlement.Villagers = reader.Int();
             settlement.SurveysDone = reader.Int();

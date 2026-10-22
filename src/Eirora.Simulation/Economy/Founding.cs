@@ -15,12 +15,25 @@ namespace Eirora.Simulation.Economy
     /// a storehouse, a fishing hut, a field and a woodcutter as near the map's start as their sites allow, on plain land
     /// where they can; a
     /// first survey that reveals a quarry and two forest tiles, and a second that reveals farmland and fishing water,
-    /// the farthest of their kind from the start; and the nearest island worth an expedition.
+    /// the farthest of their kind from the start; and the nearest island worth an expedition within
+    /// <see cref="FirstIslandMinimum"/>..<see cref="FirstIslandMaximum"/> steps by sea, which is the island the map
+    /// validator counts as the first (<see cref="FirstIslandOf"/>).
+    /// <para>
+    /// Because the founding is never stored, a save on a generated map reads its surveys and its expedition's island
+    /// from this rule. A change to the rule changes worlds already played, so it needs a new version of the rule beside
+    /// the old one, chosen by the map's generator and version (ADR-0010); the golden foundings fail on any change.
+    /// </para>
     /// </remarks>
     public sealed class Founding
     {
         /// <summary>Land tiles an expedition's island has at least, besides some rich ground; a skerry never counts (Nyön has 6).</summary>
         public const int ExpeditionIslandLand = 6;
+
+        /// <summary>Steps by sea from the start island to the first expedition's island (Nyön lies 10 away in epoch 1's model).</summary>
+        public const int FirstIslandMinimum = 8;
+
+        /// <summary>The most steps by sea to the first expedition's island.</summary>
+        public const int FirstIslandMaximum = 12;
 
         private static readonly (BuildingKind Kind, TileUse Site)[] s_village =
         {
@@ -93,6 +106,23 @@ namespace Eirora.Simulation.Economy
             return false;
         }
 
+        /// <summary>
+        /// The island the first expedition finds on a map that is not the prototype's: the nearest worth an expedition
+        /// within <see cref="FirstIslandMinimum"/>..<see cref="FirstIslandMaximum"/> steps by sea from the start
+        /// island's harbour spots, the first in name order when two are as near; null when there is none. The map
+        /// validator's first island is this one (map-validation.md).
+        /// </summary>
+        public static string? FirstIslandOf(WorldMap map)
+        {
+            if (map is null)
+            {
+                throw new ArgumentNullException(nameof(map));
+            }
+
+            string home = map.IslandAt(map.Start) ?? throw new ArgumentException("A map starts on land.", nameof(map));
+            return ExpeditionIslandOf(map, home, map.Features.LandOf(home));
+        }
+
         private static Founding Prototype(WorldMap map) =>
             new(PrototypeIsland.StartBuildings, PrototypeIsland.Surveys, map.IslandAt(PrototypeIsland.ExpeditionFinds), PrototypeIsland.ExpeditionFinds);
 
@@ -142,10 +172,7 @@ namespace Eirora.Simulation.Economy
             return new Founding(buildings, surveys, island, finds);
         }
 
-        /// <summary>
-        /// The nearest island worth an expedition by sea from the start island's harbour spots, the first in name order
-        /// when two are as near, as the map validator finds the first expedition's island (map-validation.md).
-        /// </summary>
+        /// <summary>See <see cref="FirstIslandOf"/>.</summary>
         private static string? ExpeditionIslandOf(WorldMap map, string home, IReadOnlyList<Hex> land)
         {
             var features = map.Features;
@@ -177,7 +204,12 @@ namespace Eirora.Simulation.Economy
                     }
                 }
 
-                if (distance < fewest || (distance == fewest && distance != int.MaxValue && string.CompareOrdinal(island.Id, nearest) < 0))
+                if (distance < FirstIslandMinimum || distance > FirstIslandMaximum)
+                {
+                    continue;
+                }
+
+                if (distance < fewest || (distance == fewest && string.CompareOrdinal(island.Id, nearest) < 0))
                 {
                     (nearest, fewest) = (island.Id, distance);
                 }

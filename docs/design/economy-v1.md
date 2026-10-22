@@ -181,10 +181,16 @@ En genererad karta har inga utpekade platser, så grundandet följer av kartan m
   De väljer gräs eller strand när det går, så att skog, åker och bete finns kvar åt kartläggningarna.
 - *Kartlägg närområdet* visar ett berg att bryta sten i och två skogsbrickor, de som ligger längst från starten.
 - *Kartlägg kusten* visar den åker och det fiskevatten vid startön som ligger längst från starten.
-- Expeditionen hittar den närmaste ön sjövägen som är värd resan: minst sex landbrickor och någon rik mark, samma ö som kartvalideringen räknar som den första ([map-validation.md](./map-validation.md)).
+- Expeditionen hittar den närmaste ön 8–12 steg sjövägen som är värd resan: minst sex landbrickor och någon rik mark.
+  Kartvalideringen räknar samma ö som den första, eftersom den frågar `Founding` ([map-validation.md](./map-validation.md)).
 
 Generator v1 lägger den rika marken ute på öarna (MAP-03), så kartläggningarna på en genererad startö visar vanlig mark.
 Lika långt bort avgörs av kartans ordning, så samma karta alltid ger samma grundande.
+
+Grundandet sparas inte, så en sparad värld på en genererad karta läser sina kartläggningar och sin expeditions ö ur regeln.
+En ändrad regel skulle alltså ändra världar som redan spelas.
+Därför kräver en ändring en ny version av regeln bredvid den gamla, vald efter kartans generator och version ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
+De gyllene grundandena (`tests/Eirora.Simulation.Tests/WorldGeneration/Golden/foundings.txt`) fångar varje ändring.
 
 ### Beslut om var krafterna ska riktas
 

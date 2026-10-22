@@ -72,7 +72,9 @@ namespace Eirora.WorldGeneration.Validation
             // Ways to grow (epoch 1).
             // An expedition finds a real island with ground worth the journey, never a bare skerry.
             var worthFinding = distances.Where(d => WorthFinding(map, d.Id)).ToList();
-            var first = Nearest(worthFinding, FirstIslandMinimum, FirstIslandMaximum, except: null);
+            // The first island is the one the first expedition finds, chosen by the founding's own rule.
+            string? firstId = Founding.FirstIslandOf(map);
+            var first = worthFinding.Where(d => d.Id == firstId).Select(d => ((string Id, int Steps)?)d).FirstOrDefault();
             var second = Nearest(worthFinding, SecondIslandMinimum, SecondIslandMaximum, except: first?.Id);
             string others = string.Join(",", distances.Select(d => $"{d.Id}={d.Steps.ToString(CultureInfo.InvariantCulture)}"));
             rules.Add(Found("first-island", first, FirstIslandMinimum, FirstIslandMaximum, others));

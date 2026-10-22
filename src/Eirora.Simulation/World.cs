@@ -75,7 +75,6 @@ namespace Eirora.Simulation
         /// Creates a world on a map at the end of the guided tour, founded as the map gives (<see cref="Founding"/>). The
         /// rest schedule applies at once, even inside the rest window (D-50), and game day 0 began at local midnight (D-51).
         /// </summary>
-
         public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule)
         {
             if (map is null)
