@@ -17,7 +17,7 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern, inklusive två simulerade enheter som synkar genom den riktiga servern. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som inte ingår i CI. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
@@ -124,6 +124,18 @@ Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka o
 client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
 ```
 
+På en Mac byggs spelaren med `Eirora.Editor.Builds.MacOS` och startas med `open`, eftersom spelaren pausar när fönstret saknar fokus:
+
+```bash
+/Applications/Unity/Hub/Editor/6000.3.26f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath client -buildTarget OSXUniversal -executeMethod Eirora.Editor.Builds.MacOS
+```
+
+```bash
+open -W -n client/Builds/MacOS/Eirora.app --args -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots "$PWD/artifacts/screenshots"
+```
+
+Turen slutar med en ny värld på en genererad karta, nära och på långt håll.
+
 Byggnader och natur ritas från Look-assets i `client/Assets/Eirora/Resources/Looks/` ([ADR-0009](./adr/0009-looks-are-a-modular-kit-as-data.md)).
 De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas som PNG i `artifacts/looks/` (renderar, så inte med `-nographics`):
 
@@ -212,6 +224,11 @@ Unity-workflowen jämför korpusen i två jobb, vid en release och när den kör
 `Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34.
 Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
 Kör därför Unity-workflowen manuellt på grenen (**Actions → Unity → Run workflow**) innan en PR som rör simuleringen eller korpusen mergas.
+Välj `determinism` under *What to build after the tests*, så körs bara testerna och determinismjobben på Ubuntu, utan Android-bygget och iOS-bygget på macOS:
+
+```bash
+gh workflow run unity.yml --ref <gren> -f builds=determinism
+```
 
 ### Kartor och gyllene kartor
 
@@ -356,7 +373,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
+| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
 | [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.

@@ -129,6 +129,11 @@ _Avoid_: träningspoäng, arbetskraft
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
 _Avoid_: sömnpoäng, vilobonus
 
+**Grundande** (`Founding`):
+Det en ny värld börjar med på sin karta: startbyns byggnader, kartläggningarnas dolda brickor och ön som den första expeditionen hittar.
+Det följer av kartan och sparas aldrig; prototypens karta har sitt handgjorda grundande och en genererad karta får ett efter samma regel.
+_Avoid_: startplan, spawn
+
 **Kartläggning** (`Survey`):
 En handling som kostar Utforskning och lyfter dimman från utvalda brickor nära bosättningen.
 _Avoid_: scouting, spaning

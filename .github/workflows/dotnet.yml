@@ -44,6 +44,10 @@ jobs:
 
       - run: dotnet test --solution Eirora.slnx --no-build --configuration Release
 
+      # measure.sh budget gates the release build's package size (TASK-024); its regression needs no device.
+      - name: Test the budget check
+        run: tools/device-measurements/test-budget.sh
+
   image:
     name: Server container image
     needs: test

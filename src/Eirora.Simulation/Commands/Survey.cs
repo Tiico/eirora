@@ -15,12 +15,14 @@ namespace Eirora.Simulation.Commands
         /// <summary>The Exploration the next survey costs, or null when everything is surveyed.</summary>
         public static int? NextCost(World world)
         {
-            if (world is null || world.Settlement.SurveysDone >= PrototypeIsland.Surveys.Count)
+            if (world is null || world.Settlement.SurveysDone >= world.Settlement.Founding.Surveys.Count)
             {
                 return null;
             }
 
-            int cost = PrototypeIsland.Surveys[world.Settlement.SurveysDone].Cost;
+            var surveys = world.Settlement.Founding.Surveys;
+
+            int cost = surveys[world.Settlement.SurveysDone].Cost;
             return world.Settlement.HasBuilt(BuildingKind.Lookout) ? cost * 3 / 4 : cost;
         }
 

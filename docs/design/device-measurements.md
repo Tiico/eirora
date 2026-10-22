@@ -94,7 +94,8 @@ Skriptets tolkning av `dumpsys` är prövad mot exempelutdata i Android 14:s for
 
 ## 6. Första budgetförslag
 
-Förslagen gäller prototypen på produktägarens telefon och prövas mot mätningarna ovan; målenheter och slutliga budgetar bestäms i TASK-024.
+Förslagen gäller prototypen på produktägarens telefon och prövas mot mätningarna ovan.
+Målenheterna och budgetarna per nivå föreslås i [målenheter och mätbudgetar](./performance-budgets.md) (TASK-024), och `measure.sh budget` avgör om ett pass håller dem.
 
 | Mått | Förslag | Varför |
 |---|---|---|

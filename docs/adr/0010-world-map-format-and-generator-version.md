@@ -114,7 +114,9 @@ Fyra versioner hålls isär.
   Sökväg med A* över 1 801 brickor är liten.
   Budgetarna för sökväg och rendering sätts i TASK-024 och TASK-028.
 - Rendering är högst 1 801 brickor med 12–40 trianglar var (art direction), alltså under 75 000 trianglar för hela kartan.
-  Hur den delas upp och döljs bakom dimman avgörs i TASK-033.
+  I TASK-033 byggs marken en gång per karta: havet och startön i en mesh och varje annan ö i en egen, som visas först när en expedition har hittat ön, så att dimman aldrig visar dess kontur.
+  Dimman och byn ritas om när världen ändras.
+  Prototypens karta ritas bara så långt som prototypen alltid ritade den, så att dess världar ser ut som förut.
 
 ## Arkipelagen
 

@@ -1,7 +1,8 @@
 # Tests the Unity client, builds it for Android and iOS, and releases a published GitHub release to Google Play's
 # internal test track.
 # Pull requests that can change a build (the client or the libraries it compiles) only run the tests: Unity builds are
-# slow and macOS minutes cost ten times as much in a private repository. Releases and manual runs also build.
+# slow and macOS minutes cost ten times as much in a private repository. Releases and manual runs also build; a manual
+# run can build only the determinism check, which runs on Ubuntu alone.
 # Needs the Unity license secrets in docs/development.md#ci and, to release, those in docs/development.md#google-play.
 name: Unity
 
@@ -19,6 +20,14 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      builds:
+        description: What to build after the tests
+        type: choice
+        options:
+          - all
+          - determinism
+        default: all
 
 permissions:
   contents: read
@@ -33,6 +42,8 @@ env:
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
   BUILD: ${{ github.event_name != 'pull_request' }}
+  # The app's own builds; a manual run for the determinism check alone leaves them out.
+  APP_BUILDS: ${{ github.event_name != 'pull_request' && inputs.builds != 'determinism' }}
   RELEASE: ${{ github.event_name == 'release' }}
 
 jobs:
@@ -56,7 +67,7 @@ jobs:
       # A build signed with another key cannot be installed over the one before without uninstalling, which deletes
       # the world (TASK-014). Without its own key, CI would sign every build with a new debug key.
       - name: Fail with instructions when the signing key is missing
-        if: env.BUILD == 'true'
+        if: env.APP_BUILDS == 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
@@ -221,7 +232,7 @@ jobs:
   android:
     name: Android build
     needs: test
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && inputs.builds != 'determinism'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:
@@ -258,6 +269,15 @@ jobs:
           androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
           androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
 
+      # The one budget a build can be failed on without a device (TASK-024, docs/design/performance-budgets.md).
+      - name: Check the package against its size budget
+        run: |
+          package="$(ls build/Android/*.aab build/Android/*.apk 2>/dev/null | head -n 1)"
+          [ -n "$package" ] || { echo "::error::No Android package in build/Android to hold to its size budget."; exit 1; }
+          bytes="$(wc -c <"$package")"
+          printf 'apk_mb\t%s\n' "$(awk -v b="$bytes" 'BEGIN { printf "%.1f", b / 1048576 }')" >package-size.tsv
+          tools/device-measurements/measure.sh budget package-size.tsv --tier base
+
       - uses: actions/upload-artifact@v7
         with:
           name: eirora-android-${{ steps.version.outputs.name }}
@@ -290,7 +310,7 @@ jobs:
   ios-project:
     name: iOS Xcode project
     needs: test
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && inputs.builds != 'determinism'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
