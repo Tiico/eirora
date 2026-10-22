@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Eirora.Contracts;
+using Eirora.Simulation.Saving;
 using UnityEngine;
 
 namespace Eirora.Client.Accounts
@@ -11,8 +12,9 @@ namespace Eirora.Client.Accounts
     /// Eirora.Server's account API in memory for tests and the screenshot tour, with the same rules as the real one
     /// (ADR-0008): ID tokens bound to the nonce and accepted once, access tokens for 15 minutes, refresh tokens rotated
     /// and revocable, linking, removing a login and deleting confirmed with a fresh sign-in with one of the account's own
-    /// logins, and the Apple rule for deletion. Speaks the same wire format, which the contract test pins to the server's
-    /// (<c>ClientRequestTests</c>), so the client is tested down to the bytes it sends.
+    /// logins, and the Apple rule for deletion, and the cloud save with its versions and key epochs (TASK-023). Speaks
+    /// the same wire format, which the contract test pins to the server's (<c>ClientRequestTests</c>), so the client is
+    /// tested down to the bytes it sends.
     /// </summary>
     public sealed class FakeAccountServer : IHttpTransport
     {
@@ -27,6 +29,7 @@ namespace Eirora.Client.Accounts
         private readonly Dictionary<string, (Guid Account, DateTimeOffset Expires)> _access = new();
         private readonly Dictionary<string, Guid> _refresh = new();
         private readonly Dictionary<Guid, List<(string Provider, string Subject)>> _accounts = new();
+        private readonly Dictionary<Guid, StoredCloudSave> _cloudSaves = new();
         private int _serial;
 
         public FakeAccountServer(Func<DateTimeOffset> now) => _now = now;
@@ -39,6 +42,23 @@ namespace Eirora.Client.Accounts
         public List<string> AppleCodesRevoked { get; } = new();
 
         public int Accounts => _accounts.Count;
+
+        /// <summary>How many contribution parts a new key epoch has locked, as the real server keeps them for 90 days.</summary>
+        public int LockedParts { get; private set; }
+
+        /// <summary>The cloud save of the account the login belongs to, or null.</summary>
+        public CloudSave? CloudSaveOf(string subject)
+        {
+            var account = _accounts.FirstOrDefault(a => a.Value.Any(l => l.Subject == subject)).Key;
+            return _cloudSaves.TryGetValue(account, out var save) ? save.ToCloudSave() : null;
+        }
+
+        /// <summary>Replaces the stored contribution part, as someone who reaches the database could.</summary>
+        public void TamperWithContributionsOf(string subject)
+        {
+            var account = _accounts.First(a => a.Value.Any(l => l.Subject == subject)).Key;
+            _cloudSaves[account].Contributions[_cloudSaves[account].Contributions.Length - 1] ^= 0x01;
+        }
 
         public IEnumerable<string> LoginsOf(string subject) =>
             _accounts.Values.FirstOrDefault(l => l.Any(x => x.Subject == subject))?.Select(l => l.Provider) ?? Enumerable.Empty<string>();
@@ -73,6 +93,8 @@ namespace Eirora.Client.Accounts
                 ("POST", _) when path.StartsWith(LoginsPath, StringComparison.Ordinal) && path.EndsWith(RemovalSuffix, StringComparison.Ordinal) =>
                     Authorized(call, account => RemoveLogin(account, Uri.UnescapeDataString(path.Substring(LoginsPath.Length, path.Length - LoginsPath.Length - RemovalSuffix.Length)), Login(call))),
                 ("POST", "/api/account/deletion") => Authorized(call, account => Delete(account, Login(call))),
+                ("GET", "/api/account/cloud-save") => Authorized(call, GetCloudSave),
+                ("PUT", "/api/account/cloud-save") => Authorized(call, account => UploadCloudSave(account, call.Body)),
                 _ => new HttpReply(404),
             });
         }
@@ -212,9 +234,68 @@ namespace Eirora.Client.Accounts
             return new HttpReply(204);
         }
 
+        private HttpReply GetCloudSave(Guid account) =>
+            _cloudSaves.TryGetValue(account, out var save) ? new HttpReply(200, save.ToJson()) : new HttpReply(404);
+
+        /// <summary>The server's rules: the world part must load as one, the base version must be current, the key epoch never sinks.</summary>
+        private HttpReply UploadCloudSave(Guid account, string? body)
+        {
+            AccountServer.CloudSaveUploadJson? upload;
+            try
+            {
+                upload = JsonUtility.FromJson<AccountServer.CloudSaveUploadJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (upload is null || upload.baseVersion < 0 || upload.keyEpoch < 1 || string.IsNullOrEmpty(upload.world) || string.IsNullOrEmpty(upload.contributions))
+            {
+                return new HttpReply(400);
+            }
+
+            byte[] world, contributions;
+            try
+            {
+                world = Convert.FromBase64String(upload.world);
+                contributions = Convert.FromBase64String(upload.contributions);
+                Save.FromParts(world, null);
+            }
+            catch (FormatException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (world.Length > CloudSaveUpload.MaxWorldBytes || contributions.Length > CloudSaveUpload.MaxContributionBytes)
+            {
+                return new HttpReply(413);
+            }
+
+            _cloudSaves.TryGetValue(account, out var current);
+            long version = current?.Version ?? 0;
+            int keyEpoch = current?.KeyEpoch ?? 0;
+            if (upload.baseVersion != version || upload.keyEpoch < keyEpoch)
+            {
+                return new HttpReply(409, VersionJson(version, keyEpoch));
+            }
+
+            if (current is not null && upload.keyEpoch > current.KeyEpoch)
+            {
+                LockedParts++;
+            }
+
+            _cloudSaves[account] = new StoredCloudSave(version + 1, upload.keyEpoch, world, contributions, _now());
+            return new HttpReply(200, VersionJson(version + 1, upload.keyEpoch));
+        }
+
+        private static string VersionJson(long version, int keyEpoch) =>
+            JsonUtility.ToJson(new AccountServer.CloudSaveVersionJson { version = version, keyEpoch = keyEpoch });
+
         private void Remove(Guid account)
         {
             _accounts.Remove(account);
+            _cloudSaves.Remove(account);
             foreach (var token in _access.Where(a => a.Value.Account == account).Select(a => a.Key).ToList())
             {
                 _access.Remove(token);
@@ -263,6 +344,39 @@ namespace Eirora.Client.Accounts
         private static ExternalLoginJson Login(HttpCall call) => JsonUtility.FromJson<ExternalLoginJson>(call.Body);
 
         private static HttpReply Error(string error) => new(400, $"{{\"error\":\"{error}\",\"error_description\":\"x\"}}");
+
+        private sealed class StoredCloudSave
+        {
+            public StoredCloudSave(long version, int keyEpoch, byte[] world, byte[] contributions, DateTimeOffset savedAt)
+            {
+                Version = version;
+                KeyEpoch = keyEpoch;
+                World = world;
+                Contributions = contributions;
+                SavedAt = savedAt;
+            }
+
+            public long Version { get; }
+
+            public int KeyEpoch { get; }
+
+            public byte[] World { get; }
+
+            public byte[] Contributions { get; }
+
+            public DateTimeOffset SavedAt { get; }
+
+            public CloudSave ToCloudSave() => new(Version, KeyEpoch, World, Contributions, SavedAt);
+
+            public string ToJson() => JsonUtility.ToJson(new AccountServer.CloudSaveJson
+            {
+                version = Version,
+                keyEpoch = KeyEpoch,
+                world = Convert.ToBase64String(World),
+                contributions = Convert.ToBase64String(Contributions),
+                savedAt = SavedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            });
+        }
 
 #pragma warning disable CS0649, CS8618 // Written and read by JsonUtility.
         [Serializable]

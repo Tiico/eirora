@@ -5,6 +5,7 @@
     "Eirora.Simulation",
     "Eirora.WorldGeneration",
     "Eirora.Contracts",
+    "Eirora.CloudSaving",
     "Unity.InputSystem",
     "Unity.RenderPipelines.Core.Runtime",
     "Unity.RenderPipelines.Universal.Runtime"

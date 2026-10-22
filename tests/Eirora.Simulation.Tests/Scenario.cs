@@ -52,12 +52,22 @@ internal sealed class Scenario
         var random = new Random(seed);
         var install = new TimeReading(At("2026-01-01 00:00", 1).UtcSeconds + (random.Next(360 * 24) * Hour), Stockholm, 3600 * (1 + random.Next(2)));
         var schedule = new RestSchedule(random.Next(96) * 15, (6 * 60) + (random.Next(9) * 30));
+        return new Scenario(install, schedule, Play(random, World.Create(install, schedule), length, "k"));
+    }
 
+    /// <summary>
+    /// Inputs that go on from <paramref name="world"/>, as one device plays after the save was shared (TASK-023);
+    /// the keys carry <paramref name="device"/> so that two devices' keys never collide. The world is left as it is.
+    /// </summary>
+    public static IReadOnlyList<Input> Continue(int seed, World world, string device, int length = 20) =>
+        Play(new Random(seed), SimulationSnapshot.Take(world).Restore(world.Map), length, device);
+
+    private static List<Input> Play(Random random, World world, int length, string keyPrefix)
+    {
         var inputs = new List<Input>(length);
-        var world = World.Create(install, schedule);
-        long utc = install.UtcSeconds;
-        string zone = install.ZoneId;
-        int offset = install.OffsetSeconds;
+        long utc = world.Now.UtcSeconds;
+        string zone = world.Now.ZoneId;
+        int offset = world.Now.OffsetSeconds;
         for (int i = 0; i < length; i++)
         {
             if (random.Next(100) < 35)
@@ -85,7 +95,7 @@ internal sealed class Scenario
                 }
 
                 // Now and then a key is sent again, as a client does after a crash or a retry.
-                string key = i > 0 && random.Next(100) < 15 ? $"k{random.Next(i)}" : $"k{i}";
+                string key = i > 0 && random.Next(100) < 15 ? $"{keyPrefix}{random.Next(i)}" : $"{keyPrefix}{i}";
                 Add(new Command(key, Maker(random)));
             }
         }
@@ -96,7 +106,7 @@ internal sealed class Scenario
             input.ApplyTo(world);
         }
 
-        return new Scenario(install, schedule, inputs);
+        return inputs;
     }
 
     public World Start() => World.Create(Install, Schedule);

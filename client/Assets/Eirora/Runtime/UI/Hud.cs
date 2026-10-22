@@ -39,6 +39,7 @@ namespace Eirora.Client.UI
         private readonly Label _status;
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
+        private VisualElement? _setup;
         private World? _world;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
         private Sheet _open;
@@ -94,6 +95,7 @@ namespace Eirora.Client.UI
         {
             int start = 23 * 60, duration = 8 * 60;
             var card = Container("card setup", _middle);
+            _setup = card;
             Text("setup-title", card, "Välkommen till Eirora");
             Text("sheet-text", card, "När du vilar, vilar byn. Under viloperioden kan du titta på din värld, men inte ge order.");
             Label? startValue = null, durationValue = null;
@@ -112,10 +114,31 @@ namespace Eirora.Client.UI
             Show();
             Button("button button-wide button-primary", card, "Börja", () =>
             {
-                _middle.Remove(card);
+                CloseSetup();
                 begin(new RestSchedule(start, duration));
             });
+
+            // An existing account on a new phone skips the tour: the world comes down from the cloud save (ACC-01).
+            if (_account is { IsSignedIn: false } account && account.Providers.Count > 0)
+            {
+                Text("sheet-text", card, "Har du spelat förut? Logga in, så hämtas din ö från kontot.");
+                foreach (var provider in account.Providers)
+                {
+                    Button("button button-wide", card, $"Logga in med {Texts.Provider(provider)}", () => Run(account.SignInAsync(provider), "Du är inloggad."));
+                }
+            }
+
             Text("build", card, Texts.Build(Application.version));
+        }
+
+        /// <summary>Takes the first-launch card away, as when a world arrived from the cloud save while it was shown.</summary>
+        private void CloseSetup()
+        {
+            if (_setup is { } setup)
+            {
+                _setup = null;
+                _middle.Remove(setup);
+            }
         }
 
         /// <summary>
@@ -146,6 +169,7 @@ namespace Eirora.Client.UI
 
         public void Show(World world, IReadOnlyList<GameEvent> sinceDawn)
         {
+            CloseSetup();
             _world = world;
             _sinceDawn = sinceDawn;
             _top.style.display = DisplayStyle.Flex;

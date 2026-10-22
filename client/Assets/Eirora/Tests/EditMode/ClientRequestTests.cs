@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Eirora.Client.Accounts;
 using Eirora.Contracts;
@@ -56,6 +57,40 @@ namespace Eirora.Client.Tests
             new ExternalLogin(LoginProviders.Apple, "__CONFIRMATION_ID_TOKEN__", "__CONFIRMATION_NONCE__", "__AUTHORIZATION_CODE__")));
 
         [Test]
+        public void GettingTheCloudSave() => Sends("cloud-save.http", _server.GetCloudSaveAsync("__ACCESS_TOKEN__"));
+
+        [Test]
+        public void UploadingTheCloudSave()
+        {
+            byte[] world = Encoding.UTF8.GetBytes("eirora-save 3\n");
+            byte[] contributions = Encoding.UTF8.GetBytes("eirora-sealed 1\n");
+
+            Sends(
+                "cloud-save-upload.http",
+                _server.UploadCloudSaveAsync("__ACCESS_TOKEN__", new CloudSaveUpload(0, 1, world, contributions)),
+                new Dictionary<string, string> { ["WORLD"] = Convert.ToBase64String(world), ["CONTRIBUTIONS"] = Convert.ToBase64String(contributions) });
+        }
+
+        [Test]
+        public void TheCloudSaveIsReadAsTheServerSendsIt()
+        {
+            var save = AccountServer.ParseCloudSave(Read("cloud-save-response.json"))!;
+
+            Assert.That((save.Version, save.KeyEpoch), Is.EqualTo((1L, 1)));
+            Assert.That(Encoding.UTF8.GetString(save.World), Is.EqualTo("eirora-save 3\n"));
+            Assert.That(Encoding.UTF8.GetString(save.Contributions), Is.EqualTo("eirora-sealed 1\n"));
+            Assert.That(save.SavedAt, Is.EqualTo(new DateTimeOffset(2026, 10, 21, 20, 0, 0, TimeSpan.Zero)));
+        }
+
+        [Test]
+        public void TheCloudSaveVersionIsReadAsTheServerSendsIt()
+        {
+            var version = AccountServer.ParseCloudSaveVersion(Read("cloud-save-version-response.json"))!;
+
+            Assert.That((version.Version, version.KeyEpoch), Is.EqualTo((2L, 1)));
+        }
+
+        [Test]
         public void TheTokensAreReadAsTheServerSendsThem()
         {
             var tokens = AccountServer.ParseTokens(200, Read("token-response.json"));
@@ -77,11 +112,17 @@ namespace Eirora.Client.Tests
             Assert.That(account.Logins[1].LinkedAt, Is.EqualTo(new DateTimeOffset(2026, 10, 18, 10, 5, 0, TimeSpan.Zero)));
         }
 
-        private void Sends<T>(string fixture, Task<T> call)
+        private void Sends<T>(string fixture, Task<T> call, Dictionary<string, string>? values = null)
         {
             call.GetAwaiter().GetResult();
             var sent = _http.Calls.Single();
-            var expected = Request.Parse(Read(fixture));
+            string text = Read(fixture);
+            foreach (var value in values ?? new Dictionary<string, string>())
+            {
+                text = text.Replace($"__{value.Key}__", value.Value);
+            }
+
+            var expected = Request.Parse(text);
 
             Assert.That(sent.Method + " " + sent.Url, Is.EqualTo(expected.Method + " " + FakeAccountServer.Url + expected.Path));
             Assert.That(sent.Bearer, Is.EqualTo(expected.Bearer));

@@ -47,6 +47,8 @@ namespace Eirora.Simulation.Saving
 
         private static readonly string[] s_contributionSections = { "contributions", "start", "inputs", "previous-start", "previous-inputs" };
 
+        private static readonly char[] s_lineBreak = { '\n' };
+
         private readonly WorldMap _map;
         private readonly SimulationSnapshot _start;
         private readonly Journal _journal;
@@ -197,6 +199,116 @@ namespace Eirora.Simulation.Saving
 
         /// <summary>The world the current segment's start and journal lead to, for checking that they do.</summary>
         internal World Replay() => Journal.Continue(_start.Restore(_map), _journal.Inputs).World;
+
+        /// <summary>
+        /// Merges two saves of the same world that were played apart, as two devices that were offline (D-99, ACC-03):
+        /// every input of both, from the latest segment start they share, is replayed in time order under the current
+        /// rules. The idempotency keys keep a command that both hold from counting twice, and a command that no longer
+        /// goes is rejected as a replayed one is. The result is the same whichever save is <paramref name="mine"/>.
+        /// </summary>
+        /// <returns>The merged save, or null when the saves share no segment start, which makes them different worlds.</returns>
+        /// <exception cref="FormatException">A journal holds an input this version cannot replay.</exception>
+        /// <remarks>
+        /// When the shared start is from earlier rules, the merged segment begins at that start migrated to the current
+        /// rules (ADR-0006), and no earlier segment is kept: the merged journal already holds everything since it.
+        /// </remarks>
+        public static Save? Merge(Save mine, Save theirs)
+        {
+            if (mine is null)
+            {
+                throw new ArgumentNullException(nameof(mine));
+            }
+
+            if (theirs is null)
+            {
+                throw new ArgumentNullException(nameof(theirs));
+            }
+
+            if (!string.Equals(mine._map.ToText(), theirs._map.ToText(), StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            // The latest start both share: the current segments first, then one side's previous segment, then both.
+            foreach (var (ours, others) in new[] { (false, false), (true, false), (false, true), (true, true) })
+            {
+                var start = mine.StartOfSegment(fromPrevious: ours);
+                var theirStart = theirs.StartOfSegment(fromPrevious: others);
+                if (start is null || theirStart is null || !start.SameAs(theirStart))
+                {
+                    continue;
+                }
+
+                string inputs = MergedInputs(start.UtcSeconds, mine.InputsSince(fromPrevious: ours), theirs.InputsSince(fromPrevious: others));
+                var world = start.Restore(mine._map, Migrations.All);
+                var segmentStart = start.Rules == RulesVersion.Current ? start : SimulationSnapshot.Take(world);
+                return new Save(mine._map, segmentStart, Journal.Continue(world, inputs), null, changedOnLoad: true);
+            }
+
+            return null;
+        }
+
+        private SimulationSnapshot? StartOfSegment(bool fromPrevious) => fromPrevious ? _previous?.Start : _start;
+
+        /// <summary>The inputs since a segment's start: the previous segment's and then the current one's.</summary>
+        private string InputsSince(bool fromPrevious) => fromPrevious ? _previous!.Value.Inputs + _journal.Inputs : _journal.Inputs;
+
+        /// <summary>
+        /// Both journals' lines in time order, each line once. A command's time is the reading before it, or the segment's
+        /// start; at the same time readings go first, and then the lines in ordinal order, so that the order does not
+        /// depend on which journal they came from.
+        /// </summary>
+        private static string MergedInputs(long startUtcSeconds, string mine, string theirs)
+        {
+            var lines = new List<(long Utc, int Rank, string Line)>();
+            Collect(mine);
+            Collect(theirs);
+            lines.Sort((a, b) =>
+            {
+                int order = a.Utc.CompareTo(b.Utc);
+                if (order == 0)
+                {
+                    order = a.Rank.CompareTo(b.Rank);
+                }
+
+                return order != 0 ? order : string.CompareOrdinal(a.Line, b.Line);
+            });
+
+            var merged = new StringBuilder();
+            string? last = null;
+            foreach (var (_, _, line) in lines)
+            {
+                if (!string.Equals(line, last, StringComparison.Ordinal))
+                {
+                    merged.Append(line).Append('\n');
+                }
+
+                last = line;
+            }
+
+            return merged.ToString();
+
+            void Collect(string inputs)
+            {
+                long utc = startUtcSeconds;
+                foreach (string line in inputs.Split(s_lineBreak, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string[] fields = line.Split(' ');
+                    switch (fields[0])
+                    {
+                        case "time" when fields.Length == 4 && long.TryParse(fields[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long at):
+                            utc = at;
+                            lines.Add((utc, 0, line));
+                            break;
+                        case "cmd" when fields.Length >= 3:
+                            lines.Add((utc, 1, line));
+                            break;
+                        default:
+                            throw new FormatException($"Unknown journal line: '{line}'.");
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// The world part's sections and the contribution part's, after recording the current time so that the segment's

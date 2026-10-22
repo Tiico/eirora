@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Eirora.Client.Health;
+using Eirora.CloudSaving;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
@@ -28,9 +29,10 @@ namespace Eirora.Client.App
     /// <remarks>
     /// Each save is written beside the old one and swapped in, keeping the previous one as a backup, so a crash or an
     /// empty battery mid-write never costs more than the latest command (NFR-01). A save that cannot be read is never
-    /// overwritten. A prototype journal from M1 is taken over once and kept.
+    /// overwritten. A prototype journal from M1 is taken over once and kept. The cloud save reconciles through
+    /// <see cref="ILocalWorld"/>: a world the player chose away is kept aside, never deleted.
     /// </remarks>
-    public sealed class GameSession
+    public sealed class GameSession : ILocalWorld
     {
         public const string SaveFile = "world.save";
         public const string PrototypeJournalFile = "world.journal";
@@ -52,7 +54,13 @@ namespace Eirora.Client.App
         /// <summary>Raised whenever the world has changed and the view should follow.</summary>
         public event Action? Changed;
 
+        /// <summary>Raised after every write of the save, for the cloud save to follow.</summary>
+        public event Action? Saved;
+
         public World? World => _save?.World;
+
+        /// <summary>The save, for the cloud save's reconciliation.</summary>
+        public Save? Current => _save;
 
         /// <summary>What has happened since the latest dawn, for the daily report (UX-02).</summary>
         public IReadOnlyList<GameEvent> SinceDawn => _sinceDawn;
@@ -225,7 +233,50 @@ namespace Eirora.Client.App
             {
                 File.Move(temporary, _savePath);
             }
+
+            Saved?.Invoke();
         }
+
+        /// <summary>
+        /// Makes <paramref name="save"/> the world: merged with the cloud save's, brought down to a phone without one, or
+        /// chosen over the phone's, which is then kept aside under a dated name (never deleted). The world catches up
+        /// with the clock, and the report starts over.
+        /// </summary>
+        public void Replace(Save save, ReplaceReason reason)
+        {
+            if (save is null)
+            {
+                throw new ArgumentNullException(nameof(save));
+            }
+
+            if (reason == ReplaceReason.CloudChosen && _savePath is not null && File.Exists(_savePath))
+            {
+                File.Move(_savePath, Aside(_savePath, "replaced"));
+            }
+
+            _save = save;
+            _sinceDawn.Clear();
+            LoadProblem = null;
+            Save();
+            CatchUp();
+            Changed?.Invoke();
+        }
+
+        /// <summary>Keeps a world that was not chosen aside under a dated name: the cloud's, when the phone's was kept.</summary>
+        public void KeepAside(Save save)
+        {
+            if (save is null)
+            {
+                throw new ArgumentNullException(nameof(save));
+            }
+
+            if (_savePath is not null)
+            {
+                File.WriteAllBytes(Aside(_savePath, "cloud"), save.ToBytes());
+            }
+        }
+
+        private static string Aside(string path, string reason) => $"{path}.{DateTime.UtcNow:yyyyMMdd-HHmmss}.{reason}";
 
         /// <summary>
         /// Loads the save, or the backup when the save is damaged or missing: on the phone a swap cut off between its two
