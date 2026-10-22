@@ -27,15 +27,32 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
-        public void HousingAndWorkshopsWaitBehindOneRowWhereTheTileIsSpecialForSomething()
+        public void BuildingsForAnyLandWaitBehindOneRowWhereTheTileIsSpecialForSomething()
         {
             _hud.Select(new Hex(-1, 1)); // A meadow by the forest.
 
-            Assert.That(Actions(), Is.EqualTo(new[] { "Huggarkoja", "Bostad eller verkstad" }));
+            Assert.That(Actions(), Is.EqualTo(new[] { "Huggarkoja", "Fler byggnader" }));
+        }
 
-            _hud.ShowHousingAndWorkshops();
+        [Test]
+        public void MoreBuildingsKeepsWhatTheTileIsSpecialForAtTheTop()
+        {
+            _hud.Select(new Hex(-1, 1));
 
-            Assert.That(Actions(), Is.EqualTo(new[] { "Långhus", "Stuga", "Förråd", "Sågverk", "Väveri", "Utkiksvarde" }));
+            _hud.ShowMoreBuildings();
+
+            Assert.That(Actions(), Is.EqualTo(new[] { "Huggarkoja", "Långhus", "Stuga", "Förråd", "Sågverk", "Väveri", "Utkiksvarde" }));
+        }
+
+        [Test]
+        public void AnotherTileStartsFoldedAgain()
+        {
+            _hud.Select(new Hex(-1, 1));
+            _hud.ShowMoreBuildings();
+
+            _hud.Select(new Hex(-1, 1));
+
+            Assert.That(Actions(), Is.EqualTo(new[] { "Huggarkoja", "Fler byggnader" }));
         }
 
         [Test]
