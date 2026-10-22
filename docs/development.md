@@ -372,7 +372,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
+| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `src/Eirora.CloudSaving/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
 | [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.
@@ -380,8 +380,14 @@ En release kostar runt 75 minuter, varav 40 för Xcode på macOS, och en körnin
 En gren utan pull request kör ingen CI; öppna en pull request, gärna som utkast, eller kör en workflow manuellt under **Actions → \<workflow\> → Run workflow**.
 Android-bygget och Xcode-projektet laddas upp som artefakter på körningen.
 
-Unity-jobben återställer projektets `Library` från GitHubs cache, men en körning kan bara läsa cache från sin egen gren eller tagg och från `main`.
-Eftersom `main` inte längre bygger Unity börjar en release oftast utan cache, och byggena tar då längre tid.
+Testerna, determinismbygget, Android-bygget och iOS-projektet startar samtidigt när förkontrollen har gått igenom, så en körning tar ungefär så lång tid som det längsta av dem.
+Bara släppet till Google Play väntar på testerna: vid en release laddas app-paketet upp av ett eget jobb när både testerna och Android-bygget är gröna.
+
+Varje Unity-jobb återställer projektets `Library` från GitHubs cache, och Android-jobbet också Gradles cache.
+En körning kan bara läsa cache från sin egen gren eller tagg och från `main`, och bara körningar på `main` sparar, eftersom repot har 10 GB cache och en `Library` är runt 2 GB per jobb.
+`main` kör inte Unity av sig själv, så kör Unity-workflowen manuellt på `main` efter en merge som ändrar klienten; annars börjar pull requests och releaser utan cache och tar längre tid.
+Med en `Library` från cachen kompilerar IL2CPP bara om C++-koden för ändrade assemblies; utan den tar Android-bygget runt 20 minuter längre.
+Unitys avbildningar är större än det diskutrymme en GitHub-runner har ledigt, så jobben tar först bort förinstallerade SDK:er de inte använder med [free-disk-space](../.github/actions/free-disk-space/action.yml), snabbast först och bara tills jobbets uppmätta behov är ledigt.
 
 ### Secrets
 
