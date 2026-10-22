@@ -208,6 +208,11 @@ Unity-workflowen jämför korpusen i två jobb, vid en release och när den kör
 `Determinism` laddar ner APK:n på en ny runner, som behåller sin Android SDK, och kör skriptet på en x86_64-emulator med API 34.
 Repot är privat på GitHubs gratisplan och har inget grenskydd, så jobbet kan bara visa rött; det kan inte stoppa en merge.
 Kör därför Unity-workflowen manuellt på grenen (**Actions → Unity → Run workflow**) innan en PR som rör simuleringen eller korpusen mergas.
+Välj `determinism` under *What to build after the tests*, så körs bara testerna och determinismjobben på Ubuntu, utan Android-bygget och iOS-bygget på macOS:
+
+```bash
+gh workflow run unity.yml --ref <gren> -f builds=determinism
+```
 
 ### Kartor och gyllene kartor
 
@@ -352,7 +357,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 | Workflow | Körs vid | Gör |
 |---|---|---|
 | [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
-| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
+| [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
 | [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
 Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.

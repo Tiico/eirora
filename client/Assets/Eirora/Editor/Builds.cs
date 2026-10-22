@@ -233,7 +233,31 @@ namespace Eirora.Editor
             }
 
             Debug.Log($"Build {summary.result}: {summary.outputPath} ({summary.totalSize} bytes, {summary.totalErrors} errors).");
+            ReportBuildResults(summary);
             return summary.result == BuildResult.Succeeded;
+        }
+
+        /// <summary>
+        /// Writes the summary GameCI reads to tell whether a build succeeded (UnityBuildValidation in game-ci/cli). GameCI's
+        /// own build method writes it; without it GameCI fails a custom method's build even when Unity succeeded, which
+        /// is what kept the determinism build red (TASK-021).
+        /// </summary>
+        private static void ReportBuildResults(BuildSummary summary)
+        {
+            string errors = summary.result == BuildResult.Succeeded
+                ? summary.totalErrors.ToString(CultureInfo.InvariantCulture)
+                : Math.Max(summary.totalErrors, 1).ToString(CultureInfo.InvariantCulture); // A failed build is never reported as clean.
+            Console.WriteLine(string.Join(
+                Environment.NewLine,
+                "###########################",
+                "#      Build results      #",
+                "###########################",
+                string.Empty,
+                $"Duration: {summary.totalTime}",
+                $"Warnings: {summary.totalWarnings.ToString(CultureInfo.InvariantCulture)}",
+                $"Errors: {errors}",
+                $"Size: {summary.totalSize.ToString(CultureInfo.InvariantCulture)} bytes",
+                "###########################"));
         }
 
         /// <summary>
