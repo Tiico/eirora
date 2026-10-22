@@ -294,7 +294,7 @@ namespace Eirora.Client.Tests
             scanner.Next = newPhone.TransferTicket;
             _hud.ScanNow();
             Assert.That(Labels(), Does.Contain("Skicka nyckeln till telefonen som visar koden?"));
-            Assert.That(root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Skanna igen"));
+            Assert.That(_root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Skanna igen"));
 
             _hud.OpenAccount(); // Shut while the question is up: nothing is sent, and the next opening scans afresh.
 
