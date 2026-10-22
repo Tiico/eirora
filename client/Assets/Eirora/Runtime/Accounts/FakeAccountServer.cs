@@ -22,6 +22,7 @@ namespace Eirora.Client.Accounts
         public static readonly TimeSpan AccessLifetime = TimeSpan.FromMinutes(15);
 
         private const string LoginsPath = "/api/account/logins/";
+        private const string TransfersPath = "/api/account/key-transfers/";
         private const string RemovalSuffix = "/removal";
 
         private readonly Func<DateTimeOffset> _now;
@@ -30,6 +31,7 @@ namespace Eirora.Client.Accounts
         private readonly Dictionary<string, Guid> _refresh = new();
         private readonly Dictionary<Guid, List<(string Provider, string Subject)>> _accounts = new();
         private readonly Dictionary<Guid, StoredCloudSave> _cloudSaves = new();
+        private readonly Dictionary<string, StoredKeyTransfer> _keyTransfers = new();
         private int _serial;
 
         public FakeAccountServer(Func<DateTimeOffset> now) => _now = now;
@@ -55,6 +57,12 @@ namespace Eirora.Client.Accounts
             var account = _accounts.FirstOrDefault(a => a.Value.Any(l => l.Subject == subject)).Key;
             return _cloudSaves.TryGetValue(account, out var save) ? save.ToCloudSave() : null;
         }
+
+        /// <summary>How many key transfers are pending on the server.</summary>
+        public int PendingKeyTransfers => _keyTransfers.Count(t => t.Value.ExpiresAt > _now());
+
+        /// <summary>Lets the transfer's ten minutes run out.</summary>
+        public void ExpireKeyTransfer(string id) => _keyTransfers[id].ExpiresAt = _now();
 
         /// <summary>Replaces the stored contribution part, as someone who reaches the database could.</summary>
         public void TamperWithContributionsOf(string subject)
@@ -103,6 +111,10 @@ namespace Eirora.Client.Accounts
                 ("POST", "/api/account/deletion") => Authorized(call, account => Delete(account, Login(call))),
                 ("GET", "/api/account/cloud-save") => Authorized(call, GetCloudSave),
                 ("PUT", "/api/account/cloud-save") => Authorized(call, account => UploadCloudSave(account, call.Body)),
+                ("POST", "/api/account/key-transfers") => Authorized(call, account => CreateKeyTransfer(account, call.Body)),
+                ("GET", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => TakeKeyTransfer(account, TransferId(path))),
+                ("PUT", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => DeliverKeyTransfer(account, TransferId(path), call.Body)),
+                ("DELETE", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => DeleteKeyTransfer(account, TransferId(path))),
                 _ => new HttpReply(404),
             });
         }
@@ -297,6 +309,106 @@ namespace Eirora.Client.Accounts
             return new HttpReply(200, VersionJson(version + 1, upload.keyEpoch));
         }
 
+        private static string TransferId(string path) => Uri.UnescapeDataString(path.Substring(TransfersPath.Length));
+
+        private HttpReply CreateKeyTransfer(Guid account, string? body)
+        {
+            AccountServer.KeyTransferRequestJson? request;
+            try
+            {
+                request = JsonUtility.FromJson<AccountServer.KeyTransferRequestJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            byte[] publicKey;
+            try
+            {
+                publicKey = Convert.FromBase64String(request?.receiverPublicKey ?? string.Empty);
+            }
+            catch (FormatException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (publicKey.Length != KeyTransfer.PublicKeyLength)
+            {
+                return new HttpReply(400);
+            }
+
+            foreach (var pending in _keyTransfers.Where(t => t.Value.Account == account).Select(t => t.Key).ToList())
+            {
+                _keyTransfers.Remove(pending);
+            }
+
+            var transfer = new StoredKeyTransfer(account, "transfer-" + (++_serial), publicKey, _now() + KeyTransfer.Lifetime);
+            _keyTransfers[transfer.Id] = transfer;
+            return new HttpReply(201, transfer.ToJson());
+        }
+
+        private HttpReply TakeKeyTransfer(Guid account, string id)
+        {
+            if (!_keyTransfers.TryGetValue(id, out var transfer) || transfer.Account != account || transfer.ExpiresAt <= _now())
+            {
+                return new HttpReply(404);
+            }
+
+            if (transfer.SealedKey is not null)
+            {
+                _keyTransfers.Remove(id);
+            }
+
+            return new HttpReply(200, transfer.ToJson());
+        }
+
+        private HttpReply DeliverKeyTransfer(Guid account, string id, string? body)
+        {
+            AccountServer.KeyTransferDeliveryJson? delivery;
+            try
+            {
+                delivery = JsonUtility.FromJson<AccountServer.KeyTransferDeliveryJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            byte[] sealedKey;
+            try
+            {
+                sealedKey = Convert.FromBase64String(delivery?.sealedKey ?? string.Empty);
+            }
+            catch (FormatException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (sealedKey.Length == 0 || sealedKey.Length > KeyTransfer.MaxSealedKeyBytes)
+            {
+                return new HttpReply(400);
+            }
+
+            if (!_keyTransfers.TryGetValue(id, out var transfer) || transfer.Account != account || transfer.ExpiresAt <= _now())
+            {
+                return new HttpReply(404);
+            }
+
+            if (transfer.SealedKey is not null)
+            {
+                return new HttpReply(409);
+            }
+
+            transfer.SealedKey = sealedKey;
+            return new HttpReply(204);
+        }
+
+        private HttpReply DeleteKeyTransfer(Guid account, string id) =>
+            _keyTransfers.TryGetValue(id, out var transfer) && transfer.Account == account && _keyTransfers.Remove(id)
+                ? new HttpReply(204)
+                : new HttpReply(404);
+
         private static string VersionJson(long version, int keyEpoch) =>
             JsonUtility.ToJson(new AccountServer.CloudSaveVersionJson { version = version, keyEpoch = keyEpoch });
 
@@ -304,6 +416,11 @@ namespace Eirora.Client.Accounts
         {
             _accounts.Remove(account);
             _cloudSaves.Remove(account);
+            foreach (var pending in _keyTransfers.Where(t => t.Value.Account == account).Select(t => t.Key).ToList())
+            {
+                _keyTransfers.Remove(pending);
+            }
+
             foreach (var token in _access.Where(a => a.Value.Account == account).Select(a => a.Key).ToList())
             {
                 _access.Remove(token);
@@ -383,6 +500,35 @@ namespace Eirora.Client.Accounts
                 world = Convert.ToBase64String(World),
                 contributions = Convert.ToBase64String(Contributions),
                 savedAt = SavedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            });
+        }
+
+        private sealed class StoredKeyTransfer
+        {
+            public StoredKeyTransfer(Guid account, string id, byte[] receiverPublicKey, DateTimeOffset expiresAt)
+            {
+                Account = account;
+                Id = id;
+                ReceiverPublicKey = receiverPublicKey;
+                ExpiresAt = expiresAt;
+            }
+
+            public Guid Account { get; }
+
+            public string Id { get; }
+
+            public byte[] ReceiverPublicKey { get; }
+
+            public byte[]? SealedKey { get; set; }
+
+            public DateTimeOffset ExpiresAt { get; set; }
+
+            public string ToJson() => JsonUtility.ToJson(new AccountServer.KeyTransferJson
+            {
+                id = Id,
+                receiverPublicKey = Convert.ToBase64String(ReceiverPublicKey),
+                sealedKey = SealedKey is null ? string.Empty : Convert.ToBase64String(SealedKey),
+                expiresAt = ExpiresAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             });
         }
 

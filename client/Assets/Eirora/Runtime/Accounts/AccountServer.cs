@@ -81,6 +81,64 @@ namespace Eirora.Client.Accounts
             return (reply, reply.Status == 200 || reply.Status == 409 ? ParseCloudSaveVersion(reply.Body) : null);
         }
 
+        /// <summary><c>POST /api/account/key-transfers</c>: a transfer with the new phone's one-time public key (TASK-023b).</summary>
+        public async Task<(HttpReply Reply, KeyTransfer? Transfer)> CreateKeyTransferAsync(string accessToken, byte[] receiverPublicKey)
+        {
+            string body = JsonUtility.ToJson(new KeyTransferRequestJson { receiverPublicKey = Convert.ToBase64String(receiverPublicKey) });
+            var reply = await _http.SendAsync(new HttpCall("POST", _baseUrl + "/api/account/key-transfers", body, HttpCall.Json, accessToken));
+            return (reply, reply.Status == 201 ? ParseKeyTransfer(reply.Body) : null);
+        }
+
+        /// <summary><c>GET /api/account/key-transfers/{id}</c>: the transfer, with the sealed key once delivered.</summary>
+        public async Task<(HttpReply Reply, KeyTransfer? Transfer)> GetKeyTransferAsync(string accessToken, string id)
+        {
+            var reply = await _http.SendAsync(new HttpCall("GET", _baseUrl + "/api/account/key-transfers/" + Uri.EscapeDataString(id), bearer: accessToken));
+            return (reply, reply.Status == 200 ? ParseKeyTransfer(reply.Body) : null);
+        }
+
+        /// <summary><c>PUT /api/account/key-transfers/{id}</c>: the contribution key sealed for the new phone.</summary>
+        public Task<HttpReply> DeliverKeyTransferAsync(string accessToken, string id, byte[] sealedKey) => _http.SendAsync(new HttpCall(
+            "PUT",
+            _baseUrl + "/api/account/key-transfers/" + Uri.EscapeDataString(id),
+            JsonUtility.ToJson(new KeyTransferDeliveryJson { sealedKey = Convert.ToBase64String(sealedKey) }),
+            HttpCall.Json,
+            accessToken));
+
+        /// <summary><c>DELETE /api/account/key-transfers/{id}</c>: gives the transfer up.</summary>
+        public Task<HttpReply> DeleteKeyTransferAsync(string accessToken, string id) =>
+            _http.SendAsync(new HttpCall("DELETE", _baseUrl + "/api/account/key-transfers/" + Uri.EscapeDataString(id), bearer: accessToken));
+
+        public static KeyTransfer? ParseKeyTransfer(string json)
+        {
+            KeyTransferJson? transfer;
+            try
+            {
+                transfer = JsonUtility.FromJson<KeyTransferJson>(json);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            if (transfer is null || string.IsNullOrEmpty(transfer.id) || transfer.receiverPublicKey is null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return new KeyTransfer(
+                    transfer.id,
+                    Convert.FromBase64String(transfer.receiverPublicKey),
+                    string.IsNullOrEmpty(transfer.sealedKey) ? null : Convert.FromBase64String(transfer.sealedKey),
+                    Time(transfer.expiresAt ?? string.Empty));
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
         /// <summary>A <see cref="CloudSaveUpload"/> as the server reads it: the parts in base64.</summary>
         public static string Json(CloudSaveUpload upload) => JsonUtility.ToJson(new CloudSaveUploadJson
         {
@@ -237,6 +295,27 @@ namespace Eirora.Client.Accounts
             public string? world;
             public string? contributions;
             public string? savedAt;
+        }
+
+        [Serializable]
+        internal sealed class KeyTransferRequestJson
+        {
+            public string receiverPublicKey;
+        }
+
+        [Serializable]
+        internal sealed class KeyTransferDeliveryJson
+        {
+            public string sealedKey;
+        }
+
+        [Serializable]
+        internal sealed class KeyTransferJson
+        {
+            public string? id;
+            public string? receiverPublicKey;
+            public string? sealedKey;
+            public string? expiresAt;
         }
 
         [Serializable]

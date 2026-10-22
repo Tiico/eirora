@@ -52,10 +52,10 @@ namespace Eirora.CloudSaving
         /// <summary>The cloud save version the device's world is now based on, when it is.</summary>
         public long? Version { get; }
 
-        /// <summary>For <see cref="SyncOutcome.ChoiceNeeded"/>: the game day the cloud's world is on.</summary>
+        /// <summary>For <see cref="SyncOutcome.ChoiceNeeded"/> and <see cref="SyncOutcome.KeyNeeded"/>: the game day the cloud's world is on.</summary>
         public int? CloudGameDay { get; }
 
-        /// <summary>For <see cref="SyncOutcome.ChoiceNeeded"/>: when the cloud's world was last saved.</summary>
+        /// <summary>For <see cref="SyncOutcome.ChoiceNeeded"/> and <see cref="SyncOutcome.KeyNeeded"/>: when the cloud's world was last saved.</summary>
         public DateTimeOffset? CloudSavedAt { get; }
 
         /// <summary>
@@ -79,6 +79,13 @@ namespace Eirora.CloudSaving
         /// </summary>
         ChoiceNeeded,
 
+        /// <summary>
+        /// The account has a world and this phone has none, but the cloud's contribution part cannot be read here: the
+        /// key may come from the old phone or a recovery code (TASK-023b), or the player goes on without it with
+        /// <see cref="WorldChoice.TakeCloud"/>, which closes the game days so far (D-101).
+        /// </summary>
+        KeyNeeded,
+
         /// <summary>The server could not be reached; nothing changed, and the next change or launch tries again.</summary>
         Offline,
 
@@ -92,13 +99,38 @@ namespace Eirora.CloudSaving
         Failed,
     }
 
+    /// <summary>What became of a key that came from a recovery code or a key transfer (<see cref="CloudSync.AcceptKeyAsync"/>).</summary>
+    public enum KeyAcceptance
+    {
+        /// <summary>The key is the cloud save's and is kept on this device.</summary>
+        Accepted,
+
+        /// <summary>The key belongs to an older key epoch than the cloud save's; the code or the old phone is out of date.</summary>
+        OlderEpoch,
+
+        /// <summary>The key does not open the cloud save's contribution part; it is not this account's current key.</summary>
+        DoesNotOpen,
+
+        /// <summary>The server could not be reached, so the key could not be checked; it is not kept.</summary>
+        Offline,
+
+        /// <summary>The device holds no sign-in, or the server no longer accepts it.</summary>
+        SignedOut,
+
+        /// <summary>The server answered with something unexpected.</summary>
+        Failed,
+    }
+
     /// <summary>The player's choice when the phone and the cloud hold different worlds.</summary>
     public enum WorldChoice
     {
         /// <summary>The phone's world replaces the cloud save; the cloud's world is kept aside on the phone.</summary>
         KeepPhone,
 
-        /// <summary>The cloud's world replaces the phone's, which is kept aside.</summary>
+        /// <summary>
+        /// The cloud's world replaces the phone's, which is kept aside; without the key for its contribution part, the
+        /// phone goes on from the world part alone under a new key epoch.
+        /// </summary>
         TakeCloud,
     }
 

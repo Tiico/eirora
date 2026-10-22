@@ -1,12 +1,14 @@
 using Eirora.Server.Accounts;
 using Eirora.Server.CloudSaves;
+using Eirora.Server.KeyTransfers;
 using Eirora.Server.SignIn;
 using Microsoft.EntityFrameworkCore;
 
 namespace Eirora.Server.Data;
 
 /// <summary>
-/// The server's database: accounts, their cloud saves, redeemed provider tokens and OpenIddict's token entries (ADR-0008).
+/// The server's database: accounts, their cloud saves and key transfers, redeemed provider tokens and OpenIddict's token
+/// entries (ADR-0008).
 /// </summary>
 public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) : DbContext(options)
 {
@@ -17,6 +19,8 @@ public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) :
     public DbSet<StoredCloudSave> CloudSaves => Set<StoredCloudSave>();
 
     public DbSet<StoredLockedContributions> LockedContributions => Set<StoredLockedContributions>();
+
+    public DbSet<StoredKeyTransfer> KeyTransfers => Set<StoredKeyTransfer>();
 
     public DbSet<RedeemedIdToken> RedeemedIdTokens => Set<RedeemedIdToken>();
 
@@ -48,6 +52,15 @@ public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) :
             locked.HasKey(l => new { l.AccountId, l.KeyEpoch });
             locked.HasOne<Account>().WithMany().HasForeignKey(l => l.AccountId).OnDelete(DeleteBehavior.Cascade);
             locked.HasIndex(l => l.LockedAt);
+        });
+
+        modelBuilder.Entity<StoredKeyTransfer>(transfer =>
+        {
+            transfer.HasKey(t => t.Id);
+            transfer.Property(t => t.Id).HasMaxLength(64);
+            transfer.HasOne<Account>().WithMany().HasForeignKey(t => t.AccountId).OnDelete(DeleteBehavior.Cascade);
+            transfer.HasIndex(t => t.AccountId);
+            transfer.HasIndex(t => t.ExpiresAt);
         });
 
         modelBuilder.Entity<RedeemedIdToken>(token =>

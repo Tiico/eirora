@@ -26,11 +26,36 @@ namespace Eirora.Client.App
         /// <summary>The phone and the account hold different worlds; the player chooses.</summary>
         ChoiceNeeded,
 
+        /// <summary>The account has a world whose self-care this phone cannot read: the key from the old phone or a recovery code unlocks it.</summary>
+        KeyNeeded,
+
         /// <summary>The cloud save was written by a newer app.</summary>
         AppOutdated,
 
         /// <summary>The server rejected the sign-in; signing in again is needed.</summary>
         SignedOut,
+
+        /// <summary>The server answered with something unexpected.</summary>
+        Failed,
+    }
+
+    /// <summary>What became of a recovery code the player typed in.</summary>
+    public enum RecoveryCodeOutcome
+    {
+        /// <summary>The code is the account's key; the cloud save is being read with it.</summary>
+        Unlocked,
+
+        /// <summary>The text is not a whole code, or a character is wrong.</summary>
+        NotACode,
+
+        /// <summary>The code is from an earlier key epoch; a newer one was shown since.</summary>
+        OlderCode,
+
+        /// <summary>The code does not open the account's contribution part; it is another account's or another phone's.</summary>
+        NotThisAccountsCode,
+
+        /// <summary>The server could not be reached to check the code.</summary>
+        Offline,
 
         /// <summary>The server answered with something unexpected.</summary>
         Failed,
@@ -50,6 +75,7 @@ namespace Eirora.Client.App
         private const int LoadAttempts = 3;
 
         private readonly AccountSession _account;
+        private readonly ICloudSyncStorage _storage;
         private readonly CloudSync _sync;
         private readonly Func<Task> _delay;
         private readonly Func<DateTimeOffset> _now;
@@ -64,6 +90,7 @@ namespace Eirora.Client.App
         public CloudSaveSync(AccountSession account, GameSession session, ICloudSyncStorage storage, Func<Task>? delay = null, Func<DateTimeOffset>? now = null)
         {
             _account = account;
+            _storage = storage;
             _sync = new CloudSync(new AccountCloudSaveStore(account), storage, session);
             _delay = delay ?? (() => Task.Delay(TimeSpan.FromSeconds(2)));
             _now = now ?? (() => DateTimeOffset.UtcNow);
@@ -81,8 +108,15 @@ namespace Eirora.Client.App
         /// <summary>When the cloud save last held the phone's world, by this device's clock.</summary>
         public DateTimeOffset? SyncedAt { get; private set; }
 
-        /// <summary>The choice the player must make between the phone's world and the cloud's, or null.</summary>
+        /// <summary>
+        /// What the player must decide, or null: between the phone's world and the cloud's
+        /// (<see cref="CloudSyncStatus.ChoiceNeeded"/>), or where the key comes from (<see cref="CloudSyncStatus.KeyNeeded"/>).
+        /// </summary>
         public SyncResult? Choice { get; private set; }
+
+        /// <summary>The account's contribution key as a recovery code (TASK-023b), or null before the account or the key is known.</summary>
+        public string? RecoveryCode =>
+            _account.Account is { } known && _storage.Key(known.Id) is { } key ? CloudSaving.RecoveryCode.Of(key) : null;
 
         /// <summary>
         /// A new key epoch began on this phone: the contribution part could not be read here, so the game days so far
@@ -142,6 +176,40 @@ namespace Eirora.Client.App
             _choice = choice;
             _reconcile = true;
             return RunAsync(immediate: true);
+        }
+
+        /// <summary>
+        /// Unlocks the account's contribution part with a recovery code typed in by the player (TASK-023b). The key is
+        /// kept only once the cloud save confirms it (<see cref="CloudSync.AcceptKeyAsync"/>), and the cloud save is
+        /// then reconciled again, now with it.
+        /// </summary>
+        public async Task<RecoveryCodeOutcome> EnterRecoveryCodeAsync(string code)
+        {
+            if (CloudSaving.RecoveryCode.TryParse(code) is not { } key)
+            {
+                return RecoveryCodeOutcome.NotACode;
+            }
+
+            var (accountId, outcome) = await AccountIdAsync();
+            if (accountId is null)
+            {
+                return outcome == AccountOutcome.Offline ? RecoveryCodeOutcome.Offline : RecoveryCodeOutcome.Failed;
+            }
+
+            switch (await _sync.AcceptKeyAsync(accountId.Value, key))
+            {
+                case KeyAcceptance.Accepted:
+                    await ReconcileAsync();
+                    return RecoveryCodeOutcome.Unlocked;
+                case KeyAcceptance.OlderEpoch:
+                    return RecoveryCodeOutcome.OlderCode;
+                case KeyAcceptance.DoesNotOpen:
+                    return RecoveryCodeOutcome.NotThisAccountsCode;
+                case KeyAcceptance.Offline:
+                    return RecoveryCodeOutcome.Offline;
+                default:
+                    return RecoveryCodeOutcome.Failed;
+            }
         }
 
         private void OnAccountChanged()
@@ -278,7 +346,7 @@ namespace Eirora.Client.App
                 ContributionPartLocked = true;
             }
 
-            Choice = result.Outcome == SyncOutcome.ChoiceNeeded ? result : null;
+            Choice = result.Outcome is SyncOutcome.ChoiceNeeded or SyncOutcome.KeyNeeded ? result : null;
             if (result.Outcome == SyncOutcome.Synced)
             {
                 SyncedAt = _now();
@@ -289,6 +357,7 @@ namespace Eirora.Client.App
                 SyncOutcome.Synced => CloudSyncStatus.Synced,
                 SyncOutcome.NoWorld => CloudSyncStatus.NoWorld,
                 SyncOutcome.ChoiceNeeded => CloudSyncStatus.ChoiceNeeded,
+                SyncOutcome.KeyNeeded => CloudSyncStatus.KeyNeeded,
                 SyncOutcome.Offline => CloudSyncStatus.Offline,
                 SyncOutcome.SignedOut => CloudSyncStatus.SignedOut,
                 SyncOutcome.AppOutdated => CloudSyncStatus.AppOutdated,

@@ -318,6 +318,18 @@ _Avoid_: nyckelversion, nyckel-id
 En bidragsdel från en tidigare nyckelepok, som servern sparar i 90 dagar om nyckeln skulle dyka upp och sedan raderar.
 _Avoid_: arkiv, gammal backup
 
+**Nyckelöverföring** (`KeyTransfer`):
+Bidragsnyckelns väg från en av spelarens telefoner till en annan via servern, som bara förmedlar den förseglad för den nya telefonens engångsnyckel och glömmer den inom tio minuter.
+_Avoid_: nyckelsynk (som är plattformens nyckelring), nyckeldelning
+
+**Biljett** (`KeyTransferTicket`):
+Det den nya telefonen visar den gamla, i en QR-kod: överföringens id och den nya telefonens publika engångsnyckel; inget i den är hemligt.
+_Avoid_: QR-nyckel, kod
+
+**Återställningskod** (`RecoveryCode`):
+Bidragsnyckeln som 64 tecken i åtta grupper, med nyckelepoken och en kontrollsumma, som spelaren kan skriva ner och skriva in på en ny telefon; en av nyckelns kopior.
+_Avoid_: lösenord, PIN
+
 **Sammanslagning** (`Save.Merge`):
 Två sparningar av samma värld som spelats var för sig blir en: journalerna spelas upp från den senaste segmentstart de delar, i tidsordning, och varje kommando räknas en gång (D-99).
 _Avoid_: konfliktlösning, synkronisering (som är hela flödet mot servern)

@@ -72,6 +72,45 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void CreatingAKeyTransfer()
+        {
+            byte[] publicKey = new byte[32];
+
+            Sends(
+                "key-transfer-create.http",
+                _server.CreateKeyTransferAsync("__ACCESS_TOKEN__", publicKey),
+                new Dictionary<string, string> { ["RECEIVER_PUBLIC_KEY"] = Convert.ToBase64String(publicKey) });
+        }
+
+        [Test]
+        public void GettingAKeyTransfer() => Sends("key-transfer.http", _server.GetKeyTransferAsync("__ACCESS_TOKEN__", "__TRANSFER_ID__"));
+
+        [Test]
+        public void DeliveringAKeyTransfer()
+        {
+            byte[] sealedKey = Encoding.UTF8.GetBytes("eirora-transfer 1\n");
+
+            Sends(
+                "key-transfer-deliver.http",
+                _server.DeliverKeyTransferAsync("__ACCESS_TOKEN__", "__TRANSFER_ID__", sealedKey),
+                new Dictionary<string, string> { ["SEALED_KEY"] = Convert.ToBase64String(sealedKey) });
+        }
+
+        [Test]
+        public void DeletingAKeyTransfer() => Sends("key-transfer-delete.http", _server.DeleteKeyTransferAsync("__ACCESS_TOKEN__", "__TRANSFER_ID__"));
+
+        [Test]
+        public void TheKeyTransferIsReadAsTheServerSendsIt()
+        {
+            var transfer = AccountServer.ParseKeyTransfer(Read("key-transfer-response.json"))!;
+
+            Assert.That(transfer.Id, Is.EqualTo("Ab12Cd34Ef56Gh78Ij90Kl"));
+            Assert.That(transfer.ReceiverPublicKey, Is.EqualTo(new byte[32]));
+            Assert.That(transfer.SealedKey, Is.Null);
+            Assert.That(transfer.ExpiresAt, Is.EqualTo(new DateTimeOffset(2026, 10, 21, 20, 10, 0, TimeSpan.Zero)));
+        }
+
+        [Test]
         public void TheCloudSaveIsReadAsTheServerSendsIt()
         {
             var save = AccountServer.ParseCloudSave(Read("cloud-save-response.json"))!;

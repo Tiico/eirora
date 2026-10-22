@@ -82,6 +82,26 @@ public sealed class Api(HttpClient http) : IDisposable
         return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<LockedContributions[]>(Cancel) : null);
     }
 
+    public async Task<(HttpStatusCode Status, KeyTransfer? Transfer)> CreateKeyTransferAsync(string accessToken, object request)
+    {
+        using var httpRequest = Authorized(HttpMethod.Post, "/api/account/key-transfers", accessToken, request);
+        using var response = await http.SendAsync(httpRequest, Cancel);
+        return (response.StatusCode, response.StatusCode == HttpStatusCode.Created ? await response.Content.ReadFromJsonAsync<KeyTransfer>(Cancel) : null);
+    }
+
+    public async Task<(HttpStatusCode Status, KeyTransfer? Transfer)> GetKeyTransferAsync(string accessToken, string id)
+    {
+        using var request = Authorized(HttpMethod.Get, "/api/account/key-transfers/" + Uri.EscapeDataString(id), accessToken);
+        using var response = await http.SendAsync(request, Cancel);
+        return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<KeyTransfer>(Cancel) : null);
+    }
+
+    public async Task<HttpStatusCode> DeliverKeyTransferAsync(string accessToken, string id, object delivery) =>
+        await SendAsync(Authorized(HttpMethod.Put, "/api/account/key-transfers/" + Uri.EscapeDataString(id), accessToken, delivery));
+
+    public async Task<HttpStatusCode> DeleteKeyTransferAsync(string accessToken, string id) =>
+        await SendAsync(Authorized(HttpMethod.Delete, "/api/account/key-transfers/" + Uri.EscapeDataString(id), accessToken));
+
     public async Task<HttpStatusCode> DeleteLockedContributionsAsync(string accessToken, int keyEpoch) =>
         await SendAsync(Authorized(HttpMethod.Delete, $"/api/account/cloud-save/locked/{keyEpoch}", accessToken));
 

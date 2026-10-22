@@ -325,6 +325,7 @@ namespace Eirora.Client.UI
             _open = _open == sheet ? Sheet.None : sheet;
             _explainingHealth = false;
             _confirmingDeletion = false;
+            _showingRecoveryCode = false;
             if (sheet == Sheet.SelfCare && _world is not null)
             {
                 _selfCare.Reset(_world.GameDay);

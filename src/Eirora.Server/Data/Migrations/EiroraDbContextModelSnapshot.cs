@@ -112,6 +112,37 @@ namespace Eirora.Server.Data.Migrations
                     b.ToTable("LockedContributions");
                 });
 
+            modelBuilder.Entity("Eirora.Server.KeyTransfers.StoredKeyTransfer", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("ReceiverPublicKey")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("SealedKey")
+                        .HasColumnType("bytea");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.ToTable("KeyTransfers");
+                });
+
             modelBuilder.Entity("Eirora.Server.SignIn.RedeemedIdToken", b =>
                 {
                     b.Property<string>("Hash")
@@ -355,6 +386,15 @@ namespace Eirora.Server.Data.Migrations
                 });
 
             modelBuilder.Entity("Eirora.Server.CloudSaves.StoredLockedContributions", b =>
+                {
+                    b.HasOne("Eirora.Server.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Eirora.Server.KeyTransfers.StoredKeyTransfer", b =>
                 {
                     b.HasOne("Eirora.Server.Accounts.Account", null)
                         .WithMany()
