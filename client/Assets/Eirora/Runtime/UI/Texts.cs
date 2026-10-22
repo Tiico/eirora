@@ -132,6 +132,22 @@ namespace Eirora.Client.UI
             _ => null,
         };
 
+        /// <summary>How the cloud save stands, for the account sheet, or null when there is no sign-in.</summary>
+        public static string? CloudSync(App.CloudSyncStatus status, System.DateTimeOffset? syncedAt) => status switch
+        {
+            App.CloudSyncStatus.Off => null,
+            App.CloudSyncStatus.Working => "Molnsparning: laddar upp …",
+            App.CloudSyncStatus.Synced => syncedAt is { } at
+                ? $"Molnsparning: din ö är sparad på kontot, senast {at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}"
+                : "Molnsparning: din ö är sparad på kontot",
+            App.CloudSyncStatus.NoWorld => "Molnsparning: ingen ö att spara ännu",
+            App.CloudSyncStatus.Offline => "Molnsparning: väntar på uppkoppling, din ö sparas när servern nås",
+            App.CloudSyncStatus.ChoiceNeeded => "Molnsparning: telefonen och kontot har olika öar",
+            App.CloudSyncStatus.AppOutdated => "Molnsparning: kontots ö sparades av en nyare version av Eirora. Uppdatera appen.",
+            App.CloudSyncStatus.SignedOut => "Molnsparning: logga in igen för att spara din ö på kontot",
+            _ => "Molnsparning: gick inte just nu, försöker igen vid nästa ändring",
+        };
+
         public static string Reason(Rejection rejection) => rejection switch
         {
             Rejection.Resting => "Byborna sover. Det här kan du göra i morgon.",

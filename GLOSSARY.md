@@ -313,6 +313,10 @@ _Avoid_: nyckelversion, nyckel-id
 En bidragsdel från en tidigare nyckelepok, som servern sparar i 90 dagar om nyckeln skulle dyka upp och sedan raderar.
 _Avoid_: arkiv, gammal backup
 
+**Sammanslagning** (`Save.Merge`):
+Två sparningar av samma värld som spelats var för sig blir en: journalerna spelas upp från den senaste segmentstart de delar, i tidsordning, och varje kommando räknas en gång (D-99).
+_Avoid_: konfliktlösning, synkronisering (som är hela flödet mot servern)
+
 ## Socialt
 
 **Grupp** (`Group`):

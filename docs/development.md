@@ -10,17 +10,20 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `src/Eirora.Simulation/` | Motoroberoende, deterministisk simuleringskärna (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.simulation`. |
 | `src/Eirora.Contracts/` | Kontrakt mellan klient och server (netstandard2.1, C# 9). Också Unity-paketet `com.eirora.contracts`. |
 | `src/Eirora.WorldGeneration/` | Kartgeneratorerna och deras slumpgenerator (netstandard2.1, C# 9, [ADR-0010](./adr/0010-world-map-format-and-generator-version.md)). Också Unity-paketet `com.eirora.worldgeneration`. |
+| `src/Eirora.CloudSaving/` | Molnsparningen på enheten: bidragsnyckeln, krypteringen av bidragsdelen och avstämningen mot servern (netstandard2.1, C# 9, [ADR-0008](./adr/0008-backend-hosting-accounts-and-database.md)). Också Unity-paketet `com.eirora.cloudsaving`, som bygger mot `client/Assets/Plugins/BouncyCastle/`. |
 | `src/Eirora.Server/` | ASP.NET Core-backend (.NET 10) som äger det delade enligt ADR-0001. |
 | `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen och kartgeneratorerna, inklusive arkitekturtestet som håller dem rena. |
-| `tests/Eirora.Server.Tests/` | Integrationstester av servern. |
+| `tests/Eirora.CloudSaving.Tests/` | Headless tester av krypteringen och avstämningen, med en minnesserver som följer serverns regler. |
+| `tests/Eirora.Server.Tests/` | Integrationstester av servern, inklusive två simulerade enheter som synkar genom den riktiga servern. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
 | `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som inte ingår i CI. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
-Simuleringen, kartgeneratorerna och kontrakten byggs från samma källkod av både .NET och Unity.
+Simuleringen, kartgeneratorerna, kontrakten och molnsparningen byggs från samma källkod av både .NET och Unity.
 Därför gäller C# 9 och netstandard2.1 där, och inga Unity-API:er; `dotnet build` och arkitekturtestet underkänner det som inte håller.
+Molnsparningen är det enda paketet med ett beroende utanför netstandard: BouncyCastle.Cryptography, som .NET hämtar från NuGet och Unity läser från `client/Assets/Plugins/BouncyCastle/` (samma version, se dess `README.md` och `scripts/update-bouncycastle.sh`).
 
 ## Förutsättningar
 

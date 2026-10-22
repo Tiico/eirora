@@ -69,6 +69,7 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
 - Bidragsdelen krypteras på enheten med XChaCha20-Poly1305 och en slumpad nonce på 192 bitar, med konto-id, nyckelepok och sparningens version som associerade data, så att servern inte kan byta delar mellan spelare eller sparningar.
   Krypteringen kommer från BouncyCastle.Cryptography, som är netstandard och fungerar likadant i .NET och under IL2CPP; .NET:s `AesGcm` finns inte i Unitys Mono.
   Servern lagrar bara chiffertext och dekrypterar aldrig.
+  _Ändrat 2026-10-22 (#38, del 3): en förseglad bidragsdel är texten `eirora-sealed 1`, en radbrytning, noncen, chiffertexten och taggen; de associerade data är UTF-8-texten `eirora-contributions <konto-id> <nyckelepok> <version>`, där versionen är den uppladdningen blir (basversionen + 1). Koden är `ContributionCipher` i `src/Eirora.CloudSaving/`, som Unity bygger mot assemblyn under `client/Assets/Plugins/BouncyCastle/`._
 - Bidragsnyckeln är en slumpad 256-bitarsnyckel per konto med en nyckelepok.
   Den följer med till en ny telefon på det här sättet:
   - **Samma plattform:** tyst, via iCloud-nyckelringen på iOS och Block Store med end-to-end-krypterad backup på Android.
@@ -80,6 +81,7 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
   Bidragsdelen från den gamla epoken markeras som låst och sparas i 90 dagar om nyckeln skulle dyka upp, och raderas sedan eller tidigare om spelaren väljer det.
   Världen, krafternas saldon och allt byggt finns kvar; spelardygnen före den nya epoken kan inte längre rättas i efterhand och räknas som tomma i Byggkraftens rullande vecka (D-63), som för en ny värld.
   Det gäller spelardygnen till och med världsdelens senaste spelardygn, eftersom det dygnet redan kan ha krediterats (D-101).
+  _Ändrat 2026-10-22 (#38, D-102): har telefonen redan en annan värld, eller öppnas bidragsdelen inte med telefonens nyckel för dess epok, väljer spelaren mellan att hämta kontots ö och att behålla telefonens. Den som inte väljs sparas undan på telefonen och raderas inte. En bidragsdel som inte öppnas slås aldrig ihop; väljer spelaren telefonens ö låses den under en ny nyckelepok, som när nyckeln saknas._
 - Chiffertexten är fortfarande personuppgifter av särskild kategori enligt GDPR, eftersom den hör till ett känt konto.
   Krypteringen är en skyddsåtgärd i DPIA:n (artikel 32), och ett dataintrång som bara rör den kräver inte att spelarna underrättas (artikel 34.3 a); radering sker genom att raderna tas bort och backuperna går ut.
 

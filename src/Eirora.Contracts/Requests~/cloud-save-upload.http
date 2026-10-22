@@ -1,0 +1,5 @@
+PUT /api/account/cloud-save
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"baseVersion":0,"keyEpoch":1,"world":"__WORLD__","contributions":"__CONTRIBUTIONS__"}

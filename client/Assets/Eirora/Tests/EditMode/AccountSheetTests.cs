@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Eirora.Client.Accounts;
 using Eirora.Client.App;
 using Eirora.Client.UI;
@@ -20,6 +21,7 @@ namespace Eirora.Client.Tests
         private GameSession _game = null!;
         private Hud _hud = null!;
         private AccountSession _account = null!;
+        private FakeAccountServer _server = null!;
 
         [SetUp]
         public void SetUp()
@@ -33,10 +35,10 @@ namespace Eirora.Client.Tests
             _game.CatchUp();
             _root = new VisualElement();
             _hud = new Hud(_root, command => _game.Apply(command));
-            var server = new FakeAccountServer(() => DateTimeOffset.UtcNow);
+            _server = new FakeAccountServer(() => DateTimeOffset.UtcNow);
             _account = new AccountSession(
                 FakeAccountServer.Url,
-                server,
+                _server,
                 new MemorySecureStore(),
                 new ILoginProvider[] { new FakeLogin(LoginProviders.Apple, "player"), new FakeLogin(LoginProviders.Google, "player") });
         }
@@ -81,6 +83,53 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels(), Does.Contain("Radera kontot?"));
             Assert.That(_root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Radera med Apple"));
+        }
+
+        [Test]
+        public void TheSheetSaysHowTheCloudSaveStands()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var synced = new DateTimeOffset(2026, 10, 21, 20, 0, 0, TimeSpan.Zero);
+            var cloud = new CloudSaveSync(_account, _game, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask, () => synced);
+            _hud.UseCloudSync(cloud);
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            _hud.OpenAccount();
+
+            Assert.That(Labels().Where(l => l.StartsWith("Molnsparning", StringComparison.Ordinal)).ToList(), Has.Count.EqualTo(1));
+            Assert.That(Labels(), Does.Contain("Molnsparning: din ö är sparad på kontot, senast " + synced.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        [Test]
+        public void TheFirstLaunchOffersToFetchTheIslandFromTheAccount()
+        {
+            var fresh = new GameSession(new FixedClock(ScriptedWeek.At("2026-10-14 14:00")), null);
+            var root = new VisualElement();
+            var hud = new Hud(root, command => fresh.Apply(command));
+            hud.UseAccount(_account);
+
+            hud.ShowSetup(_ => { });
+
+            Assert.That(root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Logga in med Google").And.Contain("Börja"));
+        }
+
+        [Test]
+        public void TwoDifferentWorldsArePutToThePlayer()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var cloud = new CloudSaveSync(_account, _game, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask);
+            _hud.UseCloudSync(cloud);
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+            _server.TamperWithContributionsOf("player");
+
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            Assert.That(Labels(), Does.Contain("Vilken ö vill du behålla?"));
+            Assert.That(_root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Hämta ön från kontot").And.Contain("Behåll telefonens ö"));
         }
 
         [Test]

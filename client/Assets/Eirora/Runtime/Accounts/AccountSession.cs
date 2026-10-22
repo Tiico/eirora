@@ -48,6 +48,9 @@ namespace Eirora.Client.Accounts
         /// <summary>Something about the account changed: signed in or out, a login linked or removed, the account deleted.</summary>
         public event Action? Changed;
 
+        /// <summary>The account was deleted from this device, with its id: what the device kept for it goes too (ADR-0008).</summary>
+        public event Action<Guid>? Deleted;
+
         /// <summary>The providers the player can sign in with on this device, in the order they are offered.</summary>
         public IReadOnlyList<string> Providers { get; }
 
@@ -62,6 +65,12 @@ namespace Eirora.Client.Accounts
 
         /// <summary>Whether an action is under way; another one is refused until it is done.</summary>
         public bool IsBusy => _busy;
+
+        /// <summary>The server's API on the wire, for the cloud save alongside the account.</summary>
+        internal AccountServer Server => _server;
+
+        /// <summary>The device's keystore, which the contribution key shares with the refresh token.</summary>
+        internal ISecureStore Store => _store;
 
         /// <summary>Signs in, creating the account if this is the login's first sign-in (D-72).</summary>
         public Task<AccountOutcome> SignInAsync(string provider) => Exclusive(async () =>
@@ -248,7 +257,13 @@ namespace Eirora.Client.Accounts
             switch (reply.Status)
             {
                 case 204:
+                    var deleted = Account?.Id;
                     Forget();
+                    if (deleted is { } id)
+                    {
+                        Deleted?.Invoke(id);
+                    }
+
                     return AccountOutcome.Deleted;
                 case 403:
                     return AccountOutcome.NotThisAccount;
@@ -331,7 +346,7 @@ namespace Eirora.Client.Accounts
         /// Calls the API with a valid access token, refreshing it first when needed and once more if the server rejects
         /// it. Answers with the server's reply, or without one and the reason (offline, signed out).
         /// </summary>
-        private async Task<(AccountOutcome Outcome, HttpReply? Reply)> AuthorizedAsync(Func<string, Task<HttpReply>> call)
+        internal async Task<(AccountOutcome Outcome, HttpReply? Reply)> AuthorizedAsync(Func<string, Task<HttpReply>> call)
         {
             var access = await AccessAsync(force: false);
             if (access.Token is null)

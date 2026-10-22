@@ -135,6 +135,27 @@ public sealed partial class ClientRequestTests(ServerFixture fixture)
         Assert.Contains(_server.Apple.Requests, r => r.Path == "/auth/token" && r.Form["code"] == code);
     }
 
+    [Fact]
+    public async Task TheClientsCloudSaveUploadIsAcceptedAndReadsBackAsTheClientExpects()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var values = new Dictionary<string, string>
+        {
+            ["ACCESS_TOKEN"] = tokens.Access,
+            ["WORLD"] = Convert.ToBase64String(TestSaves.World()),
+            ["CONTRIBUTIONS"] = Convert.ToBase64String(TestSaves.Contributions()),
+        };
+
+        var (uploaded, version) = await SendAsync("cloud-save-upload.http", values);
+        var (got, save) = await SendAsync("cloud-save.http", values);
+
+        Assert.Equal(HttpStatusCode.OK, uploaded);
+        AssertReadsAsTheClientExpects("cloud-save-version-response.json", version);
+        Assert.Equal(HttpStatusCode.OK, got);
+        AssertReadsAsTheClientExpects("cloud-save-response.json", save);
+    }
+
     /// <summary>Sends a fixture's request with each <c>__NAME__</c> replaced by its value, encoded for the body.</summary>
     private async Task<(HttpStatusCode Status, string Body)> SendAsync(string name, Dictionary<string, string> values)
     {

@@ -141,6 +141,15 @@ namespace Eirora.Simulation
         public bool IsFromNewerVersion =>
             Format > FormatVersion || Rules > RulesVersion.Current || Content > ContentVersion.Current;
 
+        /// <summary>Whether <paramref name="other"/> is the same snapshot: the same state at the same time under the same versions.</summary>
+        internal bool SameAs(SimulationSnapshot other) =>
+            other.Format == Format
+            && other.Rules == Rules
+            && other.Content == Content
+            && other.UtcSeconds == UtcSeconds
+            && string.Equals(other.StateHash, StateHash, StringComparison.Ordinal)
+            && string.Equals(other._state, _state, StringComparison.Ordinal);
+
         /// <summary>
         /// Rebuilds the world on its map under the current rules and content, migrating the state forward from an older
         /// rules version (ADR-0006). The simulation time stays the same.

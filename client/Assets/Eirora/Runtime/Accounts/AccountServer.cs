@@ -67,6 +67,71 @@ namespace Eirora.Client.Accounts
         public Task<HttpReply> DeleteAsync(string accessToken, ExternalLogin confirmation) =>
             _http.SendAsync(new HttpCall("POST", _baseUrl + "/api/account/deletion", Json(confirmation), HttpCall.Json, accessToken));
 
+        /// <summary><c>GET /api/account/cloud-save</c>: the account's cloud save (ADR-0008), 404 when it has none.</summary>
+        public async Task<(HttpReply Reply, CloudSave? Save)> GetCloudSaveAsync(string accessToken)
+        {
+            var reply = await _http.SendAsync(new HttpCall("GET", _baseUrl + "/api/account/cloud-save", bearer: accessToken));
+            return (reply, reply.Status == 200 ? ParseCloudSave(reply.Body) : null);
+        }
+
+        /// <summary><c>PUT /api/account/cloud-save</c>: the new version with 200, the current one with 409.</summary>
+        public async Task<(HttpReply Reply, CloudSaveVersion? Version)> UploadCloudSaveAsync(string accessToken, CloudSaveUpload upload)
+        {
+            var reply = await _http.SendAsync(new HttpCall("PUT", _baseUrl + "/api/account/cloud-save", Json(upload), HttpCall.Json, accessToken));
+            return (reply, reply.Status == 200 || reply.Status == 409 ? ParseCloudSaveVersion(reply.Body) : null);
+        }
+
+        /// <summary>A <see cref="CloudSaveUpload"/> as the server reads it: the parts in base64.</summary>
+        public static string Json(CloudSaveUpload upload) => JsonUtility.ToJson(new CloudSaveUploadJson
+        {
+            baseVersion = upload.BaseVersion,
+            keyEpoch = upload.KeyEpoch,
+            world = Convert.ToBase64String(upload.World ?? Array.Empty<byte>()),
+            contributions = Convert.ToBase64String(upload.Contributions ?? Array.Empty<byte>()),
+        });
+
+        public static CloudSave? ParseCloudSave(string json)
+        {
+            CloudSaveJson? save;
+            try
+            {
+                save = JsonUtility.FromJson<CloudSaveJson>(json);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            if (save is null || save.version < 1 || save.keyEpoch < 1 || save.world is null || save.contributions is null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return new CloudSave(save.version, save.keyEpoch, Convert.FromBase64String(save.world), Convert.FromBase64String(save.contributions), Time(save.savedAt ?? string.Empty));
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        public static CloudSaveVersion? ParseCloudSaveVersion(string json)
+        {
+            CloudSaveVersionJson? version;
+            try
+            {
+                version = JsonUtility.FromJson<CloudSaveVersionJson>(json);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            return version is null || version.version < 0 ? null : new CloudSaveVersion(version.version, version.keyEpoch);
+        }
+
         /// <summary>An <see cref="ExternalLogin"/> as the server reads it.</summary>
         public static string Json(ExternalLogin login) => JsonUtility.ToJson(ToJson(login));
 
@@ -153,6 +218,32 @@ namespace Eirora.Client.Accounts
         {
             public string provider;
             public string linkedAt;
+        }
+
+        [Serializable]
+        internal sealed class CloudSaveUploadJson
+        {
+            public long baseVersion;
+            public int keyEpoch;
+            public string world;
+            public string contributions;
+        }
+
+        [Serializable]
+        internal sealed class CloudSaveJson
+        {
+            public long version;
+            public int keyEpoch;
+            public string? world;
+            public string? contributions;
+            public string? savedAt;
+        }
+
+        [Serializable]
+        internal sealed class CloudSaveVersionJson
+        {
+            public long version;
+            public int keyEpoch;
         }
 
         [Serializable]

@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.eirora.cloudsaving": {
+      "version": "file:../../src/Eirora.CloudSaving",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.eirora.simulation": "0.1.0",
+        "com.eirora.contracts": "0.1.0"
+      }
+    },
     "com.eirora.contracts": {
       "version": "file:../../src/Eirora.Contracts",
       "depth": 0,
