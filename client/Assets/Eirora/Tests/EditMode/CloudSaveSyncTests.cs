@@ -295,6 +295,130 @@ namespace Eirora.Client.Tests
             Assert.That(_server.LockedParts, Is.EqualTo(1));
         }
 
+        // The QR flow end to end (TASK-023b): the new phone shows a ticket, the old phone reads it and sends the key
+        // sealed for the new phone, which keeps it once the cloud save confirms it and then takes the island down.
+        [Test]
+        public void TheOldPhoneSendsTheKeyToTheNewOneThroughTheTicketItShows()
+        {
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false);
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+
+            Assert.That(Wait(fresh.Cloud.BeginKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Waiting));
+            string ticket = fresh.Cloud.TransferTicket!;
+            Assert.That(KeyTransferTicket.TryParse(ticket), Is.Not.Null);
+            Assert.That(fresh.Cloud.TransferExpiresAt, Is.EqualTo(_now + KeyTransfer.Lifetime));
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Waiting));
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+
+            Assert.That(Wait(old.Cloud.SendKeyAsync("not a ticket")), Is.EqualTo(KeyDeliveryOutcome.BadTicket));
+            Assert.That(Wait(old.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.Delivered));
+            Assert.That(Wait(old.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.AlreadyDelivered));
+
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Received));
+
+            Assert.That(fresh.Cloud.TransferTicket, Is.Null);
+            Assert.That(fresh.Cloud.TransferOutcome, Is.Null);
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(fresh.Cloud.Choice, Is.Null);
+            Assert.That(fresh.Game.World!.Fingerprint(), Is.EqualTo(old.Game.World!.Fingerprint()));
+            Assert.That(fresh.Cloud.RecoveryCode, Is.EqualTo(old.Cloud.RecoveryCode));
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(0));
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Expired), "polling after the transfer is over is harmless");
+        }
+
+        // A ticket the server has forgotten is useless on both sides, and a new one can be shown.
+        [Test]
+        public void ARunOutTicketIsSeenOnBothPhonesAndANewOneCanBeShown()
+        {
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false);
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+            Wait(fresh.Cloud.BeginKeyTransferAsync());
+            string ticket = fresh.Cloud.TransferTicket!;
+
+            _now += KeyTransfer.Lifetime;
+
+            Assert.That(Wait(old.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.Expired));
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Expired));
+            Assert.That(fresh.Cloud.TransferTicket, Is.Null);
+            Assert.That(fresh.Cloud.TransferOutcome, Is.EqualTo(KeyTransferOutcome.Expired));
+
+            Assert.That(Wait(fresh.Cloud.BeginKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Waiting));
+            Assert.That(fresh.Cloud.TransferTicket, Is.Not.Null.And.Not.EqualTo(ticket));
+            Assert.That(Wait(old.Cloud.SendKeyAsync(fresh.Cloud.TransferTicket!)), Is.EqualTo(KeyDeliveryOutcome.Delivered));
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Received));
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
+        // Going on without the key, or unlocking with the recovery code, gives the shown ticket up: the server forgets
+        // it, so a key sent to it later goes nowhere. A phone without the key has nothing to send.
+        [Test]
+        public void LeavingTheQuestionGivesTheTicketUp()
+        {
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false);
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+            Wait(fresh.Cloud.BeginKeyTransferAsync());
+            string ticket = fresh.Cloud.TransferTicket!;
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(1));
+            Assert.That(Wait(fresh.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.NoKey), "the new phone has no key to send");
+
+            Wait(fresh.Cloud.EnterRecoveryCodeAsync(old.Cloud.RecoveryCode!));
+
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(fresh.Cloud.TransferTicket, Is.Null);
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(0));
+            Assert.That(Wait(old.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.Expired));
+
+            var another = Phone("c", withWorld: false);
+            another.SignIn();
+            Wait(another.Cloud.ReconcileAsync());
+            Wait(another.Cloud.BeginKeyTransferAsync());
+            Wait(another.Cloud.ChooseAsync(WorldChoice.TakeCloud));
+
+            Assert.That(another.Cloud.TransferTicket, Is.Null);
+            Assert.That(another.Cloud.KeyEpochBegan, Is.True);
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(0));
+        }
+
+        // Offline, the ticket stays open and the new phone keeps asking; signing out drops it.
+        [Test]
+        public void OfflineTheTicketStaysAndSigningOutDropsIt()
+        {
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false);
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+            Wait(fresh.Cloud.BeginKeyTransferAsync());
+            string ticket = fresh.Cloud.TransferTicket!;
+
+            _server.Online = false;
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Offline));
+            Assert.That(fresh.Cloud.TransferTicket, Is.EqualTo(ticket), "the code stays on screen while the server is away");
+            Assert.That(Wait(old.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.Offline));
+
+            _server.Online = true;
+            Wait(fresh.Account.SignOutAsync());
+
+            Assert.That(fresh.Cloud.TransferTicket, Is.Null);
+            Assert.That(fresh.Cloud.TransferOutcome, Is.Null);
+            _now += KeyTransfer.Lifetime;
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(0), "the server forgets a transfer the signed-out phone could not cancel");
+        }
+
         [Test]
         public void OfflineTheWorldWaitsAndTheNextChangeUploadsIt()
         {

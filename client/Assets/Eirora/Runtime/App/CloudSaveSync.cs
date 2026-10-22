@@ -77,6 +77,8 @@ namespace Eirora.Client.App
         private readonly AccountSession _account;
         private readonly ICloudSyncStorage _storage;
         private readonly CloudSync _sync;
+        private readonly AccountKeyTransferStore _transfers;
+        private readonly KeyTransferReceiver _receiver;
         private readonly Func<Task> _delay;
         private readonly Func<DateTimeOffset> _now;
         private bool _dirty;
@@ -92,6 +94,8 @@ namespace Eirora.Client.App
             _account = account;
             _storage = storage;
             _sync = new CloudSync(new AccountCloudSaveStore(account), storage, session);
+            _transfers = new AccountKeyTransferStore(account);
+            _receiver = new KeyTransferReceiver(_transfers, _sync);
             _delay = delay ?? (() => Task.Delay(TimeSpan.FromSeconds(2)));
             _now = now ?? (() => DateTimeOffset.UtcNow);
             _wasSignedIn = account.IsSignedIn;
@@ -113,6 +117,19 @@ namespace Eirora.Client.App
         /// (<see cref="CloudSyncStatus.ChoiceNeeded"/>), or where the key comes from (<see cref="CloudSyncStatus.KeyNeeded"/>).
         /// </summary>
         public SyncResult? Choice { get; private set; }
+
+        /// <summary>
+        /// The ticket of the key transfer this phone waits on (TASK-023b), as text for the QR code, or null when none is
+        /// open. Opened by <see cref="BeginKeyTransferAsync"/>; gone once the key arrived, the transfer ran out, or the
+        /// player gave it up.
+        /// </summary>
+        public string? TransferTicket => _receiver.Ticket?.ToText();
+
+        /// <summary>When the server forgets the open transfer, or null when none is open.</summary>
+        public DateTimeOffset? TransferExpiresAt => _receiver.ExpiresAt;
+
+        /// <summary>How the open transfer stands after its last call, or null when none was begun since the last one ended.</summary>
+        public KeyTransferOutcome? TransferOutcome { get; private set; }
 
         /// <summary>The account's contribution key as a recovery code (TASK-023b), or null before the account or the key is known.</summary>
         public string? RecoveryCode =>
@@ -170,12 +187,88 @@ namespace Eirora.Client.App
         /// <summary>Uploads what waits without the delay, as when the app goes to the background.</summary>
         public Task FlushAsync() => _dirty || _reconcile ? RunAsync(immediate: true) : Task.CompletedTask;
 
-        /// <summary>Resolves <see cref="Choice"/>.</summary>
-        public Task ChooseAsync(WorldChoice choice)
+        /// <summary>Resolves <see cref="Choice"/>; a transfer still waiting for the key is given up.</summary>
+        public async Task ChooseAsync(WorldChoice choice)
         {
+            await CancelKeyTransferAsync();
             _choice = choice;
             _reconcile = true;
-            return RunAsync(immediate: true);
+            await RunAsync(immediate: true);
+        }
+
+        /// <summary>
+        /// Begins a key transfer from the old phone (TASK-023b): on <see cref="KeyTransferOutcome.Waiting"/> the
+        /// <see cref="TransferTicket"/> is ready to show. The interface asks the server for the key with
+        /// <see cref="PollKeyTransferAsync"/> while the code is on screen.
+        /// </summary>
+        public async Task<KeyTransferOutcome> BeginKeyTransferAsync()
+        {
+            var (accountId, outcome) = await AccountIdAsync();
+            var begun = accountId is null ? TransferOutcomeOf(outcome) : await _receiver.BeginAsync();
+            TransferOutcome = begun;
+            Changed?.Invoke();
+            return begun;
+        }
+
+        /// <summary>
+        /// Asks the server once whether the old phone delivered the key. On <see cref="KeyTransferOutcome.Received"/>
+        /// the key is kept and the cloud save is reconciled with it; the transfer is then over.
+        /// </summary>
+        public async Task<KeyTransferOutcome> PollKeyTransferAsync()
+        {
+            if (TransferOutcome is null)
+            {
+                return KeyTransferOutcome.Expired;
+            }
+
+            var (accountId, outcome) = await AccountIdAsync();
+            var polled = accountId is null ? TransferOutcomeOf(outcome) : await _receiver.PollAsync(accountId.Value);
+            TransferOutcome = polled == KeyTransferOutcome.Received ? null : polled;
+            if (polled == KeyTransferOutcome.Received)
+            {
+                await ReconcileAsync();
+            }
+            else
+            {
+                Changed?.Invoke();
+            }
+
+            return polled;
+        }
+
+        /// <summary>Gives up the open transfer, if any; the server forgets it too when it can be reached.</summary>
+        public async Task CancelKeyTransferAsync()
+        {
+            if (TransferOutcome is null)
+            {
+                return;
+            }
+
+            TransferOutcome = null;
+            await _receiver.CancelAsync();
+            Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// Sends this phone's key to a new phone whose ticket was read from its QR code (TASK-023b). The key is sealed for
+        /// that phone alone; the server relays what it cannot read.
+        /// </summary>
+        public async Task<KeyDeliveryOutcome> SendKeyAsync(string ticketText)
+        {
+            if (KeyTransferTicket.TryParse(ticketText) is not { } ticket)
+            {
+                return KeyDeliveryOutcome.BadTicket;
+            }
+
+            var (accountId, outcome) = await AccountIdAsync();
+            if (accountId is null)
+            {
+                return outcome == AccountOutcome.Offline ? KeyDeliveryOutcome.Offline
+                    : outcome == AccountOutcome.SignedOut ? KeyDeliveryOutcome.SignedOut
+                    : KeyDeliveryOutcome.Failed;
+            }
+
+            return await new KeyTransferSender(_transfers, _storage).SendAsync(accountId.Value, ticket);
         }
 
         /// <summary>
@@ -199,6 +292,7 @@ namespace Eirora.Client.App
             switch (await _sync.AcceptKeyAsync(accountId.Value, key))
             {
                 case KeyAcceptance.Accepted:
+                    await CancelKeyTransferAsync();
                     await ReconcileAsync();
                     return RecoveryCodeOutcome.Unlocked;
                 case KeyAcceptance.OlderEpoch:
@@ -227,6 +321,7 @@ namespace Eirora.Client.App
             }
             else
             {
+                DropKeyTransfer();
                 Choice = null;
                 Set(CloudSyncStatus.Off);
             }
@@ -234,10 +329,28 @@ namespace Eirora.Client.App
 
         private void OnAccountDeleted(Guid accountId)
         {
+            DropKeyTransfer();
             _sync.Forget(accountId);
             Choice = null;
             Set(CloudSyncStatus.Off);
         }
+
+        /// <summary>Forgets an open transfer without the server: the sign-in it needs is gone, and so is the transfer soon.</summary>
+        private void DropKeyTransfer()
+        {
+            if (TransferOutcome is not null)
+            {
+                TransferOutcome = null;
+                _ = _receiver.CancelAsync();
+            }
+        }
+
+        private static KeyTransferOutcome TransferOutcomeOf(AccountOutcome outcome) => outcome switch
+        {
+            AccountOutcome.Offline => KeyTransferOutcome.Offline,
+            AccountOutcome.SignedOut => KeyTransferOutcome.SignedOut,
+            _ => KeyTransferOutcome.Failed,
+        };
 
         private async Task RunAsync(bool immediate)
         {

@@ -65,6 +65,13 @@ namespace Eirora.Client.Tests
             Assert.That(playerSettings.FindProperty("submitAnalytics").boolValue, Is.False);
         }
 
+        // iOS shows this text when the old phone first opens the camera to scan the new phone's QR code (TASK-023b).
+        [Test]
+        public void IosIsToldWhyTheCameraIsWanted()
+        {
+            Assert.That(PlayerSettings.iOS.cameraUsageDescription, Does.Contain("QR-koden").And.Contain("stannar i telefonen"));
+        }
+
         [Test]
         public void BothPlatformsShareOneApplicationIdentifier()
         {

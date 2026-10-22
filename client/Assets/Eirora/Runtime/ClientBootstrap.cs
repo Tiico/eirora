@@ -96,7 +96,7 @@ namespace Eirora.Client
             {
                 var storage = new DeviceCloudSyncStorage(account.Store, Path.Combine(Application.persistentDataPath, DeviceCloudSyncStorage.StateFile));
                 _cloud = new CloudSaveSync(account, session, storage);
-                _hud.UseCloudSync(_cloud);
+                _hud.UseCloudSync(_cloud, new WebCamQrScanner()); // The camera, for sending the key to a new phone (TASK-023b).
             }
 
             Begin(session);
