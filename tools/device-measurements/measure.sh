@@ -10,6 +10,9 @@
 #   measure.sh compare A/results.tsv B/results.tsv [--margin PERCENT]
 #       Checks that two runs of the same build agree within the margin (default 10 %), or within 1 percentage point
 #       for shares and 1 °C for temperatures, which are too small for a relative margin.
+#   measure.sh budget RESULTS.tsv... --tier floor|base|reference [--budgets FILE]
+#       Checks measured results against the budgets of a tier of target device (TASK-024, budgets.tsv beside this
+#       script) and fails when any is over; a metric that was not measured is reported and does not fail.
 #
 # Set ADB to the adb binary if it is not on PATH, and ANDROID_SERIAL to pick a device when several are attached.
 set -euo pipefail
@@ -25,7 +28,7 @@ shell() { "$ADB" shell "$@" | tr -d '\r'; }
 record() { printf '%s\t%s\n' "$1" "$2" >>"$OUT/results.tsv"; printf '  %-28s %s\n' "$1" "$2"; }
 
 parse_options() {
-    APK="" LIGHT="day" SECONDS_TO_HOLD=300 STARTS=5 OUT="" MARGIN=10
+    APK="" LIGHT="day" SECONDS_TO_HOLD=300 STARTS=5 OUT="" MARGIN=10 TIER="" BUDGETS="$(dirname "$0")/budgets.tsv"
     while [ $# -gt 0 ]; do
         case "$1" in
             --apk) APK="$2"; shift 2 ;;
@@ -34,6 +37,8 @@ parse_options() {
             --starts) STARTS="$2"; shift 2 ;;
             --out) OUT="$2"; shift 2 ;;
             --margin) MARGIN="$2"; shift 2 ;;
+            --tier) TIER="$2"; shift 2 ;;
+            --budgets) BUDGETS="$2"; shift 2 ;;
             *) POSITIONAL+=("$1"); shift ;;
         esac
     done
@@ -210,7 +215,45 @@ compare() {
         END { exit failed }' "${POSITIONAL[0]}" "${POSITIONAL[1]}"
 }
 
-[ $# -gt 0 ] || die "usage: measure.sh active|background-start|background-end|compare [options]"
+budget() {
+    [ ${#POSITIONAL[@]} -ge 1 ] || die "budget needs at least one results.tsv"
+    case "$TIER" in floor | base | reference) ;; *) die "--tier must be floor, base or reference" ;; esac
+    [ -f "$BUDGETS" ] || die "no budgets in $BUDGETS"
+    # Results from several runs (a day and a night pass, the day in the background) are read together. Each file is
+    # held to the budgets on its own, so a pass over budget fails even when another pass of the same metric is within.
+    awk -F'\t' -v tier="$TIER" '
+        FNR == NR && /^#/ { next }
+        FNR == NR && $2 == tier { kind[$1] = $3; limit[$1] = $4; order[++n] = $1; next }
+        FNR == NR { next }
+        FILENAME != current { current = FILENAME; name[++files] = FILENAME }
+        $2 ~ /^-?[0-9]+(\.[0-9]+)?$/ { value[files, $1] = $2; seen[$1] = 1 }
+        END {
+            split("skin battery", parts, " ")
+            for (f = 1; f <= files; f++) {
+                for (p in parts) {
+                    start = parts[p] "_temp_start_c"; end = parts[p] "_temp_end_c"; warming = parts[p] "_warming_c"
+                    if (((f, start) in value) && ((f, end) in value)) {
+                        value[f, warming] = sprintf("%.1f", value[f, end] - value[f, start]); seen[warming] = 1
+                    }
+                }
+            }
+            printf "%-28s %10s %12s  %s\n", "metric (" tier ")", "measured", "budget", "verdict"
+            for (i = 1; i <= n; i++) {
+                m = order[i]
+                bound = (kind[m] == "min" ? ">= " : "<= ") limit[m]
+                if (!(m in seen)) { printf "%-28s %10s %12s  %s\n", m, "-", bound, "not measured"; continue }
+                for (f = 1; f <= files; f++) {
+                    if (!((f, m) in value)) continue
+                    over = kind[m] == "min" ? value[f, m] + 0 < limit[m] + 0 : value[f, m] + 0 > limit[m] + 0
+                    if (over) failed = 1
+                    printf "%-28s %10s %12s  %s%s\n", m, value[f, m], bound, over ? "OVER BUDGET" : "ok", (files > 1 ? "  " name[f] : "")
+                }
+            }
+            exit failed
+        }' "$BUDGETS" "${POSITIONAL[@]}"
+}
+
+[ $# -gt 0 ] || die "usage: measure.sh active|background-start|background-end|compare|budget [options]"
 COMMAND="$1"; shift
 POSITIONAL=()
 parse_options "$@"
@@ -219,5 +262,6 @@ case "$COMMAND" in
     background-start) background_start ;;
     background-end) background_end ;;
     compare) compare ;;
+    budget) budget ;;
     *) die "unknown command $COMMAND" ;;
 esac

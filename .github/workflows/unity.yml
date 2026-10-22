@@ -269,6 +269,15 @@ jobs:
           androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
           androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
 
+      # The one budget a build can be failed on without a device (TASK-024, docs/design/performance-budgets.md).
+      - name: Check the package against its size budget
+        run: |
+          package="$(ls build/Android/*.aab build/Android/*.apk 2>/dev/null | head -n 1)"
+          [ -n "$package" ] || { echo "::error::No Android package in build/Android to hold to its size budget."; exit 1; }
+          bytes="$(wc -c <"$package")"
+          printf 'apk_mb\t%s\n' "$(awk -v b="$bytes" 'BEGIN { printf "%.1f", b / 1048576 }')" >package-size.tsv
+          tools/device-measurements/measure.sh budget package-size.tsv --tier base
+
       - uses: actions/upload-artifact@v7
         with:
           name: eirora-android-${{ steps.version.outputs.name }}
