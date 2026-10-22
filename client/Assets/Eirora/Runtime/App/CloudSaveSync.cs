@@ -61,6 +61,7 @@ namespace Eirora.Client.App
         private bool _reconcile;
         private WorldChoice? _choice;
         private bool _wasSignedIn;
+        private bool _lockPending;
         private Task? _running;
 
         /// <param name="delay">How long an upload waits after a save, so that a burst becomes one upload.</param>
@@ -295,8 +296,19 @@ namespace Eirora.Client.App
                 CloudSaveUnreadable = result.CloudSaveUnreadable;
             }
 
+            // The old part is locked only once the phone's world got through under the new epoch, which can be a later try.
             if (result.ContributionPartLocked)
             {
+                _lockPending = true;
+            }
+
+            if (result.KeyEpochBegan || result.Outcome == SyncOutcome.ChoiceNeeded)
+            {
+                _lockPending = false;
+            }
+            else if (_lockPending && result.Outcome == SyncOutcome.Synced)
+            {
+                _lockPending = false;
                 ContributionPartLocked = true;
             }
 

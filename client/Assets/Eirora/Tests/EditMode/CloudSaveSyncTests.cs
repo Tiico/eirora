@@ -247,6 +247,32 @@ namespace Eirora.Client.Tests
             Assert.That(_server.LockedParts, Is.EqualTo(1));
         }
 
+        // The part is locked only when the phone's world reaches the server, so the phone says so only then.
+        [Test]
+        public void KeepingThePhonesWorldSaysThePartIsLockedOnlyOnceTheUploadGetsThrough()
+        {
+            var phone = Phone("a", withWorld: true);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            _server.TamperWithContributionsOf("player");
+            Wait(phone.Cloud.ReconcileAsync());
+            _server.TakesUploads = false;
+
+            Wait(phone.Cloud.ChooseAsync(WorldChoice.KeepPhone));
+
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Offline));
+            Assert.That(phone.Cloud.ContributionPartLocked, Is.False);
+            Assert.That(_server.LockedParts, Is.EqualTo(0));
+
+            _server.TakesUploads = true;
+            phone.Game.Apply(new RecordSelfCare(phone.Game.World!.GameDay, Habit.Steps, ContributionSource.SelfReported, 5_000));
+
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(phone.Cloud.ContributionPartLocked, Is.True);
+            Assert.That(phone.Cloud.Choice, Is.Null);
+            Assert.That(_server.LockedParts, Is.EqualTo(1));
+        }
+
         [Test]
         public void OfflineTheWorldWaitsAndTheNextChangeUploadsIt()
         {

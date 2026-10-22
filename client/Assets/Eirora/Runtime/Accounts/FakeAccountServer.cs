@@ -39,6 +39,9 @@ namespace Eirora.Client.Accounts
         /// <summary>When false, every call answers as if the network were down.</summary>
         public bool Online { get; set; } = true;
 
+        /// <summary>When false, the cloud save still comes down but an upload answers as if the connection dropped.</summary>
+        public bool TakesUploads { get; set; } = true;
+
         public List<HttpCall> Calls { get; } = new();
 
         public List<string> AppleCodesRevoked { get; } = new();
@@ -92,6 +95,11 @@ namespace Eirora.Client.Accounts
             }
 
             string path = call.Url.Substring(Url.Length);
+            if (!TakesUploads && call.Method == "PUT" && path == "/api/account/cloud-save")
+            {
+                return Task.FromResult(new HttpReply(0));
+            }
+
             return Task.FromResult((call.Method, path) switch
             {
                 ("POST", "/connect/token") => Token(UrlQuery.Parse(call.Body!)),
