@@ -16,6 +16,9 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 
     public bool Online { get; set; } = true;
 
+    /// <summary>False: the cloud save still comes down, but an upload does not get through, as on a connection that drops.</summary>
+    public bool TakesUploads { get; set; } = true;
+
     public bool SignedIn { get; set; } = true;
 
     public int Uploads { get; private set; }
@@ -37,7 +40,7 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 
     public Task<StoreReply<CloudSaveVersion>> UploadAsync(CloudSaveUpload upload)
     {
-        if (!Online)
+        if (!Online || !TakesUploads)
         {
             return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Offline));
         }

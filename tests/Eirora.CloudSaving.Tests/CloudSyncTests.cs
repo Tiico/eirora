@@ -286,6 +286,74 @@ public sealed class CloudSyncTests
         Assert.True(result.KeyEpochBegan, "without a readable part, the new phone goes on from the world part alone");
     }
 
+    // The new epoch begins with the upload; when that does not get through, the phone's next try finishes it.
+    [Fact]
+    public async Task ANewEpochWhoseUploadDidNotGetThroughIsUploadedOnTheNextTry()
+    {
+        var store = new FakeCloudSaveStore();
+        await new Device(store, PlayedSave()).Sync.ReconcileAsync(s_account);
+        var fresh = new Device(store);
+        store.TakesUploads = false;
+        var first = await fresh.Sync.ReconcileAsync(s_account);
+        store.TakesUploads = true;
+        Advance(fresh.Save, Hour);
+        fresh.Save.Apply("fresh-rush", new Rush());
+        string played = fresh.Fingerprint;
+
+        var upload = await fresh.Sync.UploadAsync(s_account);
+
+        Assert.True(first.Outcome == SyncOutcome.Offline && first.Downloaded);
+        Assert.Equal(SyncOutcome.Synced, upload.Outcome);
+        Assert.Equal(played, fresh.Fingerprint);
+        Assert.Empty(fresh.World.Replacements);
+        Assert.Equal((2L, 2), (store.Current!.Version, store.Current.KeyEpoch));
+        Assert.Equal(fresh.Save.ToParts().World, store.Current.World);
+        Assert.NotNull(ContributionCipher.Open(fresh.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions));
+    }
+
+    [Theory]
+    [InlineData(WorldChoice.TakeCloud)]
+    [InlineData(WorldChoice.KeepPhone)]
+    public async Task AChosenNewEpochWhoseUploadDidNotGetThroughIsUploadedAtTheNextLaunch(WorldChoice choice)
+    {
+        var store = new FakeCloudSaveStore();
+        await new Device(store, PlayedSave()).Sync.ReconcileAsync(s_account);
+        var phone = new Device(store, PlayedSave(installOffset: 1));
+        store.TakesUploads = false;
+        var chosen = await phone.Sync.ReconcileAsync(s_account, choice);
+        store.TakesUploads = true;
+        string kept = phone.Fingerprint;
+
+        var launch = await phone.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal(SyncOutcome.Offline, chosen.Outcome);
+        Assert.Equal(SyncOutcome.Synced, launch.Outcome);
+        Assert.Equal(kept, phone.Fingerprint);
+        Assert.Equal((2L, 2), (store.Current!.Version, store.Current.KeyEpoch));
+        Assert.Equal(phone.Save.ToParts().World, store.Current.World);
+    }
+
+    // Another phone moved the old epoch on meanwhile: its contributions do not open here, so the player chooses.
+    [Fact]
+    public async Task ANewEpochWhoseUploadDidNotGetThroughAsksWhenTheOldEpochMovedOn()
+    {
+        var store = new FakeCloudSaveStore();
+        var old = new Device(store, PlayedSave());
+        await old.Sync.ReconcileAsync(s_account);
+        var fresh = new Device(store);
+        store.TakesUploads = false;
+        await fresh.Sync.ReconcileAsync(s_account);
+        store.TakesUploads = true;
+        Advance(old.Save, Hour);
+        old.Save.Apply("old-rush", new Rush());
+        await old.Sync.UploadAsync(s_account);
+
+        var result = await fresh.Sync.UploadAsync(s_account);
+
+        Assert.True(result.Outcome == SyncOutcome.ChoiceNeeded && result.ContributionsUnreadable);
+        Assert.Equal((2L, 1), (store.Current!.Version, store.Current.KeyEpoch));
+    }
+
     [Fact]
     public async Task OfflineNothingChangesAndTheNextTryUploads()
     {

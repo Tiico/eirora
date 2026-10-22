@@ -180,6 +180,14 @@ namespace Eirora.CloudSaving
         /// </summary>
         private async Task<SyncResult> WithoutTheContributionsAsync(Guid accountId, CloudSave remote, Save? local, ContributionKey? key, SyncChanges changes, WorldChoice? choice, int attempt)
         {
+            // This device already began a newer epoch from this very version, but the upload that begins it on the
+            // server did not get through: the device's world goes on from that version, so it is uploaded, not asked.
+            if (local is not null && key is not null && key.Epoch > remote.KeyEpoch
+                && _storage.State(accountId) is { } state && state.Version == remote.Version && state.KeyEpoch == key.Epoch)
+            {
+                return await SendOrStartOverAsync(accountId, local, remote.Version, key, changes, choice, attempt);
+            }
+
             if (local is not null && choice is null)
             {
                 Save alone;
@@ -219,13 +227,23 @@ namespace Eirora.CloudSaving
                 _world.Replace(alone, local is null ? ReplaceReason.Downloaded : ReplaceReason.CloudChosen);
                 changes.Downloaded = local is null;
                 changes.KeyEpochBegan = true;
-                return await SendOrStartOverAsync(accountId, alone, remote.Version, NewKey(accountId, epoch), changes, choice, attempt);
+                return await BeginEpochAsync(accountId, alone, remote.Version, NewKey(accountId, epoch), changes, choice, attempt);
             }
 
             // The phone's world is kept. Its own key goes on when it is newer than the cloud's epoch; else a new epoch.
             var phoneKey = key is not null && key.Epoch > remote.KeyEpoch ? key : NewKey(accountId, epoch);
             changes.KeyEpochBegan = true;
-            return await SendOrStartOverAsync(accountId, local!, remote.Version, phoneKey, changes, choice, attempt);
+            return await BeginEpochAsync(accountId, local!, remote.Version, phoneKey, changes, choice, attempt);
+        }
+
+        /// <summary>
+        /// Uploads the device's world under a new key epoch. The device's world is based on <paramref name="baseVersion"/>
+        /// before the upload runs, so that an upload which does not get through is tried again rather than asked about.
+        /// </summary>
+        private Task<SyncResult> BeginEpochAsync(Guid accountId, Save save, long baseVersion, ContributionKey key, SyncChanges changes, WorldChoice? choice, int attempt)
+        {
+            _storage.KeepState(new CloudSyncState(accountId, baseVersion, key.Epoch));
+            return SendOrStartOverAsync(accountId, save, baseVersion, key, changes, choice, attempt);
         }
 
         /// <summary>The device now holds the cloud's version: remembers that, or uploads when the device's world is ahead of it.</summary>
