@@ -15,6 +15,7 @@ TestResults/
 /client/.utmp/
 /client/[Uu]ser[Ss]ettings/
 /client/[Mm]emoryCaptures/
+/client/.vscode/
 /client/[Rr]ecordings/
 /client/*.csproj
 /client/*.sln
