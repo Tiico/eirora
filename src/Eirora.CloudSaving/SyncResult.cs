@@ -99,6 +99,28 @@ namespace Eirora.CloudSaving
         Failed,
     }
 
+    /// <summary>What became of a key that came from a recovery code or a key transfer (<see cref="CloudSync.AcceptKeyAsync"/>).</summary>
+    public enum KeyAcceptance
+    {
+        /// <summary>The key is the cloud save's and is kept on this device.</summary>
+        Accepted,
+
+        /// <summary>The key belongs to an older key epoch than the cloud save's; the code or the old phone is out of date.</summary>
+        OlderEpoch,
+
+        /// <summary>The key does not open the cloud save's contribution part; it is not this account's current key.</summary>
+        DoesNotOpen,
+
+        /// <summary>The server could not be reached, so the key could not be checked; it is not kept.</summary>
+        Offline,
+
+        /// <summary>The device holds no sign-in, or the server no longer accepts it.</summary>
+        SignedOut,
+
+        /// <summary>The server answered with something unexpected.</summary>
+        Failed,
+    }
+
     /// <summary>The player's choice when the phone and the cloud hold different worlds.</summary>
     public enum WorldChoice
     {

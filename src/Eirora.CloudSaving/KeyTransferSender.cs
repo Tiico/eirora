@@ -5,7 +5,8 @@ namespace Eirora.CloudSaving
 {
     /// <summary>
     /// The old phone's side of a key transfer (ADR-0008, TASK-023b): seals the account's contribution key for the new
-    /// phone named by its ticket and delivers it through the server, which cannot open it.
+    /// phone with its ticket, the public key and the secret the server never sees, and delivers it through the server,
+    /// which cannot open it.
     /// </summary>
     public sealed class KeyTransferSender
     {
@@ -33,7 +34,7 @@ namespace Eirora.CloudSaving
             byte[] sealedKey;
             try
             {
-                sealedKey = KeyTransferCipher.Seal(key, ticket.ReceiverPublicKey, accountId, ticket.Id);
+                sealedKey = KeyTransferCipher.Seal(key, ticket, accountId);
             }
             catch (ArgumentException)
             {

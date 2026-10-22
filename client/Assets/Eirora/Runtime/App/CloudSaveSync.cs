@@ -39,6 +39,28 @@ namespace Eirora.Client.App
         Failed,
     }
 
+    /// <summary>What became of a recovery code the player typed in.</summary>
+    public enum RecoveryCodeOutcome
+    {
+        /// <summary>The code is the account's key; the cloud save is being read with it.</summary>
+        Unlocked,
+
+        /// <summary>The text is not a whole code, or a character is wrong.</summary>
+        NotACode,
+
+        /// <summary>The code is from an earlier key epoch; a newer one was shown since.</summary>
+        OlderCode,
+
+        /// <summary>The code does not open the account's contribution part; it is another account's or another phone's.</summary>
+        NotThisAccountsCode,
+
+        /// <summary>The server could not be reached to check the code.</summary>
+        Offline,
+
+        /// <summary>The server answered with something unexpected.</summary>
+        Failed,
+    }
+
     /// <summary>
     /// Keeps the world on the phone and the account's cloud save the same (ADR-0008, TASK-023): uploads after every
     /// save, a little later so that a burst of commands becomes one upload, reconciles at launch and sign-in, and
@@ -157,25 +179,37 @@ namespace Eirora.Client.App
         }
 
         /// <summary>
-        /// Unlocks the account's contribution part with a recovery code typed in by the player (TASK-023b): false when
-        /// the text is not a code. The key is kept and the cloud save reconciled again, now with it.
+        /// Unlocks the account's contribution part with a recovery code typed in by the player (TASK-023b). The key is
+        /// kept only once the cloud save confirms it (<see cref="CloudSync.AcceptKeyAsync"/>), and the cloud save is
+        /// then reconciled again, now with it.
         /// </summary>
-        public async Task<bool> EnterRecoveryCodeAsync(string code)
+        public async Task<RecoveryCodeOutcome> EnterRecoveryCodeAsync(string code)
         {
             if (CloudSaving.RecoveryCode.TryParse(code) is not { } key)
             {
-                return false;
+                return RecoveryCodeOutcome.NotACode;
             }
 
-            var (accountId, _) = await AccountIdAsync();
+            var (accountId, outcome) = await AccountIdAsync();
             if (accountId is null)
             {
-                return false;
+                return outcome == AccountOutcome.Offline ? RecoveryCodeOutcome.Offline : RecoveryCodeOutcome.Failed;
             }
 
-            _storage.KeepKey(accountId.Value, key);
-            await ReconcileAsync();
-            return true;
+            switch (await _sync.AcceptKeyAsync(accountId.Value, key))
+            {
+                case KeyAcceptance.Accepted:
+                    await ReconcileAsync();
+                    return RecoveryCodeOutcome.Unlocked;
+                case KeyAcceptance.OlderEpoch:
+                    return RecoveryCodeOutcome.OlderCode;
+                case KeyAcceptance.DoesNotOpen:
+                    return RecoveryCodeOutcome.NotThisAccountsCode;
+                case KeyAcceptance.Offline:
+                    return RecoveryCodeOutcome.Offline;
+                default:
+                    return RecoveryCodeOutcome.Failed;
+            }
         }
 
         private void OnAccountChanged()

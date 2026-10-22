@@ -132,6 +132,17 @@ namespace Eirora.Client.UI
             _ => null,
         };
 
+        /// <summary>What to tell the player after a recovery code was tried, or null when the island is being unlocked.</summary>
+        public static string? RecoveryCode(App.RecoveryCodeOutcome outcome) => outcome switch
+        {
+            App.RecoveryCodeOutcome.Unlocked => null,
+            App.RecoveryCodeOutcome.NotACode => "Det är inte en hel återställningskod. Kontrollera tecknen.",
+            App.RecoveryCodeOutcome.OlderCode => "Koden är från en äldre nyckel. Visa en ny kod på telefonen som har ön.",
+            App.RecoveryCodeOutcome.NotThisAccountsCode => "Koden hör inte till det här kontots ö.",
+            App.RecoveryCodeOutcome.Offline => "Servern går inte att nå just nu. Försök igen om en stund.",
+            _ => "Det gick inte just nu. Försök igen om en stund.",
+        };
+
         /// <summary>How the cloud save stands, for the account sheet, or null when there is no sign-in.</summary>
         public static string? CloudSync(App.CloudSyncStatus status, System.DateTimeOffset? syncedAt) => status switch
         {

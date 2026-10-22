@@ -110,10 +110,12 @@ namespace Eirora.Client.Tests
             Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
             Assert.That(fresh.Cloud.Choice!.Outcome, Is.EqualTo(SyncOutcome.KeyNeeded));
             Assert.That(fresh.Game.World, Is.Null);
-            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync("not a code")), Is.False);
+            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync("not a code")), Is.EqualTo(RecoveryCodeOutcome.NotACode));
+            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync(RecoveryCode.Of(ContributionKey.Generate(1)))), Is.EqualTo(RecoveryCodeOutcome.NotThisAccountsCode));
             Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+            Assert.That(fresh.Storage.Key(fresh.Account.Account!.Id), Is.Null, "a code that is not the account's is not kept");
 
-            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync(old.Cloud.RecoveryCode!.ToLowerInvariant())), Is.True);
+            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync(old.Cloud.RecoveryCode!.ToLowerInvariant())), Is.EqualTo(RecoveryCodeOutcome.Unlocked));
 
             Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
             Assert.That(fresh.Cloud.Choice, Is.Null);
@@ -121,6 +123,26 @@ namespace Eirora.Client.Tests
             Assert.That(fresh.Cloud.KeyEpochBegan, Is.False);
             Assert.That(fresh.Cloud.RecoveryCode, Is.EqualTo(old.Cloud.RecoveryCode));
             Assert.That(_server.CloudSaveOf("player")!.KeyEpoch, Is.EqualTo(1));
+        }
+
+        // A code written down before a new epoch began is out of date: it is refused with a reason, and the phone keeps
+        // the key it has, which still opens the part the server locked.
+        [Test]
+        public void AStaleRecoveryCodeIsRefusedAndTheKeyThePhoneHoldsStays()
+        {
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            string staleCode = old.Cloud.RecoveryCode!;
+            var another = Phone("b", withWorld: false);
+            another.SignIn();
+            Wait(another.Cloud.ReconcileAsync());
+            Wait(another.Cloud.ChooseAsync(WorldChoice.TakeCloud)); // Epoch 2 on the server.
+            string oldKey = old.Storage.Key(old.Account.Account!.Id)!.ToText();
+
+            Assert.That(Wait(old.Cloud.EnterRecoveryCodeAsync(staleCode)), Is.EqualTo(RecoveryCodeOutcome.OlderCode));
+
+            Assert.That(old.Storage.Key(old.Account.Account!.Id)!.ToText(), Is.EqualTo(oldKey));
         }
 
         [Test]

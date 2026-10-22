@@ -11,14 +11,16 @@ namespace Eirora.CloudSaving
 {
     /// <summary>
     /// Seals the contribution key for one other phone (ADR-0008, TASK-023b): the old phone seals it to the new phone's
-    /// one-time X25519 public key from the ticket, the server relays the sealed bytes, and only the new phone's private
-    /// key opens them. The account and the transfer are the associated data, so a sealed key cannot be replayed into
-    /// another transfer.
+    /// one-time X25519 public key and the secret from the ticket, the server relays the sealed bytes, and only the new
+    /// phone's private key and the secret open them. The server stores the public key but never sees the secret, so
+    /// neither it nor anyone with the account's token can seal a key the new phone would keep. The account and the
+    /// transfer are the associated data, so a sealed key cannot be replayed into another transfer.
     /// </summary>
     /// <remarks>
     /// A sealed key is UTF-8 text <c>eirora-transfer 1\n</c>, the sender's one-time X25519 public key (32 bytes), a
     /// random 192-bit nonce, then XChaCha20-Poly1305 over the key's text with the 128-bit tag after it. The cipher key
-    /// is HKDF-SHA256 of the X25519 agreement, salted with both public keys.
+    /// is HKDF-SHA256 over the X25519 agreement followed by the ticket's secret, salted with both public keys.
+    /// Key material is cleared from the buffers once used.
     /// </remarks>
     public static class KeyTransferCipher
     {
@@ -29,18 +31,23 @@ namespace Eirora.CloudSaving
         private static readonly byte[] s_header = Encoding.UTF8.GetBytes(Header);
         private static readonly byte[] s_info = Encoding.UTF8.GetBytes("eirora-key-transfer");
 
-        /// <summary>Seals <paramref name="key"/> for the phone that holds the private half of <paramref name="receiverPublicKey"/>.</summary>
-        /// <exception cref="ArgumentException">The public key is not one.</exception>
-        public static byte[] Seal(ContributionKey key, byte[] receiverPublicKey, Guid accountId, string transferId)
+        /// <summary>Seals <paramref name="key"/> for the phone that showed <paramref name="ticket"/>.</summary>
+        /// <exception cref="ArgumentException">The ticket's public key is not usable.</exception>
+        public static byte[] Seal(ContributionKey key, KeyTransferTicket ticket, Guid accountId)
         {
             if (key is null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
 
+            if (ticket is null)
+            {
+                throw new ArgumentNullException(nameof(ticket));
+            }
+
             var sender = TransferKeys.Generate();
-            byte[] cipherKey = CipherKey(sender.SharedSecretWith(receiverPublicKey), receiverPublicKey, sender.PublicKey)
-                ?? throw new ArgumentException("Not a usable transfer public key.", nameof(receiverPublicKey));
+            byte[] cipherKey = CipherKey(sender.SharedSecretWith(ticket.ReceiverPublicKey), ticket.Secret, ticket.ReceiverPublicKey, sender.PublicKey)
+                ?? throw new ArgumentException("Not a usable transfer public key.", nameof(ticket));
 
             var nonce = new byte[NonceLength];
             using (var random = RandomNumberGenerator.Create())
@@ -49,27 +56,40 @@ namespace Eirora.CloudSaving
             }
 
             byte[] plain = Encoding.UTF8.GetBytes(key.ToText());
-            var cipher = new XChaCha20Poly1305();
-            cipher.Init(true, new AeadParameters(new KeyParameter(cipherKey), TagLength * 8, nonce, AssociatedData(accountId, transferId)));
-            var output = new byte[s_header.Length + TransferKeys.PublicKeyLength + NonceLength + cipher.GetOutputSize(plain.Length)];
-            Buffer.BlockCopy(s_header, 0, output, 0, s_header.Length);
-            Buffer.BlockCopy(sender.PublicKey, 0, output, s_header.Length, TransferKeys.PublicKeyLength);
-            Buffer.BlockCopy(nonce, 0, output, s_header.Length + TransferKeys.PublicKeyLength, NonceLength);
-            int at = s_header.Length + TransferKeys.PublicKeyLength + NonceLength;
-            at += cipher.ProcessBytes(plain, 0, plain.Length, output, at);
-            cipher.DoFinal(output, at);
-            return output;
+            try
+            {
+                var cipher = new XChaCha20Poly1305();
+                cipher.Init(true, new AeadParameters(new KeyParameter(cipherKey), TagLength * 8, nonce, AssociatedData(accountId, ticket.Id)));
+                var output = new byte[s_header.Length + TransferKeys.PublicKeyLength + NonceLength + cipher.GetOutputSize(plain.Length)];
+                Buffer.BlockCopy(s_header, 0, output, 0, s_header.Length);
+                Buffer.BlockCopy(sender.PublicKey, 0, output, s_header.Length, TransferKeys.PublicKeyLength);
+                Buffer.BlockCopy(nonce, 0, output, s_header.Length + TransferKeys.PublicKeyLength, NonceLength);
+                int at = s_header.Length + TransferKeys.PublicKeyLength + NonceLength;
+                at += cipher.ProcessBytes(plain, 0, plain.Length, output, at);
+                cipher.DoFinal(output, at);
+                return output;
+            }
+            finally
+            {
+                Array.Clear(plain, 0, plain.Length);
+                Array.Clear(cipherKey, 0, cipherKey.Length);
+            }
         }
 
         /// <summary>
-        /// The key <paramref name="sealedKey"/> holds, or null when it was not sealed for <paramref name="receiver"/> in
-        /// this account's transfer, or was changed since.
+        /// The key <paramref name="sealedKey"/> holds, or null when it was not sealed for <paramref name="receiver"/>
+        /// with the secret of <paramref name="ticket"/> in this account's transfer, or was changed since.
         /// </summary>
-        public static ContributionKey? Open(TransferKeys receiver, Guid accountId, string transferId, byte[] sealedKey)
+        public static ContributionKey? Open(TransferKeys receiver, KeyTransferTicket ticket, Guid accountId, byte[] sealedKey)
         {
             if (receiver is null)
             {
                 throw new ArgumentNullException(nameof(receiver));
+            }
+
+            if (ticket is null)
+            {
+                throw new ArgumentNullException(nameof(ticket));
             }
 
             if (sealedKey is null)
@@ -87,7 +107,7 @@ namespace Eirora.CloudSaving
             Buffer.BlockCopy(sealedKey, s_header.Length, senderPublicKey, 0, TransferKeys.PublicKeyLength);
             var nonce = new byte[NonceLength];
             Buffer.BlockCopy(sealedKey, s_header.Length + TransferKeys.PublicKeyLength, nonce, 0, NonceLength);
-            byte[]? cipherKey = CipherKey(receiver.SharedSecretWith(senderPublicKey), receiver.PublicKey, senderPublicKey);
+            byte[]? cipherKey = CipherKey(receiver.SharedSecretWith(senderPublicKey), ticket.Secret, receiver.PublicKey, senderPublicKey);
             if (cipherKey is null)
             {
                 return null;
@@ -96,7 +116,7 @@ namespace Eirora.CloudSaving
             int offset = s_header.Length + TransferKeys.PublicKeyLength + NonceLength;
             int length = sealedKey.Length - offset;
             var cipher = new XChaCha20Poly1305();
-            cipher.Init(false, new AeadParameters(new KeyParameter(cipherKey), TagLength * 8, nonce, AssociatedData(accountId, transferId)));
+            cipher.Init(false, new AeadParameters(new KeyParameter(cipherKey), TagLength * 8, nonce, AssociatedData(accountId, ticket.Id)));
             var output = new byte[cipher.GetOutputSize(length)];
             try
             {
@@ -112,27 +132,46 @@ namespace Eirora.CloudSaving
             {
                 return null; // Not UTF-8.
             }
+            finally
+            {
+                Array.Clear(output, 0, output.Length);
+                Array.Clear(cipherKey, 0, cipherKey.Length);
+            }
         }
 
         internal static byte[] AssociatedData(Guid accountId, string transferId) =>
             Encoding.UTF8.GetBytes("eirora-key-transfer " + accountId.ToString("D") + " " + transferId);
 
-        /// <summary>HKDF-SHA256 of the agreement, salted with the receiver's and the sender's public keys in that order.</summary>
-        private static byte[]? CipherKey(byte[]? sharedSecret, byte[] receiverPublicKey, byte[] senderPublicKey)
+        /// <summary>
+        /// HKDF-SHA256 over the agreement followed by the ticket's secret, salted with the receiver's and the sender's
+        /// public keys in that order.
+        /// </summary>
+        private static byte[]? CipherKey(byte[]? sharedSecret, byte[] ticketSecret, byte[] receiverPublicKey, byte[] senderPublicKey)
         {
             if (sharedSecret is null)
             {
                 return null;
             }
 
+            var ikm = new byte[sharedSecret.Length + ticketSecret.Length];
+            Buffer.BlockCopy(sharedSecret, 0, ikm, 0, sharedSecret.Length);
+            Buffer.BlockCopy(ticketSecret, 0, ikm, sharedSecret.Length, ticketSecret.Length);
             var salt = new byte[receiverPublicKey.Length + senderPublicKey.Length];
             Buffer.BlockCopy(receiverPublicKey, 0, salt, 0, receiverPublicKey.Length);
             Buffer.BlockCopy(senderPublicKey, 0, salt, receiverPublicKey.Length, senderPublicKey.Length);
-            var hkdf = new HkdfBytesGenerator(new Sha256Digest());
-            hkdf.Init(new HkdfParameters(sharedSecret, salt, s_info));
-            var key = new byte[ContributionKey.Length];
-            hkdf.GenerateBytes(key, 0, key.Length);
-            return key;
+            try
+            {
+                var hkdf = new HkdfBytesGenerator(new Sha256Digest());
+                hkdf.Init(new HkdfParameters(ikm, salt, s_info));
+                var key = new byte[ContributionKey.Length];
+                hkdf.GenerateBytes(key, 0, key.Length);
+                return key;
+            }
+            finally
+            {
+                Array.Clear(sharedSecret, 0, sharedSecret.Length);
+                Array.Clear(ikm, 0, ikm.Length);
+            }
         }
 
         private static bool StartsWithHeader(byte[] bytes)

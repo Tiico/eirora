@@ -76,8 +76,10 @@ public sealed class CloudSyncTests
         var asked = await fresh.Sync.ReconcileAsync(s_account);
         var worldWhileAsked = fresh.World.Current;
         int uploadsWhileAsked = store.Uploads;
-        fresh.Storage.KeepKey(s_account, RecoveryCode.TryParse(RecoveryCode.Of(old.Storage.Key(s_account)!))!);
+        var accepted = await fresh.Sync.AcceptKeyAsync(s_account, RecoveryCode.TryParse(RecoveryCode.Of(old.Storage.Key(s_account)!))!);
         var unlocked = await fresh.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal(KeyAcceptance.Accepted, accepted);
 
         Assert.Equal((SyncOutcome.KeyNeeded, true, old.Save.World.GameDay), (asked.Outcome, asked.ContributionsUnreadable, asked.CloudGameDay));
         Assert.Null(worldWhileAsked);
@@ -445,6 +447,41 @@ public sealed class CloudSyncTests
 
         Assert.NotEqual(phone.Storage.Key(s_account)!.ToText(), phone.Storage.Key(other)!.ToText());
         Assert.Null(ContributionCipher.Open(phone.Storage.Key(s_account)!, other, 1, otherStore.Current!.Contributions));
+    }
+
+    // A key from a recovery code or a transfer is kept only when it is the cloud save's: a stale code, or any other key,
+    // cannot replace what the device holds.
+    [Fact]
+    public async Task AKeyFromOutsideIsKeptOnlyWhenTheCloudSaveConfirmsIt()
+    {
+        var store = new FakeCloudSaveStore();
+        var old = new Device(store, PlayedSave());
+        await old.Sync.ReconcileAsync(s_account);
+        var right = old.Storage.Key(s_account)!;
+        var fresh = new Device(store);
+
+        Assert.Equal(KeyAcceptance.DoesNotOpen, await fresh.Sync.AcceptKeyAsync(s_account, ContributionKey.Generate(1)));
+        Assert.Equal(KeyAcceptance.DoesNotOpen, await fresh.Sync.AcceptKeyAsync(s_account, ContributionKey.Generate(2)));
+        Assert.Null(fresh.Storage.Key(s_account));
+        Assert.Equal(KeyAcceptance.Accepted, await fresh.Sync.AcceptKeyAsync(s_account, right));
+        Assert.Equal(right.ToText(), fresh.Storage.Key(s_account)!.ToText());
+
+        await new Device(store).Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud); // Epoch 2 on the server.
+
+        Assert.Equal(KeyAcceptance.OlderEpoch, await fresh.Sync.AcceptKeyAsync(s_account, right));
+        store.Online = false;
+        Assert.Equal(KeyAcceptance.Offline, await fresh.Sync.AcceptKeyAsync(s_account, right));
+        Assert.True(right.ToText() == fresh.Storage.Key(s_account)!.ToText(), "what the device held is untouched");
+    }
+
+    [Fact]
+    public async Task WithoutACloudSaveAKeyFromOutsideIsKept()
+    {
+        var phone = new Device(new FakeCloudSaveStore());
+        var key = ContributionKey.Generate(3);
+
+        Assert.Equal(KeyAcceptance.Accepted, await phone.Sync.AcceptKeyAsync(s_account, key));
+        Assert.Equal(key.ToText(), phone.Storage.Key(s_account)!.ToText());
     }
 
     private static void Advance(Save save, long seconds)

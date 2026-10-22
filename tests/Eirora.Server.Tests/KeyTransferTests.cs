@@ -49,7 +49,8 @@ public sealed class KeyTransferTests(ServerFixture fixture)
         var (_, transfer) = await api.CreateKeyTransferAsync(tokens.Access, new KeyTransferRequest(receiver.PublicKey));
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
         var key = ContributionKey.Generate(1);
-        byte[] sealedKey = KeyTransferCipher.Seal(key, transfer!.ReceiverPublicKey, accountId, transfer.Id);
+        var ticket = new KeyTransferTicket(transfer!.Id, transfer.ReceiverPublicKey, KeyTransferTicket.NewSecret());
+        byte[] sealedKey = KeyTransferCipher.Seal(key, ticket, accountId);
 
         var delivered = await api.DeliverKeyTransferAsync(tokens.Access, transfer.Id, new KeyTransferDelivery(sealedKey));
         var (taken, received) = await api.GetKeyTransferAsync(tokens.Access, transfer.Id);
@@ -58,7 +59,7 @@ public sealed class KeyTransferTests(ServerFixture fixture)
         Assert.Equal(HttpStatusCode.NoContent, delivered);
         Assert.Equal(HttpStatusCode.OK, taken);
         Assert.Equal(sealedKey, received!.SealedKey);
-        Assert.Equal(key.ToText(), KeyTransferCipher.Open(receiver, accountId, transfer.Id, received.SealedKey!)!.ToText());
+        Assert.Equal(key.ToText(), KeyTransferCipher.Open(receiver, ticket, accountId, received.SealedKey!)!.ToText());
         Assert.Equal(HttpStatusCode.NotFound, again);
     }
 
@@ -173,7 +174,8 @@ public sealed class KeyTransferTests(ServerFixture fixture)
         var (_, transfer) = await api.CreateKeyTransferAsync(tokens.Access, new KeyTransferRequest(receiver.PublicKey));
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
         var key = ContributionKey.Generate(1);
-        byte[] sealedKey = KeyTransferCipher.Seal(key, transfer!.ReceiverPublicKey, accountId, transfer.Id);
+        var ticket = new KeyTransferTicket(transfer!.Id, transfer.ReceiverPublicKey, KeyTransferTicket.NewSecret());
+        byte[] sealedKey = KeyTransferCipher.Seal(key, ticket, accountId);
         await api.DeliverKeyTransferAsync(tokens.Access, transfer.Id, new KeyTransferDelivery(sealedKey));
 
         await using var db = _fixture.CreateDbContext();
@@ -181,7 +183,28 @@ public sealed class KeyTransferTests(ServerFixture fixture)
 
         Assert.Equal(sealedKey, row.SealedKey);
         Assert.DoesNotContain(Convert.FromBase64String(key.ToText().Split(' ')[1]), Chunks(row.SealedKey!, 8));
-        Assert.Null(KeyTransferCipher.Open(TransferKeys.Generate(), accountId, transfer.Id, row.SealedKey!));
+        Assert.Null(KeyTransferCipher.Open(TransferKeys.Generate(), ticket, accountId, row.SealedKey!));
+        // What the server holds does not let it seal a key the phone would open: the ticket's secret never reached it.
+        var withoutTheSecret = new KeyTransferTicket(row.Id, row.ReceiverPublicKey, KeyTransferTicket.NewSecret());
+        Assert.Null(KeyTransferCipher.Open(receiver, ticket, accountId, KeyTransferCipher.Seal(ContributionKey.Generate(1), withoutTheSecret, accountId)));
+    }
+
+    // Two deliveries at once: exactly one is stored. Two takes at once: the sealed key is handed over exactly once.
+    [Fact]
+    public async Task DeliveriesAndTakesAtOnceStillHappenOnce()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var (_, transfer) = await api.CreateKeyTransferAsync(tokens.Access, new KeyTransferRequest(TransferKeys.Generate().PublicKey));
+
+        var deliveries = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ =>
+            api.DeliverKeyTransferAsync(tokens.Access, transfer!.Id, new KeyTransferDelivery(RandomNumberGenerator.GetBytes(128)))));
+        var takes = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => api.GetKeyTransferAsync(tokens.Access, transfer!.Id)));
+
+        Assert.Equal(1, deliveries.Count(s => s == HttpStatusCode.NoContent));
+        Assert.Equal(5, deliveries.Count(s => s == HttpStatusCode.Conflict));
+        Assert.Equal(1, takes.Count(t => t.Status == HttpStatusCode.OK));
+        Assert.Equal(5, takes.Count(t => t.Status == HttpStatusCode.NotFound));
     }
 
     private static IEnumerable<byte[]> Chunks(byte[] bytes, int length) =>

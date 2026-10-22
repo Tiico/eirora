@@ -4,51 +4,99 @@ namespace Eirora.CloudSaving.Tests;
 
 /// <summary>
 /// The two phones' sides of a key transfer (ADR-0008, TASK-023b) against a relay with the server's rules: the new
-/// phone begins and polls, the old phone seals and delivers, the key is handed over once, and nothing readable
-/// passes the server.
+/// phone begins and polls, the old phone seals and delivers, the key is handed over once and kept only once the cloud
+/// save confirms it, and nothing the relay holds lets anyone plant a key.
 /// </summary>
 public sealed class KeyTransferTests
 {
+    private const long Hour = 3600;
     private static readonly Guid s_account = Guid.NewGuid();
 
     [Fact]
     public async Task TheKeyGoesFromTheOldPhoneToTheNewOne()
     {
-        var relay = new FakeKeyTransferStore();
-        var oldPhone = new MemoryStorage();
-        var key = ContributionKey.Generate(3);
-        oldPhone.KeepKey(s_account, key);
-        var newPhone = new MemoryStorage();
-        var receiver = new KeyTransferReceiver(relay, newPhone);
-        var sender = new KeyTransferSender(relay, oldPhone);
+        var (store, relay, oldPhone, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
+        var sender = new KeyTransferSender(relay, oldPhone.Storage);
+        var key = oldPhone.Storage.Key(s_account)!;
 
         var begun = await receiver.BeginAsync();
         var waiting = await receiver.PollAsync(s_account);
         var sent = await sender.SendAsync(s_account, KeyTransferTicket.TryParse(receiver.Ticket!.ToText())!);
         var received = await receiver.PollAsync(s_account);
+        var synced = await newPhone.Sync.ReconcileAsync(s_account);
 
-        Assert.Equal(KeyTransferOutcome.Waiting, begun);
-        Assert.Equal(KeyTransferOutcome.Waiting, waiting);
-        Assert.Equal(KeyDeliveryOutcome.Delivered, sent);
-        Assert.Equal(KeyTransferOutcome.Received, received);
-        Assert.Equal(key.ToText(), newPhone.Key(s_account)!.ToText());
+        Assert.Equal((KeyTransferOutcome.Waiting, KeyTransferOutcome.Waiting, KeyDeliveryOutcome.Delivered, KeyTransferOutcome.Received), (begun, waiting, sent, received));
+        Assert.Equal(key.ToText(), newPhone.Storage.Key(s_account)!.ToText());
         Assert.Null(receiver.Ticket);
         Assert.Empty(relay.Transfers);
         Assert.True(relay.Delivered.Single().AsSpan().IndexOf(Convert.FromBase64String(key.ToText().Split(' ')[1])) < 0, "the key never passes the relay in the clear");
+        Assert.Equal((SyncOutcome.Synced, true, false), (synced.Outcome, synced.Downloaded, synced.KeyEpochBegan));
+        Assert.Equal(oldPhone.Fingerprint, newPhone.Fingerprint);
+        Assert.Equal(1, store.Current!.KeyEpoch);
+    }
+
+    // The relay holds the transfer's id and public key, and knows the account; that is not enough to plant a key.
+    [Fact]
+    public async Task TheRelayCannotPlantAKeyOnTheNewPhone()
+    {
+        var (_, relay, _, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
+        await receiver.BeginAsync();
+        var (id, stored) = relay.Transfers.Single();
+        var planted = ContributionKey.Generate(1);
+        var whatTheRelayHas = new KeyTransferTicket(id, stored.PublicKey, KeyTransferTicket.NewSecret());
+
+        await relay.DeliverAsync(id, KeyTransferCipher.Seal(planted, whatTheRelayHas, s_account));
+
+        Assert.Equal(KeyTransferOutcome.Unreadable, await receiver.PollAsync(s_account));
+        Assert.Null(newPhone.Storage.Key(s_account));
+        Assert.Null(receiver.Ticket);
+    }
+
+    // A key that opens but is not the cloud save's, as from an old phone whose epoch has been superseded, is not kept.
+    [Fact]
+    public async Task AKeyOfAnOlderEpochIsNotKept()
+    {
+        var (store, relay, oldPhone, newPhone) = TwoPhones();
+        var another = new Device(store);
+        await another.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud); // Epoch 2 on the server; the old phone keeps epoch 1.
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
+        await receiver.BeginAsync();
+        await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, receiver.Ticket!);
+
+        Assert.Equal(KeyTransferOutcome.Rejected, await receiver.PollAsync(s_account));
+        Assert.Null(newPhone.Storage.Key(s_account));
+        Assert.Equal(2, store.Current!.KeyEpoch);
+    }
+
+    [Fact]
+    public async Task AKeyThatArrivedWhileOfflineIsKeptOnTheNextTry()
+    {
+        var (store, relay, oldPhone, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
+        await receiver.BeginAsync();
+        await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, receiver.Ticket!);
+        store.Online = false;
+
+        var offline = await receiver.PollAsync(s_account);
+        store.Online = true;
+        var kept = await receiver.PollAsync(s_account);
+
+        Assert.Equal((KeyTransferOutcome.Offline, KeyTransferOutcome.Received), (offline, kept));
+        Assert.Equal(oldPhone.Storage.Key(s_account)!.ToText(), newPhone.Storage.Key(s_account)!.ToText());
     }
 
     [Fact]
     public async Task ATransferThatRanOutOrWasReplacedIsOverForBothPhones()
     {
-        var relay = new FakeKeyTransferStore();
-        var oldPhone = new MemoryStorage();
-        oldPhone.KeepKey(s_account, ContributionKey.Generate(1));
-        var receiver = new KeyTransferReceiver(relay, new MemoryStorage());
+        var (_, relay, oldPhone, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
         await receiver.BeginAsync();
         var ticket = receiver.Ticket!;
         relay.Expire(ticket.Id);
 
-        Assert.Equal(KeyDeliveryOutcome.Expired, await new KeyTransferSender(relay, oldPhone).SendAsync(s_account, ticket));
+        Assert.Equal(KeyDeliveryOutcome.Expired, await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, ticket));
         Assert.Equal(KeyTransferOutcome.Expired, await receiver.PollAsync(s_account));
         Assert.Null(receiver.Ticket);
         Assert.Equal(KeyTransferOutcome.Expired, await receiver.PollAsync(s_account));
@@ -57,12 +105,10 @@ public sealed class KeyTransferTests
     [Fact]
     public async Task AKeyIsDeliveredOnlyOnceAndOnlyFromAPhoneThatHasOne()
     {
-        var relay = new FakeKeyTransferStore();
-        var oldPhone = new MemoryStorage();
-        oldPhone.KeepKey(s_account, ContributionKey.Generate(1));
-        var receiver = new KeyTransferReceiver(relay, new MemoryStorage());
+        var (_, relay, oldPhone, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
         await receiver.BeginAsync();
-        var sender = new KeyTransferSender(relay, oldPhone);
+        var sender = new KeyTransferSender(relay, oldPhone.Storage);
 
         Assert.Equal(KeyDeliveryOutcome.NoKey, await new KeyTransferSender(relay, new MemoryStorage()).SendAsync(s_account, receiver.Ticket!));
         Assert.Equal(KeyDeliveryOutcome.Delivered, await sender.SendAsync(s_account, receiver.Ticket!));
@@ -70,39 +116,34 @@ public sealed class KeyTransferTests
     }
 
     [Fact]
-    public async Task AKeySealedForAnotherPhoneOrAccountIsNotKept()
+    public async Task AKeySealedForAnotherPhoneIsNotKept()
     {
-        var relay = new FakeKeyTransferStore();
-        var oldPhone = new MemoryStorage();
-        oldPhone.KeepKey(s_account, ContributionKey.Generate(1));
-        var newPhone = new MemoryStorage();
-        var receiver = new KeyTransferReceiver(relay, newPhone);
+        var (_, relay, oldPhone, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
         await receiver.BeginAsync();
-        var forAnotherPhone = new KeyTransferTicket(receiver.Ticket!.Id, TransferKeys.Generate().PublicKey);
+        var forAnotherPhone = new KeyTransferTicket(receiver.Ticket!.Id, TransferKeys.Generate().PublicKey, receiver.Ticket.Secret);
 
-        await new KeyTransferSender(relay, oldPhone).SendAsync(s_account, forAnotherPhone);
+        await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, forAnotherPhone);
 
         Assert.Equal(KeyTransferOutcome.Unreadable, await receiver.PollAsync(s_account));
-        Assert.Null(newPhone.Key(s_account));
+        Assert.Null(newPhone.Storage.Key(s_account));
         Assert.Null(receiver.Ticket);
     }
 
     [Fact]
     public async Task ABadTicketIsRefusedBeforeAnythingIsSent()
     {
-        var relay = new FakeKeyTransferStore();
-        var oldPhone = new MemoryStorage();
-        oldPhone.KeepKey(s_account, ContributionKey.Generate(1));
+        var (_, relay, oldPhone, _) = TwoPhones();
 
-        Assert.Equal(KeyDeliveryOutcome.BadTicket, await new KeyTransferSender(relay, oldPhone).SendAsync(s_account, new KeyTransferTicket("t", new byte[32])));
+        Assert.Equal(KeyDeliveryOutcome.BadTicket, await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, new KeyTransferTicket("t", new byte[32], KeyTransferTicket.NewSecret())));
         Assert.Empty(relay.Delivered);
     }
 
     [Fact]
     public async Task CancellingEndsTheTransferOnTheServerToo()
     {
-        var relay = new FakeKeyTransferStore();
-        var receiver = new KeyTransferReceiver(relay, new MemoryStorage());
+        var (_, relay, _, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
         await receiver.BeginAsync();
 
         await receiver.CancelAsync();
@@ -114,8 +155,8 @@ public sealed class KeyTransferTests
     [Fact]
     public async Task OfflineTheTransferStaysOpen()
     {
-        var relay = new FakeKeyTransferStore();
-        var receiver = new KeyTransferReceiver(relay, new MemoryStorage());
+        var (_, relay, _, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
         await receiver.BeginAsync();
         relay.Online = false;
 
@@ -126,10 +167,10 @@ public sealed class KeyTransferTests
     }
 
     [Fact]
-    public async Task ANewTransferReplacesThePendingOne()
+    public async Task ANewTransferReplacesThePendingOneWithNewKeysAndANewSecret()
     {
-        var relay = new FakeKeyTransferStore();
-        var receiver = new KeyTransferReceiver(relay, new MemoryStorage());
+        var (_, relay, _, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
         await receiver.BeginAsync();
         var first = receiver.Ticket!;
 
@@ -137,7 +178,19 @@ public sealed class KeyTransferTests
 
         Assert.NotEqual(first.Id, receiver.Ticket!.Id);
         Assert.NotEqual(first.ReceiverPublicKey, receiver.Ticket.ReceiverPublicKey);
+        Assert.NotEqual(first.Secret, receiver.Ticket.Secret);
         Assert.Single(relay.Transfers);
+    }
+
+    /// <summary>An old phone whose world is on the server under key epoch 1, a new phone without a world or a key, and the relay.</summary>
+    private static (FakeCloudSaveStore Store, FakeKeyTransferStore Relay, Device OldPhone, Device NewPhone) TwoPhones()
+    {
+        var store = new FakeCloudSaveStore();
+        var save = Simulation.Saving.Save.Begin(new Simulation.Time.TimeReading(1_780_304_400, "Europe/Stockholm", 7200), new Simulation.Time.RestSchedule(23 * 60, 8 * 60));
+        save.AdvanceTo(new Simulation.Time.TimeReading(1_780_304_400 + Hour, "Europe/Stockholm", 7200));
+        var oldPhone = new Device(store, save);
+        oldPhone.Sync.ReconcileAsync(s_account).GetAwaiter().GetResult();
+        return (store, new FakeKeyTransferStore(), oldPhone, new Device(store));
     }
 }
 

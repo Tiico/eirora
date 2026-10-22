@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Eirora.Client.App;
 using Eirora.CloudSaving;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Eirora.Client.UI
@@ -113,7 +114,7 @@ namespace Eirora.Client.UI
             _choiceCard = card;
             Text("setup-title", card, "Din ö finns på kontot");
             Text("sheet-text", card, $"Kontot har en ö{CloudWorld(choice)}. Egenvården i den är krypterad med en nyckel som den här telefonen saknar, och servern kan inte läsa den heller.");
-            Text("sheet-text", card, "Nyckeln finns på din gamla telefon. Har du en återställningskod kan du skriva in den här.");
+            Text("sheet-text", card, "Har du en återställningskod kan du skriva in den här.");
             RecoveryCodeEntry(card);
             Text("sheet-text", card, "Utan nyckeln hämtas ön ändå, men dagarna till och med i dag räknas som vilodagar och bidragen räknas igen från nästa spelardygn.");
             Button("button button-wide", card, "Fortsätt utan nyckeln", () => Choose(WorldChoice.TakeCloud));
@@ -129,10 +130,18 @@ namespace Eirora.Client.UI
         /// <summary>A field for the recovery code and the button that tries it; the cloud save follows by itself.</summary>
         private void RecoveryCodeEntry(VisualElement card)
         {
-            var field = new TextField { multiline = false };
+            // The key must not end up in the keyboard's dictionary or its cloud suggestions: no autocorrection, and the
+            // field is cleared once the code has been tried.
+            var field = new TextField { multiline = false, keyboardType = TouchScreenKeyboardType.ASCIICapable };
+            field.autoCorrection = false;
             field.AddToClassList("recovery-code-field");
             card.Add(field);
-            Button("button button-wide button-primary", card, "Lås upp med koden", () => _ = UnlockAsync(field.value));
+            Button("button button-wide button-primary", card, "Lås upp med koden", () =>
+            {
+                string code = field.value;
+                field.value = string.Empty;
+                _ = UnlockAsync(code);
+            });
         }
 
         private async Task UnlockAsync(string code)
@@ -142,9 +151,9 @@ namespace Eirora.Client.UI
                 return;
             }
 
-            if (!await cloud.EnterRecoveryCodeAsync(code))
+            if (Texts.RecoveryCode(await cloud.EnterRecoveryCodeAsync(code)) is { } message)
             {
-                Toast("Det är inte en hel återställningskod. Kontrollera tecknen.");
+                Toast(message);
             }
         }
 

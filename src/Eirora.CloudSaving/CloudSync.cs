@@ -65,6 +65,47 @@ namespace Eirora.CloudSaving
             return status == StoreStatus.Conflict ? await ReconcileAsync(accountId, null, changes, attempt: 1) : result;
         }
 
+        /// <summary>
+        /// Keeps a contribution key that came from outside, a recovery code or a key transfer (TASK-023b), once the
+        /// cloud save confirms it: its epoch must be the cloud save's, and the contribution part must open with it. A
+        /// key of an older epoch, or one that does not open the part, is not kept, so a stale code cannot replace a key
+        /// the device still needs. Without a cloud save, there is nothing to check against and the key is kept.
+        /// </summary>
+        public async Task<KeyAcceptance> AcceptKeyAsync(Guid accountId, ContributionKey key)
+        {
+            if (key is null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            var got = await _store.GetAsync();
+            switch (got.Status)
+            {
+                case StoreStatus.Ok when got.Value is { } remote:
+                    if (key.Epoch < remote.KeyEpoch)
+                    {
+                        return KeyAcceptance.OlderEpoch;
+                    }
+
+                    if (key.Epoch > remote.KeyEpoch || ContributionCipher.Open(key, accountId, remote.Version, remote.Contributions) is null)
+                    {
+                        return KeyAcceptance.DoesNotOpen;
+                    }
+
+                    _storage.KeepKey(accountId, key);
+                    return KeyAcceptance.Accepted;
+                case StoreStatus.NotFound:
+                    _storage.KeepKey(accountId, key);
+                    return KeyAcceptance.Accepted;
+                case StoreStatus.Offline:
+                    return KeyAcceptance.Offline;
+                case StoreStatus.SignedOut:
+                    return KeyAcceptance.SignedOut;
+                default:
+                    return KeyAcceptance.Failed;
+            }
+        }
+
         /// <summary>Forgets the account's key and state on this device, as when the account is deleted (ADR-0008).</summary>
         public void Forget(Guid accountId)
         {

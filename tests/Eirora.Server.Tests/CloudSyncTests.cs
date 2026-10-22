@@ -99,7 +99,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
         await old.Sync.ReconcileAsync(old.AccountId);
         var fresh = await DeviceAsync(login);
         var asked = await fresh.Sync.ReconcileAsync(fresh.AccountId);
-        var receiver = new KeyTransferReceiver(fresh.Transfers, fresh.Storage);
+        var receiver = new KeyTransferReceiver(fresh.Transfers, fresh.Sync);
         var sender = new KeyTransferSender(old.Transfers, old.Storage);
 
         var begun = await receiver.BeginAsync();

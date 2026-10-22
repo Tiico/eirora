@@ -44,32 +44,29 @@ public sealed class KeyTransferService(EiroraDbContext db, TimeProvider time)
             return null;
         }
 
-        if (transfer.SealedKey is not null)
+        // Deleted by the same statement that checks it is still there, so that two takes at once hand it over once.
+        if (transfer.SealedKey is not null
+            && await db.KeyTransfers.Where(t => t.Id == id && t.AccountId == accountId && t.SealedKey != null).ExecuteDeleteAsync(cancellationToken) == 0)
         {
-            db.KeyTransfers.Remove(transfer);
-            await db.SaveChangesAsync(cancellationToken);
+            return null;
         }
 
         return ToContract(transfer);
     }
 
-    /// <summary>Stores the sealed key from the old phone.</summary>
+    /// <summary>Stores the sealed key from the old phone, once: a second delivery, even at the same moment, conflicts.</summary>
     public async Task<DeliveryStatus> DeliverAsync(Guid accountId, string id, byte[] sealedKey, CancellationToken cancellationToken)
     {
-        var transfer = await PendingAsync(accountId, id, cancellationToken);
-        if (transfer is null)
+        var now = time.GetUtcNow();
+        int delivered = await db.KeyTransfers
+            .Where(t => t.Id == id && t.AccountId == accountId && t.ExpiresAt > now && t.SealedKey == null)
+            .ExecuteUpdateAsync(t => t.SetProperty(x => x.SealedKey, sealedKey), cancellationToken);
+        if (delivered > 0)
         {
-            return DeliveryStatus.NotFound;
+            return DeliveryStatus.Delivered;
         }
 
-        if (transfer.SealedKey is not null)
-        {
-            return DeliveryStatus.AlreadyDelivered;
-        }
-
-        transfer.SealedKey = sealedKey;
-        await db.SaveChangesAsync(cancellationToken);
-        return DeliveryStatus.Delivered;
+        return await PendingAsync(accountId, id, cancellationToken) is null ? DeliveryStatus.NotFound : DeliveryStatus.AlreadyDelivered;
     }
 
     public async Task<bool> DeleteAsync(Guid accountId, string id, CancellationToken cancellationToken) =>
