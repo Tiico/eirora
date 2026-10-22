@@ -68,9 +68,9 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>The timber left on a forest tile, which woodcutters fell and which grows back.</summary>
-        public static string Timber(long left) => left >= 40
-            ? "40 timmer att fälla."
-            : $"{left} av 40 timmer kvar att fälla. Skogen växer tillbaka.";
+        public static string Timber(long left) => left >= World.TimberPerForest
+            ? $"{World.TimberPerForest} timmer att fälla."
+            : $"{left} av {World.TimberPerForest} timmer kvar att fälla. Skogen växer tillbaka.";
 
         /// <summary>Items joined as Swedish lists them: "a, b och c".</summary>
         public static string List(IEnumerable<string> items)

@@ -18,9 +18,6 @@ namespace Eirora.Client.Look
         /// <summary>How full a forest is drawn where a building stands in it, and at the least when it has been felled bare.</summary>
         public const float CrowdedForest = 0.25f;
 
-        /// <summary>The timber a forest tile holds when it is full (economy-v1.md, section 3).</summary>
-        private const float FullForest = 40f;
-
         private readonly Transform _parent;
         private readonly Material _flat;
         private readonly Looks _looks;
@@ -96,7 +93,7 @@ namespace Eirora.Client.Look
                     // Felled forest thins out as the woodcutters take its timber and fills again as it grows back.
                     float fullness = nature != NatureKind.Forest ? 1f
                         : occupied.Contains(tile.Key) ? CrowdedForest
-                        : Mathf.Max(CrowdedForest, world.TimberLeft(tile.Key) / FullForest);
+                        : Mathf.Max(CrowdedForest, world.TimberLeft(tile.Key) / (float)World.TimberPerForest);
                     _looks.Nature(mesh, lights, nature, fullness, fogged, ground, Seed(tile.Key));
                 }
             }

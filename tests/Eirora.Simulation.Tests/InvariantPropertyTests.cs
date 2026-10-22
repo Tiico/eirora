@@ -160,7 +160,7 @@ public sealed class InvariantPropertyTests
             // One building to a tile, counting the queue, and no forest tile below empty or above full (economy-v1.md, section 3.1).
             var taken = world.Buildings.Select(b => b.Tile).Concat(world.Projects.Where(p => p.Kind == ProjectKind.Build).Select(p => p.Tile)).ToList();
             Assert.Equal(taken.Count, taken.Distinct().Count());
-            Assert.All(s_forest, tile => Assert.InRange(world.TimberLeft(tile), 0, 40));
+            Assert.All(s_forest, tile => Assert.InRange(world.TimberLeft(tile), 0, World.TimberPerForest));
         }
     }
 
