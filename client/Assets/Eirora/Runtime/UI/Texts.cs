@@ -166,6 +166,12 @@ namespace Eirora.Client.UI
             _ => "Det gick inte just nu.",
         };
 
+        /// <summary>
+        /// What the island across the sea is called: Nyön on the prototype's map, "den nya ön" on a generated one, whose
+        /// islands have no names yet and can lie in any direction.
+        /// </summary>
+        public static string IslandName(string? island) => island == PrototypeHome.Nyon ? "Nyön" : "den nya ön";
+
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
         public static string? Describe(GameEvent gameEvent) => gameEvent switch
         {
@@ -176,7 +182,8 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Upgrade } done => $"{Name(done.Building)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
             TilesRevealed => "Kartläggningen lyfte dimman över nya brickor.",
-            ExpeditionReturned => "Expeditionen kom hem. Den hittade Nyön i öster.",
+            ExpeditionReturned { Island: PrototypeHome.Nyon } => "Expeditionen kom hem. Den hittade Nyön i öster.",
+            ExpeditionReturned => "Expeditionen kom hem. Den hittade en ny ö.",
             FogLifted => FogLiftedOver(1),
             _ => null,
         };

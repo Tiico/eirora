@@ -57,7 +57,7 @@ namespace Eirora.Client
             {
                 // Every tile can be tapped: under the fog to lift it, otherwise to see what it is good for (D-79).
                 var hex = HexLayout.FromWorld(point);
-                if (!_island.Map.Tiles.ContainsKey(hex))
+                if (_island.Map is null || !_island.Map.Tiles.ContainsKey(hex))
                 {
                     _hud.Select(null);
                 }
@@ -203,7 +203,13 @@ namespace Eirora.Client
         {
             if (_session.World is { } world)
             {
+                bool newMap = _island.Map?.WorldMap.Hash != world.Map.Hash;
                 _island.Refresh(world);
+                if (newMap)
+                {
+                    _rig.Frame(_island.Map!, SettlementOf(world));
+                }
+
                 _hud.Show(world, _session.SinceDawn);
                 _atmosphere.Apply(world, _camera);
             }
@@ -286,5 +292,21 @@ namespace Eirora.Client
         internal void Apply(GameCommand command) => _session.Apply(command);
 
         internal void Focus(Vector3 point) => _rig.Focus(point);
+
+        internal void ZoomTo(int level) => _rig.ZoomTo(level);
+
+        /// <summary>Where the world's first storehouse stands, the heart of the settlement.</summary>
+        private static Vector3 SettlementOf(Simulation.World world)
+        {
+            foreach (var building in world.Buildings)
+            {
+                if (building.Kind == Simulation.Economy.BuildingKind.Storehouse)
+                {
+                    return building.Tile.Center();
+                }
+            }
+
+            return world.Map.Start.Center();
+        }
     }
 }

@@ -211,7 +211,7 @@ namespace Eirora.Client.Tests
 
         private static FixedClock Clock() =>new(new TimeReading(1_792_000_000, "Europe/Stockholm", 7200));
 
-        private GameSession Session() => new(Clock(), SavePath);
+        private GameSession Session() => new(Clock(), SavePath, () => PrototypeHome.Map);
 
         private GameSession Played()
         {

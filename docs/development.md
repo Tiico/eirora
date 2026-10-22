@@ -123,6 +123,18 @@ Den bygger en Windows-spelare, spelar upp en skriptad vecka på en fast klocka o
 client/Builds/Windows/Eirora.exe -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots artifacts/screenshots
 ```
 
+På en Mac byggs spelaren med `Eirora.Editor.Builds.MacOS` och startas med `open`, eftersom spelaren pausar när fönstret saknar fokus:
+
+```bash
+/Applications/Unity/Hub/Editor/6000.3.26f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath client -buildTarget OSXUniversal -executeMethod Eirora.Editor.Builds.MacOS
+```
+
+```bash
+open -W -n client/Builds/MacOS/Eirora.app --args -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots "$PWD/artifacts/screenshots"
+```
+
+Turen slutar med en ny värld på en genererad karta, nära och på långt håll.
+
 Byggnader och natur ritas från Look-assets i `client/Assets/Eirora/Resources/Looks/` ([ADR-0009](./adr/0009-looks-are-a-modular-kit-as-data.md)).
 De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas som PNG i `artifacts/looks/` (renderar, så inte med `-nographics`):
 

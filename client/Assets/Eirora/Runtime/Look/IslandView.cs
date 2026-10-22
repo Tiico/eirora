@@ -9,18 +9,20 @@ using UnityEngine;
 namespace Eirora.Client.Look
 {
     /// <summary>
-    /// Draws the island and the settlement from the world's state; rebuilt whenever the world changes, into the same
-    /// meshes each time. Disposing it frees them.
+    /// Draws the world's map and the settlement from the world's state (TASK-033); rebuilt whenever the world changes,
+    /// into the same meshes each time. The map's ground is built once per map: the sea and the home island in one mesh,
+    /// and every other island in its own, shown once an expedition has found it. Disposing it frees the meshes.
     /// </summary>
     public sealed class IslandView : System.IDisposable
     {
         /// <summary>How full a forest is drawn where a building or work leaves room for less, until the economy shows its stock.</summary>
         public const float CrowdedForest = 0.25f;
 
-        // Every world is on the prototype's map until generated worlds are drawn (TASK-033).
-        private readonly IslandMap _map = new(PrototypeHome.Map);
+        private readonly Transform _parent;
+        private readonly Material _flat;
         private readonly Looks _looks;
-        private readonly GameObject _nyon;
+        private readonly MeshFilter _terrain;
+        private readonly Dictionary<string, GameObject> _islands = new(System.StringComparer.Ordinal);
         private readonly MeshFilter _settlement;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
@@ -28,34 +30,53 @@ namespace Eirora.Client.Look
 
         public IslandView(Transform parent, Material flat, Material glow, Looks looks)
         {
+            _parent = parent;
+            _flat = flat;
             _looks = looks;
-            BuildTerrain(nyon: false).WriteTo(Create("Terrain", parent, flat).sharedMesh);
-            var nyon = Create("Nyön", parent, flat);
-            BuildTerrain(nyon: true).WriteTo(nyon.sharedMesh);
-            _nyon = nyon.gameObject;
+            _terrain = Create("Terrain", parent, flat);
             _settlement = Create("Settlement", parent, flat);
             _lights = Create("Lights", parent, glow);
             _lights.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selection = Create("Selection", parent, flat);
         }
 
-        public IslandMap Map => _map;
+        /// <summary>The map drawn, or null before the first world is shown.</summary>
+        public IslandMap? Map { get; private set; }
 
         public void Refresh(World world)
         {
+            if (Map?.WorldMap.Hash != world.Map.Hash)
+            {
+                Show(world.Map);
+            }
+
+            var map = Map!;
             var mesh = new MeshBuilder();
             var lights = new MeshBuilder();
             var occupied = new HashSet<Hex>(world.Buildings.Select(b => b.Tile));
             occupied.UnionWith(world.Projects.Select(p => p.Tile));
 
-            // Fog per tile from the world's state (TASK-032); Nyön's land is its own mesh, shown once it is found.
-            bool nyonFound = world.IsKnown(IslandMap.NyonCentre);
-            _nyon.SetActive(nyonFound);
-            foreach (var tile in _map.Tiles)
+            // Fog per tile from the world's state (TASK-032). An island an expedition has yet to find is not drawn at all,
+            // so the fog never shows its outline; it is found whole, so one known tile shows it.
+            var found = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var tile in map.Tiles)
+            {
+                if (map.AwayIslandAt(tile.Key) is string island && world.IsKnown(tile.Key))
+                {
+                    found.Add(island);
+                }
+            }
+
+            foreach (var island in _islands)
+            {
+                island.Value.SetActive(found.Contains(island.Key));
+            }
+
+            foreach (var tile in map.Tiles)
             {
                 bool fogged = !world.IsKnown(tile.Key);
                 bool thin = fogged && world.CanLiftFog(tile.Key);
-                if (!nyonFound && IslandMap.OnNyon(tile.Key) && _map.IsLand(tile.Key))
+                if (map.AwayIslandAt(tile.Key) is string away && !found.Contains(away))
                 {
                     Models.Fog(mesh, tile.Key.Center(), thin);
                     continue;
@@ -64,7 +85,7 @@ namespace Eirora.Client.Look
                 var ground = tile.Key.Center() + (Vector3.up * Mathf.Max(Models.Height(tile.Value), 0f));
                 if (fogged)
                 {
-                    Models.Fog(mesh, ground, thin, sea: !_map.IsLand(tile.Key));
+                    Models.Fog(mesh, ground, thin, sea: !map.IsLand(tile.Key));
                 }
 
                 if (NatureOf(tile.Value) is NatureKind nature)
@@ -78,7 +99,7 @@ namespace Eirora.Client.Look
             foreach (var building in world.Buildings)
             {
                 var hex = building.Tile;
-                var c = hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex]));
+                var c = hex.Center() + (Vector3.up * Models.Height(map.Tiles[hex]));
                 _looks.Building(mesh, lights, building.Kind, building.Level, c, Seed(hex));
                 if (building.Staffed && world.Phase == Phase.Active)
                 {
@@ -92,7 +113,7 @@ namespace Eirora.Client.Look
                 var hex = project.Tile;
                 if (project.Kind == Simulation.Economy.ProjectKind.Build)
                 {
-                    Models.Scaffold(mesh, hex.Center() + (Vector3.up * Models.Height(_map.Tiles[hex])));
+                    Models.Scaffold(mesh, hex.Center() + (Vector3.up * Models.Height(map.Tiles[hex])));
                 }
             }
 
@@ -105,7 +126,7 @@ namespace Eirora.Client.Look
         public void Select(Hex? hex)
         {
             var mesh = new MeshBuilder();
-            if (hex is Hex selected && _map.Tiles.TryGetValue(selected, out var terrain))
+            if (hex is Hex selected && Map is { } map && map.Tiles.TryGetValue(selected, out var terrain))
             {
                 float y = Mathf.Max(Models.Height(terrain), 0f) + 0.02f;
                 var outer = selected.Corners(y, 1.0f);
@@ -122,35 +143,67 @@ namespace Eirora.Client.Look
 
         public void Dispose()
         {
+            RemoveIslands();
             foreach (var mesh in _meshes)
             {
-                if (Application.isPlaying)
-                {
-                    Object.Destroy(mesh);
-                }
-                else
-                {
-                    Object.DestroyImmediate(mesh);
-                }
+                Destroy(mesh);
             }
 
             _meshes.Clear();
         }
 
-        private MeshBuilder BuildTerrain(bool nyon)
+        /// <summary>Builds the ground of a map: the sea and the home island, and each other island on its own.</summary>
+        private void Show(WorldMap source)
         {
-            var mesh = new MeshBuilder();
-            foreach (var tile in _map.Tiles)
+            RemoveIslands();
+            var map = new IslandMap(source);
+            var home = new MeshBuilder();
+            var away = new SortedDictionary<string, MeshBuilder>(System.StringComparer.Ordinal);
+            foreach (var tile in map.Tiles)
             {
-                // Nyön's land is its own mesh, shown once an expedition has found it; the sea is always there.
-                bool partOfNyon = IslandMap.OnNyon(tile.Key) && _map.IsLand(tile.Key);
-                if (partOfNyon == nyon)
+                var mesh = home;
+                if (map.AwayIslandAt(tile.Key) is string island && !away.TryGetValue(island, out mesh))
                 {
-                    Models.Tile(mesh, tile.Key, tile.Value);
+                    away[island] = mesh = new MeshBuilder();
                 }
+
+                Models.Tile(mesh, tile.Key, tile.Value);
             }
 
-            return mesh;
+            home.WriteTo(_terrain.sharedMesh);
+            foreach (var island in away)
+            {
+                var filter = Create(island.Key, _parent, _flat);
+                island.Value.WriteTo(filter.sharedMesh);
+                _islands[island.Key] = filter.gameObject;
+            }
+
+            Map = map;
+        }
+
+        private void RemoveIslands()
+        {
+            foreach (var island in _islands.Values)
+            {
+                var mesh = island.GetComponent<MeshFilter>().sharedMesh;
+                _meshes.Remove(mesh);
+                Destroy(mesh);
+                Destroy(island);
+            }
+
+            _islands.Clear();
+        }
+
+        private static void Destroy(Object thing)
+        {
+            if (Application.isPlaying)
+            {
+                Object.Destroy(thing);
+            }
+            else
+            {
+                Object.DestroyImmediate(thing);
+            }
         }
 
         /// <summary>
@@ -165,8 +218,13 @@ namespace Eirora.Client.Look
                 return;
             }
 
-            var destination = world.SeaRouteOpen ? JettyOn(world, IslandId.Nyon) : PrototypeIsland.ExpeditionFinds;
-            var way = Fairway(world.Map.Features.SeaRoute(new[] { home.Value }, new[] { destination!.Value }));
+            var destination = world.SeaRouteOpen ? JettyOn(world, IslandId.Nyon) : world.ExpeditionFinds;
+            if (destination is null)
+            {
+                return;
+            }
+
+            var way = Fairway(world.Map.Features.SeaRoute(new[] { home.Value }, new[] { destination.Value }));
             if (way.Count < 2)
             {
                 return;

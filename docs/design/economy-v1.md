@@ -130,6 +130,7 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Under viloperioden (8 h i kalkylen) sover byborna: ingen produktion, inget bygge, ingen transport (INV-T4).
   Åkern, fårgården och skogen fortsätter att växa och skördas när byborna vaknar (INV-T5).
 - Start: 12 bybor, bostad för 16, ett förråd, en fiskebod, en åker och en huggarkoja vid en skogsdunge med två skogsbrickor.
+  På en genererad karta står samma fyra byggnader så nära startbrickan som deras byggplatser tillåter, se [grundandet](#grundandet-på-en-genererad-karta).
 
 ## 5. Logistik
 
@@ -175,6 +176,26 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 
 Planering, bemanning, minimilager och prioriteringar kostar aldrig kraft (D-23).
 Startkrafter från den guidade turen: 100 Utforskning, 100 Byggkraft, 40 Gryningskraft (D-45).
+
+### Grundandet på en genererad karta
+
+Prototypens handgjorda karta behåller sin by, sina kartläggningar och Nyön, så att varje värld på den spelas upp som förut.
+En genererad karta har inga utpekade platser, så grundandet följer av kartan med samma regel varje gång (TASK-033, `Founding`):
+
+- Förrådet, fiskeboden, åkern och huggarkojan står på närmaste bricka till startbrickan där de kan arbeta.
+  De väljer gräs eller strand när det går, så att skog, åker och bete finns kvar åt kartläggningarna.
+- *Kartlägg närområdet* visar ett berg att bryta sten i och två skogsbrickor, de som ligger längst från starten.
+- *Kartlägg kusten* visar den åker och det fiskevatten vid startön som ligger längst från starten.
+- Expeditionen hittar den närmaste ön 8–12 steg sjövägen som är värd resan: minst sex landbrickor och någon rik mark.
+  Kartvalideringen räknar samma ö som den första, eftersom den frågar `Founding` ([map-validation.md](./map-validation.md)).
+
+Generator v1 lägger den rika marken ute på öarna (MAP-03), så kartläggningarna på en genererad startö visar vanlig mark.
+Lika långt bort avgörs av kartans ordning, så samma karta alltid ger samma grundande.
+
+Grundandet sparas inte, så en sparad värld på en genererad karta läser sina kartläggningar och sin expeditions ö ur regeln.
+En ändrad regel skulle alltså ändra världar som redan spelas.
+Därför kräver en ändring en ny version av regeln bredvid den gamla, vald efter kartans generator och version ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
+De gyllene grundandena (`tests/Eirora.Simulation.Tests/WorldGeneration/Golden/foundings.txt`) fångar varje ändring.
 
 ### Beslut om var krafterna ska riktas
 
