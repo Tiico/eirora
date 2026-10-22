@@ -50,6 +50,7 @@ Måtten heter som i skriptets `results.tsv`, och gränserna står i [`budgets.ts
 | Batteri under ett dygn (`app_share_of_drain_pct`) | högst 2 % | högst 2 % | högst 2 % | Ingen bakgrundskörning (D-70) |
 
 Uppvärmningen mäts över ett pass på tio minuter (`--seconds 600`), eftersom fem minuter är för kort för att telefonen ska bli varm.
+Ett lokalt bygge av APK:n var 34 MB den 22 oktober 2026, alltså en tredjedel av storleksbudgeten.
 
 Kartans rendering har en egen budget som inte behöver en telefon: hela kartan ritas med högst 75 000 trianglar ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md#storlek-och-prestanda)), och ett EditMode-test prövar den största av femtio genererade kartor mot den (TASK-033).
 
