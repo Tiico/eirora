@@ -41,7 +41,6 @@ env:
   UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-  BUILD: ${{ github.event_name != 'pull_request' }}
   # The app's own builds; a manual run for the determinism check alone leaves them out.
   APP_BUILDS: ${{ github.event_name != 'pull_request' && inputs.builds != 'determinism' }}
   RELEASE: ${{ github.event_name == 'release' }}
