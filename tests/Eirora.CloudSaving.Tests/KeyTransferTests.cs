@@ -87,6 +87,35 @@ public sealed class KeyTransferTests
         Assert.Equal(oldPhone.Storage.Key(s_account)!.ToText(), newPhone.Storage.Key(s_account)!.ToText());
     }
 
+    // A key held while offline belongs to the account and the transfer it came from: a new transfer drops it, and so
+    // does a poll for another account.
+    [Fact]
+    public async Task AKeyHeldWhileOfflineIsDroppedByANewTransferOrAnotherAccount()
+    {
+        var (store, relay, oldPhone, newPhone) = TwoPhones();
+        var receiver = new KeyTransferReceiver(relay, newPhone.Sync);
+        await receiver.BeginAsync();
+        await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, receiver.Ticket!);
+        store.Online = false;
+        await receiver.PollAsync(s_account);
+        store.Online = true;
+
+        await receiver.BeginAsync();
+
+        Assert.Equal(KeyTransferOutcome.Waiting, await receiver.PollAsync(s_account));
+        Assert.Null(newPhone.Storage.Key(s_account));
+
+        await new KeyTransferSender(relay, oldPhone.Storage).SendAsync(s_account, receiver.Ticket!);
+        store.Online = false;
+        await receiver.PollAsync(s_account);
+        store.Online = true;
+        var other = Guid.NewGuid();
+
+        Assert.Equal(KeyTransferOutcome.Expired, await receiver.PollAsync(other));
+        Assert.Null(newPhone.Storage.Key(other));
+        Assert.Null(newPhone.Storage.Key(s_account));
+    }
+
     [Fact]
     public async Task ATransferThatRanOutOrWasReplacedIsOverForBothPhones()
     {

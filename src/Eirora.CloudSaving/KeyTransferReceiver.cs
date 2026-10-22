@@ -15,7 +15,7 @@ namespace Eirora.CloudSaving
         private readonly IKeyTransferStore _store;
         private readonly CloudSync _sync;
         private TransferKeys? _keys;
-        private ContributionKey? _unaccepted;
+        private (Guid Account, ContributionKey Key)? _unaccepted;
 
         public KeyTransferReceiver(IKeyTransferStore store, CloudSync sync)
         {
@@ -33,6 +33,7 @@ namespace Eirora.CloudSaving
         public async Task<KeyTransferOutcome> BeginAsync()
         {
             End();
+            _unaccepted = null;
             var keys = TransferKeys.Generate();
             var reply = await _store.CreateAsync(keys.PublicKey);
             if (reply.Status != StoreStatus.Ok || reply.Value is not { } transfer)
@@ -49,13 +50,16 @@ namespace Eirora.CloudSaving
         /// <summary>
         /// Asks the server once whether the old phone has delivered the key. On <see cref="KeyTransferOutcome.Received"/>
         /// the key is kept for <paramref name="accountId"/> and the transfer is over. A key that arrived but could not be
-        /// checked against the cloud save (offline) is tried again on the next call.
+        /// checked against the cloud save (offline) is tried again on the next call for the same account; a new transfer,
+        /// or another account, drops it.
         /// </summary>
         public async Task<KeyTransferOutcome> PollAsync(Guid accountId)
         {
             if (_unaccepted is { } pending)
             {
-                return await AcceptAsync(accountId, pending);
+                // A key opened for one account is never tried for another, as after a sign-in with a different account.
+                _unaccepted = null;
+                return pending.Account == accountId ? await AcceptAsync(accountId, pending.Key) : KeyTransferOutcome.Expired;
             }
 
             if (Ticket is not { } ticket || _keys is not { } keys)
@@ -112,13 +116,13 @@ namespace Eirora.CloudSaving
                     _unaccepted = null;
                     return KeyTransferOutcome.Received;
                 case KeyAcceptance.Offline:
-                    _unaccepted = key;
+                    _unaccepted = (accountId, key);
                     return KeyTransferOutcome.Offline;
                 case KeyAcceptance.SignedOut:
-                    _unaccepted = key;
+                    _unaccepted = (accountId, key);
                     return KeyTransferOutcome.SignedOut;
                 case KeyAcceptance.Failed:
-                    _unaccepted = key;
+                    _unaccepted = (accountId, key);
                     return KeyTransferOutcome.Failed;
                 default:
                     _unaccepted = null;
