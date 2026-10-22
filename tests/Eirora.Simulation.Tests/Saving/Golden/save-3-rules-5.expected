@@ -1,0 +1,487 @@
+map 325611d2e9d0e003617871263295e1dc809663bdee6d2d3d500f793e6c8760ed
+cycle 1788323744 America/New_York -14400 Active 92 1005 450
+created 1780304400
+day-start 84 1787573700
+day-start 85 1787660100
+day-start 86 1787742900
+day-start 87 1787829300
+day-start 88 1787937300
+day-start 89 1788023700
+day-start 90 1788110100
+day-start 91 1788223500
+day-start 92 1788322500
+force Exploration 1676 6
+force BuildPower 2590 12
+force DawnPower 1840 8
+settlement 16 1 0
+stock Home Fish 134937500
+stock Home Grain 150000000
+stock Home Timber 150000000
+stock Home Planks 150000000
+stock Home Stone 2000000
+stock Home Wool 0
+stock Home Wadmal 0
+stock Nyon Fish 0
+stock Nyon Grain 0
+stock Nyon Timber 0
+stock Nyon Planks 0
+stock Nyon Stone 0
+stock Nyon Wool 0
+stock Nyon Wadmal 0
+building Storehouse 0 0 1 1 0 0 0
+building FishingHut 1 0 1 1 0 0 0
+building Field 0 1 1 1 0 0 966187500
+building Woodcutter 1 -1 2 1 0 0 0
+building Sawmill -1 -3 1 1 1 0 0
+building Woodcutter -1 1 1 1 0 0 0
+building Woodcutter -3 2 1 1 0 0 0
+building FishingHut 5 -2 1 1 0 0 0
+building Woodcutter 3 -2 1 0 0 0 0
+building FishingHut 0 5 1 0 0 0 0
+building FishingHut 4 -4 1 0 0 0 0
+building Woodcutter -3 1 1 0 0 0 0
+building Woodcutter 1 -2 1 0 0 0 0
+building Jetty 1 2 1 1 0 0 0
+project Build Woodcutter -1 -1 8000
+fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000001c0000000007f0000000003fc000000000ff8000000001ff0000000003ff0000000001ffc000000000f70000000001be0000000007f0000000000f00000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+selfcare -3 Workouts Verified 0
+selfcare -2 Steps SelfReported 7435
+selfcare 14 Sleep Verified 435
+selfcare 15 Sleep SelfReported 65
+selfcare 17 Steps SelfReported 12878
+selfcare 17 Sleep SelfReported 191
+selfcare 21 Steps SelfReported 12216
+selfcare 22 Steps Verified 12868
+selfcare 22 Sleep Verified 128
+selfcare 23 Workouts SelfReported 1
+selfcare 25 Steps SelfReported 9626
+selfcare 27 Workouts SelfReported 3
+selfcare 45 Steps Verified 23096
+selfcare 46 Steps Verified 16515
+selfcare 50 Workouts SelfReported 2
+selfcare 60 Workouts SelfReported 3
+selfcare 70 Workouts SelfReported 3
+selfcare 81 Steps SelfReported 7001
+selfcare 83 Workouts Verified 2
+selfcare 84 Workouts Verified 3
+selfcare 85 Workouts Verified 2
+selfcare 86 Steps Verified 12496
+selfcare 86 Workouts Verified 0
+selfcare 88 Workouts SelfReported 3
+selfcare 89 Workouts Verified 1
+credited -3 Workouts 0
+credited -2 Steps 85
+credited 0 Sleep 40
+credited 1 Sleep 40
+credited 2 Sleep 40
+credited 3 Sleep 40
+credited 4 Sleep 40
+credited 5 Sleep 40
+credited 6 Sleep 40
+credited 7 Sleep 40
+credited 8 Sleep 40
+credited 9 Sleep 40
+credited 10 Sleep 40
+credited 11 Sleep 40
+credited 12 Sleep 40
+credited 13 Sleep 40
+credited 14 Sleep 96
+credited 15 Sleep 48
+credited 16 Sleep 40
+credited 17 Steps 101
+credited 17 Sleep 65
+credited 18 Sleep 40
+credited 19 Sleep 40
+credited 20 Sleep 40
+credited 21 Steps 100
+credited 21 Sleep 40
+credited 22 Steps 101
+credited 22 Sleep 57
+credited 23 Workouts 100
+credited 23 Sleep 40
+credited 24 Sleep 40
+credited 25 Steps 94
+credited 25 Sleep 40
+credited 26 Sleep 40
+credited 27 Workouts 220
+credited 27 Sleep 40
+credited 28 Sleep 40
+credited 29 Sleep 40
+credited 30 Sleep 40
+credited 31 Sleep 40
+credited 32 Sleep 40
+credited 33 Sleep 40
+credited 34 Sleep 40
+credited 35 Sleep 40
+credited 36 Sleep 40
+credited 37 Sleep 40
+credited 38 Sleep 40
+credited 39 Sleep 40
+credited 40 Sleep 40
+credited 41 Sleep 40
+credited 42 Sleep 40
+credited 43 Sleep 40
+credited 44 Sleep 40
+credited 45 Steps 110
+credited 45 Sleep 40
+credited 46 Steps 105
+credited 46 Sleep 40
+credited 47 Sleep 40
+credited 48 Sleep 40
+credited 49 Sleep 40
+credited 50 Workouts 190
+credited 50 Sleep 40
+credited 51 Sleep 40
+credited 52 Sleep 40
+credited 53 Sleep 40
+credited 54 Sleep 40
+credited 55 Sleep 40
+credited 56 Sleep 40
+credited 57 Sleep 40
+credited 58 Sleep 40
+credited 59 Sleep 40
+credited 60 Workouts 270
+credited 60 Sleep 40
+credited 61 Sleep 40
+credited 62 Sleep 40
+credited 63 Sleep 40
+credited 64 Sleep 40
+credited 65 Sleep 40
+credited 66 Sleep 40
+credited 67 Sleep 40
+credited 68 Sleep 40
+credited 69 Sleep 40
+credited 70 Workouts 270
+credited 70 Sleep 40
+credited 71 Sleep 40
+credited 72 Sleep 40
+credited 73 Sleep 40
+credited 74 Sleep 40
+credited 75 Sleep 40
+credited 76 Sleep 40
+credited 77 Sleep 40
+credited 78 Sleep 40
+credited 79 Sleep 40
+credited 80 Sleep 40
+credited 81 Steps 82
+credited 81 Sleep 40
+credited 82 Sleep 40
+credited 83 Workouts 190
+credited 83 Sleep 40
+credited 84 Workouts 155
+credited 84 Sleep 40
+credited 85 Workouts 0
+credited 85 Sleep 40
+credited 86 Steps 100
+credited 86 Workouts 0
+credited 86 Sleep 40
+credited 87 Sleep 40
+credited 88 Workouts 0
+credited 88 Sleep 40
+credited 89 Workouts 0
+credited 89 Sleep 40
+credited 90 Sleep 40
+credited 91 Sleep 40
+credited 92 Sleep 40
+gained -2 Steps 170
+gained 1 Sleep 80
+gained 2 Sleep 80
+gained 3 Sleep 80
+gained 4 Sleep 80
+gained 5 Sleep 80
+gained 6 Sleep 80
+gained 7 Sleep 80
+gained 8 Sleep 50
+gained 9 Sleep 40
+gained 10 Sleep 40
+gained 11 Sleep 40
+gained 12 Sleep 40
+gained 13 Sleep 40
+gained 14 Sleep 96
+gained 15 Sleep 48
+gained 16 Sleep 40
+gained 17 Steps 202
+gained 17 Sleep 65
+gained 18 Sleep 40
+gained 19 Sleep 40
+gained 20 Sleep 40
+gained 21 Steps 200
+gained 21 Sleep 40
+gained 22 Steps 101
+gained 22 Sleep 40
+gained 23 Workouts 200
+gained 23 Sleep 40
+gained 24 Sleep 40
+gained 25 Steps 188
+gained 25 Sleep 21
+gained 26 Sleep 0
+gained 27 Workouts 440
+gained 27 Sleep 0
+gained 28 Sleep 40
+gained 29 Sleep 20
+gained 30 Sleep 0
+gained 31 Sleep 0
+gained 32 Sleep 0
+gained 33 Sleep 0
+gained 34 Sleep 0
+gained 35 Sleep 0
+gained 36 Sleep 0
+gained 37 Sleep 0
+gained 38 Sleep 0
+gained 39 Sleep 0
+gained 40 Sleep 0
+gained 41 Sleep 0
+gained 42 Sleep 0
+gained 43 Sleep 0
+gained 44 Sleep 0
+gained 45 Steps 110
+gained 45 Sleep 0
+gained 46 Steps 105
+gained 46 Sleep 0
+gained 47 Sleep 0
+gained 48 Sleep 0
+gained 49 Sleep 0
+gained 50 Workouts 380
+gained 50 Sleep 0
+gained 51 Sleep 0
+gained 52 Sleep 0
+gained 53 Sleep 0
+gained 54 Sleep 0
+gained 55 Sleep 0
+gained 56 Sleep 0
+gained 57 Sleep 0
+gained 58 Sleep 0
+gained 59 Sleep 0
+gained 60 Workouts 340
+gained 60 Sleep 0
+gained 61 Sleep 0
+gained 62 Sleep 0
+gained 63 Sleep 40
+gained 64 Sleep 20
+gained 65 Sleep 0
+gained 66 Sleep 40
+gained 67 Sleep 20
+gained 68 Sleep 0
+gained 69 Sleep 0
+gained 70 Workouts 270
+gained 70 Sleep 0
+gained 71 Sleep 0
+gained 72 Sleep 0
+gained 73 Sleep 0
+gained 74 Sleep 0
+gained 75 Sleep 0
+gained 76 Sleep 0
+gained 77 Sleep 0
+gained 78 Sleep 0
+gained 79 Sleep 0
+gained 80 Sleep 0
+gained 81 Steps 82
+gained 81 Sleep 0
+gained 82 Sleep 0
+gained 83 Workouts 190
+gained 83 Sleep 0
+gained 84 Workouts 155
+gained 84 Sleep 0
+gained 85 Sleep 0
+gained 86 Steps 100
+gained 86 Sleep 0
+gained 87 Sleep 0
+gained 88 Sleep 0
+gained 89 Sleep 0
+gained 90 Sleep 0
+gained 91 Sleep 40
+gained 92 Sleep 20
+spends-at-credit -2 Steps 0
+spends-at-credit 1 Sleep 0
+spends-at-credit 2 Sleep 0
+spends-at-credit 3 Sleep 1
+spends-at-credit 4 Sleep 1
+spends-at-credit 5 Sleep 1
+spends-at-credit 6 Sleep 1
+spends-at-credit 7 Sleep 1
+spends-at-credit 8 Sleep 1
+spends-at-credit 9 Sleep 1
+spends-at-credit 10 Sleep 1
+spends-at-credit 11 Sleep 1
+spends-at-credit 12 Sleep 1
+spends-at-credit 13 Sleep 1
+spends-at-credit 14 Sleep 1
+spends-at-credit 15 Sleep 1
+spends-at-credit 16 Sleep 2
+spends-at-credit 17 Steps 3
+spends-at-credit 17 Sleep 2
+spends-at-credit 18 Sleep 2
+spends-at-credit 19 Sleep 2
+spends-at-credit 20 Sleep 3
+spends-at-credit 21 Steps 3
+spends-at-credit 21 Sleep 3
+spends-at-credit 22 Steps 3
+spends-at-credit 22 Sleep 4
+spends-at-credit 23 Workouts 4
+spends-at-credit 23 Sleep 4
+spends-at-credit 24 Sleep 4
+spends-at-credit 25 Steps 3
+spends-at-credit 25 Sleep 4
+spends-at-credit 26 Sleep 4
+spends-at-credit 27 Workouts 4
+spends-at-credit 27 Sleep 4
+spends-at-credit 28 Sleep 5
+spends-at-credit 29 Sleep 5
+spends-at-credit 30 Sleep 5
+spends-at-credit 31 Sleep 5
+spends-at-credit 32 Sleep 5
+spends-at-credit 33 Sleep 5
+spends-at-credit 34 Sleep 5
+spends-at-credit 35 Sleep 5
+spends-at-credit 36 Sleep 5
+spends-at-credit 37 Sleep 5
+spends-at-credit 38 Sleep 5
+spends-at-credit 39 Sleep 5
+spends-at-credit 40 Sleep 5
+spends-at-credit 41 Sleep 5
+spends-at-credit 42 Sleep 5
+spends-at-credit 43 Sleep 5
+spends-at-credit 44 Sleep 5
+spends-at-credit 45 Steps 4
+spends-at-credit 45 Sleep 5
+spends-at-credit 46 Steps 4
+spends-at-credit 46 Sleep 5
+spends-at-credit 47 Sleep 5
+spends-at-credit 48 Sleep 5
+spends-at-credit 49 Sleep 5
+spends-at-credit 50 Workouts 6
+spends-at-credit 50 Sleep 5
+spends-at-credit 51 Sleep 5
+spends-at-credit 52 Sleep 5
+spends-at-credit 53 Sleep 5
+spends-at-credit 54 Sleep 5
+spends-at-credit 55 Sleep 5
+spends-at-credit 56 Sleep 5
+spends-at-credit 57 Sleep 5
+spends-at-credit 58 Sleep 5
+spends-at-credit 59 Sleep 5
+spends-at-credit 60 Workouts 8
+spends-at-credit 60 Sleep 5
+spends-at-credit 61 Sleep 5
+spends-at-credit 62 Sleep 5
+spends-at-credit 63 Sleep 6
+spends-at-credit 64 Sleep 6
+spends-at-credit 65 Sleep 6
+spends-at-credit 66 Sleep 7
+spends-at-credit 67 Sleep 7
+spends-at-credit 68 Sleep 7
+spends-at-credit 69 Sleep 7
+spends-at-credit 70 Workouts 10
+spends-at-credit 70 Sleep 7
+spends-at-credit 71 Sleep 7
+spends-at-credit 72 Sleep 7
+spends-at-credit 73 Sleep 7
+spends-at-credit 74 Sleep 7
+spends-at-credit 75 Sleep 7
+spends-at-credit 76 Sleep 7
+spends-at-credit 77 Sleep 7
+spends-at-credit 78 Sleep 7
+spends-at-credit 79 Sleep 7
+spends-at-credit 80 Sleep 7
+spends-at-credit 81 Steps 5
+spends-at-credit 81 Sleep 7
+spends-at-credit 82 Sleep 7
+spends-at-credit 83 Workouts 11
+spends-at-credit 83 Sleep 7
+spends-at-credit 84 Workouts 11
+spends-at-credit 84 Sleep 7
+spends-at-credit 85 Sleep 7
+spends-at-credit 86 Steps 5
+spends-at-credit 86 Sleep 7
+spends-at-credit 87 Sleep 7
+spends-at-credit 88 Sleep 7
+spends-at-credit 89 Sleep 7
+spends-at-credit 90 Sleep 7
+spends-at-credit 91 Sleep 8
+spends-at-credit 92 Sleep 8
+command k1 0
+command k10 0
+command k101 0
+command k103 1
+fog-lifted 1785957229 4 1
+command k104 0
+command k105 0
+command k107 1
+force-credited 1786590647 BuildPower 135
+command k11 0
+command k114 0
+command k125 0
+command k128 2
+force-credited 1788024486 BuildPower 95
+force-withdrawn 1788024486 BuildPower 30
+command k131 1
+force-credited 1788037498 BuildPower 12
+command k133 3
+force-credited 1788047604 BuildPower 78
+force-withdrawn 1788047604 BuildPower 65
+force-withdrawn 1788047604 BuildPower 13
+command k135 0
+command k137 0
+command k138 0
+command k139 0
+command k14 0
+command k142 0
+command k144 0
+command k145 1
+fog-lifted 1788126048 -6 1
+command k147 0
+command k15 0
+command k16 1
+force-credited 1780583162 Exploration 85
+command k17 0
+command k19 0
+command k24 1
+tiles-revealed 1780874707 3 -1 -2 0 -3 1
+command k28 1
+fog-lifted 1781202250 -1 6
+command k30 0
+command k37 1
+force-credited 1781627219 DawnPower 28
+command k41 0
+command k42 0
+command k52 1
+force-credited 1782009494 DawnPower 12
+command k53 1
+force-credited 1782009494 DawnPower 4
+command k54 1
+fog-lifted 1782009494 -6 0
+command k55 0
+command k57 1
+force-credited 1782162097 Exploration 101
+command k58 0
+command k59 0
+command k60 1
+force-credited 1782162097 Exploration 100
+command k66 1
+force-credited 1782667625 Exploration 94
+command k69 1
+force-credited 1782698988 Exploration 50
+command k70 1
+force-credited 1782698988 DawnPower 0
+command k71 1
+force-credited 1782698988 BuildPower 100
+command k72 0
+command k76 1
+force-credited 1782710968 BuildPower 220
+command k77 1
+fog-lifted 1782710968 4 -6
+command k78 1
+force-credited 1787851582 Exploration 50
+command k83 1
+force-credited 1784658313 Exploration 55
+command k87 0
+command k88 0
+command k92 1
+force-credited 1784877695 BuildPower 190
+command k93 1
+force-credited 1784877695 Exploration 53
+command k94 0
+command k96 0
+command k98 0
+command k99 1
+force-credited 1785696922 BuildPower 170

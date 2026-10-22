@@ -1,3 +1,4 @@
+using System.Globalization;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Saving;
@@ -58,21 +59,24 @@ public sealed class JournalTests
         Assert.Equal(journal.World.Fingerprint(), loaded.World.Fingerprint());
     }
 
+    // {rules} is the current rules version, so the cases stay malformed journals of today's rules when the rules move on.
     [Theory]
     [InlineData("")]
     [InlineData("something else\ncreate 0 Europe/Stockholm 0 1380 480\n")]
     [InlineData("eirora-journal 1 rules 999\ncreate 0 Europe/Stockholm 0 1380 480\n")]
-    [InlineData("eirora-journal 1 rules 4\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 teleport\n")]
-    [InlineData("eirora-journal 1 rules 4\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Castle 0 0\n")]
-    [InlineData("eirora-journal 1 rules 4\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Cottage L1\n")]
-    [InlineData("eirora-journal 1 rules 4\ncreate zero Europe/Stockholm 0 1380 480\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 teleport\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Castle 0 0\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Cottage L1\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate zero Europe/Stockholm 0 1380 480\n")]
     public void TextThatIsNotAJournalIsRejected(string text) =>
-        Assert.Throws<FormatException>(() => Journal.Load(text));
+        Assert.Throws<FormatException>(() => Journal.Load(text.Replace("{rules}", RulesVersion.Current.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)));
 
-    // Rules 4 builds on tiles (TASK-037), so a journal under earlier rules would replay to another world (ADR-0006, D-102).
+    // Rules 4 builds on tiles (TASK-037) and rules 5 scales how fields grow (TASK-038), so a journal under earlier rules
+    // would replay to another world (ADR-0006, D-102).
     [Theory]
     [InlineData(1)]
     [InlineData(3)]
+    [InlineData(4)]
     public void AJournalUnderRulesThatAreNoLongerReplayedIsRefused(int rules) =>
         Assert.Throws<JournalFromOlderRulesException>(() => Journal.Load($"eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\n"));
 
