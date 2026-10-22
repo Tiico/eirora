@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using static Eirora.WorldGeneration.Validation.ValidationLimits;
 
@@ -70,7 +71,7 @@ namespace Eirora.WorldGeneration.Validation
 
             // Ways to grow (epoch 1).
             // An expedition finds a real island with ground worth the journey, never a bare skerry.
-            var worthFinding = distances.Where(d => WorthFinding(map, features, d.Id)).ToList();
+            var worthFinding = distances.Where(d => WorthFinding(map, d.Id)).ToList();
             var first = Nearest(worthFinding, FirstIslandMinimum, FirstIslandMaximum, except: null);
             var second = Nearest(worthFinding, SecondIslandMinimum, SecondIslandMaximum, except: first?.Id);
             string others = string.Join(",", distances.Select(d => $"{d.Id}={d.Steps.ToString(CultureInfo.InvariantCulture)}"));
@@ -100,8 +101,7 @@ namespace Eirora.WorldGeneration.Validation
             features.LandOf(island).Where(features.IsHarborSpot).Select(h => steps.TryGetValue(h, out int n) ? n : -1).Where(n => n >= 0).DefaultIfEmpty(-1).Min();
 
         /// <summary>Whether an island is big enough and rich enough for an expedition to find (TASK-034's finding).</summary>
-        private static bool WorthFinding(WorldMap map, MapFeatures features, string island) =>
-            features.LandOf(island).Count >= ExpeditionIslandLand && features.LandOf(island).Any(h => map.RichnessAt(h) > 100);
+        private static bool WorthFinding(WorldMap map, string island) => Founding.WorthAnExpedition(map, island);
 
         /// <summary>The nearest island within the limits, the first in name order when two are as near.</summary>
         private static (string Id, int Steps)? Nearest(List<(string Id, int Steps)> distances, int minimum, int maximum, string? except)

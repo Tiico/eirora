@@ -14,13 +14,16 @@ namespace Eirora.Client.App
         public const float Pitch = 50f;
         private const float TapMovement = 14f;
         private const float TapSeconds = 0.45f;
-        private const float PanLimit = 8f;
-        private const float PanLimitEast = 21f; // Far enough to reach Nyön.
+        private const float PanMargin = 2f; // Beyond the outermost land, so a coast is never at the screen's edge.
         private static readonly float[] s_distances = { 18f, 28f, 44f };
 
         private readonly Camera _camera;
         private readonly Func<Vector2, bool> _overInterface;
+        // Just south of the settlement, so the village sits a little above the middle of the screen.
+        private static readonly Vector3 s_homeView = new(0.3f, 0f, -1.6f);
         private Vector3 _pivot = new(0.3f, Models.LandHeight, -1.6f);
+        private Vector2 _panMin = new(-8f, -8f);
+        private Vector2 _panMax = new(8f, 8f);
         private float _distance = s_distances[1];
         private Vector2 _pressPosition;
         private float _pressTime;
@@ -39,6 +42,25 @@ namespace Eirora.Client.App
             _camera.nearClipPlane = 0.5f;
             _camera.farClipPlane = 160f;
             _camera.clearFlags = CameraClearFlags.SolidColor;
+            Place();
+        }
+
+        /// <summary>
+        /// Frames a world's map (TASK-033): the view starts at the settlement and pans as far as the land reaches,
+        /// whatever the size and shape of the archipelago.
+        /// </summary>
+        public void Frame(IslandMap map, Vector3 settlement)
+        {
+            _panMin = map.LandMin - (Vector2.one * PanMargin);
+            _panMax = map.LandMax + (Vector2.one * PanMargin);
+            _pivot = Clamp(new Vector3(settlement.x + s_homeView.x, Models.LandHeight, settlement.z + s_homeView.z));
+            Place();
+        }
+
+        /// <summary>Zooms to one of the three levels, from 0 (closest) to 2 (the whole archipelago in view).</summary>
+        public void ZoomTo(int level)
+        {
+            _distance = s_distances[Mathf.Clamp(level, 0, s_distances.Length - 1)];
             Place();
         }
 
@@ -90,9 +112,7 @@ namespace Eirora.Client.App
                 if (_dragging)
                 {
                     var delta = _dragAnchor - Ground(position);
-                    _pivot += new Vector3(delta.x, 0f, delta.z);
-                    _pivot.x = Mathf.Clamp(_pivot.x, -PanLimit, PanLimitEast);
-                    _pivot.z = Mathf.Clamp(_pivot.z, -PanLimit, PanLimit);
+                    _pivot = Clamp(_pivot + new Vector3(delta.x, 0f, delta.z));
                     Place();
                 }
             }
@@ -142,6 +162,9 @@ namespace Eirora.Client.App
             _distance = s_distances[Mathf.Clamp(nearest + step, 0, s_distances.Length - 1)];
             Place();
         }
+
+        private Vector3 Clamp(Vector3 pivot) =>
+            new(Mathf.Clamp(pivot.x, _panMin.x, _panMax.x), pivot.y, Mathf.Clamp(pivot.z, _panMin.y, _panMax.y));
 
         private void Place()
         {

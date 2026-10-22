@@ -56,6 +56,9 @@ namespace Eirora.Editor
 
         public static void Windows() => ExitOnFailure(Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe"));
 
+        /// <summary>A macOS player for the screenshot tour on a Mac, like <see cref="Windows"/>.</summary>
+        public static void MacOS() => ExitOnFailure(Build(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, "Builds/MacOS/Eirora.app"));
+
         /// <summary>
         /// The determinism build (TASK-021): IL2CPP for ARM64 and x86_64 that only plays the determinism corpus (the replays in
         /// tests/Replays, the golden saves and the golden maps) and logs each state hash (DeterminismRun). Its only scene holds DeterminismBootstrap instead of the game, and it has its

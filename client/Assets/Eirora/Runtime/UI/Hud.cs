@@ -482,7 +482,7 @@ namespace Eirora.Client.UI
             {
                 Text("sheet-text", _sheet, $"Expeditionen är ute. Om {world.ExpeditionHoursLeft} timmar med vakna bybor är den tillbaka.");
             }
-            else if (!world.IsKnown(PrototypeIsland.ExpeditionFinds))
+            else if (world.ExpeditionFinds is Hex finds && !world.IsKnown(finds))
             {
                 int cost = SendExpedition.Cost(world);
                 AddAction("Skicka expedition", $"{cost} Utforskning · 32 h med vakna bybor · hittar land bortom horisonten",

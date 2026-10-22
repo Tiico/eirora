@@ -43,7 +43,7 @@ namespace Eirora.Client.Tests
         private static (GameSession Session, FixedClock Clock) Begin()
         {
             var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
-            var session = new GameSession(clock, null);
+            var session = new GameSession(clock, null, () => PrototypeHome.Map);
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
             return (session, clock);
         }

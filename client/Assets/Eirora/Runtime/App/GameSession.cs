@@ -6,8 +6,10 @@ using Eirora.Client.Health;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Events;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.Time;
+using Eirora.WorldGeneration;
 using UnityEngine;
 
 namespace Eirora.Client.App
@@ -37,16 +39,34 @@ namespace Eirora.Client.App
 
         private readonly IClock _clock;
         private readonly string? _savePath;
+        private readonly Func<WorldMap> _newMap;
         private readonly List<GameEvent> _sinceDawn = new();
         private readonly List<string> _unreadable = new();
         private Save? _save;
         private bool _syncing;
 
         /// <param name="savePath">Where the save lives, or null to keep the world in memory only.</param>
-        public GameSession(IClock clock, string? savePath)
+        /// <param name="newMap">The map a new world is made on; by default a generated one (<see cref="GeneratedMap"/>).</param>
+        public GameSession(IClock clock, string? savePath, Func<WorldMap>? newMap = null)
         {
             _clock = clock;
             _savePath = savePath;
+            _newMap = newMap ?? GeneratedMap;
+        }
+
+        /// <summary>
+        /// A new world's map (TASK-033): generator v1 from a random seed. The map is stored whole in the save, so the seed
+        /// is never needed again (MAP-06).
+        /// </summary>
+        public static WorldMap GeneratedMap()
+        {
+            var bytes = new byte[8];
+            using (var random = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                random.GetBytes(bytes);
+            }
+
+            return new ProceduralArchipelagoV1().Generate(BitConverter.ToUInt64(bytes, 0));
         }
 
         /// <summary>Raised whenever the world has changed and the view should follow.</summary>
@@ -118,10 +138,10 @@ namespace Eirora.Client.App
             return aside;
         }
 
-        /// <summary>Creates a new world with the chosen rest period (D-50).</summary>
+        /// <summary>Creates a new world on a new map with the chosen rest period (D-50).</summary>
         public void Begin(RestSchedule restSchedule)
         {
-            _save = Simulation.Saving.Save.Begin(_clock.Now(), restSchedule);
+            _save = Simulation.Saving.Save.Begin(_newMap(), _clock.Now(), restSchedule);
             Save();
             Changed?.Invoke();
         }

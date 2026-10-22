@@ -37,7 +37,7 @@ namespace Eirora.WorldGeneration.Validation
         /// <summary>
         /// Land tiles an expedition's island has at least, besides some rich ground; a skerry never counts (Nyön has 6).
         /// </summary>
-        public const int ExpeditionIslandLand = 6;
+        public const int ExpeditionIslandLand = Simulation.Economy.Founding.ExpeditionIslandLand;
 
         /// <summary>Steps by sea to the second expedition's island (Ytterön lies 12 away in epoch 1's model).</summary>
         public const int SecondIslandMinimum = 11;

@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
 
 namespace Eirora.Client.App
@@ -34,7 +35,7 @@ namespace Eirora.Client.App
             }
 
             var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
-            var session = new GameSession(clock, null);
+            var session = new GameSession(clock, null, () => PrototypeHome.Map); // The scripted week is played on Hemön.
             client.Begin(session);
             Play(session, clock, moment);
             client.Refresh();
