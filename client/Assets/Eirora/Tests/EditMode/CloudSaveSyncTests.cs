@@ -176,6 +176,8 @@ namespace Eirora.Client.Tests
             Wait(b.Cloud.ChooseAsync(WorldChoice.KeepPhone));
 
             Assert.That(b.Game.World!.Fingerprint(), Is.EqualTo(phones));
+            Assert.That(b.Cloud.KeyEpochBegan, Is.False);
+            Assert.That(b.Cloud.ContributionPartLocked, Is.False, "the cloud's part opened with the key, so nothing was locked");
             Assert.That(_server.CloudSaveOf("player")!.World, Is.EqualTo(b.Game.Current!.ToParts().World));
             Assert.That(Directory.GetFiles(Path.Combine(_folder, "b"), GameSession.SaveFile + ".*.cloud"), Has.Length.EqualTo(1));
         }
@@ -194,6 +196,26 @@ namespace Eirora.Client.Tests
             Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.ChoiceNeeded));
             Assert.That(phone.Cloud.Choice!.CloudSaveUnreadable, Is.True);
             Assert.That(phone.Game.World!.Fingerprint(), Is.EqualTo(phones));
+        }
+
+        // Keeping the phone's world over a part that does not open locks that part under a new epoch; the phone is
+        // told so, without the notice about closed game days, which are only for a world that came down.
+        [Test]
+        public void KeepingThePhonesWorldOverAnUnreadablePartLocksItAndSaysSo()
+        {
+            var phone = Phone("a", withWorld: true);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            _server.TamperWithContributionsOf("player");
+            Wait(phone.Cloud.ReconcileAsync());
+
+            Wait(phone.Cloud.ChooseAsync(WorldChoice.KeepPhone));
+
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(phone.Cloud.ContributionPartLocked, Is.True);
+            Assert.That(phone.Cloud.KeyEpochBegan, Is.False);
+            Assert.That(_server.CloudSaveOf("player")!.KeyEpoch, Is.EqualTo(2));
+            Assert.That(_server.LockedParts, Is.EqualTo(1));
         }
 
         [Test]

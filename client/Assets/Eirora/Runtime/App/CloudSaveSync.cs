@@ -89,6 +89,18 @@ namespace Eirora.Client.App
         /// </summary>
         public bool KeyEpochBegan { get; private set; }
 
+        /// <summary>
+        /// With <see cref="KeyEpochBegan"/>: the phone had the key for the cloud save's epoch, but the contribution part
+        /// did not open with it; otherwise the phone had no key for that epoch.
+        /// </summary>
+        public bool CloudSaveUnreadable { get; private set; }
+
+        /// <summary>
+        /// The phone's world replaced a cloud save whose contribution part could not be read here (D-102); the server
+        /// keeps that part locked for 90 days. Shown until <see cref="AcknowledgeLocked"/>.
+        /// </summary>
+        public bool ContributionPartLocked { get; private set; }
+
         /// <summary>The account's world came down to this phone: "Välkommen tillbaka till din ö." Shown until <see cref="AcknowledgeWelcome"/>.</summary>
         public bool Welcome { get; private set; }
 
@@ -97,6 +109,9 @@ namespace Eirora.Client.App
 
         /// <summary>The player saw the notice about the new key epoch; the interface that called this follows by itself.</summary>
         public void AcknowledgeKeyEpoch() => KeyEpochBegan = false;
+
+        /// <summary>The player was told the old part is locked; the interface that called this follows by itself.</summary>
+        public void AcknowledgeLocked() => ContributionPartLocked = false;
 
         /// <summary>Brings the phone and the cloud save together now: at launch, and at sign-in.</summary>
         public Task ReconcileAsync()
@@ -243,6 +258,12 @@ namespace Eirora.Client.App
             if (result.KeyEpochBegan)
             {
                 KeyEpochBegan = true;
+                CloudSaveUnreadable = result.CloudSaveUnreadable;
+            }
+
+            if (result.ContributionPartLocked)
+            {
+                ContributionPartLocked = true;
             }
 
             Choice = result.Outcome == SyncOutcome.ChoiceNeeded ? result : null;

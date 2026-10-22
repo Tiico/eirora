@@ -54,6 +54,12 @@ namespace Eirora.Client.UI
                 Toast("Välkommen tillbaka till din ö.");
             }
 
+            if (cloud.ContributionPartLocked)
+            {
+                cloud.AcknowledgeLocked();
+                Toast("Din ö är sparad på kontot. Kontots gamla egenvårdsdel är låst på servern i 90 dagar.");
+            }
+
             if (cloud.KeyEpochBegan && _noticeCard is null)
             {
                 ShowKeyEpochNotice(cloud);
@@ -97,13 +103,15 @@ namespace Eirora.Client.UI
             _ = _cloud?.ChooseAsync(choice);
         }
 
-        /// <summary>A new key epoch began here (D-101): what that means for the game days so far.</summary>
+        /// <summary>The cloud's world was taken without its contribution part (D-101): what that means for the game days so far.</summary>
         private void ShowKeyEpochNotice(CloudSaveSync cloud)
         {
             var card = Container("card setup", _middle);
             _noticeCard = card;
             Text("setup-title", card, "Egenvården kunde inte läsas här");
-            Text("sheet-text", card, "Din ö är hämtad, men egenvården från tidigare dagar är krypterad med en nyckel som den här telefonen saknar. Servern kan inte läsa den heller.");
+            Text("sheet-text", card, cloud.CloudSaveUnreadable
+                ? "Din ö är hämtad, men egenvården från tidigare dagar gick inte att läsa med den här telefonens nyckel. Servern kan inte läsa den heller."
+                : "Din ö är hämtad, men egenvården från tidigare dagar är krypterad med en nyckel som den här telefonen saknar. Servern kan inte läsa den heller.");
             Text("sheet-text", card, "Dagarna till och med i dag räknas som vilodagar, och bidragen räknas igen från nästa spelardygn. Byn, krafterna och allt du byggt är kvar.");
             Text("sheet-text", card, "Den gamla bidragsdelen finns kvar på servern i 90 dagar, om nyckeln skulle dyka upp.");
             Button("button button-wide button-primary", card, "Jag förstår", () =>

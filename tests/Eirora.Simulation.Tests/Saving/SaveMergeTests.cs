@@ -97,6 +97,25 @@ public sealed class SaveMergeTests
         Assert.Equal(9_000, merged.World.RecordedSelfCare(day, Habit.Steps, ContributionSource.Verified));
     }
 
+    // Two commands in the same second on one device keep their order, whatever their keys: the later one wins, as it did there.
+    [Fact]
+    public void CommandsOfTheSameSecondKeepTheirOwnOrder()
+    {
+        var (a, b) = TwoDevices(seed: 9, play: false);
+        int day = a.World.GameDay;
+        a.Apply("z-first", new RecordSelfCare(day, Habit.Steps, ContributionSource.SelfReported, 6_000));
+        a.Apply("a-second", new RecordSelfCare(day, Habit.Steps, ContributionSource.SelfReported, 9_000));
+        Advance(b, Hour);
+        b.Apply("b-later", new Rush());
+
+        var merged = Save.Merge(a, b)!;
+        var reversed = Save.Merge(b, a)!;
+
+        Assert.Equal(9_000, merged.World.RecordedSelfCare(day, Habit.Steps, ContributionSource.SelfReported));
+        Assert.Equal(merged.World.Fingerprint(), reversed.World.Fingerprint());
+        Assert.Equal(["z-first", "a-second", "b-later"], Keys(merged).TakeLast(3));
+    }
+
     [Fact]
     public void SavesOfDifferentWorldsAreNotMerged()
     {

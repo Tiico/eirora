@@ -254,60 +254,79 @@ namespace Eirora.Simulation.Saving
         private string InputsSince(bool fromPrevious) => fromPrevious ? _previous!.Value.Inputs + _journal.Inputs : _journal.Inputs;
 
         /// <summary>
-        /// Both journals' lines in time order, each line once. A command's time is the reading before it, or the segment's
-        /// start; at the same time readings go first, and then the lines in ordinal order, so that the order does not
-        /// depend on which journal they came from.
+        /// Both journals' lines in time order, each line once: the two are walked side by side, and at each step the
+        /// earlier line goes first. A command's time is the reading before it, or the segment's start. At the same
+        /// second, readings go before commands and otherwise the line that is first in ordinal order, so that the
+        /// result does not depend on which journal is which; a line that is next in both journals, as in their shared
+        /// beginning, is taken once. Each journal's own order is kept, so what one device did in one second stays in
+        /// that order.
         /// </summary>
         private static string MergedInputs(long startUtcSeconds, string mine, string theirs)
         {
-            var lines = new List<(long Utc, int Rank, string Line)>();
-            Collect(mine);
-            Collect(theirs);
-            lines.Sort((a, b) =>
-            {
-                int order = a.Utc.CompareTo(b.Utc);
-                if (order == 0)
-                {
-                    order = a.Rank.CompareTo(b.Rank);
-                }
-
-                return order != 0 ? order : string.CompareOrdinal(a.Line, b.Line);
-            });
-
+            var a = Collect(startUtcSeconds, mine);
+            var b = Collect(startUtcSeconds, theirs);
             var merged = new StringBuilder();
-            string? last = null;
-            foreach (var (_, _, line) in lines)
+            int i = 0, j = 0;
+            while (i < a.Count || j < b.Count)
             {
-                if (!string.Equals(line, last, StringComparison.Ordinal))
+                string line;
+                if (j >= b.Count)
                 {
-                    merged.Append(line).Append('\n');
+                    line = a[i++].Line;
+                }
+                else if (i >= a.Count)
+                {
+                    line = b[j++].Line;
+                }
+                else
+                {
+                    int order = a[i].Utc.CompareTo(b[j].Utc);
+                    if (order == 0)
+                    {
+                        order = a[i].Rank.CompareTo(b[j].Rank);
+                    }
+
+                    if (order == 0)
+                    {
+                        order = string.CompareOrdinal(a[i].Line, b[j].Line);
+                    }
+
+                    line = order <= 0 ? a[i++].Line : b[j++].Line;
+                    if (order == 0)
+                    {
+                        j++;
+                    }
                 }
 
-                last = line;
+                merged.Append(line).Append('\n');
             }
 
             return merged.ToString();
+        }
 
-            void Collect(string inputs)
+        /// <summary>A journal's lines with the time each one happened and whether it is a reading (0) or a command (1).</summary>
+        private static List<(long Utc, int Rank, string Line)> Collect(long startUtcSeconds, string inputs)
+        {
+            var lines = new List<(long Utc, int Rank, string Line)>();
+            long utc = startUtcSeconds;
+            foreach (string line in inputs.Split(s_lineBreak, StringSplitOptions.RemoveEmptyEntries))
             {
-                long utc = startUtcSeconds;
-                foreach (string line in inputs.Split(s_lineBreak, StringSplitOptions.RemoveEmptyEntries))
+                string[] fields = line.Split(' ');
+                switch (fields[0])
                 {
-                    string[] fields = line.Split(' ');
-                    switch (fields[0])
-                    {
-                        case "time" when fields.Length == 4 && long.TryParse(fields[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long at):
-                            utc = at;
-                            lines.Add((utc, 0, line));
-                            break;
-                        case "cmd" when fields.Length >= 3:
-                            lines.Add((utc, 1, line));
-                            break;
-                        default:
-                            throw new FormatException($"Unknown journal line: '{line}'.");
-                    }
+                    case "time" when fields.Length == 4 && long.TryParse(fields[1], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long at):
+                        utc = at;
+                        lines.Add((utc, 0, line));
+                        break;
+                    case "cmd" when fields.Length >= 3:
+                        lines.Add((utc, 1, line));
+                        break;
+                    default:
+                        throw new FormatException($"Unknown journal line: '{line}'.");
                 }
             }
+
+            return lines;
         }
 
         /// <summary>

@@ -180,52 +180,45 @@ namespace Eirora.CloudSaving
         /// </summary>
         private async Task<SyncResult> WithoutTheContributionsAsync(Guid accountId, CloudSave remote, Save? local, ContributionKey? key, SyncChanges changes, WorldChoice? choice, int attempt)
         {
+            // A key newer than the cloud's epoch means this phone already began the next epoch, and the upload that would
+            // have carried it to the server failed: the world on the phone is the outcome of that choice, so it goes on
+            // under its key without asking again.
+            if (local is not null && key is not null && key.Epoch > remote.KeyEpoch)
+            {
+                return await SendOrStartOverAsync(accountId, local, remote.Version, key, changes, choice, attempt);
+            }
+
+            Save alone;
+            try
+            {
+                alone = Save.FromParts(remote.World, null);
+            }
+            catch (SavedByNewerVersionException)
+            {
+                return new SyncResult(SyncOutcome.AppOutdated, changes);
+            }
+            catch (FormatException)
+            {
+                return new SyncResult(SyncOutcome.Failed, changes);
+            }
+
             if (local is not null && choice is null)
             {
-                Save alone;
-                try
-                {
-                    alone = Save.FromParts(remote.World, null);
-                }
-                catch (SavedByNewerVersionException)
-                {
-                    return new SyncResult(SyncOutcome.AppOutdated, changes);
-                }
-                catch (FormatException)
-                {
-                    return new SyncResult(SyncOutcome.Failed, changes);
-                }
-
                 return ChoiceNeeded(remote, alone.World.GameDay, changes, contributionsUnreadable: true);
             }
 
-            int epoch = Math.Max(remote.KeyEpoch, key?.Epoch ?? 0) + 1;
+            var fresh = NewKey(accountId, remote.KeyEpoch + 1);
             if (local is null || choice == WorldChoice.TakeCloud)
             {
-                Save alone;
-                try
-                {
-                    alone = Save.FromParts(remote.World, null);
-                }
-                catch (SavedByNewerVersionException)
-                {
-                    return new SyncResult(SyncOutcome.AppOutdated, changes);
-                }
-                catch (FormatException)
-                {
-                    return new SyncResult(SyncOutcome.Failed, changes);
-                }
-
                 _world.Replace(alone, local is null ? ReplaceReason.Downloaded : ReplaceReason.CloudChosen);
                 changes.Downloaded = local is null;
                 changes.KeyEpochBegan = true;
-                return await SendOrStartOverAsync(accountId, alone, remote.Version, NewKey(accountId, epoch), changes, choice, attempt);
+                return await SendOrStartOverAsync(accountId, alone, remote.Version, fresh, changes, choice, attempt);
             }
 
-            // The phone's world is kept. Its own key goes on when it is newer than the cloud's epoch; else a new epoch.
-            var phoneKey = key is not null && key.Epoch > remote.KeyEpoch ? key : NewKey(accountId, epoch);
-            changes.KeyEpochBegan = true;
-            return await SendOrStartOverAsync(accountId, local!, remote.Version, phoneKey, changes, choice, attempt);
+            // The phone's world is kept and replaces the cloud's under the new epoch, so the server locks the old part.
+            changes.ContributionPartLocked = true;
+            return await SendOrStartOverAsync(accountId, local!, remote.Version, fresh, changes, choice, attempt);
         }
 
         /// <summary>The device now holds the cloud's version: remembers that, or uploads when the device's world is ahead of it.</summary>

@@ -234,7 +234,7 @@ public sealed class CloudSyncTests
         Assert.True(taken.Outcome == SyncOutcome.Synced && taken.KeyEpochBegan);
         Assert.Equal(2, taker.Storage.Key(s_account)!.Epoch);
         Assert.Equal(ReplaceReason.CloudChosen, taker.World.Replacements.Single().Reason);
-        Assert.True(kept.Outcome == SyncOutcome.Synced && kept.KeyEpochBegan);
+        Assert.True(kept.Outcome == SyncOutcome.Synced && kept.ContributionPartLocked && !kept.KeyEpochBegan);
         Assert.Equal(3, keeper.Storage.Key(s_account)!.Epoch);
         Assert.Equal([1, 2], store.Locked.Select(l => l.KeyEpoch));
         Assert.Equal(keeper.Save.ToParts().World, store.Current!.World);
@@ -258,7 +258,7 @@ public sealed class CloudSyncTests
         var kept = await phone.Sync.ReconcileAsync(s_account, WorldChoice.KeepPhone);
 
         Assert.True(asked.Outcome == SyncOutcome.ChoiceNeeded && asked.CloudSaveUnreadable && asked.ContributionsUnreadable);
-        Assert.True(kept.Outcome == SyncOutcome.Synced && kept.KeyEpochBegan);
+        Assert.True(kept.Outcome == SyncOutcome.Synced && kept.ContributionPartLocked && !kept.KeyEpochBegan);
         Assert.Equal(phones, phone.Fingerprint);
         Assert.Empty(phone.World.Replacements);
         Assert.Equal(phone.Save.ToParts().World, store.Current.World);
@@ -352,6 +352,56 @@ public sealed class CloudSyncTests
 
         Assert.NotEqual(phone.Storage.Key(s_account)!.ToText(), phone.Storage.Key(other)!.ToText());
         Assert.Null(ContributionCipher.Open(phone.Storage.Key(s_account)!, other, 1, otherStore.Current!.Contributions));
+    }
+
+    // The upload that carries a new key epoch to the server fails: the phone already has the world and the key for the
+    // next epoch, so the next sync goes on with them instead of asking the player to choose between two copies of
+    // the same island.
+    [Fact]
+    public async Task AFailedUploadAfterANewKeyEpochBeganGoesOnWithoutAChoice()
+    {
+        var store = new FakeCloudSaveStore();
+        var old = new Device(store, PlayedSave());
+        await old.Sync.ReconcileAsync(s_account);
+        var fresh = new Device(store);
+        store.FailUploads = true;
+
+        var first = await fresh.Sync.ReconcileAsync(s_account);
+        store.FailUploads = false;
+        Advance(fresh.Save, Hour);
+        fresh.Save.Apply("fresh-rush", new Rush());
+        var second = await fresh.Sync.UploadAsync(s_account);
+
+        Assert.True(first.Outcome == SyncOutcome.Offline && first.Downloaded && first.KeyEpochBegan);
+        Assert.Equal((SyncOutcome.Synced, false, false), (second.Outcome, second.KeyEpochBegan, second.ContributionPartLocked));
+        Assert.Empty(fresh.World.Replacements); // The world that came down was never replaced again.
+        Assert.Equal(fresh.Save.ToParts().World, store.Current!.World);
+        Assert.Equal((2L, 2), (store.Current.Version, store.Current.KeyEpoch));
+        Assert.Equal([1], store.Locked.Select(l => l.KeyEpoch));
+    }
+
+    [Fact]
+    public async Task AFailedUploadAfterTheChoiceKeepsTheChoice()
+    {
+        var store = new FakeCloudSaveStore();
+        await new Device(store, PlayedSave()).Sync.ReconcileAsync(s_account);
+        var taker = new Device(store, PlayedSave(installOffset: 1));
+        var keeper = new Device(store, PlayedSave(installOffset: 2));
+        string keepers = keeper.Fingerprint;
+        store.FailUploads = true;
+
+        var taken = await taker.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud);
+        var kept = await keeper.Sync.ReconcileAsync(s_account, WorldChoice.KeepPhone);
+        store.FailUploads = false;
+        var takerAgain = await taker.Sync.UploadAsync(s_account);
+        var keeperAgain = await keeper.Sync.UploadAsync(s_account);
+
+        Assert.True(taken.Outcome == SyncOutcome.Offline && taken.KeyEpochBegan);
+        Assert.True(kept.Outcome == SyncOutcome.Offline && kept.ContributionPartLocked);
+        Assert.Equal(SyncOutcome.Synced, takerAgain.Outcome);
+        Assert.Equal(SyncOutcome.ChoiceNeeded, keeperAgain.Outcome);
+        Assert.Equal(keepers, keeper.Fingerprint);
+        Assert.Single(taker.World.Replacements);
     }
 
     private static void Advance(Save save, long seconds)

@@ -11,6 +11,7 @@ namespace Eirora.CloudSaving
             Downloaded = changes.Downloaded;
             Merged = changes.Merged;
             KeyEpochBegan = changes.KeyEpochBegan;
+            ContributionPartLocked = changes.ContributionPartLocked;
             CloudSaveUnreadable = changes.CloudSaveUnreadable;
             Version = version;
             CloudGameDay = cloudGameDay;
@@ -27,10 +28,18 @@ namespace Eirora.CloudSaving
         public bool Merged { get; }
 
         /// <summary>
-        /// The device had no key for the cloud save's epoch, so a new key epoch began: the game days so far are closed
-        /// and the old contribution part is locked on the server for 90 days (ADR-0008, D-101).
+        /// The cloud's world was taken without its contribution part, which this device could not read, so a new key
+        /// epoch began: the game days so far are closed and the old part is locked on the server for 90 days
+        /// (ADR-0008, D-101).
         /// </summary>
         public bool KeyEpochBegan { get; }
+
+        /// <summary>
+        /// The phone's world replaced a cloud save whose contribution part this device could not read (D-102): it went
+        /// up under a new key epoch, so the server locks the old part for 90 days rather than losing it. Nothing on the
+        /// phone changed.
+        /// </summary>
+        public bool ContributionPartLocked { get; }
 
         /// <summary>
         /// The cloud save's contribution part did not open with the device's key for its epoch, so it was never merged
@@ -100,6 +109,8 @@ namespace Eirora.CloudSaving
         public bool Merged { get; set; }
 
         public bool KeyEpochBegan { get; set; }
+
+        public bool ContributionPartLocked { get; set; }
 
         public bool CloudSaveUnreadable { get; set; }
     }

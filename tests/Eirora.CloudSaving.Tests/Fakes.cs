@@ -18,6 +18,9 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 
     public bool SignedIn { get; set; } = true;
 
+    /// <summary>When true, every upload answers as if the network dropped after the download.</summary>
+    public bool FailUploads { get; set; }
+
     public int Uploads { get; private set; }
 
     public Task<StoreReply<CloudSave>> GetAsync()
@@ -37,7 +40,7 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 
     public Task<StoreReply<CloudSaveVersion>> UploadAsync(CloudSaveUpload upload)
     {
-        if (!Online)
+        if (!Online || FailUploads)
         {
             return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Offline));
         }
