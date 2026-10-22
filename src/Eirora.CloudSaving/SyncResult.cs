@@ -35,9 +35,10 @@ namespace Eirora.CloudSaving
         public bool KeyEpochBegan { get; }
 
         /// <summary>
-        /// The phone's world replaced a cloud save whose contribution part this device could not read (D-102): it went
+        /// The phone's world replaces a cloud save whose contribution part this device could not read (D-102): it goes
         /// up under a new key epoch, so the server locks the old part for 90 days rather than losing it. Nothing on the
-        /// phone changed.
+        /// phone changed. Set when the upload is tried, like <see cref="KeyEpochBegan"/>: the part is locked only once
+        /// an upload under the new epoch gets through, which can be a later try.
         /// </summary>
         public bool ContributionPartLocked { get; }
 
