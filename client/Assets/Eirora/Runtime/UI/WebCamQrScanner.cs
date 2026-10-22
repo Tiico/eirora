@@ -1,4 +1,4 @@
-using Eirora.Client.App;
+using Eirora.CloudSaving;
 using UnityEngine;
 #if UNITY_ANDROID && !UNITY_EDITOR
 using UnityEngine.Android;
@@ -17,9 +17,13 @@ namespace Eirora.Client.UI
         private const int Height = 480;
         private const int Fps = 30;
 
+        /// <summary>Frames wider than this are read at every other pixel: a code fills enough of the picture anyway, and the reader has less to do.</summary>
+        private const int FullReadWidth = 800;
+
         private WebCamTexture? _camera;
         private Color32[]? _pixels;
         private byte[]? _grey;
+        private bool _wanted;
 
         public ScannerStatus Status { get; private set; } = ScannerStatus.Starting;
 
@@ -37,12 +41,16 @@ namespace Eirora.Client.UI
             }
 
             Status = ScannerStatus.Starting;
+            _wanted = true; // An answer to the permission question that comes after Stop() must not open the camera.
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
             {
                 var callbacks = new PermissionCallbacks();
                 callbacks.PermissionGranted += _ => Open();
-                callbacks.PermissionDenied += _ => Status = ScannerStatus.Denied;
+                callbacks.PermissionDenied += _ => Deny();
+#pragma warning disable CS0618 // Older Android versions answer "don't ask again" through this callback.
+                callbacks.PermissionDeniedAndDontAskAgain += _ => Deny();
+#pragma warning restore CS0618
                 Permission.RequestUserPermission(Permission.Camera, callbacks);
                 return;
             }
@@ -64,7 +72,7 @@ namespace Eirora.Client.UI
                 }
                 else
                 {
-                    Status = ScannerStatus.Denied;
+                    Deny();
                 }
             };
 #endif
@@ -79,30 +87,34 @@ namespace Eirora.Client.UI
 
             int width = camera.width;
             int height = camera.height;
+            int step = width > FullReadWidth ? 2 : 1;
+            int readWidth = width / step;
+            int readHeight = height / step;
             if (_pixels is null || _pixels.Length != width * height)
             {
                 _pixels = new Color32[width * height];
-                _grey = new byte[width * height];
+                _grey = new byte[readWidth * readHeight];
             }
 
             camera.GetPixels32(_pixels);
             // The texture's rows run from the bottom; the reader wants them from the top, or the code is a mirror image.
-            for (int y = 0; y < height; y++)
+            for (int y = 0; y < readHeight; y++)
             {
-                int from = (height - 1 - y) * width;
-                int to = y * width;
-                for (int x = 0; x < width; x++)
+                int from = (height - 1 - (y * step)) * width;
+                int to = y * readWidth;
+                for (int x = 0; x < readWidth; x++)
                 {
-                    var pixel = _pixels[from + x];
+                    var pixel = _pixels[from + (x * step)];
                     _grey![to + x] = (byte)(((77 * pixel.r) + (151 * pixel.g) + (28 * pixel.b)) >> 8);
                 }
             }
 
-            return QrCodes.Decode(_grey!, width, height);
+            return QrCodes.Decode(_grey!, readWidth, readHeight);
         }
 
         public void Stop()
         {
+            _wanted = false;
             if (_camera is not { } camera)
             {
                 return;
@@ -114,9 +126,17 @@ namespace Eirora.Client.UI
             Status = ScannerStatus.Starting;
         }
 
+        private void Deny()
+        {
+            if (_wanted)
+            {
+                Status = ScannerStatus.Denied;
+            }
+        }
+
         private void Open()
         {
-            if (_camera is not null)
+            if (_camera is not null || !_wanted)
             {
                 return;
             }

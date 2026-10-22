@@ -10,7 +10,8 @@
   "allowUnsafeCode": false,
   "overrideReferences": true,
   "precompiledReferences": [
-    "BouncyCastle.Cryptography.dll"
+    "BouncyCastle.Cryptography.dll",
+    "zxing.dll"
   ],
   "autoReferenced": false,
   "defineConstraints": [],

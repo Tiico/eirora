@@ -1,7 +1,7 @@
 # ZXing.Net
 
 The assembly the client makes and reads QR codes with: the key transfer ticket shown on a new phone and scanned by the old one (ADR-0008, TASK-023b).
-Only `Eirora.Client.asmdef` and the EditMode tests reference it; the import is not auto-referenced.
+Only `Eirora.CloudSaving.asmdef` references it (the same sources build against the NuGet package in .NET); the import is not auto-referenced.
 
 | | |
 |---|---|

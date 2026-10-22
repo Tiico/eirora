@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Eirora.Client.Accounts;
 using Eirora.Client.App;
 using Eirora.Client.UI;
+using Eirora.CloudSaving;
 using Eirora.Contracts;
 using Eirora.Simulation;
 using Eirora.Simulation.Time;
@@ -130,6 +131,8 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels(), Does.Contain("Vilken ö vill du behålla?"));
             Assert.That(_root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Hämta ön från kontot").And.Contain("Behåll telefonens ö"));
+            Assert.That(_root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Visa QR-kod för din gamla telefon"), "a phone with its own island can still get the key from the old phone");
+            Assert.That(_root.Query<TextField>().ToList(), Has.Count.EqualTo(1), "or from the recovery code");
         }
 
         [Test]
@@ -220,9 +223,23 @@ namespace Eirora.Client.Tests
             _hud.ScanNow();
             Assert.That(scanner.Started, Is.True, "a code that is not a ticket keeps the camera on");
             Assert.That(Labels(), Does.Contain("Det är inte en kod från Eirora. Sök koden på den nya telefonen."));
-
-            scanner.Next = newPhone.TransferTicket;
+            string ticket = newPhone.TransferTicket!;
+            string crafted = ticket.Replace(" " + KeyTransferTicket.TryParse(ticket)!.Id + " ", "  ");
+            scanner.Next = crafted;
             _hud.ScanNow();
+            Assert.That(scanner.Started, Is.True, "a crafted code with an empty id keeps the camera on too");
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(1), "nothing was sent for it");
+
+            scanner.Next = ticket;
+            _hud.ScanNow();
+
+            string checkCode = KeyTransferTicket.TryParse(ticket)!.CheckCode;
+            Assert.That(scanner.Started, Is.False, "the camera is off while the player is asked");
+            Assert.That(Labels(), Does.Contain("Skicka nyckeln till telefonen som visar koden?").And.Contain("Kontrollkod " + checkCode));
+            Assert.That(root.Query<Label>().ToList().Select(l => l.text), Has.Some.StartsWith("Kontrollkod " + checkCode), "the new phone shows the same check code under its code");
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(1), "nothing is sent before the player confirms");
+
+            _hud.ConfirmSend();
 
             Assert.That(Labels(), Does.Contain("Nyckeln är skickad. Den nya telefonen hämtar din ö nu."));
             Assert.That(Labels(), Does.Not.Contain("Skicka nyckeln"), "the sheet is back on the account");
@@ -270,6 +287,20 @@ namespace Eirora.Client.Tests
             Assert.That(scanner.Started, Is.True);
             _hud.OpenAccount(); // Toggles the sheet shut.
             Assert.That(scanner.Started, Is.False, "the camera never runs with the sheet closed");
+
+            hud.ShowTransferCode();
+            _hud.OpenKeySending();
+            scanner.Status = ScannerStatus.Scanning;
+            scanner.Next = newPhone.TransferTicket;
+            _hud.ScanNow();
+            Assert.That(Labels(), Does.Contain("Skicka nyckeln till telefonen som visar koden?"));
+            Assert.That(root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Skanna igen"));
+
+            _hud.OpenAccount(); // Shut while the question is up: nothing is sent, and the next opening scans afresh.
+
+            Assert.That(_server.PendingKeyTransfers, Is.EqualTo(1));
+            _hud.OpenKeySending();
+            Assert.That(Labels(), Does.Contain("Söker koden …").And.Not.Contain("Skicka nyckeln till telefonen som visar koden?"));
         }
 
         /// <summary>A scanner the tests feed: the next read gives <see cref="Next"/> once.</summary>
