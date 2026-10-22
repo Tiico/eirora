@@ -334,6 +334,11 @@ class World:
     def factor(self, b):
         return distance_factor(self.depot_distance(b.tile), b.road)
 
+    def boost(self, b):
+        """Avstånd × nivå × dagsverke: vad en byggnad ger mot en nivå 1-byggnad intill förrådet."""
+        return self.factor(b) * (1.5 if b.level == 2 else 1.0) * (
+            1.5 if (b.kind, b.tile) in self.boosted else 1.0)
+
     def depot_distance(self, tile):
         """Steg över land till närmaste förråd eller brygga på samma ö (sökväg, TASK-028)."""
         p = coord(tile)
@@ -508,14 +513,15 @@ class World:
         self.staff()
 
     def hour(self, active):
-        # Långsamma processer fortgår dygnet runt (INV-T5).
+        # Långsamma processer fortgår dygnet runt (INV-T5). Avstånd, nivå 2 och dagsverke
+        # skalar hur fort åkern och fårgården växer, som de skalar all annan produktion (TASK-038).
         for p in self.forest:
             self.forest[p] = min(FOREST_PER_TILE, self.forest[p] + FOREST_REGROWTH)
         for b in self.buildings:
             if b.kind == "Åker":
-                b.buffer += 0.5 * TILES[b.tile].richness
+                b.buffer += 0.5 * TILES[b.tile].richness * self.boost(b)
             if b.kind == "Fårgård":
-                b.buffer += 0.4 * TILES[b.tile].richness
+                b.buffer += 0.4 * TILES[b.tile].richness * self.boost(b)
         if not active:
             return  # byborna sover (INV-T4)
         if self.expedition_left:
@@ -542,8 +548,7 @@ class World:
         for b in self.buildings:
             if not b.staffed:
                 continue
-            k = self.factor(b) * (1.5 if b.level == 2 else 1.0) * (
-                1.5 if (b.kind, b.tile) in self.boosted else 1.0)
+            k = self.boost(b)
             tile = TILES[b.tile]
             out = self.stock if tile.island == HOME else self.remote_stock[tile.island]
             if b.kind == "Fiskebod":
