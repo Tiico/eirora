@@ -50,9 +50,9 @@ namespace Eirora.Client.Tests
             _hud.Select(new Hex(-1, 1));
             _hud.ShowMoreBuildings();
 
-            _hud.Select(new Hex(-1, 1));
+            _hud.Select(new Hex(2, 1)); // A meadow by the forest and the shore.
 
-            Assert.That(Actions(), Is.EqualTo(new[] { "Huggarkoja", "Fler byggnader" }));
+            Assert.That(Actions(), Is.EqualTo(new[] { "Huggarkoja", "Brygga", "Fler byggnader" }));
         }
 
         [Test]
