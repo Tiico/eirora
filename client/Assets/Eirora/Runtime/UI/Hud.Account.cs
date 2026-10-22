@@ -78,6 +78,12 @@ namespace Eirora.Client.UI
                 return;
             }
 
+            if (_showingRecoveryCode && account.IsSignedIn && _cloud?.RecoveryCode is { } shown)
+            {
+                RecoveryCodeSheet(shown);
+                return;
+            }
+
             Text("sheet-title", _sheet, "Konto");
             if (!account.IsSignedIn)
             {
@@ -138,6 +144,11 @@ namespace Eirora.Client.UI
                             () => Run(account.RemoveLoginAsync(provider), "Inloggningen är borttagen."));
                     }
                 }
+            }
+
+            if (_cloud?.RecoveryCode is not null)
+            {
+                AddAction("Visa återställningskod", "Nyckeln som låser upp din egenvård på en ny telefon", true, OpenRecoveryCode);
             }
 
             AddAction("Logga ut", "Din värld finns kvar på telefonen", !account.IsBusy, () => Run(account.SignOutAsync(), "Du är utloggad."));

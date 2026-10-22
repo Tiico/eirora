@@ -3,7 +3,7 @@
 > **Ärende:** TASK-023 (#38) · **PRD:** ACC-01, ACC-03, ACC-05, HLT-10, NFR-10 · **Beslut:** [ADR-0008](../adr/0008-backend-hosting-accounts-and-database.md), [ADR-0001](../adr/0001-local-world-server-for-shared-state.md), D-57, D-99–D-101
 
 Hotmodellen gäller hur `Eirora.Server` lagrar och lämnar ut kontots molnsparning: världsdelen, den krypterade bidragsdelen och låsta bidragsdelar från tidigare nyckelepoker.
-Krypteringen på enheten och sammanslagningen av journaler (TASK-023 del 3) står i raderna om enheten nedan; nyckelns väg till en ny telefon (TASK-023b, #108) fyller i sina rader när den byggs.
+Krypteringen på enheten och sammanslagningen av journaler (TASK-023 del 3) står i raderna om enheten nedan, liksom nyckelöverföringen mellan två telefoner via servern och återställningskoden (TASK-023b, #108, del 1); den tysta synken via plattformens nyckelring fyller i sina rader när den byggs.
 Inloggningen och kontot har en egen hotmodell, [sign-in-threat-model.md](./sign-in-threat-model.md), och allt här förutsätter den.
 
 ## Det som skyddas
@@ -38,6 +38,10 @@ sequenceDiagram
 | `PUT /api/account/cloud-save` | 200 `CloudSaveVersion`; 409 `CloudSaveVersion` med den nuvarande; 400 när formatet är fel; 413 över gränserna |
 | `GET /api/account/cloud-save/locked` | 200 med kontots låsta bidragsdelar |
 | `DELETE /api/account/cloud-save/locked/{keyEpoch}` | 204, eller 404 när kontot inte har någon sådan |
+| `POST /api/account/key-transfers` | 201 `KeyTransfer` med den nya telefonens engångsnyckel; 400 när nyckeln inte är 32 byte |
+| `GET /api/account/key-transfers/{id}` | 200 `KeyTransfer`, med den förseglade nyckeln en gång; 404 när den gått ut, tagits eller ersatts |
+| `PUT /api/account/key-transfers/{id}` | 204; 409 när en nyckel redan levererats; 404; 400 över 1 KiB |
+| `DELETE /api/account/key-transfers/{id}` | 204, 404 |
 
 ## Gränser
 
@@ -47,6 +51,7 @@ sequenceDiagram
   Den växer med journalen, med långt under 1 KiB per spelat dygn, tills en ny regelversion börjar ett nytt segment; 8 MiB räcker för mer än tio års spel med båda segmenten kvar.
 - **Hela begäran** får vara högst delarnas gränser i base64 och 64 KiB till, ungefär 12 MiB; Kestrel avbryter en större begäran redan medan den läses.
 - **En molnsparning per konto**, som varje uppladdning ersätter, och en låst bidragsdel per tidigare nyckelepok i högst 90 dagar.
+- **En nyckelöverföring per konto**, som en ny ersätter, med en förseglad nyckel på högst 1 KiB, i högst tio minuter och lämnad ut en gång.
 
 ## Hot och skydd
 
@@ -65,6 +70,12 @@ sequenceDiagram
 | Manipulering | Två enheter som spelat offline skriver över varandras spel (enhetens sida) | En uppladdning som bygger på en annan version får 409, enheten hämtar molnsparningen, slår ihop journalerna från den gemensamma segmentstarten (D-99) och laddar upp igen; sammanslagningen är idempotent och ger samma resultat från båda hållen | `SaveMergeTests`, `CloudSyncTests.TwoPhonesThatPlayedApartMergeTheirJournals`, `Eirora.Server.Tests.CloudSyncTests.TwoPhonesThatPlayedOfflineMergeWithoutDoubleContributionsOrBuildings` |
 | Informationsläckage | Bidragsnyckeln lämnar enheten eller hamnar i loggar | Nyckeln skapas av plattformens kryptografiska slump, ligger i plattformens keystore under kontots id, används bara i chiffret och loggas aldrig; den lämnar enheten först i TASK-023b, och bara krypterad | `DeviceCloudSyncStorageTests.TheKeyLivesInTheKeystoreUnderTheAccount`, `ContributionCipherTests.TwoGeneratedKeysDiffer` |
 | Informationsläckage | Samma nonce två gånger under samma nyckel | Varje försegling drar en ny slumpad nonce på 192 bitar, vilket är varför XChaCha20 och inte ChaCha20 | `ContributionCipherTests.EverySealGetsItsOwnNonceAndCiphertext` |
+| Informationsläckage | Servern, eller den som når databasen, läser bidragsnyckeln ur en nyckelöverföring | Den gamla telefonen förseglar nyckeln för den nya telefonens X25519-engångsnyckel, vars privata halva aldrig lämnar den nya telefonen; servern lagrar bara den publika nyckeln och chiffertexten, i högst tio minuter, och lämnar ut chiffertexten en gång | `KeyTransferTests.TheServerStoresOnlyWhatItCannotRead`, `TheOldPhoneDeliversTheSealedKeyAndTheNewPhoneTakesItOnce`, `KeyTransferCipherTests.AnotherPhoneAccountOrTransferDoesNotOpenIt` |
+| Behörighet (IDOR) | Någon annan läser, levererar till eller avbryter kontots överföring | Ingen route tar ett konto-id; en överföring nås bara med en token för kontot den skapades för, och ett ovanligt id är slumpat med 128 bitar | `KeyTransferTests.AnotherPlayersTokenNeverReachesTheTransfer`, `WithoutAValidTokenNoTransferIsReached` |
+| Manipulering | Någon som ser biljetten (QR-koden) levererar en egen nyckel, eller flyttar en förseglad nyckel till en annan överföring | Leveransen kräver kontots token; en nyckel som inte förseglats för just den här telefonen och överföringen öppnas inte, och överföringen är då över, så en ny biljett behövs | `KeyTransferTests.AKeySealedForAnotherPhoneOrAccountIsNotKept` (Eirora.CloudSaving.Tests), `KeyTransferCipherTests.AChangedByteAnywhereIsNoticed` |
+| Manipulering | En ny telefon börjar en ny nyckelepok innan nyckeln fått en chans att komma fram | Telefonen frågar först efter nyckeln, från den gamla telefonen eller som återställningskod, och börjar en ny epok bara när spelaren väljer att fortsätta utan | `CloudSyncTests.ANewPhoneWithoutTheKeyIsAskedForItBeforeANewEpochBegins`, `Eirora.Server.Tests.CloudSyncTests.TheOldPhoneSendsTheKeyToTheNewPhoneThroughTheServerAndNoEpochBegins` |
+| Informationsläckage | Återställningskoden skrivs fel eller läses av någon annan | Koden bär en kontrollsumma, så ett feltecken avvisas i stället för att ge fel nyckel; den visas bara på begäran i kontovyn med en varning om att den som har koden kan läsa egenvården, och lämnar aldrig telefonen genom spelet | `RecoveryCodeTests.AWrongCharacterIsCaught`, `AccountSheetTests.TheRecoveryCodeIsShownOnRequestOnly` |
+| Kvarvarande data | En överföring lever kvar på servern | Den raderas när den lämnas ut, när en ny skapas, när kontot raderas, och gallras efter tio minuter | `KeyTransferTests.ATransferRunsOutAfterTenMinutesAndIsPruned`, `ANewTransferReplacesTheAccountsPendingOne`, `DeletionTests.ADeletedAccountLeavesNoAccountDataOnTheServer` |
 | Kvarvarande data | Bidragsnyckeln lever kvar på enheten efter att kontot raderats | Enheten glömmer nyckeln och molnsparningens version när raderingen bekräftats | `CloudSaveSyncTests.SigningOutTurnsTheCloudSaveOffAndDeletingTheAccountForgetsTheKey` |
 | Förnekande av tjänst | Stora uppladdningar fyller minnet, disken eller WAL-arkivet | Gränser per del och för hela begäran, och en molnsparning per konto | `AnUploadOverItsLimitsIsRejectedAsTooLarge`, `AContributionPartAtItsLimitIsStored` |
 | Förnekande av tjänst | En liten men tillverkad världsdel med rätt hash får servern att allokera en enorm karta | Kartläsaren avvisar en radie som texten inte rymmer innan några rutor allokeras; godtyckliga ändringar i en världsdel ger bara 400 | `ARadiusTheTextCannotHoldIsRejectedBeforeAnyTileIsAllocated`, `ACraftedWorldPartIsRejectedOrAcceptedButNeverBreaksTheServer` |
@@ -84,6 +95,9 @@ sequenceDiagram
 - **Sammanslagningen spelar upp hela journalen på enheten,** så en mycket lång journal märks som en paus när två enheter stämmer av; journalen börjar om vid varje regelversion, och tiden mäts i TASK-024.
 - **Nyckeln ligger i enhetens keystore utan eget skärmlåskrav,** som refresh-token; en upplåst telefon i fel händer läser bidragen, som den läser spelet.
 
+- **Metadata om överföringen syns för servern:** att en överföring skapades och när nyckeln levererades, vilket säger att spelaren bytte telefon.
+- **Biljetten (QR-koden) är inte hemlig,** men den som ser den och dessutom har kontots token kan leverera en nyckel som den nya telefonen inte kan öppna; överföringen är då över, och spelaren börjar om.
+
 ## Kvar till kommande ärenden
 
-- Bidragsnyckelns väg till en ny telefon, och att den tas bort från enheten och nyckelringen när kontot raderas (TASK-023b, #108).
+- QR-visningen och skanningen i klienten, den tysta synken via iCloud-nyckelringen och Block Store, och att nyckeln tas bort ur nyckelringen när kontot raderas (TASK-023b, #108, del 2 och 3).

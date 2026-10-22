@@ -133,6 +133,51 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void TheRecoveryCodeIsShownOnRequestOnly()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var cloud = new CloudSaveSync(_account, _game, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask);
+            _hud.UseCloudSync(cloud);
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            _hud.OpenAccount();
+            Assert.That(Labels(), Does.Contain("Visa återställningskod"));
+            Assert.That(Labels().Any(l => l.Replace("\n", "-") == cloud.RecoveryCode), Is.False);
+
+            _hud.OpenRecoveryCode();
+
+            Assert.That(Labels(), Does.Contain("Återställningskod"));
+            Assert.That(Labels().Any(l => l.Replace("\n", "-") == cloud.RecoveryCode), Is.True);
+        }
+
+        [Test]
+        public void ANewPhoneIsAskedForTheKeyBeforeAnythingIsDownloaded()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var oldPhone = new CloudSaveSync(_account, _game, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask);
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            oldPhone.ReconcileAsync().GetAwaiter().GetResult();
+            var fresh = new GameSession(new FixedClock(ScriptedWeek.At("2026-10-15 01:00")), null);
+            var root = new VisualElement();
+            var hud = new Hud(root, command => fresh.Apply(command));
+            var newAccount = new AccountSession(FakeAccountServer.Url, _server, new MemorySecureStore(), new ILoginProvider[] { new FakeLogin(LoginProviders.Google, "player") });
+            hud.UseAccount(newAccount);
+            var newPhone = new CloudSaveSync(newAccount, fresh, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask);
+            hud.UseCloudSync(newPhone);
+
+            newAccount.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            newPhone.ReconcileAsync().GetAwaiter().GetResult();
+
+            Assert.That(fresh.World, Is.Null);
+            Assert.That(root.Query<Label>().ToList().Select(l => l.text), Does.Contain("Din ö finns på kontot"));
+            Assert.That(root.Query<Button>().ToList().Select(b => b.text), Does.Contain("Lås upp med koden").And.Contain("Fortsätt utan nyckeln"));
+            Assert.That(root.Query<TextField>().ToList(), Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public void WithoutAnAccountTheGameLooksAsBefore()
         {
             _hud.Show(_game.World!, _game.SinceDawn);

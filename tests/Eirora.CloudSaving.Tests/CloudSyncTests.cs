@@ -64,6 +64,29 @@ public sealed class CloudSyncTests
         Assert.Equal(1, store.Uploads);
     }
 
+    // Before a new epoch begins, the new phone is asked for the key: it may be on the old phone or in a recovery code.
+    [Fact]
+    public async Task ANewPhoneWithoutTheKeyIsAskedForItBeforeANewEpochBegins()
+    {
+        var store = new FakeCloudSaveStore();
+        var old = new Device(store, PlayedSave());
+        await old.Sync.ReconcileAsync(s_account);
+        var fresh = new Device(store);
+
+        var asked = await fresh.Sync.ReconcileAsync(s_account);
+        var worldWhileAsked = fresh.World.Current;
+        int uploadsWhileAsked = store.Uploads;
+        fresh.Storage.KeepKey(s_account, RecoveryCode.TryParse(RecoveryCode.Of(old.Storage.Key(s_account)!))!);
+        var unlocked = await fresh.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal((SyncOutcome.KeyNeeded, true, old.Save.World.GameDay), (asked.Outcome, asked.ContributionsUnreadable, asked.CloudGameDay));
+        Assert.Null(worldWhileAsked);
+        Assert.Equal(1, uploadsWhileAsked);
+        Assert.Equal((SyncOutcome.Synced, true, false), (unlocked.Outcome, unlocked.Downloaded, unlocked.KeyEpochBegan));
+        Assert.Equal(old.Fingerprint, fresh.Fingerprint);
+        Assert.Equal((1L, 1), (store.Current!.Version, store.Current.KeyEpoch));
+    }
+
     [Fact]
     public async Task ANewPhoneWithoutTheKeyBeginsANewKeyEpochWithTheGameDaysClosed()
     {
@@ -72,7 +95,7 @@ public sealed class CloudSyncTests
         await old.Sync.ReconcileAsync(s_account);
         var fresh = new Device(store);
 
-        var result = await fresh.Sync.ReconcileAsync(s_account);
+        var result = await fresh.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud);
 
         Assert.Equal(SyncOutcome.Synced, result.Outcome);
         Assert.True(result.Downloaded && result.KeyEpochBegan);
@@ -91,7 +114,7 @@ public sealed class CloudSyncTests
         var old = new Device(store, PlayedSave());
         await old.Sync.ReconcileAsync(s_account);
         var fresh = new Device(store);
-        await fresh.Sync.ReconcileAsync(s_account);
+        await fresh.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud);
         Advance(old.Save, Hour);
         old.Save.Apply("old-rush", new Rush());
 
@@ -280,7 +303,7 @@ public sealed class CloudSyncTests
         var fresh = new Device(store);
         phone.Storage.CopyKeyTo(fresh.Storage, s_account);
 
-        var result = await fresh.Sync.ReconcileAsync(s_account);
+        var result = await fresh.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud);
 
         Assert.True(result.CloudSaveUnreadable);
         Assert.True(result.KeyEpochBegan, "without a readable part, the new phone goes on from the world part alone");
@@ -294,7 +317,7 @@ public sealed class CloudSyncTests
         await new Device(store, PlayedSave()).Sync.ReconcileAsync(s_account);
         var fresh = new Device(store);
         store.TakesUploads = false;
-        var first = await fresh.Sync.ReconcileAsync(s_account);
+        var first = await fresh.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud);
         store.TakesUploads = true;
         Advance(fresh.Save, Hour);
         fresh.Save.Apply("fresh-rush", new Rush());
@@ -344,7 +367,7 @@ public sealed class CloudSyncTests
         await old.Sync.ReconcileAsync(s_account);
         var fresh = new Device(store);
         store.TakesUploads = false;
-        await fresh.Sync.ReconcileAsync(s_account);
+        await fresh.Sync.ReconcileAsync(s_account, WorldChoice.TakeCloud);
         store.TakesUploads = true;
         Advance(old.Save, Hour);
         old.Save.Apply("old-rush", new Rush());

@@ -95,6 +95,34 @@ namespace Eirora.Client.Tests
             Assert.That(File.Exists(Path.Combine(_folder, "b", GameSession.SaveFile)), Is.True);
         }
 
+        // Before a new epoch begins, the new phone asks for the key (TASK-023b): the recovery code from the old phone's
+        // account sheet unlocks the account's island as it is, with its self-care.
+        [Test]
+        public void ANewPhoneWithoutTheKeyIsAskedAndARecoveryCodeUnlocksTheIsland()
+        {
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false);
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+            Assert.That(fresh.Cloud.Choice!.Outcome, Is.EqualTo(SyncOutcome.KeyNeeded));
+            Assert.That(fresh.Game.World, Is.Null);
+            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync("not a code")), Is.False);
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+
+            Assert.That(Wait(fresh.Cloud.EnterRecoveryCodeAsync(old.Cloud.RecoveryCode!.ToLowerInvariant())), Is.True);
+
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(fresh.Cloud.Choice, Is.Null);
+            Assert.That(fresh.Game.World!.Fingerprint(), Is.EqualTo(old.Game.World!.Fingerprint()));
+            Assert.That(fresh.Cloud.KeyEpochBegan, Is.False);
+            Assert.That(fresh.Cloud.RecoveryCode, Is.EqualTo(old.Cloud.RecoveryCode));
+            Assert.That(_server.CloudSaveOf("player")!.KeyEpoch, Is.EqualTo(1));
+        }
+
         [Test]
         public void ANewPhoneWithoutTheKeyBeginsANewKeyEpochAndIsTold()
         {
@@ -105,6 +133,7 @@ namespace Eirora.Client.Tests
 
             fresh.SignIn();
             Wait(fresh.Cloud.ReconcileAsync());
+            Wait(fresh.Cloud.ChooseAsync(WorldChoice.TakeCloud));
 
             Assert.That(fresh.Cloud.KeyEpochBegan, Is.True);
             Assert.That(fresh.Game.World!.LastClosedGameDay, Is.EqualTo(old.Game.World!.GameDay));

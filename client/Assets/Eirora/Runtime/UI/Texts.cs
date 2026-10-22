@@ -143,6 +143,7 @@ namespace Eirora.Client.UI
             App.CloudSyncStatus.NoWorld => "Molnsparning: ingen ö att spara ännu",
             App.CloudSyncStatus.Offline => "Molnsparning: väntar på uppkoppling, din ö sparas när servern nås",
             App.CloudSyncStatus.ChoiceNeeded => "Molnsparning: telefonen och kontot har olika öar",
+            App.CloudSyncStatus.KeyNeeded => "Molnsparning: kontots ö väntar på nyckeln från din gamla telefon",
             App.CloudSyncStatus.AppOutdated => "Molnsparning: kontots ö sparades av en nyare version av Eirora. Uppdatera appen.",
             App.CloudSyncStatus.SignedOut => "Molnsparning: logga in igen för att spara din ö på kontot",
             _ => "Molnsparning: gick inte just nu, försöker igen vid nästa ändring",

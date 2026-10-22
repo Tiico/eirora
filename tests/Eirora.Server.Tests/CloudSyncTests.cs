@@ -77,7 +77,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
         await old.Sync.ReconcileAsync(old.AccountId);
         var fresh = await DeviceAsync(login);
 
-        var result = await fresh.Sync.ReconcileAsync(fresh.AccountId);
+        var result = await fresh.Sync.ReconcileAsync(fresh.AccountId, WorldChoice.TakeCloud);
         var (_, save) = await fresh.Api.GetCloudSaveAsync(fresh.Token);
         var (_, locked) = await fresh.Api.GetLockedContributionsAsync(fresh.Token);
 
@@ -86,6 +86,35 @@ public sealed class CloudSyncTests(ServerFixture fixture)
         Assert.Equal((2L, 2), (save!.Version, save.KeyEpoch));
         Assert.Equal([1], locked!.Select(l => l.KeyEpoch));
         Assert.NotNull(ContributionCipher.Open(old.Storage.Key(old.AccountId)!, old.AccountId, 1, locked![0].Contributions));
+    }
+
+    // The key goes from the old phone to the new one through the server (TASK-023b): the new phone is asked for it,
+    // the old phone seals it for the new phone's one-time key, and the new phone then reads the account's world
+    // without a new key epoch.
+    [Fact]
+    public async Task TheOldPhoneSendsTheKeyToTheNewPhoneThroughTheServerAndNoEpochBegins()
+    {
+        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var old = await DeviceAsync(login, PlayedSave());
+        await old.Sync.ReconcileAsync(old.AccountId);
+        var fresh = await DeviceAsync(login);
+        var asked = await fresh.Sync.ReconcileAsync(fresh.AccountId);
+        var receiver = new KeyTransferReceiver(fresh.Transfers, fresh.Storage);
+        var sender = new KeyTransferSender(old.Transfers, old.Storage);
+
+        var begun = await receiver.BeginAsync();
+        var waiting = await receiver.PollAsync(fresh.AccountId);
+        var sent = await sender.SendAsync(old.AccountId, KeyTransferTicket.TryParse(receiver.Ticket!.ToText())!);
+        var received = await receiver.PollAsync(fresh.AccountId);
+        var synced = await fresh.Sync.ReconcileAsync(fresh.AccountId);
+        var (_, save) = await fresh.Api.GetCloudSaveAsync(fresh.Token);
+
+        Assert.Equal(SyncOutcome.KeyNeeded, asked.Outcome);
+        Assert.Equal((KeyTransferOutcome.Waiting, KeyTransferOutcome.Waiting, KeyDeliveryOutcome.Delivered, KeyTransferOutcome.Received), (begun, waiting, sent, received));
+        Assert.Equal(old.Storage.Key(old.AccountId)!.ToText(), fresh.Storage.Key(fresh.AccountId)!.ToText());
+        Assert.Equal((SyncOutcome.Synced, true, false), (synced.Outcome, synced.Downloaded, synced.KeyEpochBegan));
+        Assert.Equal(old.Fingerprint, fresh.Fingerprint);
+        Assert.Equal(1, save!.KeyEpoch);
     }
 
     // Whoever reaches the database can swap the contribution part, but cannot seal one the key opens: the phone never
@@ -153,7 +182,10 @@ public sealed class CloudSyncTests(ServerFixture fixture)
             Token = token;
             World = new MemoryWorld(save);
             Sync = new CloudSync(new HttpCloudSaveStore(http, token), Storage, World);
+            Transfers = new HttpKeyTransferStore(http, token);
         }
+
+        public HttpKeyTransferStore Transfers { get; }
 
         public Api Api { get; }
 

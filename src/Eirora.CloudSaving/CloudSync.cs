@@ -35,7 +35,9 @@ namespace Eirora.CloudSaving
         /// <summary>
         /// Brings the device and the account's cloud save together, at sign-in and at launch: the one that has a world
         /// gives it to the other, two of the same world merge, and two different worlds wait for the player's
-        /// <paramref name="choice"/> (<see cref="SyncOutcome.ChoiceNeeded"/>).
+        /// <paramref name="choice"/> (<see cref="SyncOutcome.ChoiceNeeded"/>). A phone without the key for the cloud's
+        /// contribution part waits too (<see cref="SyncOutcome.KeyNeeded"/>): the key may come from the old phone or a
+        /// recovery code, and <see cref="WorldChoice.TakeCloud"/> goes on without it.
         /// </summary>
         public Task<SyncResult> ReconcileAsync(Guid accountId, WorldChoice? choice = null) =>
             ReconcileAsync(accountId, choice, new SyncChanges(), attempt: 0);
@@ -188,7 +190,9 @@ namespace Eirora.CloudSaving
                 return await SendOrStartOverAsync(accountId, local, remote.Version, key, changes, choice, attempt);
             }
 
-            if (local is not null && choice is null)
+            // Before a new epoch begins, the player is asked: the key may be on the old phone or in a recovery code
+            // (TASK-023b). A phone with a world of its own chooses between the worlds as well.
+            if (choice is null)
             {
                 Save alone;
                 try
@@ -204,7 +208,7 @@ namespace Eirora.CloudSaving
                     return new SyncResult(SyncOutcome.Failed, changes);
                 }
 
-                return ChoiceNeeded(remote, alone.World.GameDay, changes, contributionsUnreadable: true);
+                return new SyncResult(local is null ? SyncOutcome.KeyNeeded : SyncOutcome.ChoiceNeeded, changes, null, alone.World.GameDay, remote.SavedAt, contributionsUnreadable: true);
             }
 
             int epoch = Math.Max(remote.KeyEpoch, key?.Epoch ?? 0) + 1;

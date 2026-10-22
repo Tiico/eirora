@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading.Tasks;
 using Eirora.Client.App;
 using Eirora.CloudSaving;
 using UnityEngine.UIElements;
@@ -14,6 +15,7 @@ namespace Eirora.Client.UI
         private CloudSaveSync? _cloud;
         private VisualElement? _choiceCard;
         private VisualElement? _noticeCard;
+        private bool _showingRecoveryCode;
 
         /// <summary>Follows the cloud save, or stops following it with null.</summary>
         public void UseCloudSync(CloudSaveSync? cloud)
@@ -40,7 +42,14 @@ namespace Eirora.Client.UI
 
             if (cloud.Choice is { } choice && _choiceCard is null)
             {
-                ShowWorldChoice(choice);
+                if (choice.Outcome == SyncOutcome.KeyNeeded)
+                {
+                    ShowKeyNeeded(choice);
+                }
+                else
+                {
+                    ShowWorldChoice(choice);
+                }
             }
             else if (cloud.Choice is null && _choiceCard is { } settled)
             {
@@ -81,15 +90,94 @@ namespace Eirora.Client.UI
             Text("setup-title", card, "Vilken ö vill du behålla?");
             string saved = choice.CloudSavedAt is { } at ? $", senast sparad {at.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : string.Empty;
             string day = choice.CloudGameDay is { } gameDay ? $" på spelardygn {gameDay.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
-            Text("sheet-text", card, $"Kontot har redan en ö{day}{saved}. Den här telefonen har en annan ö.");
+            Text("sheet-text", card, $"Kontot har redan en ö{CloudWorld(choice)}. Den här telefonen har en annan ö.");
             if (choice.ContributionsUnreadable)
             {
                 Text("sheet-text", card, "Egenvården i kontots ö går inte att läsa på den här telefonen. Hämtar du den räknas dagarna hittills som vilodagar, och bidragen räknas igen från nästa spelardygn.");
+                Text("sheet-text", card, "Har du en återställningskod? Skriv in den, så läses egenvården här också.");
+                RecoveryCodeEntry(card);
             }
 
             Text("sheet-text", card, "Den ö du inte väljer sparas undan på telefonen och raderas inte.");
             Button("button button-wide button-primary", card, "Hämta ön från kontot", () => Choose(WorldChoice.TakeCloud));
             Button("button button-wide", card, "Behåll telefonens ö", () => Choose(WorldChoice.KeepPhone));
+        }
+
+        /// <summary>
+        /// The account has a world and this phone has none, but its self-care is sealed with a key this phone lacks
+        /// (TASK-023b): the old phone or a recovery code unlocks it, or the player goes on without it (D-101).
+        /// </summary>
+        private void ShowKeyNeeded(SyncResult choice)
+        {
+            var card = Container("card setup", _middle);
+            _choiceCard = card;
+            Text("setup-title", card, "Din ö finns på kontot");
+            Text("sheet-text", card, $"Kontot har en ö{CloudWorld(choice)}. Egenvården i den är krypterad med en nyckel som den här telefonen saknar, och servern kan inte läsa den heller.");
+            Text("sheet-text", card, "Nyckeln finns på din gamla telefon. Har du en återställningskod kan du skriva in den här.");
+            RecoveryCodeEntry(card);
+            Text("sheet-text", card, "Utan nyckeln hämtas ön ändå, men dagarna till och med i dag räknas som vilodagar och bidragen räknas igen från nästa spelardygn.");
+            Button("button button-wide", card, "Fortsätt utan nyckeln", () => Choose(WorldChoice.TakeCloud));
+        }
+
+        private static string CloudWorld(SyncResult choice)
+        {
+            string saved = choice.CloudSavedAt is { } at ? $", senast sparad {at.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : string.Empty;
+            string day = choice.CloudGameDay is { } gameDay ? $" på spelardygn {gameDay.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+            return day + saved;
+        }
+
+        /// <summary>A field for the recovery code and the button that tries it; the cloud save follows by itself.</summary>
+        private void RecoveryCodeEntry(VisualElement card)
+        {
+            var field = new TextField { multiline = false };
+            field.AddToClassList("recovery-code-field");
+            card.Add(field);
+            Button("button button-wide button-primary", card, "Lås upp med koden", () => _ = UnlockAsync(field.value));
+        }
+
+        private async Task UnlockAsync(string code)
+        {
+            if (_cloud is not { } cloud)
+            {
+                return;
+            }
+
+            if (!await cloud.EnterRecoveryCodeAsync(code))
+            {
+                Toast("Det är inte en hel återställningskod. Kontrollera tecknen.");
+            }
+        }
+
+        /// <summary>Opens the account sheet on the recovery code, which is one of the key's copies (ADR-0008).</summary>
+        public void OpenRecoveryCode()
+        {
+            if (_open != Sheet.Account)
+            {
+                OpenAccount();
+            }
+
+            _showingRecoveryCode = true;
+            ShowSheet();
+        }
+
+        private void RecoveryCodeSheet(string code)
+        {
+            Text("sheet-title", _sheet, "Återställningskod");
+            Text("sheet-text", _sheet, "Skriv ner koden och förvara den säkert. Med den läser en ny telefon din egenvård på kontot, och den som har koden kan läsa den också.");
+            var groups = code.Split('-');
+            var lines = new string[groups.Length / 2];
+            for (int i = 0; i < lines.Length; i++)
+            {
+                lines[i] = groups[2 * i] + "-" + groups[(2 * i) + 1];
+            }
+
+            Text("sheet-text recovery-code", _sheet, string.Join("\n", lines));
+            Text("sheet-text", _sheet, "Koden byts när en ny nyckelepok börjar; visa den igen då.");
+            Button("button button-wide", _sheet, "Dölj", () =>
+            {
+                _showingRecoveryCode = false;
+                ShowSheet();
+            });
         }
 
         private void Choose(WorldChoice choice)
