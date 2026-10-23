@@ -251,11 +251,12 @@ namespace Eirora.Simulation.Economy
     /// </summary>
     public sealed class SettlementDiagnosis
     {
-        internal SettlementDiagnosis(IslandSettlement settlement, long food, Growth growth, int missingStaff, int freeNearby, Bottleneck? bottleneck)
+        internal SettlementDiagnosis(IslandSettlement settlement, long food, Growth growth, bool hasRoom, int missingStaff, int freeNearby, Bottleneck? bottleneck)
         {
             Settlement = settlement;
             Food = food;
             Growth = growth;
+            HasRoom = hasRoom;
             MissingStaff = missingStaff;
             FreeNearby = freeNearby;
             Bottleneck = bottleneck;
@@ -266,7 +267,11 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whole units of food in its store, of which each villager eats one at dawn.</summary>
         public long Food { get; }
 
+        /// <summary>The first thing that keeps it from growing, or <see cref="Economy.Growth.Grows"/>.</summary>
         public Growth Growth { get; }
+
+        /// <summary>Whether it has housing for one more, whom growth or moving can bring; also when it is hungry.</summary>
+        public bool HasRoom { get; }
 
         /// <summary>The villagers that its buildings lack, leaving out the paused ones.</summary>
         public int MissingStaff { get; }
@@ -280,7 +285,10 @@ namespace Eirora.Simulation.Economy
         /// <summary>What costs its island most right now, or null when nothing there is held back.</summary>
         public Bottleneck? Bottleneck { get; }
 
-        /// <summary>Whether it stands still: it would not grow at dawn and no villager can move in to staff its buildings.</summary>
-        public bool StandsStill => Growth != Growth.Grows && !(MissingStaff > 0 && FreeNearby > 0 && Growth != Growth.Full);
+        /// <summary>
+        /// Whether it stands still: it would not grow at dawn, and no villager can move in to staff its buildings, since
+        /// they lack none, no free villager is in reach or it has no housing for one more.
+        /// </summary>
+        public bool StandsStill => Growth != Growth.Grows && !(MissingStaff > 0 && FreeNearby > 0 && HasRoom);
     }
 }

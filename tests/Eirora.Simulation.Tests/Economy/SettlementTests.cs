@@ -149,6 +149,16 @@ public sealed class SettlementTests
 
         var home = joined.Diagnose().SettlementOn(PrototypeHome.Home)!;
         Assert.Equal((Growth.Grows, false), (home.Growth, home.StandsStill));
+
+        // Hungry and full at once, with a quarry that lacks two villagers and free ones at home: no one can move in, so
+        // it stands still, and at dawn no one comes (review of #164).
+        var crowded = Village(
+            IslandSettlement.SettlerHousing,
+            buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 0", $"building Quarry {N2.Q} {N2.R} 1 1 0 0 0 0", $"building SheepFarm {N1.Q} {N1.R} 1 0 0 0 0 0"]);
+        var still = crowded.Diagnose().SettlementOn(PrototypeHome.Nyon)!;
+        Assert.Equal((Growth.Hungry, false, 1, true), (still.Growth, still.HasRoom, still.MissingStaff, still.StandsStill));
+        Assert.True(still.FreeNearby > 0);
+        Assert.DoesNotContain(crowded.AdvanceTo(At("2026-10-16 08:00", 2)).OfType<VillagerMoved>(), m => m.To == PrototypeHome.Nyon);
     }
 
     // Free villagers build on their own island and on the islands a sea route joins to theirs, but live and work at home

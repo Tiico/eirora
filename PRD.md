@@ -164,6 +164,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-117 | **Varvet kräver Byggkraft och har ingen handkraft;** sjöfarten är ett lyft som tillväxten, nivåerna och milstolpen inte kräver (D-43, D-65) ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-118 | **Avvikelserna från dagens första vecka godtas:** bärarna presenteras som förrådets bemanning i introduktion 2 och deras första flaskhals är en diagnos, den som satsar på tillväxt kan nå bönderna dygn 7, och Nyön blir en egen bosättning med egna bybor, som introduktion 6 visar tillsammans med sjövägen ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-119 | **D-34:s andra halva gäller över veckor:** med samma beslut ger mer egenvård aldrig en mindre värld vid veckans slut, men bärarnas ordning kan göra världen något mindre enstaka dygn; kalkylen spärrar dippen till 0,1 %, strax över det den mäter ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
+| D-120 | **En tom bosättning växer inte av sig själv;** byborna kommer bara genom flytten (D-106, D-113) ([ekonomi v2](./docs/design/economy-v2.md#6-bosättningar), TASK-050) | [BESLUTAT] |
+| D-121 | **Hemön måste ha en brygga innan något kan byggas på andra öar,** eftersom byggarna seglar därifrån ([ekonomi v2](./docs/design/economy-v2.md#6-bosättningar), TASK-050) | [BESLUTAT] |
+| D-122 | **Flytten väntar på färdiga byggnader:** en byggnad i byggkön lockar inga bybor förrän den står klar ([ekonomi v2](./docs/design/economy-v2.md#6-bosättningar), TASK-050) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -711,6 +714,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-108 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens val i TASK-059 |
 | D-109–D-118 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens svar på delfrågorna F1–F10 i ekonomi v2 (TASK-058, PR #151) |
 | D-113, D-118, D-119 | 2026-10-23 | Se avsnitt 1.1; D-113 omskriven till v2.1, D-118 utökad med Nyöns bosättning, D-103:s avståndsdel ersatt av D-110 | Produktägarens andra omgång i TASK-058 (PR #151) |
+| D-120–D-122 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens svar på frågorna i TASK-050 (PR #164) |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

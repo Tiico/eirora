@@ -73,9 +73,10 @@ namespace Eirora.Simulation.Economy
         {
             var store = _stores[settlement.Island];
             long food = store[(int)Resource.Fish] + store[(int)Resource.Grain];
+            bool room = HousingOf(settlement) > settlement.Villagers;
             var growth = settlement.Villagers == 0 ? Growth.Empty
                 : food < Quantity.Units(settlement.Villagers) ? Growth.Hungry
-                : HousingOf(settlement) <= settlement.Villagers ? Growth.Full
+                : !room ? Growth.Full
                 : Growth.Grows;
             int nearby = 0;
             foreach (var island in _islands)
@@ -83,7 +84,7 @@ namespace Eirora.Simulation.Economy
                 nearby += Linked(island, settlement.Island) ? FreeVillagersOf(_settlements[island]) : 0;
             }
 
-            return new SettlementDiagnosis(settlement, Quantity.Whole(food), growth, MissingStaffOn(settlement.Island), nearby, bottleneck);
+            return new SettlementDiagnosis(settlement, Quantity.Whole(food), growth, room, MissingStaffOn(settlement.Island), nearby, bottleneck);
         }
 
         private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, int lacking, long[] store, Dictionary<Hex, long> forest)

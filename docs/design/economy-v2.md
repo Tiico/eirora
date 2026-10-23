@@ -236,7 +236,7 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
 ## 6. Bosättningar
 
 - **En bosättning anläggs** av det första förrådet eller den första bryggan på en ö (D-106).
-  Byggnaden har 4 bostäder för torpare, och byborna kommer genom flytten; inga nybyggare följer med.
+  Byggnaden har 4 bostäder för torpare, och byborna kommer genom flytten; inga nybyggare följer med, och en tom bosättning växer inte av sig själv (D-120).
 - **Egna bybor, bostäder och lager.**
   Byborna bemannar bara byggnader på sin ö och äter ur sin ös lager.
   Varje bosättning har egna nivåer, och nivåernas behov tas ur dess eget lager.
@@ -244,9 +244,11 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Vid gryningen flyttar högst en bybo i hela världen (D-106).
   Det är en ledig torpare, och den flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder, från den förbundna bosättning som har flest lediga.
   Bara lediga bybor flyttar, så ingen byggnad blir obemannad av att någon flyttar (D-39).
+  Bara färdiga byggnader räknas, så en byggnad i byggkön lockar inga bybor förrän den står klar (D-122).
 - **Byggandet.**
   Lediga bybor bygger på kön på sin egen ö och på öar som sjövägen förbinder med deras, men bor och arbetar kvar hemma (D-113).
   På en ö som ännu saknar bosättning, där den första bryggan byggs, bygger hemöns bybor, eftersom expeditionen har nått dit.
+  Byggarna seglar från hemön, så den måste ha en brygga innan något kan byggas på andra öar (D-121).
 - **Byggmaterialet.**
   Bygget betalas ur öns lager när det räcker, annars ur hemöns.
   Material från hemön tar plats på sjövägen: de närmaste dygnens kapacitet går först åt till det, så att taket på 40 gäller åt båda hållen (D-106, D-113).
@@ -257,6 +259,8 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen.
 - **Lagret.**
   Ett förråd rymmer 150 av varje resurs som i v1, och en brygga 50, så att en ö med bara en brygga har ett eget lager.
+- **Före nivåerna.**
+  Regelversion 8 (TASK-050) har bosättningarna men ännu inte nivåerna, så komforten från v1 gäller per bosättning: 2 vadmal ur öns eget lager ger en bybo till, tills nivåerna kommer i TASK-061 (#156).
 
 I de sex veckorna i avsnitt 10 växer Nyön till 18–20 bybor, och i alla sex körningar med Nyön stiger 6–12 av dem till bönder med kläder från hemön; ön har bara sex landbrickor, så mer ryms inte.
 D-106 gör havet långsammare än i v1, eftersom Nyöns byggnader inte längre kan bemannas från hemön.
@@ -517,3 +521,11 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
 - **D-118 (F10):** avvikelserna från dagens första vecka godtas: bärarna i introduktion 2 med flaskhalsen som diagnos, bönderna dygn 7 för den som satsar på tillväxt, och Nyön som egen bosättning i introduktion 6.
 - **D-119 (F11):** D-34:s andra halva gäller över veckor.
   Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter 0,07 % (avsnitt 9).
+
+Produktägarens svar på frågorna i TASK-050 (PR #164):
+
+- **D-120:** en tom bosättning växer inte av sig själv; byborna kommer bara genom flytten.
+- **D-121:** hemön måste ha en brygga innan något kan byggas på andra öar, eftersom byggarna seglar därifrån.
+- **D-122:** flytten väntar på färdiga byggnader; en byggnad i byggkön lockar inga bybor förrän den står klar.
+- Komforten med vadmal gäller per bosättning, med 2 vadmal ur öns eget lager, tills nivåerna kommer (avsnitt 6).
+- Nyöns egna bybor visas på bryggans blad och i rapporten; introduktion 6 byggs med introduktionssystemet i M5 ([ROADMAP](../../ROADMAP.md), M5 punkt 4).

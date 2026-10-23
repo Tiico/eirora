@@ -388,7 +388,7 @@ namespace Eirora.Simulation.Economy
             }
 
             // Builders reach another island by sea, from a jetty at home to the island's own, so those come first
-            // (economy-v2.md, section 6): the home island's free villagers build the jetty, and then a sea route joins
+            // (D-121; economy-v2.md, section 6): the home island's free villagers build the jetty, and then a sea route joins
             // the island's settlement to the others, whose free villagers build there too (D-113).
             var island = IslandOf(tile);
             if (island != _home && (!HasBuilt(BuildingKind.Jetty, _home) || (kind != BuildingKind.Jetty && !HasBuilt(BuildingKind.Jetty, island))))
@@ -633,7 +633,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>
         /// Each settlement's villagers eat from its own store and it grows if it can, today's workdays end, and a villager
         /// may move over a sea route (economy-v2.md, section 6). Missing food stops only that settlement's growth (D-39).
-        /// A settlement without villagers does not grow: they come by moving (D-106).
+        /// A settlement without villagers does not grow: they come by moving (D-106, D-120).
         /// </summary>
         public void Dawn(long utcSeconds, List<GameEvent> events)
         {
@@ -674,8 +674,8 @@ namespace Eirora.Simulation.Economy
         /// <summary>
         /// At most one villager in the whole world moves at dawn (D-106): a free one, to the settlement whose buildings lack
         /// the most villagers and that has housing for one more, from the settlement joined to it by a sea route that has
-        /// the most free; the first in map order when two are alike. Only a free villager moves, so no building loses its
-        /// staff (D-39).
+        /// the most free; the first in map order when two are alike. Only finished buildings lack villagers, so one in the
+        /// queue draws no one yet (D-122). Only a free villager moves, so no building loses its staff (D-39).
         /// </summary>
         private void Migrate(long utcSeconds, List<GameEvent> events)
         {

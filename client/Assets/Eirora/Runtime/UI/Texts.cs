@@ -197,6 +197,11 @@ namespace Eirora.Client.UI
                     break;
                 case Simulation.Economy.Growth.Hungry:
                     yield return $"Maten räcker inte: {settlement.Food} mat i lagret till {Villagers(village.Villagers)}. Byn växer inte, men ingen flyttar härifrån.";
+                    if (!settlement.HasRoom)
+                    {
+                        yield return "Alla bostäder är fulla också. Med en stuga eller ett långhus kan fler flytta in.";
+                    }
+
                     break;
                 case Simulation.Economy.Growth.Full:
                     yield return "Alla bostäder är fulla. Med en stuga eller ett långhus kan fler flytta in.";
@@ -209,7 +214,7 @@ namespace Eirora.Client.UI
             }
 
             string missing = $"Byggnaderna saknar {Villagers(settlement.MissingStaff)}.";
-            yield return settlement.Growth == Simulation.Economy.Growth.Full ? $"{missing} Det finns ingen bostad för fler."
+            yield return !settlement.HasRoom ? $"{missing} Det finns ingen bostad för fler."
                 : settlement.FreeNearby == 0 ? $"{missing} Ingen ledig bybo finns på öarna som sjövägen når."
                 : $"{missing} En ledig bybo flyttar hit över sjövägen vid gryningen, om ingen ö saknar fler.";
         }
