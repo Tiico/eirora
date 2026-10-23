@@ -301,7 +301,7 @@ De genomtänkta strategierna får 1,5–1,7 gånger den naiva strategins värde 
 
 På 20 genererade kartor (`procedural-archipelago` version 1, seed 0–19) genomför båda strategierna sina planer med måttlig egenvård, Närområdet på 9–10 dygn och Havet på 7–15.
 Där expeditionens ö saknar bete eller berg bygger Havet fårgården eller stenbrottet på hemön.
-Efter fyra veckor har Havet högre utvecklingsvärde än Närområdet på 17 av kartorna, 2 158 mot 2 031 i snitt, men båda byarna står då sedan länge vid bostadstaket, eftersom planerna inte bygger fler bostäder än de tre respektive två långhusen.
+Efter fyra veckor har Havet högre utvecklingsvärde än Närområdet på 17 av kartorna, 2 154 mot 2 033 i snitt, men båda byarna står då sedan länge vid bostadstaket, eftersom planerna inte bygger fler bostäder än de tre respektive två långhusen.
 
 ## 8. Sju dygn utan egenvård
 
