@@ -372,14 +372,14 @@ namespace Eirora.CloudSaving
                 _world.Replace(alone, local is null ? ReplaceReason.Downloaded : ReplaceReason.CloudChosen);
                 changes.Downloaded = local is null;
                 changes.KeyEpochBegan = true;
-                return await BeginEpochAsync(accountId, alone, remote.Version, NewKey(accountId, epoch), changes, choice, attempt);
+                return await BeginEpochAsync(accountId, alone, cloudsWorld: true, remote.Version, NewKey(accountId, epoch), changes, choice, attempt);
             }
 
             // The phone's world is kept and replaces the cloud's under a new epoch, so the server locks the old part. The
             // phone's own key goes on when it is already newer than the cloud's epoch.
             var phoneKey = key is not null && key.Epoch > remote.KeyEpoch ? key : NewKey(accountId, epoch);
             changes.ContributionPartLocked = true;
-            return await BeginEpochAsync(accountId, local!, remote.Version, phoneKey, changes, choice, attempt);
+            return await BeginEpochAsync(accountId, local!, cloudsWorld: false, remote.Version, phoneKey, changes, choice, attempt);
         }
 
         /// <summary>
@@ -433,14 +433,14 @@ namespace Eirora.CloudSaving
             if (local is not null && !untouched && choice == WorldChoice.KeepPhone)
             {
                 _world.KeepAside(alone);
-                return await GoOnFromAsync(accountId, local, remote, withContributions, changes, choice, attempt);
+                return await GoOnFromAsync(accountId, local, cloudsWorld: false, remote, withContributions, changes, choice, attempt);
             }
 
             // The world part alone closed the game days so far, so it goes up again as the device's world.
             _world.Replace(alone, local is null ? ReplaceReason.Downloaded : untouched ? ReplaceReason.FastForwarded : ReplaceReason.CloudChosen);
             changes.Downloaded = local is null || untouched;
             changes.WorldPartOnly = true;
-            return await GoOnFromAsync(accountId, alone, remote, withContributions, changes, choice, attempt);
+            return await GoOnFromAsync(accountId, alone, cloudsWorld: true, remote, withContributions, changes, choice, attempt);
         }
 
         /// <summary>
@@ -448,10 +448,10 @@ namespace Eirora.CloudSaving
         /// the cloud's version before the upload runs, so that an upload which does not get through is tried again rather
         /// than asked about.
         /// </summary>
-        private Task<SyncResult> GoOnFromAsync(Guid accountId, Save save, CloudSave remote, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
+        private Task<SyncResult> GoOnFromAsync(Guid accountId, Save save, bool cloudsWorld, CloudSave remote, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
         {
             var key = withContributions ? SealingKey(accountId, remote) : null;
-            KeepState(accountId, remote.Version, key?.Epoch ?? 0, save);
+            KeepState(accountId, remote.Version, key?.Epoch ?? 0, cloudsWorld ? save : null);
             return SendOrStartOverAsync(accountId, save, remote.Version, key, changes, choice, attempt);
         }
 
@@ -466,9 +466,9 @@ namespace Eirora.CloudSaving
         /// Uploads the device's world under a new key epoch. The device's world is based on <paramref name="baseVersion"/>
         /// before the upload runs, so that an upload which does not get through is tried again rather than asked about.
         /// </summary>
-        private Task<SyncResult> BeginEpochAsync(Guid accountId, Save save, long baseVersion, ContributionKey key, SyncChanges changes, WorldChoice? choice, int attempt)
+        private Task<SyncResult> BeginEpochAsync(Guid accountId, Save save, bool cloudsWorld, long baseVersion, ContributionKey key, SyncChanges changes, WorldChoice? choice, int attempt)
         {
-            KeepState(accountId, baseVersion, key.Epoch, save);
+            KeepState(accountId, baseVersion, key.Epoch, cloudsWorld ? save : null);
             return SendOrStartOverAsync(accountId, save, baseVersion, key, changes, choice, attempt);
         }
 
@@ -518,9 +518,14 @@ namespace Eirora.CloudSaving
             return (reply.Status, new SyncResult(Outcome(reply.Status), changes));
         }
 
-        /// <summary>Remembers the cloud save version the device's world is based on, with how much the player had done then.</summary>
-        private void KeepState(Guid accountId, long version, int keyEpoch, Save save) =>
-            _storage.KeepState(new CloudSyncState(accountId, version, keyEpoch, save.World.AcceptedCommands));
+        /// <summary>
+        /// Remembers the cloud save version the device's world is based on, and how much the player had done then when the
+        /// device's world <em>is</em> that version (<paramref name="cloudsWorld"/>). Before the phone's own world has gone
+        /// up in place of the cloud's, the count is left out, so the phone does not pass for untouched and lose that world
+        /// to a newer one without a question.
+        /// </summary>
+        private void KeepState(Guid accountId, long version, int keyEpoch, Save? cloudsWorld) =>
+            _storage.KeepState(new CloudSyncState(accountId, version, keyEpoch, cloudsWorld?.World.AcceptedCommands));
 
         /// <summary>Sends a no that waits on the device; the outcome when it still does not get through, or null when it did or none waited.</summary>
         private async Task<SyncOutcome?> SendWaitingDeclineAsync(Guid accountId)

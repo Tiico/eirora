@@ -333,6 +333,35 @@ public sealed class ContributionConsentTests
         Assert.Empty(a.World.Replacements);
     }
 
+    // The phone's island the player chose to keep has not reached the server while its upload fails: it is not "untouched",
+    // so the next sync asks again rather than putting it aside for the other phone's island.
+    [Fact]
+    public async Task AKeptIslandWhoseUploadDidNotGetThroughIsAskedAboutAgainAndNotReplaced()
+    {
+        var store = new FakeCloudSaveStore { Consent = Declined() };
+        var a = new Device(store, PlayedSave());
+        await a.Sync.ReconcileAsync(s_account);
+        var b = new Device(store);
+        await b.Sync.ReconcileAsync(s_account);
+        RecordSteps(a.Save, 3_000);
+        Advance(b.Save, Hour);
+        b.Save.Apply("b-schedule", new ChangeRestSchedule(new RestSchedule(22 * 60, 8 * 60)));
+        await b.Sync.UploadAsync(s_account);
+        Assert.Equal(SyncOutcome.ChoiceNeeded, (await a.Sync.ReconcileAsync(s_account)).Outcome);
+        store.TakesUploads = false;
+        var kept = await a.Sync.ReconcileAsync(s_account, WorldChoice.KeepPhone);
+        store.TakesUploads = true;
+        Advance(b.Save, Hour);
+        b.Save.Apply("b-schedule-again", new ChangeRestSchedule(new RestSchedule(23 * 60, 8 * 60)));
+        await b.Sync.UploadAsync(s_account);
+
+        var result = await a.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal(SyncOutcome.Offline, kept.Outcome);
+        Assert.Equal(SyncOutcome.ChoiceNeeded, result.Outcome);
+        Assert.Empty(a.World.Replacements);
+    }
+
     // The state beside the save can be lost, as with a backup that restores the save alone: the same world is not a choice.
     [Fact]
     public async Task WithoutConsentAPhoneThatLostItsStateButHoldsTheCloudsWorldIsNotAsked()
