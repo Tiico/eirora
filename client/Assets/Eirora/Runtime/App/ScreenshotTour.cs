@@ -155,9 +155,11 @@ namespace Eirora.Client.App
                 client.Hud.Select(null);
             }
 
-            // The storehouse's carriers and the player's cap on them, and the road laid to the far fishing hut (TASK-051).
-            client.Focus(Hex.Origin.Center() + AboveTheSheet);
-            client.Hud.Select(Hex.Origin);
+            // The carriers of the storehouse that cannot keep up, or else the first one's, and the player's cap on them, and
+            // the road laid to the far fishing hut (TASK-051).
+            var carrying = diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is CarriersBehind))?.Building.Depot ?? Hex.Origin;
+            client.Focus(carrying.Center() + AboveTheSheet);
+            client.Hud.Select(carrying);
             yield return Capture(client, folder, "21-storehouse-carriers");
             client.Hud.Select(null);
             client.Focus(ScriptedWeek.FarFishingHut.Center() + new Vector3(1.4f, 0f, 0.6f));

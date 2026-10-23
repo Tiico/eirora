@@ -73,7 +73,8 @@ namespace Eirora.Client.Tests
             session.CatchUp();
             var diagnosis = session.World!.Diagnose();
             Assert.That(diagnosis.BottleneckOn(session.World!.HomeIsland), Is.Not.Null);
-            Assert.That(diagnosis.DepotAt(Hex.Origin)!.Depot.Carriers, Is.GreaterThanOrEqualTo(1));
+            var behind = diagnosis.Buildings.First(b => b.Hindrances.Any(h => h is CarriersBehind));
+            Assert.That(diagnosis.DepotAt(behind.Building.Depot!.Value)!.Depot.Carriers, Is.GreaterThanOrEqualTo(1));
 
             // Shot 22-road: the road to the far fishing hut, laid by then.
             Assert.That(session.World!.Roads, Is.Not.Empty);
