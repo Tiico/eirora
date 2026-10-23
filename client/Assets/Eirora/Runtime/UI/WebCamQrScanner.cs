@@ -87,16 +87,31 @@ namespace Eirora.Client.UI
 
             int width = camera.width;
             int height = camera.height;
-            int step = width > FullReadWidth ? 2 : 1;
-            int readWidth = width / step;
-            int readHeight = height / step;
             if (_pixels is null || _pixels.Length != width * height)
             {
                 _pixels = new Color32[width * height];
-                _grey = new byte[readWidth * readHeight];
+                _grey = null;
             }
 
             camera.GetPixels32(_pixels);
+            return ReadFrame(_pixels, width, height, ref _grey);
+        }
+
+        /// <summary>
+        /// The text of the QR code in a camera frame of <paramref name="width"/> × <paramref name="height"/> pixels, rows
+        /// from the bottom as in a texture; null when it holds none. <paramref name="grey"/> is the buffer for the grey
+        /// picture the reader gets, made or remade here when it is missing or of the wrong size.
+        /// </summary>
+        internal static string? ReadFrame(Color32[] pixels, int width, int height, ref byte[]? grey)
+        {
+            int step = width > FullReadWidth ? 2 : 1;
+            int readWidth = width / step;
+            int readHeight = height / step;
+            if (grey is null || grey.Length != readWidth * readHeight)
+            {
+                grey = new byte[readWidth * readHeight];
+            }
+
             // The texture's rows run from the bottom; the reader wants them from the top, or the code is a mirror image.
             for (int y = 0; y < readHeight; y++)
             {
@@ -104,12 +119,12 @@ namespace Eirora.Client.UI
                 int to = y * readWidth;
                 for (int x = 0; x < readWidth; x++)
                 {
-                    var pixel = _pixels[from + (x * step)];
-                    _grey![to + x] = (byte)(((77 * pixel.r) + (151 * pixel.g) + (28 * pixel.b)) >> 8);
+                    var pixel = pixels[from + (x * step)];
+                    grey[to + x] = (byte)(((77 * pixel.r) + (151 * pixel.g) + (28 * pixel.b)) >> 8);
                 }
             }
 
-            return QrCodes.Decode(_grey!, readWidth, readHeight);
+            return QrCodes.Decode(grey, readWidth, readHeight);
         }
 
         public void Stop()
