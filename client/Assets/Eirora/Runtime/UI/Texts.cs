@@ -149,12 +149,6 @@ namespace Eirora.Client.UI
         public static string? Staffing(Building building, BuildingSpec spec) =>
             spec.Staff == 0 ? null : building.Paused ? "pausad" : building.Staffed ? "i arbete" : "väntar på bybor";
 
-        /// <summary>Why a building that needs staff stands still, or null when it works or needs none (TASK-044).</summary>
-        public static string? WhyIdle(Building building, BuildingSpec spec) =>
-            spec.Staff == 0 || building.Staffed ? null
-            : building.Paused ? "Pausad: byborna bygger i stället. Nivån och lagret står kvar."
-            : "Byborna räcker inte hit. Flytta upp den i bemanningen eller pausa en byggnad före den.";
-
         /// <summary>What a project in the queue makes: a building, a level or a road.</summary>
         public static string Project(Project project) => project.Kind switch
         {
@@ -378,6 +372,130 @@ namespace Eirora.Client.UI
             int point = (int)Math.Round(Math.Atan2(way.z, way.x) / (Math.PI / 4), MidpointRounding.AwayFromZero);
             return "ön i " + s_compass[(point + 8) % 8];
         }
+
+        /// <summary>A building in the definite form, as a sentence begins with it: Sågverket, Fiskeboden.</summary>
+        public static string Definite(BuildingKind kind) => kind switch
+        {
+            BuildingKind.Longhouse => "Långhuset",
+            BuildingKind.Cottage => "Stugan",
+            BuildingKind.Storehouse => "Förrådet",
+            BuildingKind.FishingHut => "Fiskeboden",
+            BuildingKind.Field => "Åkern",
+            BuildingKind.Woodcutter => "Huggarkojan",
+            BuildingKind.SheepFarm => "Fårgården",
+            BuildingKind.Quarry => "Stenbrottet",
+            BuildingKind.Sawmill => "Sågverket",
+            BuildingKind.Weavery => "Väveriet",
+            BuildingKind.Jetty => "Bryggan",
+            _ => "Utkiksvarden",
+        };
+
+        /// <summary>
+        /// How a building works now, for its sheet beside the ground (TASK-043): how it produces and how much an hour, or
+        /// for a building that produces nothing whether it has its villagers; null when it needs none.
+        /// </summary>
+        public static string? Status(BuildingDiagnosis building, BuildingSpec spec)
+        {
+            if (building.Product is not Resource product)
+            {
+                return Staffing(building.Building, spec);
+            }
+
+            return building.Building.Paused ? "pausad" : building.Production switch
+            {
+                Production.Full => $"går för fullt · {Rate(building.PerHour)} {Name(product)}/h",
+                Production.Reduced => $"går långsammare · {Rate(building.PerHour)} {Name(product)}/h",
+                _ => "står still",
+            };
+        }
+
+        /// <summary>How a building is while the village rests, when nothing is made and nothing is diagnosed.</summary>
+        public static string? Resting(Building building, BuildingSpec spec) =>
+            !spec.Produces ? Staffing(building, spec) : building.Paused ? "pausad" : "vilar";
+
+        /// <summary>What holds a building back, in a sentence for its sheet (TASK-043, LOG-03).</summary>
+        public static string Hindrance(Hindrance hindrance, Resource? product) => hindrance switch
+        {
+            MissingStaff staff => $"Det saknas {Villagers(staff.Villagers)} här. Flytta upp den i bemanningen eller pausa en byggnad före den.",
+            Paused => "Pausad: byborna bygger i stället. Nivån och lagret står kvar.",
+            WaitingForInput input =>
+                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. Minimilagret på {input.Reserve} sparas till byggen.",
+            StoreFull { Capacity: 0 } full => $"Ön har inget förråd för {Name(full.Resource)}.",
+            StoreFull full => $"Lagret är fullt: {full.Capacity} {Name(full.Resource)}. Inget går förlorat.",
+            ForestFelled { InReach: 0 } => "Här finns ingen skog kvar att fälla.",
+            ForestFelled forest when forest.Felled == forest.InReach => "Skogen är fälld och växer tillbaka dag och natt.",
+            ForestFelled forest => $"{forest.Felled} av {forest.InReach} skogsbrickor är fällda. Skogen växer tillbaka dag och natt.",
+            LongWay way => Way(way, product),
+            _ => $"Något håller tillbaka {Rate(hindrance.LostPerHour)} i timmen.",
+        };
+
+        /// <summary>What a road gives a building far from the storehouse, beside the road's cost on its sheet.</summary>
+        public static string RoadGives(LongWay way, Resource product) =>
+            $"{Rate(way.WithRoadPerHour)} {Name(product)}/h i stället för {Rate(way.PerHour)}";
+
+        /// <summary>The sea route's use now and what keeps goods from reaching home, for the jetties' sheets.</summary>
+        public static IEnumerable<string> SeaRoute(SeaRouteDiagnosis route)
+        {
+            yield return route.UsedPercent >= 100 ? "Skeppen går fulla."
+                : route.ShippedPerHour == 0 ? "Skeppen har ingen last just nu."
+                : $"Skeppen använder {route.UsedPercent} % av sin plats.";
+            foreach (var hindrance in route.Hindrances)
+            {
+                if (hindrance is StoreFull full)
+                {
+                    yield return $"Lagret hemma är fullt av {Name(full.Resource)}, så den väntar på andra sidan.";
+                }
+            }
+        }
+
+        /// <summary>An island's largest bottleneck in a sentence, and where a workday eases it (economy-v1.md, section 6).</summary>
+        public static string Bottleneck(Bottleneck bottleneck)
+        {
+            var kind = bottleneck.Building.Building.Kind;
+            string building = Definite(kind);
+            string held = bottleneck.Hindrance switch
+            {
+                WaitingForInput input => $"{building} väntar på {Name(input.Resource)}.",
+                MissingStaff staff => $"{building} saknar {Villagers(staff.Villagers)}.",
+                StoreFull full => $"Lagret är fullt av {Name(full.Resource)}, så {building.ToLowerInvariant()} "
+                    + (bottleneck.Building.Production == Production.Stopped ? "står still." : "går långsammare."),
+                ForestFelled => $"Skogen kring {building.ToLowerInvariant()} är fälld.",
+                LongWay way when bottleneck.Building.Product is Resource product =>
+                    $"{Share(way.Percent)} av {building.ToLowerInvariant()}s {Name(product)} når fram.",
+                _ => $"{building} hålls tillbaka.",
+            };
+
+            return bottleneck.Workday is Building workday && bottleneck.Hindrance is WaitingForInput missing
+                ? $"{held} Ett dagsverke på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
+                : held;
+        }
+
+        /// <summary>Millionths of a unit an hour, to two decimals at most: 0,94.</summary>
+        public static string Rate(long millionths)
+        {
+            long hundredths = (millionths + 5_000) / 10_000;
+            string whole = (hundredths / 100).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            long fraction = hundredths % 100;
+            return fraction == 0 ? whole
+                : fraction % 10 == 0 ? $"{whole},{fraction / 10}"
+                : $"{whole},{fraction.ToString("00", System.Globalization.CultureInfo.InvariantCulture)}";
+        }
+
+        private static string Way(LongWay way, Resource? product)
+        {
+            string steps = way.Steps == int.MaxValue ? "inget förråd nås över land" : $"{Count(way.Steps)} steg till närmaste förråd";
+            string text = $"{Share(way.Percent)} når fram, {steps}.";
+            return product is Resource made && way.BesideDepotPerHour > way.PerHour
+                ? $"{text} Ett förråd intill ger {Rate(way.BesideDepotPerHour)} {Name(made)}/h."
+                : text;
+        }
+
+        private static string Share(int percent) => percent switch
+        {
+            50 => "Hälften",
+            75 => "Tre fjärdedelar",
+            _ => $"{percent} %",
+        };
 
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
         public static string? Describe(GameEvent gameEvent) => gameEvent switch
