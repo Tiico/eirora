@@ -152,6 +152,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-105 | **Innehållet har Anno-bredd med gradvis upplåsning:** befolkningsnivåer med egna behov och fler än 20 byggnader redan i epok 1; nivåerna och behoven låses upp gradvis under epoken, till exempel när en bosättning når en viss storlek, så att första veckan är lika lätt som i dag och den guidade turen förblir kort (H4, D-12); nivåer, behov, byggnader, kedjor och upplåsning tas fram i ekonomi v2 (O-02, TASK-039, TASK-058) | [BESLUTAT] |
 | D-106 | **En bosättning per ö:** det första förrådet eller den första bryggan på en ö grundar öns bosättning, med egna bybor, bostäder och lager; byborna bemannar bara byggnader på sin ö, äter ur sin ös lager vid gryningen och flyttar över en sjöväg till en bosättning med lediga bostäder, högst en per spelardygn; varje bosättning har egna befolkningsnivåer och behov, och D-39 gäller (CIV-01, TASK-040) | [BESLUTAT] |
 | D-107 | **Transporten på land sker med bärare med kapacitet,** som Annos kärror: varje förråd har bärare som flyttar en begränsad mängd per timme mellan produktion, lager och mottagare, och vägar gör dem snabbare; flaskhalsdiagnostiken visar alltid varför en vara inte når fram och vad en väg, ett förråd eller fler bärare skulle ge; vad bärarna är, hur vägar läggs och siffrorna tas fram i ekonomi v2 (LOG-01–03, CIV-05, TASK-041, TASK-058) | [BESLUTAT] |
+| D-108 | **Rivning ger tillbaka hälften av materialet, aldrig kraft:** hälften av det byggnaden kostade, avrundat nedåt per resurs, går till öns lager och måste rymmas där (INV-R1); bekräftelsen visar exakt vad som kommer tillbaka, så att inget försvinner utan att spelaren sett det; att riva och bygga om kostar alltså halva materialet och hela kraften (förtydligar D-38, TASK-059) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -696,6 +697,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-103 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-038 efter avvikelsen som grind A0 hittade |
 | D-104 | 2026-10-21 | Se avsnitt 1.1 | Produktägarens val i TASK-037 |
 | D-105–D-107 | 2026-10-23 | Se avsnitt 1.1; O-02 avgjord | Produktägarens val i TASK-039, TASK-040 och TASK-041 |
+| D-108 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens val i TASK-059 |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
