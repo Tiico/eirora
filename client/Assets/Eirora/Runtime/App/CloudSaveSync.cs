@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Eirora.Client.Accounts;
 using Eirora.CloudSaving;
+using Eirora.Contracts;
 
 namespace Eirora.Client.App
 {
@@ -19,6 +20,12 @@ namespace Eirora.Client.App
 
         /// <summary>Neither the phone nor the account has a world yet.</summary>
         NoWorld,
+
+        /// <summary>
+        /// The player has not answered whether their self-care may be saved on the account (TASK-060); nothing goes up
+        /// until they do.
+        /// </summary>
+        ConsentNeeded,
 
         /// <summary>The server could not be reached; the next change or launch tries again.</summary>
         Offline,
@@ -70,7 +77,9 @@ namespace Eirora.Client.App
     /// One sync runs at a time; a change during a run makes it go once more. The world never waits for any of this
     /// (ACC-04): everything here follows a save that is already on the phone. The key also goes to the platform's
     /// end-to-end encrypted backup (<see cref="IKeyBackup"/>), where a new phone on the same platform finds it before
-    /// the player is asked (TASK-023b).
+    /// the player is asked (TASK-023b). Before anything goes up, the player is asked once whether their self-care, the
+    /// contribution part, may be saved on the account (TASK-060); the answer is the account's, so a decline is never
+    /// asked again, and it can be changed in the account sheet.
     /// </remarks>
     public sealed class CloudSaveSync
     {
@@ -91,6 +100,8 @@ namespace Eirora.Client.App
         private bool _lockPending;
         private Task? _running;
         private string? _backedUpKey;
+        private bool? _pendingAnswer;
+        private bool _contributionsOnAccount;
 
         /// <param name="delay">How long an upload waits after a save, so that a burst becomes one upload.</param>
         /// <param name="backup">The platform's backup of the key, or null where there is none.</param>
@@ -172,8 +183,31 @@ namespace Eirora.Client.App
         /// <summary>The account's world came down to this phone: "Välkommen tillbaka till din ö." Shown until <see cref="AcknowledgeWelcome"/>.</summary>
         public bool Welcome { get; private set; }
 
+        /// <summary>
+        /// With <see cref="Welcome"/>: the world came down without the self-care, which the account does not keep without
+        /// consent (TASK-060), so the game days so far are closed.
+        /// </summary>
+        public bool WelcomeWithoutSelfCare { get; private set; }
+
+        /// <summary>
+        /// Whether to ask the player if their self-care may be saved on the account (TASK-060): before the first upload,
+        /// until an answer is on its way.
+        /// </summary>
+        public bool ConsentQuestion => Status == CloudSyncStatus.ConsentNeeded && _pendingAnswer is null;
+
+        /// <summary>With <see cref="ConsentQuestion"/>: the account already holds self-care from before the question, which a decline deletes.</summary>
+        public bool ContributionsOnAccount => ConsentQuestion && _contributionsOnAccount;
+
+        /// <summary>
+        /// The player's answer about their self-care as the server last told this phone, or the one on its way; null
+        /// before the phone has asked.
+        /// </summary>
+        public ConsentAnswer? Consent => _pendingAnswer is { } pending
+            ? (pending ? ConsentAnswer.Given : ConsentAnswer.Declined)
+            : _account.Account is { } known ? _sync.Consent(known.Id)?.Answer : null;
+
         /// <summary>The player was welcomed; the interface that called this follows by itself.</summary>
-        public void AcknowledgeWelcome() => Welcome = false;
+        public void AcknowledgeWelcome() => Welcome = WelcomeWithoutSelfCare = false;
 
         /// <summary>The player saw the notice about the new key epoch; the interface that called this follows by itself.</summary>
         public void AcknowledgeKeyEpoch() => KeyEpochBegan = false;
@@ -202,6 +236,19 @@ namespace Eirora.Client.App
 
         /// <summary>Uploads what waits without the delay, as when the app goes to the background.</summary>
         public Task FlushAsync() => _dirty || _reconcile ? RunAsync(immediate: true) : Task.CompletedTask;
+
+        /// <summary>
+        /// Gives the player's answer about their self-care to the server and syncs by it (TASK-060): the question, a
+        /// consent given later, or a withdrawal, which deletes the self-care on the server. An answer that cannot reach
+        /// the server waits for the next sync.
+        /// </summary>
+        public Task AnswerConsentAsync(bool given)
+        {
+            _pendingAnswer = given;
+            _reconcile = true;
+            Changed?.Invoke();
+            return RunAsync(immediate: true);
+        }
 
         /// <summary>Resolves <see cref="Choice"/>; a transfer still waiting for the key is given up.</summary>
         public async Task ChooseAsync(WorldChoice choice)
@@ -345,6 +392,7 @@ namespace Eirora.Client.App
             {
                 DropKeyTransfer();
                 Choice = null;
+                _pendingAnswer = null;
                 Set(CloudSyncStatus.Off);
             }
         }
@@ -355,6 +403,7 @@ namespace Eirora.Client.App
             _sync.Forget(accountId);
             _ = ForgetBackedUpKeyAsync(accountId);
             Choice = null;
+            _pendingAnswer = null;
             Set(CloudSyncStatus.Off);
         }
 
@@ -545,6 +594,21 @@ namespace Eirora.Client.App
                     return;
                 }
 
+                if (_pendingAnswer is { } answer)
+                {
+                    var answered = await _sync.AnswerConsentAsync(accountId.Value, answer);
+                    if (answered == StoreStatus.Offline)
+                    {
+                        // The answer waits on the phone for the next sync; the question is not asked again meanwhile.
+                        _dirty = _reconcile = false;
+                        Set(CloudSyncStatus.Offline);
+                        return;
+                    }
+
+                    _pendingAnswer = null;
+                    _reconcile = true;
+                }
+
                 bool reconcile = _reconcile;
                 var choice = _choice;
                 _dirty = _reconcile = false;
@@ -562,7 +626,7 @@ namespace Eirora.Client.App
                 }
 
                 Apply(result);
-                if (result.Outcome == SyncOutcome.Synced)
+                if (result.Outcome == SyncOutcome.Synced && _sync.Consent(accountId.Value)?.Answer == ConsentAnswer.Given)
                 {
                     await BackUpKeyAsync(accountId.Value, again: reconcile);
                 }
@@ -585,7 +649,10 @@ namespace Eirora.Client.App
             if (result.Downloaded)
             {
                 Welcome = true;
+                WelcomeWithoutSelfCare = result.WorldPartOnly;
             }
+
+            _contributionsOnAccount = result.ContributionsOnAccount;
 
             if (result.KeyEpochBegan)
             {
@@ -619,6 +686,7 @@ namespace Eirora.Client.App
             {
                 SyncOutcome.Synced => CloudSyncStatus.Synced,
                 SyncOutcome.NoWorld => CloudSyncStatus.NoWorld,
+                SyncOutcome.ConsentNeeded => CloudSyncStatus.ConsentNeeded,
                 SyncOutcome.ChoiceNeeded => CloudSyncStatus.ChoiceNeeded,
                 SyncOutcome.KeyNeeded => CloudSyncStatus.KeyNeeded,
                 SyncOutcome.Offline => CloudSyncStatus.Offline,

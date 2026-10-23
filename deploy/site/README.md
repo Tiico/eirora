@@ -17,13 +17,11 @@ docker compose --env-file .env up -d
 4. Öppna `https://<värdnamn>/privacy/` och kontrollera att namnet, kontaktadressen och länken till raderingssidan syns.
    Samma adress anges som integritetspolicy i Play Console under **Appinnehåll** och på butikssidan.
 
-## Publiceringsspärr
+## Innan policyn publiceras
 
-> [!WARNING]
-> Kopiera inte `public/privacy/` till servern förrän appen ber om uttryckligt samtycke innan den laddar upp bidragsdelen första gången.
-> Policyn lovar det samtycket (artikel 9.2 a), men `CloudSaveSync` laddar i dag upp direkt vid inloggning.
-> Den rättsliga grunden ska också vara bekräftad av någon med juridisk kompetens.
-> Ta bort det här avsnittet i samma PR som bygger samtyckessteget.
+Appen frågar om uttryckligt samtycke (artikel 9.2 a) innan den laddar upp bidragsdelen första gången, och samtycket kan tas tillbaka under Konto (TASK-060, #154).
+Policyn beskriver det steget.
+Att samtycke är rätt rättslig grund för bidragsdelen ska ändå bekräftas av produktägaren, med stöd av någon med juridisk kompetens, innan `public/privacy/` kopieras till servern första gången.
 
 ## Ändra policyn
 

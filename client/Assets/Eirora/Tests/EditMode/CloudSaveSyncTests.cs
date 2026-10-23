@@ -37,7 +37,7 @@ namespace Eirora.Client.Tests
             _folder = Path.Combine(Path.GetTempPath(), "eirora-cloud-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_folder);
             _now = new DateTimeOffset(2026, 10, 21, 20, 0, 0, TimeSpan.Zero);
-            _server = new FakeAccountServer(() => _now);
+            _server = new FakeAccountServer(() => _now) { ConsentOfNewAccounts = true }; // A player who said yes, unless a test says otherwise.
         }
 
         [TearDown]
@@ -60,7 +60,7 @@ namespace Eirora.Client.Tests
             Assert.That((save.Version, save.KeyEpoch), Is.EqualTo((1L, 1)));
             Assert.That(save.World, Is.EqualTo(phone.Game.Current!.ToParts().World));
             var key = phone.Storage.Key(phone.Account.Account!.Id)!;
-            Assert.That(ContributionCipher.Open(key, phone.Account.Account!.Id, 1, save.Contributions), Is.EqualTo(phone.Game.Current!.ToParts().Contributions));
+            Assert.That(ContributionCipher.Open(key, phone.Account.Account!.Id, 1, save.Contributions!), Is.EqualTo(phone.Game.Current!.ToParts().Contributions));
             Assert.That(File.Exists(Path.Combine(_folder, "a", DeviceCloudSyncStorage.StateFile)), Is.True);
         }
 
@@ -632,6 +632,71 @@ namespace Eirora.Client.Tests
             Assert.That(backup[KeyBackups.Name(account)], Is.Null);
             Assert.That(phone.Storage.Key(account), Is.Null);
             Assert.That(phone.Cloud.KeyReach, Is.Null);
+        }
+
+        // TASK-060: nothing goes up before the answer, and an answer the server cannot be reached for waits on the phone
+        // without the question coming back.
+        [Test]
+        public void AnAnswerThatCannotReachTheServerWaitsForTheNextSync()
+        {
+            _server.ConsentOfNewAccounts = null;
+            var phone = Phone("a", withWorld: true);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            var asked = (phone.Cloud.Status, phone.Cloud.ConsentQuestion, _server.CloudSaveOf("player"));
+            _server.Online = false;
+
+            Wait(phone.Cloud.AnswerConsentAsync(false));
+            var waiting = (phone.Cloud.Status, phone.Cloud.ConsentQuestion, phone.Cloud.Consent);
+            _server.Online = true;
+            phone.Game.Apply(new RecordSelfCare(phone.Game.World!.GameDay, Habit.Steps, ContributionSource.SelfReported, 5_000));
+
+            Assert.That(asked, Is.EqualTo((CloudSyncStatus.ConsentNeeded, true, (CloudSave?)null)));
+            Assert.That(waiting, Is.EqualTo((CloudSyncStatus.Offline, false, (ConsentAnswer?)ConsentAnswer.Declined)));
+            Assert.That(_server.ConsentOf("player").Answer, Is.EqualTo(ConsentAnswer.Declined));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Null);
+            Assert.That(_server.CloudSaveOf("player")!.World, Is.EqualTo(phone.Game.Current!.ToParts().World));
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
+        // An account from before the question (the issue's migration) keeps its self-care until the player answers, and
+        // the question says that a no deletes it.
+        [Test]
+        public void AnAccountWithSelfCareFromBeforeTheQuestionKeepsItUntilTheAnswer()
+        {
+            var phone = Phone("a", withWorld: true);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            byte[] part = _server.CloudSaveOf("player")!.Contributions!;
+            _server.ForgetConsentOf("player");
+
+            Wait(phone.Cloud.ReconcileAsync());
+            var asked = (phone.Cloud.ConsentQuestion, phone.Cloud.ContributionsOnAccount, _server.CloudSaveOf("player")!.Contributions);
+            Wait(phone.Cloud.AnswerConsentAsync(false));
+
+            Assert.That(asked, Is.EqualTo((true, true, part)));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Null);
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
+        [Test]
+        public void ANewPhoneWithoutConsentGetsTheIslandWithoutTheSelfCareAndIsToldSo()
+        {
+            _server.ConsentOfNewAccounts = false;
+            var old = Phone("a", withWorld: true);
+            old.SignIn();
+            Wait(old.Cloud.ReconcileAsync());
+            var fresh = Phone("b", withWorld: false);
+
+            fresh.SignIn();
+            Wait(fresh.Cloud.ReconcileAsync());
+
+            Assert.That(fresh.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That((fresh.Cloud.Welcome, fresh.Cloud.WelcomeWithoutSelfCare), Is.EqualTo((true, true)));
+            Assert.That(fresh.Cloud.Choice, Is.Null, "nothing to unlock, so no question about the key");
+            Assert.That(fresh.Game.World!.LastClosedGameDay, Is.EqualTo(old.Game.World!.GameDay));
+            Assert.That(fresh.Storage.Key(fresh.Account.Account!.Id), Is.Null);
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Null);
         }
 
         [Test]

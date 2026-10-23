@@ -31,6 +31,7 @@ namespace Eirora.Client.Accounts
         private readonly Dictionary<string, Guid> _refresh = new();
         private readonly Dictionary<Guid, List<(string Provider, string Subject)>> _accounts = new();
         private readonly Dictionary<Guid, StoredCloudSave> _cloudSaves = new();
+        private readonly Dictionary<Guid, ContributionConsent> _consents = new();
         private readonly Dictionary<string, StoredKeyTransfer> _keyTransfers = new();
         private int _serial;
 
@@ -41,6 +42,12 @@ namespace Eirora.Client.Accounts
 
         /// <summary>When false, the cloud save still comes down but an upload answers as if the connection dropped.</summary>
         public bool TakesUploads { get; set; } = true;
+
+        /// <summary>
+        /// Whether a new account has consented to the contribution part (TASK-060): null until the player answers, as on the
+        /// real server; true for tests about the cloud save that stand for a player who said yes.
+        /// </summary>
+        public bool? ConsentOfNewAccounts { get; set; }
 
         public List<HttpCall> Calls { get; } = new();
 
@@ -58,6 +65,16 @@ namespace Eirora.Client.Accounts
             return _cloudSaves.TryGetValue(account, out var save) ? save.ToCloudSave() : null;
         }
 
+        /// <summary>The answer about the contribution part of the account the login belongs to.</summary>
+        public ContributionConsent ConsentOf(string subject)
+        {
+            var account = _accounts.First(a => a.Value.Any(l => l.Subject == subject)).Key;
+            return _consents.TryGetValue(account, out var consent) ? consent : new ContributionConsent(ConsentAnswer.Unanswered, 0, null);
+        }
+
+        /// <summary>Forgets the account's answer, as for an account from before the question (TASK-060).</summary>
+        public void ForgetConsentOf(string subject) => _consents.Remove(_accounts.First(a => a.Value.Any(l => l.Subject == subject)).Key);
+
         /// <summary>How many key transfers are pending on the server.</summary>
         public int PendingKeyTransfers => _keyTransfers.Count(t => t.Value.ExpiresAt > _now());
 
@@ -68,7 +85,8 @@ namespace Eirora.Client.Accounts
         public void TamperWithContributionsOf(string subject)
         {
             var account = _accounts.First(a => a.Value.Any(l => l.Subject == subject)).Key;
-            _cloudSaves[account].Contributions[_cloudSaves[account].Contributions.Length - 1] ^= 0x01;
+            var contributions = _cloudSaves[account].Contributions!;
+            contributions[contributions.Length - 1] ^= 0x01;
         }
 
         public IEnumerable<string> LoginsOf(string subject) =>
@@ -111,6 +129,8 @@ namespace Eirora.Client.Accounts
                 ("POST", "/api/account/deletion") => Authorized(call, account => Delete(account, Login(call))),
                 ("GET", "/api/account/cloud-save") => Authorized(call, GetCloudSave),
                 ("PUT", "/api/account/cloud-save") => Authorized(call, account => UploadCloudSave(account, call.Body)),
+                ("GET", "/api/account/contribution-consent") => Authorized(call, account => new HttpReply(200, ConsentJson(ConsentOf(account)))),
+                ("PUT", "/api/account/contribution-consent") => Authorized(call, account => AnswerConsent(account, call.Body)),
                 ("POST", "/api/account/key-transfers") => Authorized(call, account => CreateKeyTransfer(account, call.Body)),
                 ("GET", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => TakeKeyTransfer(account, TransferId(path))),
                 ("PUT", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => DeliverKeyTransfer(account, TransferId(path), call.Body)),
@@ -140,6 +160,10 @@ namespace Eirora.Client.Accounts
                 {
                     account = Guid.NewGuid();
                     _accounts[account] = new List<(string, string)> { identity.Value };
+                    if (ConsentOfNewAccounts is { } given)
+                    {
+                        _consents[account] = new ContributionConsent(given ? ConsentAnswer.Given : ConsentAnswer.Declined, ContributionConsent.CurrentVersion, _now());
+                    }
                 }
 
                 return Issue(account, created);
@@ -257,7 +281,49 @@ namespace Eirora.Client.Accounts
         private HttpReply GetCloudSave(Guid account) =>
             _cloudSaves.TryGetValue(account, out var save) ? new HttpReply(200, save.ToJson()) : new HttpReply(404);
 
-        /// <summary>The server's rules: the world part must load as one, the base version must be current, the key epoch never sinks.</summary>
+        private ContributionConsent ConsentOf(Guid account) =>
+            _consents.TryGetValue(account, out var consent) ? consent : new ContributionConsent(ConsentAnswer.Unanswered, 0, null);
+
+        /// <summary>Keeps the answer; a decline deletes the contribution part and the locked ones, as the real server does.</summary>
+        private HttpReply AnswerConsent(Guid account, string? body)
+        {
+            AccountServer.ConsentAnswerJson? answer;
+            try
+            {
+                answer = JsonUtility.FromJson<AccountServer.ConsentAnswerJson>(body);
+            }
+            catch (ArgumentException)
+            {
+                return new HttpReply(400);
+            }
+
+            if (answer is null || answer.version < 1 || answer.version > ContributionConsent.CurrentVersion)
+            {
+                return new HttpReply(400);
+            }
+
+            var consent = new ContributionConsent(answer.given ? ConsentAnswer.Given : ConsentAnswer.Declined, answer.version, _now());
+            _consents[account] = consent;
+            if (!answer.given && _cloudSaves.TryGetValue(account, out var save))
+            {
+                LockedParts = 0;
+                _cloudSaves[account] = new StoredCloudSave(save.Version, save.KeyEpoch, save.World, null, save.SavedAt);
+            }
+
+            return new HttpReply(200, ConsentJson(consent));
+        }
+
+        private static string ConsentJson(ContributionConsent consent) => JsonUtility.ToJson(new AccountServer.ConsentJson
+        {
+            answer = (int)consent.Answer,
+            version = consent.Version,
+            answeredAt = consent.AnsweredAt?.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+        });
+
+        /// <summary>
+        /// The server's rules: the world part must load as one, the base version must be current, the key epoch never
+        /// sinks, and the upload carries a contribution part exactly when the player consents (TASK-060).
+        /// </summary>
         private HttpReply UploadCloudSave(Guid account, string? body)
         {
             AccountServer.CloudSaveUploadJson? upload;
@@ -270,7 +336,8 @@ namespace Eirora.Client.Accounts
                 return new HttpReply(400);
             }
 
-            if (upload is null || upload.baseVersion < 0 || upload.keyEpoch < 1 || string.IsNullOrEmpty(upload.world) || string.IsNullOrEmpty(upload.contributions))
+            bool withPart = !string.IsNullOrEmpty(upload?.contributions);
+            if (upload is null || upload.baseVersion < 0 || (withPart ? upload.keyEpoch < 1 : upload.keyEpoch != 0) || string.IsNullOrEmpty(upload.world))
             {
                 return new HttpReply(400);
             }
@@ -279,7 +346,7 @@ namespace Eirora.Client.Accounts
             try
             {
                 world = Convert.FromBase64String(upload.world);
-                contributions = Convert.FromBase64String(upload.contributions);
+                contributions = Convert.FromBase64String(upload.contributions ?? string.Empty);
                 Save.FromParts(world, null);
             }
             catch (FormatException)
@@ -295,18 +362,21 @@ namespace Eirora.Client.Accounts
             _cloudSaves.TryGetValue(account, out var current);
             long version = current?.Version ?? 0;
             int keyEpoch = current?.KeyEpoch ?? 0;
-            if (upload.baseVersion != version || upload.keyEpoch < keyEpoch)
+            var consent = ConsentOf(account).Answer;
+            if (consent == ConsentAnswer.Unanswered || (consent == ConsentAnswer.Given) != withPart
+                || upload.baseVersion != version || (withPart && upload.keyEpoch < keyEpoch))
             {
                 return new HttpReply(409, VersionJson(version, keyEpoch));
             }
 
-            if (current is not null && upload.keyEpoch > current.KeyEpoch)
+            if (current?.Contributions is not null && withPart && upload.keyEpoch > current.KeyEpoch)
             {
                 LockedParts++;
             }
 
-            _cloudSaves[account] = new StoredCloudSave(version + 1, upload.keyEpoch, world, contributions, _now());
-            return new HttpReply(200, VersionJson(version + 1, upload.keyEpoch));
+            int epoch = Math.Max(keyEpoch, upload.keyEpoch);
+            _cloudSaves[account] = new StoredCloudSave(version + 1, epoch, world, withPart ? contributions : null, _now());
+            return new HttpReply(200, VersionJson(version + 1, epoch));
         }
 
         private static string TransferId(string path) => Uri.UnescapeDataString(path.Substring(TransfersPath.Length));
@@ -416,6 +486,7 @@ namespace Eirora.Client.Accounts
         {
             _accounts.Remove(account);
             _cloudSaves.Remove(account);
+            _consents.Remove(account);
             foreach (var pending in _keyTransfers.Where(t => t.Value.Account == account).Select(t => t.Key).ToList())
             {
                 _keyTransfers.Remove(pending);
@@ -472,7 +543,7 @@ namespace Eirora.Client.Accounts
 
         private sealed class StoredCloudSave
         {
-            public StoredCloudSave(long version, int keyEpoch, byte[] world, byte[] contributions, DateTimeOffset savedAt)
+            public StoredCloudSave(long version, int keyEpoch, byte[] world, byte[]? contributions, DateTimeOffset savedAt)
             {
                 Version = version;
                 KeyEpoch = keyEpoch;
@@ -487,7 +558,7 @@ namespace Eirora.Client.Accounts
 
             public byte[] World { get; }
 
-            public byte[] Contributions { get; }
+            public byte[]? Contributions { get; }
 
             public DateTimeOffset SavedAt { get; }
 
@@ -498,7 +569,7 @@ namespace Eirora.Client.Accounts
                 version = Version,
                 keyEpoch = KeyEpoch,
                 world = Convert.ToBase64String(World),
-                contributions = Convert.ToBase64String(Contributions),
+                contributions = Contributions is null ? null : Convert.ToBase64String(Contributions),
                 savedAt = SavedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
             });
         }

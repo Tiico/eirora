@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
@@ -47,6 +48,10 @@ namespace Eirora.Client.App
                 new MemorySecureStore(),
                 new ILoginProvider[] { new FakeLogin(Contracts.LoginProviders.Apple, "tour"), new FakeLogin(Contracts.LoginProviders.Google, "tour") });
             client.Hud.UseAccount(account);
+
+            // The cloud save, which asks about the self-care before its first upload (TASK-060).
+            var cloud = new CloudSaveSync(account, session, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask);
+            client.Hud.UseCloudSync(cloud);
 
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
             foreach (string refusal in ScriptedWeek.Play(session, clock))
@@ -108,13 +113,19 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "12-health-explanation");
             client.Hud.Select(null);
 
-            // The account: signed out, signed in with Google, and the confirmation before deleting it (TASK-022).
+            // The account: signed out, the question about the self-care at sign-in (TASK-060), signed in with Google, the
+            // confirmation before the self-care leaves the server, and the one before deleting the account (TASK-022).
             client.Hud.OpenAccount();
             yield return Capture(client, folder, "14-account");
             client.Hud.Select(null);
             _ = account.SignInAsync(Contracts.LoginProviders.Google);
+            yield return Capture(client, folder, "15-consent-question");
+            _ = cloud.AnswerConsentAsync(true);
             client.Hud.OpenAccount();
             yield return Capture(client, folder, "15-account-signed-in");
+            client.Hud.Select(null);
+            client.Hud.OpenConsentWithdrawal();
+            yield return Capture(client, folder, "16-consent-withdrawal");
             client.Hud.Select(null);
             client.Hud.OpenAccountDeletion();
             yield return Capture(client, folder, "16-account-deletion");

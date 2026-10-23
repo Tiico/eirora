@@ -366,7 +366,7 @@ Spelarens identitet på servern, som skapas när spelaren första gången loggar
 _Avoid_: profil, användare, inloggning (som är sättet att nå kontot)
 
 **Molnsparning** (`CloudSave`):
-Kontots kopia av världens sparning på servern, uppdelad i en världsdel och en end-to-end-krypterad bidragsdel.
+Kontots kopia av världens sparning på servern, uppdelad i en världsdel och, med spelarens samtycke, en end-to-end-krypterad bidragsdel.
 _Avoid_: backup, synk
 
 **Världsdel** (`Save.ToParts().World`):
@@ -376,6 +376,10 @@ _Avoid_: grunddata, publik del
 **Bidragsdel** (`Save.ToParts().Contributions`):
 Den del av sparningen som krypteras på enheten: egenvården och krediteringen per spelardygn, de använda idempotensnycklarna, segmentens start och journalerna (D-100).
 _Avoid_: hälsodata (som aldrig lämnar telefonen), krypterad backup
+
+**Samtycke till bidragsdelen** (`ContributionConsent`):
+Spelarens uttryckliga ja eller nej till att bidragsdelen sparas på kontot, som appen frågar om före den första uppladdningen och som kan ändras under Konto; utan det sparas bara världsdelen, och ett nej raderar bidragsdelen på servern.
+_Avoid_: hälsosamtycke, godkännande av villkoren
 
 **Bidragsnyckel** (`ContributionKey`):
 Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per spelardygn; förloras den går bidragshistoriken förlorad, aldrig världen.

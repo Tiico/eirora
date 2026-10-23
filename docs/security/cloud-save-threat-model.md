@@ -1,15 +1,18 @@
 # Hotmodell: molnsparning
 
-> **Ärende:** TASK-023 (#38) · **PRD:** ACC-01, ACC-03, ACC-05, HLT-10, NFR-10 · **Beslut:** [ADR-0008](../adr/0008-backend-hosting-accounts-and-database.md), [ADR-0001](../adr/0001-local-world-server-for-shared-state.md), D-57, D-99–D-101
+> **Ärende:** TASK-023 (#38), TASK-060 (#154) · **PRD:** ACC-01, ACC-03, ACC-05, HLT-10, NFR-10 · **Beslut:** [ADR-0008](../adr/0008-backend-hosting-accounts-and-database.md), [ADR-0001](../adr/0001-local-world-server-for-shared-state.md), D-57, D-99–D-102
 
 Hotmodellen gäller hur `Eirora.Server` lagrar och lämnar ut kontots molnsparning: världsdelen, den krypterade bidragsdelen och låsta bidragsdelar från tidigare nyckelepoker.
 Krypteringen på enheten och sammanslagningen av journaler (TASK-023 del 3) står i raderna om enheten nedan, liksom nyckelöverföringen mellan två telefoner via servern och återställningskoden (TASK-023b, #108, del 1 och 2) och den tysta synken via iCloud-nyckelringen och Block Store (del 3).
+Samtycket till bidragsdelen (TASK-060, #154) avgör om bidragsdelen över huvud taget lämnar telefonen, och står i flödet och i raderna om samtycket.
 Inloggningen och kontot har en egen hotmodell, [sign-in-threat-model.md](./sign-in-threat-model.md), och allt här förutsätter den.
 
 ## Det som skyddas
 
 - **Bidragsdelen:** egenvården per spelardygn, de använda idempotensnycklarna och journalerna (D-100).
   Den är personuppgifter av särskild kategori, och servern ser den bara som chiffertext.
+  Den lagras bara med spelarens uttryckliga samtycke (artikel 9.2 a); utan det lämnar den inte telefonen.
+- **Samtycket:** spelarens svar, ja eller nej, med frågans version och tidpunkt, som visar vad spelaren godkänt (artikel 7.1).
 - **Världsdelen:** kartan och senaste snapshoten utom det som hålls per spelardygn.
   Den hör till ett känt konto men avslöjar inget om egenvården.
 - **Spelarens värld:** att bara spelarens egna enheter ersätter molnsparningen, och att två av dem inte skriver över varandras spel (ACC-03).
@@ -22,12 +25,17 @@ sequenceDiagram
     participant App
     participant Server as Eirora.Server
     participant DB as PostgreSQL
+    App->>Server: GET /api/account/contribution-consent
+    Server-->>App: 200 (obesvarat, ja eller nej, version, tidpunkt)
+    App->>App: obesvarat: fråga spelaren, ladda inte upp något
+    App->>Server: PUT /api/account/contribution-consent (ja eller nej, frågans version)
+    Server->>DB: lås kontots rad, spara svaret; nej: radera bidragsdelen och de låsta
     App->>Server: GET /api/account/cloud-save
-    Server-->>App: 200 (version, nyckelepok, världsdel, bidragsdel) eller 404
-    App->>App: kryptera bidragsdelen (konto-id, nyckelepok, version + 1)
-    App->>Server: PUT /api/account/cloud-save (basversion, nyckelepok, båda delarna)
+    Server-->>App: 200 (version, nyckelepok, världsdel, bidragsdel eller null) eller 404
+    App->>App: ja: kryptera bidragsdelen (konto-id, nyckelepok, version + 1)
+    App->>Server: PUT /api/account/cloud-save (basversion, nyckelepok, världsdelen och med samtycke bidragsdelen)
     Server->>Server: storlek, världsdelen laddas som världsdel
-    Server->>DB: lås kontots rad, jämför version och nyckelepok
+    Server->>DB: lås kontots rad, jämför version, nyckelepok och samtycke
     Server-->>App: 200 ny version, eller 409 nuvarande version
     App->>Server: vid 409: hämta, slå ihop journalerna (D-99), ladda upp igen
 ```
@@ -35,7 +43,9 @@ sequenceDiagram
 | Anrop | Svar |
 |---|---|
 | `GET /api/account/cloud-save` | 200 `CloudSave`, 404 när kontot inte har någon |
-| `PUT /api/account/cloud-save` | 200 `CloudSaveVersion`; 409 `CloudSaveVersion` med den nuvarande; 400 när formatet är fel; 413 över gränserna |
+| `PUT /api/account/cloud-save` | 200 `CloudSaveVersion`; 409 `CloudSaveVersion` med den nuvarande, också när delarna inte stämmer med samtycket eller spelaren inte svarat; 400 när formatet är fel; 413 över gränserna |
+| `GET /api/account/contribution-consent` | 200 `ContributionConsent`, obesvarat för ett konto som inte svarat |
+| `PUT /api/account/contribution-consent` | 200 `ContributionConsent`; 400 för en fråga servern inte känner till |
 | `GET /api/account/cloud-save/locked` | 200 med kontots låsta bidragsdelar |
 | `DELETE /api/account/cloud-save/locked/{keyEpoch}` | 204, eller 404 när kontot inte har någon sådan |
 | `POST /api/account/key-transfers` | 201 `KeyTransfer` med den nya telefonens engångsnyckel; 400 när nyckeln inte är 32 byte |
@@ -51,12 +61,18 @@ sequenceDiagram
   Den växer med journalen, med långt under 1 KiB per spelat dygn, tills en ny regelversion börjar ett nytt segment; 8 MiB räcker för mer än tio års spel med båda segmenten kvar.
 - **Hela begäran** får vara högst delarnas gränser i base64 och 64 KiB till, ungefär 12 MiB; Kestrel avbryter en större begäran redan medan den läses.
 - **En molnsparning per konto**, som varje uppladdning ersätter, och en låst bidragsdel per tidigare nyckelepok i högst 90 dagar.
+- **Ett svar per gång spelaren svarar** på frågan om bidragsdelen, kvar tills kontot raderas; spelaren svarar för hand, så historiken växer bara med det spelaren själv gör.
 - **En nyckelöverföring per konto**, som en ny ersätter, med en förseglad nyckel på högst 1 KiB, i högst tio minuter och lämnad ut en gång.
 
 ## Hot och skydd
 
 | Hot (STRIDE) | Exempel | Skydd | Test |
 |---|---|---|---|
+| Informationsläckage | Servern lagrar bidragsdelen utan samtycke: en app från före frågan, en tillverkad uppladdning, eller en telefon som inte vet att samtycket tagits tillbaka på en annan | Servern tar ingen uppladdning innan spelaren svarat, en bidragsdel bara medan samtycket gäller och ingen utan bidragsdel medan det gäller; svaret läses under kontots radlås i samma transaktion som uppladdningen, och det som inte stämmer får 409, så att telefonen frågar servern hur det står till | `ContributionConsentTests.ANewAccountHasNotAnsweredAndTakesNoUploadUntilItHas`, `WithoutConsentOnlyTheWorldPartIsStored`, `AWorldPartUploadWhileConsentIsGivenConflictsAndKeepsThePart`, `Eirora.CloudSaving.Tests.ContributionConsentTests.AWithdrawalOnAnotherPhoneStopsThisPhonesPartAtItsNextUpload` |
+| Kvarvarande data | Bidragsdelen ligger kvar på servern efter ett nej eller en återkallelse | Svaret och raderingen av bidragsdelen och de låsta bidragsdelarna sker i samma transaktion under kontots radlås, så en uppladdning som började före återkallelsen antingen sparas och raderas eller får 409 | `ContributionConsentTests.AWithdrawalDeletesTheContributionPartAndTheLockedOnesAndNoneIsStoredAfterIt`, `UploadsAtTheSameTimeAsAWithdrawalNeverLeaveAPart`, `AContributionPartFromBeforeTheQuestionStaysUntilTheAnswerAndGoesWithADecline`, `AccountSheetTests.TheConsentIsWithdrawnInTheAccountSheetAndTheSelfCareLeavesTheServer` (EditMode) |
+| Förnekande | Det går inte att visa att spelaren samtyckt, eller till vad (artikel 7.1) | Varje svar sparas som en egen rad med frågans version och serverns tidpunkt, också efter en återkallelse; en version servern inte känner till avvisas | `ContributionConsentTests.EveryAnswerIsKeptInOrder`, `AConsentIsKeptWithItsVersionAndTimeAndTheNextUploadStoresThePart`, `AnAnswerToAQuestionTheServerDoesNotKnowIsRejected` |
+| Behörighet (IDOR) | En spelare läser eller ändrar någon annans samtycke | Ingen route tar ett konto-id; samtycket är alltid tokenens `sub` | `ContributionConsentTests.AnotherPlayersAnswerNeverReachesThisAccount`, `WithoutAValidTokenTheConsentIsNotReached` |
+| Manipulering | En nyckel från en gammal epok förseglar den första bidragsdelen efter ett nej, så att en annan telefons nyare nyckel inte längre öppnar den | Molnsparningens nyckelepok sjunker aldrig, inte heller med bara världsdelen; en ny bidragsdel får aldrig en lägre epok, och telefonen tar en ny nyckel ovanför den när dess egen är äldre | `ContributionConsentTests.AWorldPartAloneKeepsTheKeyEpochThatAPartAfterItMustNotGoBelow`, `Eirora.CloudSaving.Tests.ContributionConsentTests.AConsentAfterADeclineSealsUnderAnEpochNotBelowTheCloudSaves` |
 | Behörighet (IDOR) | En spelare läser eller ersätter någon annans molnsparning | Ingen route tar ett konto-id; molnsparningen är alltid tokenens `sub`, som i resten av `/api/account` | `AnotherPlayersTokenOnlyEverReachesThatPlayersOwnCloudSave`, `WithoutAValidTokenTheCloudSaveIsNotReached` |
 | Informationsläckage | Databasen läcker, eller en administratör läser bidragen | Bidragsdelen krypteras på enheten och lagras som exakt de byte som laddades upp; servern har ingen nyckel och dekrypterar aldrig | `TheContributionPartIsStoredAsTheBytesThatWereUploaded` |
 | Informationsläckage | En klient lägger egenvård per spelardygn i världsdelen | Världsdelen måste laddas som en världsdel: bara kartan och snapshoten, och en snapshot som skrivs tillbaka till exakt samma text, så att ingen extra rad följer med | `AnUploadWhoseWorldPartDoesNotLoadIsRejectedAndNothingIsStored` |
@@ -116,6 +132,11 @@ sequenceDiagram
 - **Plattformen kan inte alltid säga om nyckeln når molnet:** svarar Block Store inte på om den krypterar end-to-end, eller kan iPhonen inte avgöra om den har lösenkod, stannar nyckeln på telefonen och kontoarket säger inget, i stället för att påstå att skärmlås saknas.
 - **En nyckel från backupen ersätter telefonens nyckel från en äldre epok,** som en återställningskod eller en överföring gör; telefonen håller en nyckel per konto, så den äldre nyckeln, som skulle öppna epokens låsta bidragsdel, finns sedan bara kvar i en nedskriven återställningskod.
 - **Bidragsnyckeln kan bli kvar i plattformens backup när kontot raderats:** Block Store är ingen levande synk, så en Android-telefon som satts upp från spelarens telefon behåller kopian den fick; raderas kontot på en Android-telefon ligger nyckeln kvar i iCloud-nyckelringen om spelaren också har en iPhone, och tvärtom; raderas kontot på webbsidan `/account/delete` får ingen telefon veta det, så ingen backup rörs; och borttagningen sker i bakgrunden, så misslyckas den ligger nyckeln kvar. Nyckeln öppnar ändå inget, eftersom servern redan raderat bidragsdelarna.
+- **En stulen access-token kan ändra samtycket** inom sina 15 minuter: ett nej raderar bidragsdelen och de låsta bidragsdelarna på servern, men egenvården finns kvar på telefonen; ett ja får spelarens telefoner att ladda upp bidragsdelen, krypterad med en nyckel tjuven inte har.
+  Konto visar alltid vad som gäller, och spelaren ändrar det där.
+- **Ett svar som inte når servern finns bara i telefonens minne:** stängs appen innan servern nåtts ställs frågan igen nästa gång, eftersom servern aldrig fått något svar.
+- **Utan samtycke slås två telefoners spel inte ihop:** journalerna finns bara i bidragsdelen, så en telefon som inte själv laddade upp molnsparningens version låter spelaren välja ö, och en ny telefon får ön med dagarna hittills stängda.
+- **En app från före frågan** får 409 på varje uppladdning när servern med samtycket driftsatts, tills appen uppdaterats; molnsparningen står still under tiden, och världen på telefonen påverkas inte.
 - **Tangentbordets ordlista:** fältet för återställningskoden stänger av autokorrigering och töms när koden prövats, men ett tangentbord från tredje part kan ändå minnas det som skrivs.
 
 ## Kvar till kommande ärenden
