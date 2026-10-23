@@ -8,7 +8,7 @@ public sealed class CommandLineTests
     {
         var command = CommandLine.Parse([]);
 
-        Assert.Equal(6 + 40, command.Runs.Count);
+        Assert.Equal(7 + 40, command.Runs.Count);
         Assert.Equal(28, command.Runs[^1].Days);
         Assert.Equal(Path.Combine("artifacts", "balance"), command.Output);
     }

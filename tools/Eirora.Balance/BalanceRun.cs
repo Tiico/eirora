@@ -75,7 +75,7 @@ public static class BalanceRun
             }
 
             spec.Profile.Record(world, day);
-            plan.Play(new Turn(world, day, plan, tally));
+            plan.Play(new Turn(world, day, spec.Days, plan, tally));
             invariants.AfterCommands(world);
             plan.Note(world, day);
             for (int hour = 1; hour <= 24; hour++)
