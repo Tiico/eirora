@@ -391,7 +391,11 @@ _Avoid_: arkiv, gammal backup
 
 **Nyckelöverföring** (`KeyTransfer`):
 Bidragsnyckelns väg från en av spelarens telefoner till en annan via servern, som bara förmedlar den förseglad för den nya telefonens engångsnyckel och glömmer den inom tio minuter.
-_Avoid_: nyckelsynk (som är plattformens nyckelring), nyckeldelning
+_Avoid_: nyckelsynk (som är nyckelbackupen), nyckeldelning
+
+**Nyckelbackup** (`IKeyBackup`):
+Bidragsnyckelns kopia i plattformens end-to-end-krypterade backup, iCloud-nyckelringen på iOS och Block Store på Android, där en ny telefon på samma plattform hittar den utan att fråga; utan skärmlås stannar den på telefonen.
+_Avoid_: molnnyckel, nyckelsynk
 
 **Biljett** (`KeyTransferTicket`):
 Det den nya telefonen visar den gamla, i en QR-kod: överföringens id, den nya telefonens publika engångsnyckel och en hemlighet som aldrig går till servern; den är hemlig tills nyckeln levererats eller överföringen gått ut.
