@@ -197,6 +197,64 @@ public sealed class RushFirst : DailyMove
     }
 }
 
+/// <summary>
+/// Moves the first queued building of a kind first in the building queue, until one of its kind stands
+/// (economy-v1.md, section 4.1); the work it already has goes with it.
+/// </summary>
+public sealed class QueueFirstUntilBuilt : DailyMove
+{
+    public QueueFirstUntilBuilt(BuildingKind building) => Building = building;
+
+    public BuildingKind Building { get; }
+
+    public override string Name => $"{Names.Of(Building)} först i byggkön";
+
+    internal override void Make(Turn turn)
+    {
+        var world = turn.World;
+        if (world.Buildings.Any(b => b.Kind == Building)
+            || world.Projects.FirstOrDefault(p => p.Kind == ProjectKind.Build && p.Building == Building) is not Project project
+            || world.Projects[0] == project)
+        {
+            return;
+        }
+
+        turn.Apply(new QueueFirst(ProjectKind.Build, project.Tile));
+    }
+}
+
+/// <summary>
+/// Pauses the buildings of a kind while the store holds enough of a resource, so that their villagers build instead,
+/// and resumes them when it holds less or on the run's last day (economy-v1.md, section 4.1).
+/// </summary>
+public sealed class PauseWhileStocked : DailyMove
+{
+    public PauseWhileStocked(BuildingKind building, Resource resource, int enough)
+    {
+        Building = building;
+        Resource = resource;
+        Enough = enough;
+    }
+
+    public BuildingKind Building { get; }
+
+    public Resource Resource { get; }
+
+    public int Enough { get; }
+
+    public override string Name => $"pausa {Names.Of(Building)} vid {Enough} i lager";
+
+    internal override void Make(Turn turn)
+    {
+        var world = turn.World;
+        bool pause = world.Stock(Resource) >= Enough && turn.Day < turn.LastDay;
+        foreach (var building in world.Buildings.Where(b => b.Kind == Building && b.Paused != pause).ToList())
+        {
+            turn.Apply(pause ? new PauseBuilding(building.Tile) : new ResumeBuilding(building.Tile));
+        }
+    }
+}
+
 internal static class Moves
 {
     /// <summary>The building that delivers the most of what it makes now, the first in map order among equals.</summary>
