@@ -43,6 +43,7 @@ Måtten heter som i skriptets `results.tsv`, och gränserna står i [`budgets.ts
 | Bildtid, 95:e percentilen (`frame_p95_ms`) | högst 50 ms | högst 40 ms | högst 36 ms | Kameran ska kännas jämn när spelaren panorerar |
 | Bilder över 50 ms (`frames_over_50ms_pct`) | högst 3 % | högst 1 % | högst 1 % | Enstaka hack märks mer än en jämnt lägre frekvens |
 | Kallstart till första bild (`cold_start_median_ms`) | högst 5 s | högst 3 s | högst 2 s | Spelaren öppnar spelet för en kort stund flera gånger om dagen |
+| Kallstart till första bilden av världen (`first_frame_median_ms`) | högst 5 s | högst 3 s | högst 2 s | Androids första bild kommer innan Unity har laddat scenen; spelaren väntar på världen, också efter ett års frånvaro |
 | Minne (`pss_max_mb`) | högst 400 MB | högst 400 MB | högst 400 MB | Golvet och basen har 4 GB; Android stänger appar som tar mer i bakgrunden |
 | Paketets storlek (`apk_mb`) | högst 100 MB | högst 100 MB | högst 100 MB | Långt under Google Plays gräns, och en snabb nedladdning på mobilnät |
 | Uppvärmning under passet (`skin_warming_c`, `battery_warming_c`) | högst 5 °C | högst 5 °C | högst 5 °C | Telefonen ska inte kännas varm i handen |
@@ -50,6 +51,10 @@ Måtten heter som i skriptets `results.tsv`, och gränserna står i [`budgets.ts
 | Batteri under ett dygn (`app_share_of_drain_pct`) | högst 2 % | högst 2 % | högst 2 % | Ingen bakgrundskörning (D-70) |
 
 Uppvärmningen mäts över ett pass på tio minuter (`--seconds 600`), eftersom fem minuter är för kort för att telefonen ska bli varm.
+Kallstarten till första bilden av världen mäts också efter ett års frånvaro, med mätscenen `year` ([mätningar på enhet](./device-measurements.md#kallstart-efter-ett-års-frånvaro)).
+Av golvets fem sekunder får framspolningen av ett år ta högst en, eftersom Unitys egen start tar det mesta av resten.
+Galaxy A06 har en fjärdedel till en femtedel av en utvecklardators eller en CI-maskins prestanda per kärna, och IL2CPP kör simuleringen något långsammare än .NET, så testet `FastForwardTests.AYearAwayIsCaughtUpInTime` kräver att ett år i den långsammaste av sex utbyggda världar spolas fram på högst 150 ms processortid (TASK-049).
+Den 23 oktober 2026 tog det 28 ms på en M1 Pro, mot 80 ms innan framspolningen hoppade över kvartar där bara långsamma processer rör sig.
 Ett lokalt bygge av APK:n var 34 MB den 22 oktober 2026, alltså en tredjedel av storleksbudgeten.
 
 Kartans rendering har en egen budget som inte behöver en telefon: hela kartan ritas med högst 75 000 trianglar ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md#storlek-och-prestanda)), och ett EditMode-test prövar den största av femtio genererade kartor mot den (TASK-033).
@@ -75,6 +80,7 @@ CI kan bara mäta det som inte kräver en riktig telefon: emulatorns programvaru
 |---|---|---|
 | Paketets storlek | Android-bygget i Unity-workflowen, vid releaser och manuella körningar | Ja |
 | Trianglar för hela kartan | Unity EditMode-testerna, på varje pull request som rör klienten | Ja |
+| Framspolning av ett års frånvaro, högst 150 ms | `FastForwardTests` i .NET-testerna, på varje pull request | Ja |
 | Bildtid, minne, kallstart, uppvärmning, batteri | `measure.sh` på telefoner i varje nivå | Nej, mäts för hand före varje grind och release |
 
 Att mäta golvet och basen kräver telefoner som projektet inte har.
@@ -99,3 +105,4 @@ Golvet får sänkt kvalitet från steg 1 och 2 som standard; basen och referense
   Ett golv på A06 gör spelet tillgängligt för fler men binder grafiken hårdare.
 - Ska ett Firebase-projekt skapas för Test Lab, så att golvet och basen mäts automatiskt på riktiga telefoner?
 - Budgetarna prövas mot mätningarna i TASK-015 (#30) och justeras om Pixel 7 inte håller dem med god marginal.
+- Ska kallstarten till första bilden av världen ha samma gränser som kallstarten till Androids första bild, som föreslås här, eller en egen gräns som i det första förslaget (högst 5 s till spelbar ö)?

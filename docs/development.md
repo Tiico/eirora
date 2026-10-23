@@ -17,7 +17,7 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern, inklusive två simulerade enheter som synkar genom den riktiga servern. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget, och `measure.sh cold-start` mot en låtsad `adb`. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
@@ -59,8 +59,11 @@ dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --fil
 | Mätning | Budget på en utvecklardator | Senast uppmätt |
 |---|---|---|
 | Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
+| Ett års frånvaro i den långsammaste av sex utbyggda världar (`FastForwardTests`, i testsviten) | Högst 150 ms processortid | 28 ms (M1 Pro, .NET 10) |
 
 Budgetarna på telefonen sätts i TASK-024.
+Framspolningen av ett års frånvaro mäts i stället i testsviten, i processortid som en delad maskin inte drar ut, mot en gräns som är räknad från den svagaste målenheten ([mätbudgetar](./design/performance-budgets.md#2-budgetar)).
+Testprojektet kompilerar varje metod optimerad direkt, utan tiered compilation, som IL2CPP gör på telefonen.
 
 Unity-testerna (EditMode) körs headless:
 
