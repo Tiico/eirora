@@ -86,8 +86,11 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
     På Android är det Block Store (`KeyBackup.kt`, `play-services-auth-blockstore`): till molnbackupen bara när `isEndToEndEncryptionAvailable` säger ja, annars bara på telefonen, där nyckeln ändå följer med en överföring från telefon till telefon.
     Innan en telefon frågar efter nyckeln, för att den saknas eller inte öppnar bidragsdelen, läser den backupen; en nyckel därifrån behålls bara när molnsparningen bekräftar den, som en återställningskod.
     Utan skärmlås (ingen lösenkod på iOS, ingen end-to-end-kryptering i Block Store) säger kontoarket att nyckeln inte följer med av sig själv och föreslår återställningskoden eller QR-överföringen.
-    När kontot raderas tas nyckeln bort ur backupen, och nyckelringen och Block Store för borttagningen vidare.
-    Telefonen kan inte se om iCloud-nyckelringen är påslagen: med lösenkod men utan den stannar nyckeln på telefonen, och den nya telefonen frågar som förut._
+    Kan plattformen inte säga om nyckeln når molnet, för att Block Store inte svarar på frågan om end-to-end-kryptering eller iPhonen inte kan avgöra om den har lösenkod, stannar nyckeln på telefonen och kontoarket säger inget.
+    När kontot raderas i spelet tas nyckeln bort ur telefonens backup, och iCloud-nyckelringen för borttagningen vidare till spelarens andra Apple-enheter.
+    Block Store gör det inte: en telefon som redan satts upp från den gamla behåller sin kopia.
+    Den andra plattformens backup och en radering på webbsidan lämnar också nyckeln kvar, vilket hotmodellen tar upp som en accepterad risk, eftersom servern redan raderat allt nyckeln öppnar.
+    Telefonen kan inte se om iCloud-nyckelringen eller Googles säkerhetskopiering är påslagen: med skärmlås men utan den stannar nyckeln på telefonen, och den nya telefonen frågar som förut._
 - Saknar en ny telefon nyckeln börjar en ny nyckelepok och världen fortsätter.
   Bidragsdelen från den gamla epoken markeras som låst och sparas i 90 dagar om nyckeln skulle dyka upp, och raderas sedan eller tidigare om spelaren väljer det.
   Världen, krafternas saldon och allt byggt finns kvar; spelardygnen före den nya epoken kan inte längre rättas i efterhand och räknas som tomma i Byggkraftens rullande vecka (D-63), som för en ny värld.
