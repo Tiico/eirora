@@ -173,7 +173,10 @@ Från regelversion 8 har varje ö en egen bosättning enligt [ekonomi v2, avsnit
 - Lediga bybor bygger på sin ö och på öar som sjövägen förbinder med deras; bryggan på en ö som ännu saknar bosättning bygger Hemöns.
   Byggarna seglar från en brygga på Hemön, så den kommer före allt på andra öar.
 - Bygget betalas ur öns lager när det räcker, annars ur Hemöns, och Hemöns material tar plats på sjövägen före allt annat.
+- Den första bryggans material betalas ur Hemöns lager, och sjövägen bär det först när den har öppnat, före allt annat, som allt material från Hemön till byggen på ön.
 - Migrationen dit ger öarna de bybor som bemannar deras byggnader och låter resten bo kvar på Hemön (ADR-0006).
+  En ö kan då ha fler bybor än bostäder; de bor kvar, och bosättningen växer först när det finns plats (D-39).
+  Det som inte längre ryms i en ös lager skeppas hem om ön har en sjöväg, och väntar annars vid öns förråd eller brygga tills det finns plats.
 
 ## 5. Logistik
 

@@ -95,9 +95,8 @@ namespace Eirora.Client.Tests
         private string Waiting()
         {
             var world = _game.World!;
-            long kept = 2L * world.SettlementOn(PrototypeHome.Nyon)!.Villagers;
             var goods = System.Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Select(r => (Resource: r, Units: world.Stock(PrototypeHome.Nyon, r) - (r is Resource.Fish or Resource.Grain ? kept : 0)))
+                .Select(r => (Resource: r, Units: world.ForTheShips(PrototypeHome.Nyon, r)))
                 .Where(g => g.Units > 0)
                 .ToList();
             Assert.That(goods, Is.Not.Empty, "Nothing waits on Nyön at the end of the tour's week.");

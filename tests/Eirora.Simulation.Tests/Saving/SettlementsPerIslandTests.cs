@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Text;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
+using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Serialization;
 using Eirora.Simulation.Time;
 using FsCheck.Xunit;
@@ -47,8 +49,9 @@ public sealed class SettlementsPerIslandTests
         Assert.Equal(built.Buildings.Select(b => b.Staffed), world.Buildings.Select(b => b.Staffed));
     }
 
-    // Rules 7 let a jetty off the home island hold 150 of each resource, rules 8 only 50: what does not fit goes home,
-    // and what home has no room for waits at the island's depots until there is room.
+    // Rules 7 let a jetty off the home island hold 150 of each resource, rules 8 only 50. Without a jetty at home the
+    // island has no sea route, so what does not fit waits at its depots until there is room (review of #164); what goes
+    // home over a sea route is in AWorldFromRulesSixKeepsNyonsGoodsAtItsJettyAndBuildsTheJettyAnIslandLacks.
     [Fact]
     public void GoodsThatNoLongerFitGoHomeOrWaitAtTheDepotAndMoveInWhenThereIsRoom()
     {
@@ -69,13 +72,13 @@ public sealed class SettlementsPerIslandTests
         string migrated = new SettlementsPerIsland().Migrate(rulesSeven, map);
 
         // The jetty's and the sawmill's villagers moved with them, and the store on the second island keeps 50 of each.
-        // Home, with a storehouse for 150 and no jetty, takes 10 timber; the rest waits. The planks fit.
+        // The other 70 timber wait, and the planks fit.
         Assert.Contains($"settlement home {world.Villagers - 3}\nsettlement second 3\n", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Timber {50 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
-        Assert.Contains($"stock home Timber {150 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
+        Assert.Contains($"stock home Timber {140 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Planks {40 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Single(migrated.Split('\n'), l => l.StartsWith("at-depot ", StringComparison.Ordinal));
-        Assert.Contains($"at-depot second Timber {60 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
+        Assert.Contains($"at-depot second Timber {70 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         var reader = new StateReader(migrated);
         var after = World.Read(reader, map);
         reader.End();
@@ -87,8 +90,81 @@ public sealed class SettlementsPerIslandTests
         long sawn = after.Settlement.Stock(Archipelago.Second, Resource.Planks) - Quantity.Units(40);
         Assert.True(sawn > 0, "The sawmill on the second island sawed nothing.");
         long timber = after.Settlement.Stock(Archipelago.Second, Resource.Timber);
-        Assert.Equal(Quantity.Units(50 + 60) - (2 * sawn), timber + after.Settlement.AtDepot(Archipelago.Second, Resource.Timber));
+        Assert.Equal(Quantity.Units(50 + 70) - (2 * sawn), timber + after.Settlement.AtDepot(Archipelago.Second, Resource.Timber));
         Assert.InRange(timber, Quantity.Units(49), Quantity.Units(50));
+    }
+
+    // Under rules 7 an island's buildings could need more villagers than its settlement has homes: they all move there
+    // and stay, and it grows only once there is room (economy-v2.md, section 12; review of #164).
+    [Fact]
+    public void AnIslandWhoseBuildingsNeedMoreVillagersThanItHasHomesKeepsThemAllAndDoesNotGrow()
+    {
+        var map = Archipelago.Map;
+        var world = Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
+        world.AdvanceTo(TestClock.At("2026-10-15 09:00", 2));
+        var landing = map.Features.LandOf(Archipelago.Second).First(map.Features.IsHarborSpot);
+        var land = map.Features.LandOf(Archipelago.Second).Where(h => h != landing && (map.Features.UsesOf(h) & TileUse.Land) != 0).ToList();
+        string state = world.Fingerprint().Replace(
+            "\nstock home Wadmal 0",
+            $"\nstock home Wadmal 0\n{string.Concat(s_resources.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
+            StringComparison.Ordinal);
+        int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
+        state = state.Insert(state.IndexOf('\n', last + 1), $"\nbuilding Jetty {landing.Q} {landing.R} 1 1 0 0 0 0\nbuilding Sawmill {land[0].Q} {land[0].R} 1 1 0 0 0 0\nbuilding Weavery {land[1].Q} {land[1].R} 1 1 0 0 0 0");
+
+        var reader = new StateReader(new SettlementsPerIsland().Migrate(RulesSeven(state), map));
+        var migrated = World.Read(reader, map);
+        reader.End();
+
+        var second = migrated.SettlementOn(Archipelago.Second)!;
+        Assert.Equal((5, IslandSettlement.SettlerHousing, 0), (second.Villagers, second.Housing, second.FreeVillagers));
+        var diagnosis = migrated.Diagnose().SettlementOn(Archipelago.Second)!;
+        Assert.Equal((Growth.Full, false, true), (diagnosis.Growth, diagnosis.HasRoom, diagnosis.StandsStill));
+        var events = migrated.AdvanceTo(TestClock.At("2026-10-16 09:00", 2));
+        Assert.DoesNotContain(events.OfType<Events.VillagersMovedIn>(), e => e.Island == Archipelago.Second);
+        Assert.Equal(5, second.Villagers);
+        Assert.All(migrated.Buildings.Where(b => b.Island == Archipelago.Second), b => Assert.True(b.Staffed, $"{b.Kind} lost its villagers."));
+    }
+
+    // A world from rules 6 that built beside a second island without a jetty, before the jetty on the island the goods
+    // waited at: Nyon's goods go to the island with the jetty, what no longer fits goes home over its sea route, and the
+    // home island's villagers build the second island's jetty (review of #164).
+    [Fact]
+    public void AWorldFromRulesSixKeepsNyonsGoodsAtItsJettyAndBuildsTheJettyAnIslandLacks()
+    {
+        var map = Archipelago.Map;
+        var world = Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
+        world.Settlement.Fog.LiftIsland(Archipelago.First);
+        world.AdvanceTo(TestClock.At("2026-10-15 09:00", 2));
+        Hex Landing(string island) => map.Features.LandOf(island).First(h => map.Features.IsHarborSpot(h) && world.BuildingAt(h) is null);
+        var wood = map.Features.LandOf(Archipelago.Second).First(h => (map.Features.UsesOf(h) & TileUse.Forest) != 0 && h != Landing(Archipelago.Second));
+        var lines = world.Fingerprint().Split('\n').ToList();
+        lines.InsertRange(
+            lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1,
+            [
+                $"building Jetty {Landing(Archipelago.Home).Q} {Landing(Archipelago.Home).R} 1 1 0 0 0 0",
+                $"building Woodcutter {wood.Q} {wood.R} 1 1 0 0 0 0",
+                $"building Jetty {Landing(Archipelago.First).Q} {Landing(Archipelago.First).R} 1 1 0 0 0 0",
+            ]);
+        string rulesSix = IslandsFromTheMapTests.RulesSix(string.Join('\n', lines), world)
+            .Replace("stock Nyon Stone 0\n", $"stock Nyon Stone {120 * Quantity.PerUnit}\n", StringComparison.Ordinal);
+        long homeStone = world.Settlement.Stock(Resource.Stone);
+
+        string migrated = new SettlementsPerIsland().Migrate(new IslandsFromTheMap().Migrate(rulesSix, map), map);
+
+        var reader = new StateReader(migrated);
+        var after = World.Read(reader, map);
+        reader.End();
+        Assert.Equal(Quantity.Units(50), after.Settlement.Stock(Archipelago.First, Resource.Stone));
+        Assert.Equal(homeStone + Quantity.Units(70), after.Settlement.Stock(Resource.Stone));
+        Assert.All(s_resources, r => Assert.Equal(0, after.Settlement.Stock(Archipelago.Second, r) + after.Settlement.AtDepot(Archipelago.Second, r)));
+        Assert.Equal(2, after.SettlementOn(Archipelago.Second)!.Villagers);
+        Assert.DoesNotContain(after.SeaRoutes, r => r.From == Archipelago.Second);
+
+        Assert.True(after.Apply("workouts", new RecordSelfCare(after.GameDay, Habit.Workouts, ContributionSource.Verified, 3)).Accepted);
+        Assert.True(after.Apply("jetty", new Build(BuildingKind.Jetty, Landing(Archipelago.Second))).Accepted);
+        long work = after.Projects.Single().WorkLeft;
+        after.AdvanceTo(TestClock.At("2026-10-15 11:00", 2));
+        Assert.True(after.Projects.Count == 0 || after.Projects[0].WorkLeft < work, "No one builds the second island's jetty.");
     }
 
     [Fact]

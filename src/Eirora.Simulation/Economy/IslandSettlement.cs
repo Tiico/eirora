@@ -7,7 +7,9 @@ namespace Eirora.Simulation.Economy
     /// </summary>
     /// <remarks>
     /// The villagers staff only buildings on their own island and eat from its store at dawn; free villagers also build on
-    /// the islands that a sea route joins to theirs, but live and work at home (D-113).
+    /// the islands that a sea route joins to theirs, but live and work at home (D-113). A settlement from rules 7 or
+    /// earlier can have more villagers than housing, those who staffed its buildings then; they stay, and it grows only
+    /// once there is room (economy-v2.md, section 12; D-39).
     /// </remarks>
     public sealed class IslandSettlement
     {

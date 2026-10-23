@@ -154,6 +154,7 @@ public sealed class InvariantPropertyTests
             Assert.True(world.Now.UtcSeconds >= was.UtcSeconds); // INV-D8.
             Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2, and in each settlement.
             Assert.All(world.Settlements, s => Assert.InRange(s.FreeVillagers, 0, s.Villagers));
+            Assert.All(world.Settlements, s => Assert.InRange(s.Villagers, 0, s.Housing)); // Only a migrated world has more (SettlementsPerIslandTests).
             Assert.All(world.Islands, island => Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(island, r), 0, Capacity(world, island)))); // INV-R1.
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
 
@@ -228,11 +229,12 @@ public sealed class InvariantPropertyTests
         _ => 0,
     });
 
-    private sealed record Measures(long UtcSeconds, int Villagers, int Buildings, int Levels, int Revealed)
+    private sealed record Measures(long UtcSeconds, int Villagers, int Settlements, int Buildings, int Levels, int Revealed)
     {
         public static Measures Of(World world) => new(
             world.Now.UtcSeconds,
             world.Villagers,
+            world.Settlements.Count,
             world.Buildings.Count,
             world.Buildings.Sum(b => b.Level),
             Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i])));
@@ -240,6 +242,7 @@ public sealed class InvariantPropertyTests
         public void AssertNotLowerThan(Measures earlier)
         {
             Assert.True(Villagers >= earlier.Villagers);
+            Assert.True(Settlements >= earlier.Settlements);
             Assert.True(Buildings >= earlier.Buildings);
             Assert.True(Levels >= earlier.Levels);
             Assert.True(Revealed >= earlier.Revealed);

@@ -280,7 +280,7 @@ namespace Eirora.Simulation.Economy
                 var now = _stores[island];
                 for (int r = 0; r < s_resourceCount; r++)
                 {
-                    long spare = Quantity.Whole(now[r] - (IsFood((Resource)r) ? food : 0));
+                    long spare = Quantity.Whole(now[r] - Kept(now, (Resource)r, food));
                     if (spare > 0)
                     {
                         waiting.Add(((Resource)r, spare));
@@ -291,7 +291,7 @@ namespace Eirora.Simulation.Economy
                 var from = stores[island];
                 for (int r = 0; r < s_resourceCount && room > 0; r++)
                 {
-                    long spare = from[r] - (IsFood((Resource)r) ? food : 0);
+                    long spare = from[r] - Kept(from, (Resource)r, food);
                     long wanted = Min(room, spare > 0 ? spare : 0);
                     long moved = Add(home, (Resource)r, wanted, capacity);
                     if (moved < wanted)

@@ -178,9 +178,10 @@ namespace Eirora.Client.UI
                 1 => "en ledig",
                 int count => $"{Count(count)} lediga",
             };
-            return settlement.Villagers == 0
-                ? $"{Capital(IslandName(world, settlement.Island))}: inga bybor än, bostäder för {Count(settlement.Housing)}"
-                : $"{Capital(IslandName(world, settlement.Island))}: {settlement.Villagers} av {settlement.Housing} bybor, {free}";
+            string island = Capital(IslandName(world, settlement.Island));
+            return settlement.Villagers == 0 ? $"{island}: inga bybor än, bostäder för {Count(settlement.Housing)}"
+                : settlement.Villagers > settlement.Housing ? $"{island}: {settlement.Villagers} bybor i bostäder för {settlement.Housing}, {free}"
+                : $"{island}: {settlement.Villagers} av {settlement.Housing} bybor, {free}";
         }
 
         /// <summary>
@@ -570,9 +571,8 @@ namespace Eirora.Client.UI
             VillagersMovedIn moved when moved.Island != world.HomeIsland =>
                 (moved.Count == 1 ? "En ny bybo flyttade in på " : $"{moved.Count} nya bybor flyttade in på ") + IslandName(world, moved.Island) + ".",
             VillagerMoved moved => $"En bybo flyttade från {IslandName(world, moved.From)} till {IslandName(world, moved.To)}.",
-            ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind.Jetty } done when world.IslandOf(done.Tile) is var island && island != world.HomeIsland
-                && world.Buildings.Count(b => b.Kind == BuildingKind.Jetty && b.Island == island) == 1 =>
-                $"Bryggan på {IslandName(world, island)} är färdig. Ön har nu en egen by, dit bybor flyttar över sjövägen.",
+            ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind.Jetty } done when world.IslandOf(done.Tile) is var island && island != world.HomeIsland =>
+                $"Bryggan på {IslandName(world, island)} är färdig. Ön har en egen by, dit bybor flyttar över sjövägen.",
             _ => Describe(gameEvent),
         };
 

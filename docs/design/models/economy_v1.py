@@ -833,7 +833,10 @@ class Settlements(World):
         labour = {i: float(self.free_villagers(i)) for i in self.people}
         for p in list(self.projects):
             island = self.project_island(p)
-            pools = [HOME] if island not in self.people else [island] + [i for i in self.people if self.linked(island, i)]
+            if island not in self.people or (island != HOME and not self.linked(island, HOME)):
+                pools = [island, HOME] if island in self.people else [HOME]  # expeditionen har nått dit
+            else:
+                pools = [island] + [i for i in self.people if self.linked(island, i)]
             for i in pools:
                 used = min(labour.get(i, 0.0), p.work_left)
                 p.work_left -= used
@@ -881,8 +884,10 @@ class Settlements(World):
                 self.stock[r] -= n
                 room -= n
                 short -= n
+            kept = {"fisk": min(remote["fisk"], food)}  # två dygns mat sammanlagt, i ätordningen
+            kept["säd"] = min(remote["säd"], max(0.0, food - remote["fisk"]))
             for r in RESOURCES:
-                spare = remote[r] - (food if r in FOOD else 0)
+                spare = remote[r] - kept.get(r, 0.0)
                 moved = self.add(self.stock, r, max(0.0, min(room, spare)), self.cap(HOME))
                 remote[r] -= moved
                 room -= moved

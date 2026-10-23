@@ -219,6 +219,12 @@ public sealed class SettlementTests
         // The grain above two days' food for the three villagers goes home, and no fish comes out.
         Assert.Equal((Quantity.Units(6), 0L), (world.Settlement.Stock(PrototypeHome.Nyon, Resource.Grain), world.Settlement.Stock(PrototypeHome.Nyon, Resource.Fish)));
 
+        // Two days' food in all, fish first as the villagers eat it, not two days of each (review of #164).
+        var both = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Fish, 6), (PrototypeHome.Nyon, Resource.Grain, 6)]);
+        Assert.Equal(6, both.ForTheShips(PrototypeHome.Nyon, Resource.Grain));
+        both.AdvanceTo(At("2026-10-15 12:00", 2));
+        Assert.Equal((Quantity.Units(6), 0L), (both.Settlement.Stock(PrototypeHome.Nyon, Resource.Fish), both.Settlement.Stock(PrototypeHome.Nyon, Resource.Grain)));
+
         var hungry = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 0"]);
         Assert.Equal(2_500_000L, hungry.Diagnose().SeaRouteFrom(PrototypeHome.Nyon)!.SuppliesPerHour);
         hungry.AdvanceTo(At("2026-10-15 12:00", 2));

@@ -745,9 +745,8 @@ namespace Eirora.Client.UI
         /// </summary>
         private static string? Waiting(World world, string island, bool forShips)
         {
-            long kept = forShips ? 2L * (world.SettlementOn(island)?.Villagers ?? 0) : 0;
             var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Select(r => (Resource: r, Units: world.Stock(island, r) - (r is Resource.Fish or Resource.Grain ? kept : 0)))
+                .Select(r => (Resource: r, Units: forShips ? world.ForTheShips(island, r) : world.Stock(island, r)))
                 .Where(g => g.Units > 0)
                 .Select(g => $"{g.Units} {Texts.Name(g.Resource)}")
                 .ToList();

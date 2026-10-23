@@ -13,9 +13,10 @@ namespace Eirora.Simulation.Saving
     /// The villagers who staff buildings on an island other than the home island become its settlement's, and the rest
     /// stay home (economy-v2.md, section 12), for example <c>settlement 23 2 0</c> → <c>economy 2 0</c>,
     /// <c>settlement home 18</c> and <c>settlement second 5</c>. Who is staffed stays as it was, which is what giving
-    /// each settlement's villagers out again would give. What no longer fits in an island's store is shipped home, and
-    /// what does not fit there either waits at the island's depots until there is room (INV-R1). Nothing is lost or made
-    /// (INV-R2, INV-V1).
+    /// each settlement's villagers out again would give. An island can then have more villagers than homes; they stay,
+    /// and it does not grow until there is room (economy-v2.md, section 12). What no longer fits in an island's store is
+    /// shipped home over its sea route, and what does not fit there either, or has no sea route, waits at the island's
+    /// depots until there is room (INV-R1). Nothing is lost or made (INV-R2, INV-V1).
     /// </summary>
     internal sealed class SettlementsPerIsland : StateMigration
     {
@@ -92,6 +93,7 @@ namespace Eirora.Simulation.Saving
             // Who staffs the buildings on each island, and what each island's depots hold under rules 8.
             var staffing = islands.ToDictionary(i => i, _ => 0L, StringComparer.Ordinal);
             var capacity = islands.ToDictionary(i => i, _ => 0L, StringComparer.Ordinal);
+            var jetties = new HashSet<string>(StringComparer.Ordinal);
             foreach (string line in lines)
             {
                 string[] fields = line.Split(' ');
@@ -114,6 +116,11 @@ namespace Eirora.Simulation.Saving
                 }
 
                 staffing[island] += fields[5] == "1" ? staff : 0;
+                if (fields[1] == "Jetty")
+                {
+                    jetties.Add(island);
+                }
+
                 capacity[island] += Quantity.Units(fields[1] switch
                 {
                     "Storehouse" => StoragePerStorehouse,
@@ -129,7 +136,8 @@ namespace Eirora.Simulation.Saving
                 throw new FormatException("The buildings have more staff than the world has villagers.");
             }
 
-            // What no longer fits on an island goes home, and what home has no room for waits at the island's depots.
+            // What no longer fits on an island goes home over its sea route, and what home has no room for, or what an
+            // island without a sea route holds, waits at the island's depots until there is room.
             var waiting = new List<string>();
             foreach (string island in islands.Where(i => i != home))
             {
@@ -142,7 +150,7 @@ namespace Eirora.Simulation.Saving
                         continue;
                     }
 
-                    long room = capacity[home] - homeStore[i].Amount;
+                    long room = jetties.Contains(island) && jetties.Contains(home) ? capacity[home] - homeStore[i].Amount : 0;
                     long shipped = room <= 0 ? 0 : room < over ? room : over;
                     homeStore[i] = (homeStore[i].Resource, homeStore[i].Amount + shipped);
                     store[i] = (store[i].Resource, capacity[island]);

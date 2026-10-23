@@ -136,6 +136,12 @@ namespace Eirora.Simulation
         /// <summary>Whole units of a resource in store on an island, by the map's id; goods reach home by sea route.</summary>
         public long Stock(string island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
 
+        /// <summary>
+        /// Whole units of a resource on an island that wait for the ships to take them home: its store but the two days'
+        /// food it keeps for its villagers; nothing on the home island.
+        /// </summary>
+        public long ForTheShips(string island, Resource resource) => Quantity.Whole(_settlement.ForTheShips(island, resource));
+
         /// <summary>The map's id of the island the world began on, whose store pays for what another island's cannot.</summary>
         public string HomeIsland => _settlement.HomeIsland;
 

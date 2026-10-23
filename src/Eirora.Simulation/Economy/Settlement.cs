@@ -247,6 +247,20 @@ namespace Eirora.Simulation.Economy
         /// <summary>The settlement on an island, by the map's id, or null when none has been founded there.</summary>
         public IslandSettlement? SettlementOn(string island) => _settlements.TryGetValue(island, out var settlement) ? settlement : null;
 
+        /// <summary>
+        /// What of a resource in an island's store waits for the ships to take it home: all of it but the two days' food
+        /// the island keeps for its villagers (economy-v2.md, section 6).
+        /// </summary>
+        public long ForTheShips(string island, Resource resource)
+        {
+            if (!_stores.TryGetValue(island, out var store) || island == _home)
+            {
+                return 0;
+            }
+
+            return store[(int)resource] - Kept(store, resource, Quantity.Units(FoodDays * _settlements[island].Villagers));
+        }
+
         /// <summary>Goods waiting at an island's depots for room in its store; nothing on most islands.</summary>
         public long AtDepot(string island, Resource resource) => _atDepots.TryGetValue(island, out var waiting) ? waiting[(int)resource] : 0;
 
@@ -969,8 +983,10 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// The free villagers work on the queue in its order (D-113): each project takes the work of its own island's
-        /// settlement first and then of the settlements that a sea route joins to it, or the home island's where its island
-        /// has no settlement yet; a project with no work left is finished wherever it stands. The work is what the free
+        /// settlement first and then of the settlements that a sea route joins to it. On an island that no sea route joins
+        /// to the home island yet, the home island's villagers build, as the expedition has reached it: its first jetty
+        /// before it has a settlement, or one that a world from rules 7 or earlier lacks. A project with no work left is
+        /// finished wherever it stands. The work is what the free
         /// villagers can do as the tick begins, however a finished project gives them out again.
         /// </summary>
         private void Build(long utcSeconds, List<GameEvent> events)
@@ -989,13 +1005,13 @@ namespace Eirora.Simulation.Economy
             {
                 var project = _projects[i];
                 string island = IslandOf(project.Tile);
-                if (!_settlements.ContainsKey(island))
+                Work(project, island); // Nothing where the island has no settlement yet.
+                if (island != _home && !HasSeaRoute(island))
                 {
                     Work(project, _home);
                 }
                 else
                 {
-                    Work(project, island);
                     foreach (var other in _islands)
                     {
                         if (Linked(island, other))
@@ -1152,7 +1168,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>
         /// The ships on each sea route, up to its capacity, which is shared both ways (economy-v2.md, section 6): first
         /// the materials the home island paid for work on the island, then out what the island's settlement needs for
-        /// <see cref="FoodDays"/> game days, then the island's goods home, where it keeps as much. The routes go in map
+        /// <see cref="FoodDays"/> game days, then the island's goods home but as much food as that (<see cref="Kept"/>). The routes go in map
         /// order and the goods in their fixed order until the player sets import priorities (TASK-046).
         /// </summary>
         private void Ship()
@@ -1177,7 +1193,7 @@ namespace Eirora.Simulation.Economy
                 room -= SupplyFood(home, store, StorageCapacity(island), food, room);
                 for (int r = 0; r < s_resourceCount && room > 0; r++)
                 {
-                    long spare = store[r] - (IsFood((Resource)r) ? food : 0);
+                    long spare = store[r] - Kept(store, (Resource)r, food);
                     long moved = Add(home, (Resource)r, Min(room, spare > 0 ? spare : 0), homeCapacity);
                     store[r] -= moved;
                     room -= moved;
@@ -1209,7 +1225,20 @@ namespace Eirora.Simulation.Economy
             return shipped;
         }
 
-        private static bool IsFood(Resource resource) => resource is Resource.Fish or Resource.Grain;
+        /// <summary>
+        /// What of a resource an island keeps when <paramref name="food"/> is the food it keeps in all: fish first, then
+        /// grain, as the villagers eat them, so that it keeps no more than two days' food together.
+        /// </summary>
+        internal static long Kept(long[] store, Resource resource, long food)
+        {
+            long fish = store[(int)Resource.Fish];
+            return resource switch
+            {
+                Resource.Fish => Min(fish, food),
+                Resource.Grain => Min(store[(int)Resource.Grain], food > fish ? food - fish : 0),
+                _ => 0,
+            };
+        }
 
         /// <summary>Moves goods waiting at each settlement's depots into its store as far as there is room.</summary>
         private void Unload()
