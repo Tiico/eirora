@@ -7,6 +7,7 @@ public static class Suites
     public static IReadOnlyList<RunSpec> EconomyV1() =>
     [
         new(MapChoice.Prototype, Strategy.Near, SelfCareProfile.Normal, 7),
+        new(MapChoice.Prototype, Strategy.NearOrdered, SelfCareProfile.Normal, 7),
         new(MapChoice.Prototype, Strategy.Sea, SelfCareProfile.Normal, 7),
         new(MapChoice.Prototype, Strategy.Naive, SelfCareProfile.High, 7),
         new(MapChoice.Prototype, Strategy.NoTraining, SelfCareProfile.NoTraining, 7),
