@@ -14,11 +14,11 @@ namespace Eirora.Simulation.Saving
     {
         public override int FromRules => 2;
 
-        public override string Migrate(string state)
+        public override string Migrate(string state, WorldMap map)
         {
             var lines = state.Split('\n').ToList();
-            var map = PrototypeHome.Map;
-            if (lines.Count == 0 || lines[0] != "map " + map.Hash)
+            var prototype = PrototypeHome.Map;
+            if (lines.Count == 0 || lines[0] != "map " + prototype.Hash)
             {
                 throw new FormatException("A world under rules 2 lives on the prototype's map.");
             }
@@ -32,10 +32,10 @@ namespace Eirora.Simulation.Saving
             var revealed = new HashSet<string>(
                 lines.Where(l => l.StartsWith("revealed ", StringComparison.Ordinal)).Select(l => l.Substring("revealed ".Length)),
                 StringComparer.Ordinal);
-            var fog = Fog.AtStart(map, PrototypeSites.All.Where(s => s.Hidden).Select(s => s.Hex));
+            var fog = Fog.AtStart(prototype, PrototypeSites.All.Where(s => s.Hidden).Select(s => s.Hex));
             foreach (var site in PrototypeSites.All.Where(s => s.Hidden && revealed.Contains(s.Id)))
             {
-                if (PrototypeSites.ExpeditionFound.Contains(site.Id) && map.IslandAt(site.Hex) is string island)
+                if (PrototypeSites.ExpeditionFound.Contains(site.Id) && prototype.IslandAt(site.Hex) is string island)
                 {
                     fog.LiftIsland(island);
                 }

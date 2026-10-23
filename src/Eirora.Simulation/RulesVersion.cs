@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 5;
+        public const int Current = 6;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -14,8 +14,10 @@ namespace Eirora.Simulation
         /// what a journal's commands do (TASK-032). Rules 4 made every land tile a building site (TASK-037): woodcutters
         /// fell real forest tiles and distance is counted over land, so a journal from before then would replay to
         /// another world and is refused instead (ADR-0006). Rules 5 let distance, level 2 and a workday scale how fast
-        /// fields and sheep farms grow (TASK-038), so a journal from rules 4 would replay to another world too.
+        /// fields and sheep farms grow (TASK-038), so a journal from rules 4 would replay to another world too. Rules 6
+        /// gave every island its own store and sea route (TASK-045): a journal from rules 5 that built beside a second
+        /// island off the home island, which shared Nyön's store and jetty then, would replay to another world.
         /// </summary>
-        public const int ReplaysJournalsFrom = 5;
+        public const int ReplaysJournalsFrom = 6;
     }
 }

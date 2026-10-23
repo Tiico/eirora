@@ -20,11 +20,11 @@ namespace Eirora.Simulation.Saving
 
         public override int FromRules => 3;
 
-        public override string Migrate(string state)
+        public override string Migrate(string state, WorldMap map)
         {
             var lines = state.Split('\n').ToList();
-            var map = PrototypeHome.Map;
-            if (lines.Count == 0 || lines[0] != "map " + map.Hash)
+            var prototype = PrototypeHome.Map;
+            if (lines.Count == 0 || lines[0] != "map " + prototype.Hash)
             {
                 // Before rules 4 every world began with the prototype's sites, which lie only on the prototype's map.
                 throw new FormatException("A world under rules 3 lives on the prototype's map.");
@@ -48,7 +48,7 @@ namespace Eirora.Simulation.Saving
                         lines[i] = "tiles-revealed " + fields[1] + string.Concat(fields.Skip(2).Select(id => " " + Coordinates(PrototypeSites.HexOf(id))));
                         break;
                     case "expedition-returned" when fields.Length > 2:
-                        lines[i] = $"expedition-returned {fields[1]} {map.IslandAt(PrototypeSites.HexOf(fields[2]))}";
+                        lines[i] = $"expedition-returned {fields[1]} {prototype.IslandAt(PrototypeSites.HexOf(fields[2]))}";
                         break;
                     case "forest" when fields.Length == 3:
                         forestAt = forestAt < 0 ? i : forestAt;

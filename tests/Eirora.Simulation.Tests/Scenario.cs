@@ -1,6 +1,7 @@
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -18,6 +19,10 @@ namespace Eirora.Simulation.Tests;
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
+/// <para>
+/// A scenario is played on the prototype's map, or on the <see cref="Archipelago"/>, where three islands can each get a
+/// store and a sea route home (TASK-045).
+/// </para>
 /// </remarks>
 internal sealed class Scenario
 {
@@ -30,14 +35,15 @@ internal sealed class Scenario
         Tiles.F1, Tiles.F2, Tiles.F3, Tiles.M1, Tiles.M2, Tiles.M3, Tiles.P1, Tiles.N0, Tiles.N1, Tiles.N2, Tiles.N9,
     ];
 
-    // Where a suited building is sought: Hemön and its waters, and Nyön.
+    // Where a suited building is sought on the prototype's map: Hemön and its waters, and Nyön.
     private static readonly Hex[] s_sites = [.. Hex.Origin.Within(6), .. PrototypeHome.NyonCentre.Within(2)];
     private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
-    private Scenario(TimeReading install, RestSchedule schedule, IReadOnlyList<Input> inputs)
+    private Scenario(TimeReading install, RestSchedule schedule, bool archipelago, IReadOnlyList<Input> inputs)
     {
         Install = install;
         Schedule = schedule;
+        OnArchipelago = archipelago;
         Inputs = inputs;
     }
 
@@ -45,14 +51,17 @@ internal sealed class Scenario
 
     public RestSchedule Schedule { get; }
 
+    /// <summary>Whether the world is on the <see cref="Archipelago"/> rather than the prototype's map.</summary>
+    public bool OnArchipelago { get; }
+
     public IReadOnlyList<Input> Inputs { get; }
 
-    public static Scenario Generate(int seed, int length = 60)
+    public static Scenario Generate(int seed, int length = 60, bool archipelago = false)
     {
         var random = new Random(seed);
         var install = new TimeReading(At("2026-01-01 00:00", 1).UtcSeconds + (random.Next(360 * 24) * Hour), Stockholm, 3600 * (1 + random.Next(2)));
         var schedule = new RestSchedule(random.Next(96) * 15, (6 * 60) + (random.Next(9) * 30));
-        return new Scenario(install, schedule, Play(random, World.Create(install, schedule), length, "k"));
+        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k"));
     }
 
     /// <summary>
@@ -109,7 +118,10 @@ internal sealed class Scenario
         return inputs;
     }
 
-    public World Start() => World.Create(Install, Schedule);
+    public World Start() => Start(Install, Schedule, OnArchipelago);
+
+    /// <summary>A save of the world the scenario starts from, to play the inputs into.</summary>
+    public Save Begin() => Save.Begin(Start());
 
     /// <summary>Plays every input into a new world.</summary>
     public World Run()
@@ -122,6 +134,12 @@ internal sealed class Scenario
 
         return world;
     }
+
+    private static World Start(TimeReading install, RestSchedule schedule, bool archipelago) =>
+        archipelago ? Archipelago.Create(install, schedule) : World.Create(install, schedule);
+
+    /// <summary>Where a suited building is sought: the islands that can be built on and their waters.</summary>
+    internal static IReadOnlyList<Hex> SitesOf(World world) => world.Map.Hash == Archipelago.Map.Hash ? Archipelago.Sites : s_sites;
 
     private static long Span(Random random) => random.Next(10) switch
     {
@@ -190,7 +208,7 @@ internal sealed class Scenario
     /// <summary>One of the affordable buildings that the settlement would take on a tile, or none.</summary>
     private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick)
     {
-        var free = s_sites
+        var free = SitesOf(world)
             .SelectMany(tile => s_buildings.Select(k => (Kind: k, Site: tile)))
             .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(world.Content.For(c.Kind).Cost))
             .ToList();

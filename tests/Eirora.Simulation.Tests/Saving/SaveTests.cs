@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Eirora.Simulation.Commands;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using FsCheck.Xunit;
 using static Eirora.Simulation.Tests.TestClock;
@@ -15,10 +16,10 @@ public sealed class SaveTests
     [Property(MaxTest = 60)]
     public bool ASaveWrittenAndLoadedAtAnyPointContinuesAsTheWorldWould(int seed, int split)
     {
-        var scenario = Scenario.Generate(seed);
+        var scenario = Scenario.Generate(seed, archipelago: seed % 3 == 0);
         int at = Math.Abs(split % (scenario.Inputs.Count + 1));
 
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var save = scenario.Begin();
         for (int i = 0; i < scenario.Inputs.Count; i++)
         {
             if (i == at)
@@ -36,8 +37,8 @@ public sealed class SaveTests
     [Property(MaxTest = 60)]
     public bool TheJournalLeadsFromTheStartToTheLatestSnapshot(int seed)
     {
-        var scenario = Scenario.Generate(seed);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var scenario = Scenario.Generate(seed, archipelago: seed % 3 == 0);
+        var save = scenario.Begin();
         foreach (var input in scenario.Inputs)
         {
             Apply(input, save);
@@ -193,7 +194,7 @@ public sealed class SaveTests
     private static Save PlayedSave()
     {
         var scenario = Scenario.Generate(11);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var save = scenario.Begin();
         foreach (var input in scenario.Inputs)
         {
             Apply(input, save);
@@ -261,7 +262,7 @@ public sealed class SaveTests
     {
         public override int FromRules => RulesVersion.Current - 1;
 
-        public override string Migrate(string state)
+        public override string Migrate(string state, WorldMap map)
         {
             var lines = state.Split('\n').ToList();
             int cycle = lines.FindIndex(l => l.StartsWith("cycle ", StringComparison.Ordinal));

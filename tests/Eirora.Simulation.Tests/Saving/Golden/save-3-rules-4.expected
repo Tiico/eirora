@@ -14,20 +14,13 @@ force Exploration 1676 6
 force BuildPower 2590 12
 force DawnPower 1840 8
 settlement 16 1 0
-stock Home Fish 134937500
-stock Home Grain 150000000
-stock Home Timber 150000000
-stock Home Planks 150000000
-stock Home Stone 2000000
-stock Home Wool 0
-stock Home Wadmal 0
-stock Nyon Fish 0
-stock Nyon Grain 0
-stock Nyon Timber 0
-stock Nyon Planks 0
-stock Nyon Stone 0
-stock Nyon Wool 0
-stock Nyon Wadmal 0
+stock home Fish 134937500
+stock home Grain 150000000
+stock home Timber 150000000
+stock home Planks 150000000
+stock home Stone 2000000
+stock home Wool 0
+stock home Wadmal 0
 building Storehouse 0 0 1 1 0 0 0
 building FishingHut 1 0 1 1 0 0 0
 building Field 0 1 1 1 0 0 963750000

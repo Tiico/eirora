@@ -5,7 +5,7 @@ namespace Eirora.Simulation.Economy
     /// <summary>A finished building in the settlement, on its building site.</summary>
     public sealed class Building
     {
-        internal Building(BuildingKind kind, Hex tile, IslandId island)
+        internal Building(BuildingKind kind, Hex tile, string island)
         {
             Kind = kind;
             Tile = tile;
@@ -17,8 +17,8 @@ namespace Eirora.Simulation.Economy
         /// <summary>The tile it stands on; a fishing hut stands on stilts in the shallow water (D-88).</summary>
         public Hex Tile { get; }
 
-        /// <summary>The island it belongs to; goods travel between islands only by sea route.</summary>
-        public IslandId Island { get; }
+        /// <summary>The map's id of the island it belongs to; goods travel between islands only by sea route.</summary>
+        public string Island { get; }
 
         /// <summary>1, or 2 after an upgrade (+50 % production).</summary>
         public int Level { get; internal set; } = 1;

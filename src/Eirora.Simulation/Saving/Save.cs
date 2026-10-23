@@ -84,6 +84,10 @@ namespace Eirora.Simulation.Saving
             return new Save(world.Map, SimulationSnapshot.Take(world), Journal.Continue(world), null, changedOnLoad: false);
         }
 
+        /// <summary>Begins the save of a world made outside a save, as tests make worlds that know more of their map.</summary>
+        internal static Save Begin(World world) =>
+            new(world.Map, SimulationSnapshot.Take(world), Journal.Continue(world), null, changedOnLoad: false);
+
         /// <summary>
         /// Takes over a prototype journal from M1: it is replayed once, and the created world and the journal become the
         /// save's first segment (ADR-0006).

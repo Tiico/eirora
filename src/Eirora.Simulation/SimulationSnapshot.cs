@@ -190,7 +190,7 @@ namespace Eirora.Simulation
                     $"The snapshot has rules version {Rules} and content version {Content}; this build has {RulesVersion.Current} and {ContentVersion.Current}.");
             }
 
-            state = Migrations.ToCurrent(state, Rules, migrations);
+            state = Migrations.ToCurrent(state, Rules, migrations, map);
             World world;
             try
             {

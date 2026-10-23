@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Saving
 {
@@ -9,15 +10,15 @@ namespace Eirora.Simulation.Saving
     /// </summary>
     internal static class Migrations
     {
-        public static IReadOnlyList<StateMigration> All { get; } = new StateMigration[] { new MapArrives(), new FogArrives(), new TilesArrive(), new GrowthScales() };
+        public static IReadOnlyList<StateMigration> All { get; } = new StateMigration[] { new MapArrives(), new FogArrives(), new TilesArrive(), new GrowthScales(), new IslandsFromTheMap() };
 
-        /// <summary>Runs the chain from <paramref name="fromRules"/> to the current rules.</summary>
+        /// <summary>Runs the chain from <paramref name="fromRules"/> to the current rules on a world on <paramref name="map"/>.</summary>
         /// <exception cref="FormatException">A migration in the chain is missing.</exception>
-        public static string ToCurrent(string state, int fromRules, IReadOnlyList<StateMigration> migrations)
+        public static string ToCurrent(string state, int fromRules, IReadOnlyList<StateMigration> migrations, WorldMap map)
         {
             for (int rules = fromRules; rules < RulesVersion.Current; rules++)
             {
-                state = From(rules, migrations).Migrate(state);
+                state = From(rules, migrations).Migrate(state, map);
             }
 
             return state;

@@ -15,15 +15,15 @@ namespace Eirora.Simulation.Tests;
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
-/// the world; a jetty, a sawmill, the expedition and Nyön come first, so that most worlds with self-care reach the sea
-/// route. Everything is drawn from the seed, so the same seed gives the same world.
+/// the world; a jetty, a sawmill, the expedition and a jetty on each island it knows come first, so that most worlds
+/// with self-care reach a sea route. One world in four is built on the <see cref="Archipelago"/>, where it knows a
+/// second island from the start, so that it can have three stores and two sea routes (TASK-045). Everything is drawn
+/// from the seed, so the same seed gives the same world.
 /// </remarks>
 internal static class BuiltOutWorld
 {
     private const long Hour = 3600;
 
-    // Where a building is sought: Hemön and its waters, and Nyön, as in Scenario.
-    private static readonly Hex[] s_sites = [.. Hex.Origin.Within(6), .. PrototypeHome.NyonCentre.Within(2)];
     private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
     // What a settlement builds first at home: a jetty for the expedition, planks and stone for everything after.
@@ -44,11 +44,13 @@ internal static class BuiltOutWorld
     /// <summary>The world as its save, with the journal of everything that built it, as the client would keep it.</summary>
     public static Save GenerateSave(int seed) => GenerateSave(seed, (SelfCare)(Math.Abs(seed) % 3));
 
-    public static Save GenerateSave(int seed, SelfCare selfCare)
+    public static Save GenerateSave(int seed, SelfCare selfCare) => GenerateSave(seed, selfCare, archipelago: Math.Abs(seed % 4) == 3);
+
+    public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago)
     {
         var random = new Random(~seed);
-        var scenario = Scenario.Generate(seed, length: 30);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var scenario = Scenario.Generate(seed, length: 30, archipelago);
+        var save = scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)
         {
@@ -140,8 +142,8 @@ internal static class BuiltOutWorld
     }
 
     /// <summary>
-    /// A command that suits the world, or none: a jetty, a sawmill and a quarry, the expedition and Nyön's jetty first,
-    /// then a little of everything. A few projects at a time, and a building that needs staff only while villagers are
+    /// A command that suits the world, or none: a jetty, a sawmill and a quarry, the expedition and a jetty on each island
+    /// it knows first, then a little of everything. A few projects at a time, and a building that needs staff only while villagers are
     /// left to build, as a player builds while the villagers keep up.
     /// </summary>
     private static GameCommand? Suited(World world, Random random, bool expeditionLast)
@@ -151,12 +153,12 @@ internal static class BuiltOutWorld
         bool building = world.Projects.Count < 4;
         int staffAfterQueue = world.FreeVillagers - world.Projects.Where(p => p.Kind == ProjectKind.Build).Sum(p => world.Content.For(p.Building).Staff);
         bool Staffable((BuildingKind Kind, Hex Site) c) => world.Content.For(c.Kind).Staff == 0 || staffAfterQueue - world.Content.For(c.Kind).Staff >= 2;
-        bool Wanting(BuildingKind kind, IslandId island) =>
+        bool Wanting(BuildingKind kind, string island) =>
             building && !settlement.HasBuilt(kind, island) && !world.Projects.Any(p => p.Building == kind && settlement.IslandOf(p.Tile) == island);
 
         foreach (var first in s_first)
         {
-            if (Wanting(first, IslandId.Home) && FreeSite(world, pick, c => c.Kind == first && settlement.IslandOf(c.Site) == IslandId.Home) is { } site)
+            if (Wanting(first, world.HomeIsland) && FreeSite(world, pick, c => c.Kind == first && settlement.IslandOf(c.Site) == world.HomeIsland) is { } site)
             {
                 return new Build(site.Kind, site.Site);
             }
@@ -167,15 +169,20 @@ internal static class BuiltOutWorld
             return new SendExpedition();
         }
 
-        if (Wanting(BuildingKind.Jetty, IslandId.Nyon) && FreeSite(world, pick, c => c.Kind == BuildingKind.Jetty && settlement.IslandOf(c.Site) == IslandId.Nyon) is { } landing)
+        var known = world.Map.Islands.Select(i => i.Id).Where(i => i != world.HomeIsland && world.Map.Features.LandOf(i).Any(world.IsKnown)).ToList();
+        foreach (var island in known)
         {
-            return new Build(landing.Kind, landing.Site);
+            if (Wanting(BuildingKind.Jetty, island) && FreeSite(world, pick, c => c.Kind == BuildingKind.Jetty && settlement.IslandOf(c.Site) == island) is { } landing)
+            {
+                return new Build(landing.Kind, landing.Site);
+            }
         }
 
-        if (building && random.Next(2) == 0 && settlement.HasBuilt(BuildingKind.Jetty, IslandId.Nyon)
-            && FreeSite(world, pick, c => settlement.IslandOf(c.Site) == IslandId.Nyon && Staffable(c)) is { } nyon)
+        var landed = known.Where(i => settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
+        if (building && random.Next(2) == 0 && landed.Count > 0
+            && FreeSite(world, pick, c => settlement.IslandOf(c.Site) == landed[pick % landed.Count] && Staffable(c)) is { } across)
         {
-            return new Build(nyon.Kind, nyon.Site);
+            return new Build(across.Kind, across.Site);
         }
 
         return random.Next(10) switch
@@ -197,7 +204,7 @@ internal static class BuiltOutWorld
     {
         var free = s_buildings
             .Where(k => world.Settlement.CanAfford(world.Content.For(k).Cost))
-            .Select(k => s_sites.Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
+            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
             .Where(sites => sites.Count > 0)
             .ToList();
         if (free.Count == 0)
