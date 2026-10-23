@@ -14,6 +14,11 @@ namespace Eirora.Simulation.Tests.Economy;
 /// a year, with and without self-care and with contributions that arrive late, keep INV-R1, INV-R3, INV-V1 and INV-T5,
 /// and an absence read in parts gives the same world as one read at once (INV-D4).
 /// </summary>
+/// <remarks>
+/// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
+/// simpler one. Play a failing case again with the replay FsCheck prints, <c>[Property(Replay = "(…)")]</c>, or with
+/// <c>BuiltOutWorld.Generate(seed)</c> and <c>new Random(seed)</c> for the seed it reports.
+/// </remarks>
 public sealed class LongAbsenceTests
 {
     private const long Hour = 3600;

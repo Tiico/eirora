@@ -60,7 +60,7 @@ dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --fil
 | Mätning | Budget på en utvecklardator | Senast uppmätt |
 |---|---|---|
 | Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
-| Ett års frånvaro i den långsammaste av sex utbyggda världar (`FastForwardTests`, i testsviten) | Högst 150 ms processortid | 28 ms (M1 Pro, .NET 10) |
+| Ett års frånvaro i den långsammaste av sex utbyggda världar och i mätscenens värld (`FastForwardTests`, i testsviten) | Högst 150 ms processortid | 35 ms (M1 Pro, .NET 10) |
 
 Budgetarna på telefonen sätts i TASK-024.
 Framspolningen av ett års frånvaro mäts i stället i testsviten, i processortid som en delad maskin inte drar ut, mot en gräns som är räknad från den svagaste målenheten ([mätbudgetar](./design/performance-budgets.md#2-budgetar)).

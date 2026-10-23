@@ -2,6 +2,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 
@@ -36,12 +37,32 @@ internal static class BuiltOutWorld
         EveryDay,
     }
 
-    public static World Generate(int seed) => Generate(seed, (SelfCare)(Math.Abs(seed) % 3));
+    public static World Generate(int seed) => GenerateSave(seed).World;
 
-    public static World Generate(int seed, SelfCare selfCare)
+    public static World Generate(int seed, SelfCare selfCare) => GenerateSave(seed, selfCare).World;
+
+    /// <summary>The world as its save, with the journal of everything that built it, as the client would keep it.</summary>
+    public static Save GenerateSave(int seed) => GenerateSave(seed, (SelfCare)(Math.Abs(seed) % 3));
+
+    public static Save GenerateSave(int seed, SelfCare selfCare)
     {
         var random = new Random(~seed);
-        var world = Scenario.Generate(seed, length: 30).Run();
+        var scenario = Scenario.Generate(seed, length: 30);
+        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var world = save.World;
+        foreach (var input in scenario.Inputs)
+        {
+            switch (input)
+            {
+                case Scenario.Advance advance:
+                    save.AdvanceTo(advance.To);
+                    break;
+                case Scenario.Command command:
+                    save.Apply(command.Key, command.For(world));
+                    break;
+            }
+        }
+
         int key = 0;
 
         // One world in three keeps its expedition home until the last visit, so it is at sea while the player is away.
@@ -49,19 +70,19 @@ internal static class BuiltOutWorld
         int days = 8 + random.Next(15);
         for (int day = 0; day < days; day++)
         {
-            ToMorning(world, random);
+            ToMorning(save, random);
             if (selfCare == SelfCare.EveryDay || (selfCare == SelfCare.SomeDays && random.Next(2) == 0))
             {
-                Record(world, Habit.Steps, 15_000 + random.Next(35_000));
-                Record(world, Habit.Workouts, 1 + random.Next(3));
-                Record(world, Habit.Sleep, (6 * 60) + random.Next(3 * 60));
+                Record(Habit.Steps, 15_000 + random.Next(35_000));
+                Record(Habit.Workouts, 1 + random.Next(3));
+                Record(Habit.Sleep, (6 * 60) + random.Next(3 * 60));
             }
 
             for (int move = 3 + random.Next(5); move > 0; move--)
             {
                 if (Suited(world, random, expeditionLast) is { } command)
                 {
-                    world.Apply($"out-{key++}", command);
+                    save.Apply($"out-{key++}", command);
                 }
             }
         }
@@ -69,53 +90,53 @@ internal static class BuiltOutWorld
         // Now and then the stores fill up for some days before the player leaves.
         if (random.Next(3) == 0)
         {
-            world.AdvanceTo(Shift(world.Now, (3 + random.Next(10)) * 24 * Hour));
+            save.AdvanceTo(Shift(world.Now, (3 + random.Next(10)) * 24 * Hour));
         }
 
         // The last visit, while the villagers are awake: the queue is filled and the expedition sent if it can be.
-        ToMorning(world, random);
-        world.AdvanceTo(Shift(world.Now, random.Next(10) * Hour));
+        ToMorning(save, random);
+        save.AdvanceTo(Shift(world.Now, random.Next(10) * Hour));
         while (world.Phase == Phase.Resting)
         {
-            world.AdvanceTo(Shift(world.Now, Hour));
+            save.AdvanceTo(Shift(world.Now, Hour));
         }
 
         if (expeditionLast || random.Next(2) == 0)
         {
-            world.Apply($"out-{key++}", new SendExpedition());
+            save.Apply($"out-{key++}", new SendExpedition());
         }
 
         for (int build = random.Next(7); build > 0; build--)
         {
             if (FreeSite(world, random.Next(int.MaxValue), _ => true) is { } free)
             {
-                world.Apply($"out-{key++}", new Build(free.Kind, free.Site));
+                save.Apply($"out-{key++}", new Build(free.Kind, free.Site));
             }
         }
 
         if (BuiltSite(world, random.Next(int.MaxValue), b => b.Staffed && !b.WorkdayToday) is Hex worked)
         {
-            world.Apply($"out-{key++}", new Workday(worked));
+            save.Apply($"out-{key++}", new Workday(worked));
         }
 
         // The player may leave at any moment of the day, also just before or during the rest.
-        world.AdvanceTo(Shift(world.Now, random.Next((int)(20 * Hour))));
-        return world;
+        save.AdvanceTo(Shift(world.Now, random.Next((int)(20 * Hour))));
+        return save;
 
-        void Record(World w, Habit habit, int total) =>
-            w.Apply($"out-{key++}", new RecordSelfCare(w.GameDay, habit, ContributionSource.Verified, total));
+        void Record(Habit habit, int total) =>
+            save.Apply($"out-{key++}", new RecordSelfCare(world.GameDay, habit, ContributionSource.Verified, total));
     }
 
     /// <summary>Advances to the next dawn and on into the morning.</summary>
-    private static void ToMorning(World world, Random random)
+    private static void ToMorning(Save save, Random random)
     {
-        int day = world.GameDay;
-        while (world.GameDay == day)
+        int day = save.World.GameDay;
+        while (save.World.GameDay == day)
         {
-            world.AdvanceTo(Shift(world.Now, Hour));
+            save.AdvanceTo(Shift(save.World.Now, Hour));
         }
 
-        world.AdvanceTo(Shift(world.Now, random.Next((int)(4 * Hour))));
+        save.AdvanceTo(Shift(save.World.Now, random.Next((int)(4 * Hour))));
     }
 
     /// <summary>

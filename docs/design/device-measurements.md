@@ -35,7 +35,8 @@ Spelet är olika från dygn till dygn, så en mätning av den riktiga världen g
 Klienten har därför en mätscen som startas med argumentet `-eirora-measure day` eller `-eirora-measure night`.
 Den spelar samma vecka som skärmbildsturen på en fast klocka, utan att spara, och stannar sedan i dagsljus klockan 13 eller i viloperiodens natt klockan 01.
 Natten mäts för sig eftersom stjärnor, norrsken och upplysta fönster enligt [art direction](./art-direction.md) kostar annat än dagsljuset.
-Med `-eirora-measure year` stannar klockan i stället ett år senare, klockan 13 den 21 oktober 2027, så att världen spolas fram ett år när appen startar, som när spelaren kommer tillbaka efter ett års frånvaro (TASK-049).
+Med `-eirora-measure year` laddar scenen i stället en utbyggd värld med 36 byggnader och en expedition till sjöss och stannar klockan ett år efter att spelaren lämnade den, vid samma tid på dagen, så att världen spolas fram ett år när appen startar, som när spelaren kommer tillbaka efter ett års frånvaro (TASK-049).
+Världen är en sparning i `client/Assets/Eirora/Resources/Measurement/AYearAway.bytes`, som .NET-testerna spolar fram på samma sätt.
 Scenen körs tills den stoppas och rör inte spelarens sparade värld.
 
 ## 3. Så körs mätningen
@@ -75,8 +76,9 @@ Pröva resultatet mot telefonens nivå, till exempel referensnivån för en Pixe
 tools/device-measurements/measure.sh budget measurements/year-1/results.tsv --tier reference
 ```
 
-Testet `FastForwardTests.AYearAwayIsCaughtUpInTime` håller samma framspolning headless inom en gräns som är räknad från golvet, se [målenheter och mätbudgetar](./performance-budgets.md#2-budgetar).
-Framspolningen i mätscenen på en riktig telefon visar hur gränsen står sig mot IL2CPP och telefonens processor.
+Testet `FastForwardTests.AYearAwayIsCaughtUpInTime` spolar fram samma värld headless med samma avläsning och håller den inom en gräns som är räknad från golvet, se [målenheter och mätbudgetar](./performance-budgets.md#2-budgetar).
+Den 23 oktober 2026 tog det 34 ms processortid på en M1 Pro (.NET 10, Release).
+Kvoten mellan `catch_up_median_ms` på telefonen och den siffran visar alltså hur mycket långsammare telefonen och IL2CPP är, och hur gränsen står sig.
 
 Batteriet under ett dygn mäts med telefonen urkopplad och vanlig användning, med prototypen öppnad några gånger som i dagligt spel:
 

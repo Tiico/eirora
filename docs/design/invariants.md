@@ -101,6 +101,11 @@ Hur länge spelaren än är borta utan egenvård och kommandon är världen efte
 *Test:* sammansatt test av INV-R1, INV-R3 och INV-V1 för `Δt` upp till ett år med noll bidrag (AC-02).
 Från TASK-049 också i utbyggda världar med byggkö, expedition till sjöss, sjöväg, fulla lager och långsamma processer, med och utan egenvård och med sena bidrag, tillsammans med INV-T5 och INV-D4.
 
+Framspolningen hoppar över kvartar där bara långsamma processer rör sig: viloperioden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
+Det håller bara om inget tillstånd som kvartarna driver kan börja ändras utan att något av det som jämförs ändras först.
+Den som lägger till sådant tillstånd, till exempel skepp med last på väg, reservationer, köer per bosättning eller vägnät (TASK-045, TASK-046, TASK-050, TASK-051), tar med det i `Settlement.RecordState` och låter `BuiltOutWorld` nå det.
+Testet `FastForwardTests.EveryFieldThatATickCanChangeIsCompared` underkänner ett nytt fält som varken jämförs eller är fast eller härlett, och `FastForwardGivesTheSameWorldAsEveryQuarterHour` jämför med att läsa varje kvart.
+
 ## 4. Krafter
 
 **INV-F1 Icke-negativa heltal.**

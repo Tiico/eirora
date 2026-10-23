@@ -53,8 +53,8 @@ Måtten heter som i skriptets `results.tsv`, och gränserna står i [`budgets.ts
 Uppvärmningen mäts över ett pass på tio minuter (`--seconds 600`), eftersom fem minuter är för kort för att telefonen ska bli varm.
 Kallstarten till första bilden av världen mäts också efter ett års frånvaro, med mätscenen `year` ([mätningar på enhet](./device-measurements.md#kallstart-efter-ett-års-frånvaro)).
 Av golvets fem sekunder får framspolningen av ett år ta högst en, eftersom Unitys egen start tar det mesta av resten.
-Galaxy A06 har en fjärdedel till en femtedel av en utvecklardators eller en CI-maskins prestanda per kärna, och IL2CPP kör simuleringen något långsammare än .NET, så testet `FastForwardTests.AYearAwayIsCaughtUpInTime` kräver att ett år i den långsammaste av sex utbyggda världar spolas fram på högst 150 ms processortid (TASK-049).
-Den 23 oktober 2026 tog det 28 ms på en M1 Pro, mot 80 ms innan framspolningen hoppade över kvartar där bara långsamma processer rör sig.
+Galaxy A06 har en fjärdedel till en femtedel av en utvecklardators eller en CI-maskins prestanda per kärna, och IL2CPP kör simuleringen något långsammare än .NET, så testet `FastForwardTests.AYearAwayIsCaughtUpInTime` kräver att ett år i den långsammaste av sex utbyggda världar, och i mätscenens värld, spolas fram på högst 150 ms processortid (TASK-049).
+Den 23 oktober 2026 tog det 35 ms på en M1 Pro, mot 80 ms innan framspolningen hoppade över kvartar där bara långsamma processer rör sig.
 Ett lokalt bygge av APK:n var 34 MB den 22 oktober 2026, alltså en tredjedel av storleksbudgeten.
 
 Kartans rendering har en egen budget som inte behöver en telefon: hela kartan ritas med högst 75 000 trianglar ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md#storlek-och-prestanda)), och ett EditMode-test prövar den största av femtio genererade kartor mot den (TASK-033).

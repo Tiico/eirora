@@ -58,7 +58,8 @@ namespace Eirora.Simulation.Economy
         private readonly Dictionary<Hex, int> _depotDistances = new(); // Forgotten whenever a depot is added.
         private readonly List<Hex> _woods = new();
         private readonly List<Hex> _regrowing = new();
-        private readonly long[] _before = new long[2 * s_resourceCount]; // The stores before a tick's work.
+        private long[] _before = new long[64]; // The state before and after a tick's work (RecordState).
+        private long[] _after = new long[64];
         private readonly Dictionary<IslandId, long> _capacity = new(); // Forgotten whenever a building is added.
         private long _expeditionLeft;
 
@@ -359,32 +360,77 @@ namespace Eirora.Simulation.Economy
         /// whether their work changed anything: when it did not, nothing but the slow processes changes until the next dawn.
         /// </summary>
         /// <remarks>
+        /// The whole state that a tick can change is compared before and after the work (<see cref="RecordState"/>).
         /// Work that changes nothing has full stores or nothing to work with, and the slow processes cannot change that:
         /// what has grown is harvested only into a store with room, and a forest tile that grows back has timber left.
         /// </remarks>
         public bool Tick(long utcSeconds, List<GameEvent> events)
         {
             GrowSlowProcesses(1);
-            var home = _stores[IslandId.Home];
-            var nyon = _stores[IslandId.Nyon];
-            Array.Copy(home, _before, s_resourceCount);
-            Array.Copy(nyon, 0, _before, s_resourceCount, s_resourceCount);
-            long expedition = _expeditionLeft;
-            int projects = _projects.Count;
-            long work = projects > 0 ? _projects[0].WorkLeft : 0;
+            int recorded = RecordState(ref _before);
 
             Build(utcSeconds, events);
             Produce();
             Ship();
             Explore(utcSeconds, events);
 
-            bool changed = expedition != _expeditionLeft || projects != _projects.Count || (projects > 0 && work != _projects[0].WorkLeft);
-            for (int i = 0; i < s_resourceCount && !changed; i++)
+            return RecordState(ref _after) != recorded || !_before.AsSpan(0, recorded).SequenceEqual(_after.AsSpan(0, recorded));
+        }
+
+        /// <summary>
+        /// Writes every value of the state that a tick can change into <paramref name="state"/>, which grows as needed,
+        /// and returns how many: the villagers, the surveys, the expedition, the fog, the stores, each building, the
+        /// queue and the felled forest, each list after its length. A test fails when a field is added to the
+        /// settlement, a building, a project or the fog that is neither recorded here nor fixed or derived
+        /// (FastForwardTests.EveryFieldThatATickCanChangeIsCompared).
+        /// </summary>
+        private int RecordState(ref long[] state)
+        {
+            int needed = 7 + (2 * s_resourceCount) + (5 * _buildings.Count) + _projects.Count + (3 * _felled.Count);
+            if (state.Length < needed)
             {
-                changed = home[i] != _before[i] || nyon[i] != _before[s_resourceCount + i];
+                state = new long[2 * needed];
             }
 
-            return changed;
+            int i = 0;
+            state[i++] = Villagers;
+            state[i++] = SurveysDone;
+            state[i++] = _expeditionLeft;
+            state[i++] = Fog.Lifts;
+            foreach (var island in s_islands)
+            {
+                var store = _stores[island];
+                for (int resource = 0; resource < s_resourceCount; resource++)
+                {
+                    state[i++] = store[resource];
+                }
+            }
+
+            state[i++] = _buildings.Count;
+            foreach (var building in _buildings)
+            {
+                state[i++] = building.Level;
+                state[i++] = building.Staffed ? 1 : 0;
+                state[i++] = building.HasRoad ? 1 : 0;
+                state[i++] = building.WorkdayToday ? 1 : 0;
+                state[i++] = building.Ripe;
+            }
+
+            state[i++] = _projects.Count;
+            foreach (var project in _projects)
+            {
+                state[i++] = project.WorkLeft;
+            }
+
+            state[i++] = _felled.Count;
+            foreach (var forest in _felled)
+            {
+                state[i++] = forest.Key.Q;
+                state[i++] = forest.Key.R;
+                state[i++] = forest.Value;
+            }
+
+            return i;
         }
 
         /// <summary>Villagers eat, the settlement grows if it can, and today's workdays end.</summary>
