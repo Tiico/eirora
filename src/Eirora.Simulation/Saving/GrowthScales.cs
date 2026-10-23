@@ -1,3 +1,5 @@
+using Eirora.Simulation.Map;
+
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
@@ -9,6 +11,6 @@ namespace Eirora.Simulation.Saving
     {
         public override int FromRules => 4;
 
-        public override string Migrate(string state) => state;
+        public override string Migrate(string state, WorldMap map) => state;
     }
 }

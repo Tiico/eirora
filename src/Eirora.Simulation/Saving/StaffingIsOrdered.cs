@@ -1,4 +1,5 @@
 using System;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Saving
 {
@@ -15,7 +16,7 @@ namespace Eirora.Simulation.Saving
 
         public override int FromRules => 5;
 
-        public override string Migrate(string state)
+        public override string Migrate(string state, WorldMap map)
         {
             var lines = state.Split('\n');
             for (int i = 0; i < lines.Length; i++)

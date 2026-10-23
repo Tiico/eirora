@@ -14,13 +14,13 @@ namespace Eirora.Simulation.Tests;
 public sealed class InvariantPropertyTests
 {
     private const int StoragePerStorehouse = 150; // economy-v1.md, section 2.
-    private static readonly Hex[] s_forest = [.. Enumerable.Range(0, PrototypeHome.Map.Disc.Count).Select(i => PrototypeHome.Map.Disc[i]).Where(h => PrototypeHome.Map.TerrainAt(h) == Terrain.Forest)];
+    private const int StorageAtJetty = 150; // A jetty off the home island stores goods for the ship (economy-v1.md, section 5).
 
     // INV-D1: the same start and inputs give the same world.
     [Property(MaxTest = 50)]
     public bool TheSameInputsGiveTheSameWorld(int seed)
     {
-        var scenario = Scenario.Generate(seed);
+        var scenario = Generated(seed);
 
         return scenario.Run().Fingerprint() == scenario.Run().Fingerprint();
     }
@@ -60,11 +60,11 @@ public sealed class InvariantPropertyTests
     [Property(MaxTest = 50)]
     public bool ASnapshotIsTheSameBytesEveryTime(int seed)
     {
-        var world = Scenario.Generate(seed).Run();
+        var world = Generated(seed).Run();
 
         var bytes = SimulationSnapshot.Take(world).ToBytes();
         var again = SimulationSnapshot.Take(world).ToBytes();
-        var restored = SimulationSnapshot.Take(SimulationSnapshot.FromBytes(bytes).Restore(PrototypeHome.Map)).ToBytes();
+        var restored = SimulationSnapshot.Take(SimulationSnapshot.FromBytes(bytes).Restore(world.Map)).ToBytes();
 
         return bytes.SequenceEqual(again) && bytes.SequenceEqual(restored);
     }
@@ -73,7 +73,7 @@ public sealed class InvariantPropertyTests
     [Property(MaxTest = 50)]
     public bool AKeyUsedBeforeASnapshotChangesNothingAfterIt(int seed)
     {
-        var scenario = Scenario.Generate(seed);
+        var scenario = Generated(seed);
         var world = scenario.Start();
         var first = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var input in scenario.Inputs)
@@ -92,7 +92,7 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        var restored = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(PrototypeHome.Map);
+        var restored = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(world.Map);
         string before = restored.Fingerprint();
 
         // The key alone decides: any command sent again with a used key gives the first result.
@@ -104,7 +104,7 @@ public sealed class InvariantPropertyTests
     [Property(MaxTest = 50)]
     public bool TimeAdvancedInPartsGivesTheSameWorld(int seed)
     {
-        var scenario = Scenario.Generate(seed);
+        var scenario = Generated(seed);
         var random = new Random(seed);
         var world = scenario.Start();
         foreach (var input in scenario.Inputs)
@@ -130,8 +130,9 @@ public sealed class InvariantPropertyTests
     [Property(MaxTest = 50)]
     public void EveryStepKeepsTheWorldsInvariants(int seed)
     {
-        var scenario = Scenario.Generate(seed);
+        var scenario = Generated(seed);
         var world = scenario.Start();
+        var forest = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i]).Where(h => world.Map.TerrainAt(h) == Terrain.Forest).ToList();
         foreach (var input in scenario.Inputs)
         {
             string before = world.Fingerprint();
@@ -152,15 +153,13 @@ public sealed class InvariantPropertyTests
 
             Assert.True(world.Now.UtcSeconds >= was.UtcSeconds); // INV-D8.
             Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2.
-            long capacity = StoragePerStorehouse * world.Buildings.Count(b => b.Kind == BuildingKind.Storehouse && b.Island == IslandId.Home);
-            Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(r), 0, capacity)); // INV-R1.
-            Assert.All(Enum.GetValues<Resource>(), r => Assert.True(world.Stock(IslandId.Nyon, r) >= 0));
+            Assert.All(world.Islands, island => Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(island, r), 0, Capacity(world, island)))); // INV-R1.
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
 
             // One building to a tile, counting the queue, and no forest tile below empty or above full (economy-v1.md, section 3.1).
             var taken = world.Buildings.Select(b => b.Tile).Concat(world.Projects.Where(p => p.Kind == ProjectKind.Build).Select(p => p.Tile)).ToList();
             Assert.Equal(taken.Count, taken.Distinct().Count());
-            Assert.All(s_forest, tile => Assert.InRange(world.TimberLeft(tile), 0, World.TimberPerForest));
+            Assert.All(forest, tile => Assert.InRange(world.TimberLeft(tile), 0, World.TimberPerForest));
         }
     }
 
@@ -174,7 +173,7 @@ public sealed class InvariantPropertyTests
         int duplicates = 0;
         for (int seed = 0; seed < 50; seed++)
         {
-            var scenario = Scenario.Generate(seed);
+            var scenario = Generated(seed);
             var world = scenario.Start();
             var used = new HashSet<string>(StringComparer.Ordinal);
             foreach (var input in scenario.Inputs)
@@ -201,7 +200,8 @@ public sealed class InvariantPropertyTests
 
                 foreach (string line in world.Fingerprint().Split('\n'))
                 {
-                    records.Add(line.Split(' ')[0] + (line.StartsWith("cycle", StringComparison.Ordinal) ? $"-{world.Phase}" : string.Empty));
+                    string[] fields = line.Split(' ');
+                    records.Add(fields[0] + (fields[0] == "cycle" ? $"-{world.Phase}" : fields[0] == "stock" ? $"-{fields[1]}" : string.Empty));
                 }
             }
         }
@@ -211,10 +211,21 @@ public sealed class InvariantPropertyTests
             new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued },
             rejections);
         Assert.Superset(
-            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn" },
+            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second" },
             records);
         Assert.True(duplicates > 50, $"Only {duplicates} duplicates.");
     }
+
+    /// <summary>A scenario on the prototype's map, or in one case of three on the archipelago, with a store on each island built on.</summary>
+    private static Scenario Generated(int seed) => Scenario.Generate(seed, archipelago: seed % 3 == 0);
+
+    /// <summary>What an island's store holds of each resource, in whole units.</summary>
+    private static long Capacity(World world, string island) => world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
+    {
+        BuildingKind.Storehouse => StoragePerStorehouse,
+        BuildingKind.Jetty when island != world.HomeIsland => StorageAtJetty,
+        _ => 0,
+    });
 
     private sealed record Measures(long UtcSeconds, int Villagers, int Buildings, int Levels, int Revealed)
     {

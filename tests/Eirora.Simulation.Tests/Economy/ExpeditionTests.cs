@@ -87,10 +87,10 @@ public sealed class ExpeditionTests
         world.AdvanceTo(Shift(world.Now, 24));
         Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Storehouse, E1)).Rejection); // Room at home.
         world.AdvanceTo(Shift(world.Now, 24 * 3));
-        Assert.True(world.SeaRouteOpen);
+        Assert.Equal(PrototypeHome.Nyon, Assert.Single(world.SeaRoutes).From);
 
         long Home() => world.Stock(Resource.Stone) + world.Stock(Resource.Wool);
-        long Nyon() => world.Stock(IslandId.Nyon, Resource.Stone) + world.Stock(IslandId.Nyon, Resource.Wool);
+        long Nyon() => world.Stock(PrototypeHome.Nyon, Resource.Stone) + world.Stock(PrototypeHome.Nyon, Resource.Wool);
         long homeBefore = Home(), nyonBefore = Nyon();
         world.AdvanceTo(Shift(world.Now, 24));
 
@@ -112,7 +112,7 @@ public sealed class ExpeditionTests
         string rulesTwo = string.Join("\n", state.Split('\n').SelectMany(l => l.StartsWith("fog ", StringComparison.Ordinal) ? revealed : [l]));
 
         Assert.Contains("revealed N2", revealed);
-        Assert.Equal(state, new FogArrives().Migrate(rulesTwo));
+        Assert.Equal(state, new FogArrives().Migrate(rulesTwo, PrototypeHome.Map));
     }
 
     private static World WithJetty()

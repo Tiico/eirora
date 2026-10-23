@@ -24,7 +24,7 @@ public sealed class TilesArriveTests
         Assert.True(world.Apply("cottage", new Build(BuildingKind.Cottage, L1)).Accepted);
         string state = StaffingIsOrderedTests.RulesFive(world.Fingerprint());
 
-        string migrated = new TilesArrive().Migrate(RulesThree(state, FullForests));
+        string migrated = new TilesArrive().Migrate(RulesThree(state, FullForests), PrototypeHome.Map);
 
         Assert.Equal(state, migrated);
         Assert.Contains("building Woodcutter 1 -1 ", migrated, StringComparison.Ordinal);
@@ -37,7 +37,7 @@ public sealed class TilesArriveTests
         // The old-growth forest counted four tiles and had half its timber left: 20 on each.
         string state = StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint());
 
-        string migrated = new TilesArrive().Migrate(RulesThree(state, "forest F1 10000000\nforest F2 120000000\nforest F3 80000000\n"));
+        string migrated = new TilesArrive().Migrate(RulesThree(state, "forest F1 10000000\nforest F2 120000000\nforest F3 80000000\n"), PrototypeHome.Map);
 
         Assert.Equal(state.Replace("\nfog ", "\nforest 1 -1 10000000\nforest -2 0 20000000\nfog ", StringComparison.Ordinal), migrated);
     }
@@ -47,10 +47,10 @@ public sealed class TilesArriveTests
     {
         // Under rules 3 the western mountain was a quarry site; under rules 4 it is the crest, which takes only the
         // Vårdkase (D-92). What was built stays where it stands (INV-V1).
-        string state = RulesThree(StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint()), FullForests)
+        string state = RulesThree(StaffingIsOrderedTests.RulesFive(RulesSix(NewWorld())), FullForests)
             .Replace("\nforest F1", "\nbuilding Quarry M1 1 1 0 0 0\nforest F1", StringComparison.Ordinal);
 
-        var world = World.Read(new StateReader(Migrations.ToCurrent(state, 3, Migrations.All)), PrototypeHome.Map);
+        var world = World.Read(new StateReader(Migrations.ToCurrent(state, 3, Migrations.All, PrototypeHome.Map)), PrototypeHome.Map);
         long stone = world.Stock(Resource.Stone);
         world.AdvanceTo(At("2026-10-14 18:00", 2));
 
@@ -62,10 +62,10 @@ public sealed class TilesArriveTests
     [Fact]
     public void AStateFromAnotherMapOrWithAnUnknownSiteIsRefused()
     {
-        string state = RulesThree(StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint()), FullForests);
+        string state = RulesThree(StaffingIsOrderedTests.RulesFive(RulesSix(NewWorld())), FullForests);
 
-        Assert.Throws<FormatException>(() => new TilesArrive().Migrate("map 00" + state[state.IndexOf('\n')..]));
-        Assert.Throws<FormatException>(() => new TilesArrive().Migrate(state.Replace("building Storehouse S ", "building Storehouse X9 ", StringComparison.Ordinal)));
+        Assert.Throws<FormatException>(() => new TilesArrive().Migrate("map 00" + state[state.IndexOf('\n')..], PrototypeHome.Map));
+        Assert.Throws<FormatException>(() => new TilesArrive().Migrate(state.Replace("building Storehouse S ", "building Storehouse X9 ", StringComparison.Ordinal), PrototypeHome.Map));
     }
 
     /// <summary>
@@ -94,6 +94,9 @@ public sealed class TilesArriveTests
 
     private static World NewWorld() => World.Create(At("2026-10-14 14:00", 2), Night);
 
+    /// <summary>A new world's state as rules 6 wrote it, with its stores on Home and Nyon (IslandsFromTheMapTests).</summary>
+    private static string RulesSix(World world) => IslandsFromTheMapTests.RulesSix(world.Fingerprint(), world);
+
     // Acceptance, on a world a player could have saved: the golden save from rules 3 keeps every building, road and
     // lifted tile, and every balance.
     [Fact]
@@ -105,10 +108,14 @@ public sealed class TilesArriveTests
 
         var after = Save.Load(bytes).World.Fingerprint().Split('\n');
 
-        // Everything but the records that named sites is the same, line for line.
-        string[] renamed = ["building ", "project ", "forest ", "sites-revealed ", "tiles-revealed ", "project-completed ", "expedition-returned "];
+        // Everything but the records that named sites, and the stores that rules 6 named by the map's islands
+        // (IslandsFromTheMapTests), is the same, line for line.
+        string[] renamed = ["building ", "project ", "forest ", "sites-revealed ", "tiles-revealed ", "project-completed ", "expedition-returned ", "stock "];
         bool Kept(string line) => !renamed.Any(prefix => line.StartsWith(prefix, StringComparison.Ordinal));
         Assert.Equal(before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(Kept), after.Where(Kept));
+        Assert.Equal(
+            before.Where(l => l.StartsWith("stock Home ", StringComparison.Ordinal)).Select(l => l["stock Home".Length..]),
+            after.Where(l => l.StartsWith("stock ", StringComparison.Ordinal)).Select(l => l["stock home".Length..]));
 
         // Each building is the same kind, level, staff, road, workday and harvest, on its site's tile, and running since
         // rules 6.

@@ -628,17 +628,22 @@ namespace Eirora.Client.UI
             }
         }
 
-        /// <summary>The jetty: expeditions from home, the sea route, and the other island's goods waiting for the ship.</summary>
+        /// <summary>
+        /// The jetty: on the home island the expedition and every sea route with the goods waiting for the ships; on
+        /// another island its own route and store (economy-v1.md, section 5).
+        /// </summary>
         private void JettyActions(World world, Building building)
         {
-            if (building.Island == IslandId.Nyon)
+            if (building.Island != world.HomeIsland)
             {
-                var waiting = Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                    .Where(r => world.Stock(IslandId.Nyon, r) > 0)
-                    .Select(r => $"{world.Stock(IslandId.Nyon, r)} {Texts.Name(r)}")
-                    .ToList();
-                Text("sheet-text", _sheet, $"Skeppen tar {Texts.IslandName(world.Map.IslandAt(building.Tile))}s varor hem, 40 per dygn.");
-                Text("sheet-text", _sheet, waiting.Count == 0 ? "Inget väntar på skeppen just nu." : "Väntar på skeppen: " + string.Join(", ", waiting) + ".");
+                string name = Texts.IslandName(world, building.Island);
+                bool sailing = world.SeaRoutes.Any(r => r.From == building.Island);
+                Text("sheet-text", _sheet, sailing
+                    ? $"Skeppen tar hem varorna från {name}, {SeaRoute.UnitsPerGameDay} per dygn."
+                    : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
+                Text("sheet-text", _sheet, Waiting(world, building.Island) is string goods
+                    ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
+                    : sailing ? "Inget väntar på skeppen just nu." : "Lagret är tomt.");
                 return;
             }
 
@@ -654,15 +659,41 @@ namespace Eirora.Client.UI
             }
             else if (world.ExpeditionFinds is Hex found)
             {
-                string island = Texts.IslandName(world.Map.IslandAt(found));
-                Text("sheet-text", _sheet, world.SeaRouteOpen
-                    ? $"Sjövägen till {island} är öppen. Skeppen tar hem 40 varor per dygn."
-                    : $"{char.ToUpperInvariant(island[0])}{island.Substring(1)} är hittad. Bygg en brygga där, så öppnar sjövägen.");
+                string island = world.Map.IslandAt(found)!;
+                if (!world.SeaRoutes.Any(r => r.From == island))
+                {
+                    Text("sheet-text", _sheet, $"{Capital(Texts.IslandName(world, island))} är hittad. Bygg en brygga där, så öppnar sjövägen.");
+                }
             }
             else
             {
                 Text("sheet-text", _sheet, "Ingen ö inom räckhåll är värd en expedition.");
             }
+
+            if (world.SeaRoutes.Count > 0)
+            {
+                Text("sheet-text", _sheet, world.SeaRoutes.Count == 1
+                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen tar hem {SeaRoute.UnitsPerGameDay} varor per dygn."
+                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen tar hem {SeaRoute.UnitsPerGameDay} varor per dygn från varje ö.");
+            }
+
+            foreach (var route in world.SeaRoutes)
+            {
+                string island = Capital(Texts.IslandName(world, route.From));
+                Text("sheet-text", _sheet, Waiting(world, route.From) is string goods
+                    ? $"{island}: {goods} väntar på skeppen."
+                    : $"{island}: inget väntar på skeppen.");
+            }
+        }
+
+        /// <summary>The goods in an island's store, such as "12 fisk och 5 sten", or null when it is empty.</summary>
+        private static string? Waiting(World world, string island)
+        {
+            var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
+                .Where(r => world.Stock(island, r) > 0)
+                .Select(r => $"{world.Stock(island, r)} {Texts.Name(r)}")
+                .ToList();
+            return goods.Count == 0 ? null : Texts.List(goods);
         }
 
         /// <summary>The health store's part of the self-care sheet: connect it, or see what is read and change it there.</summary>

@@ -5,6 +5,7 @@ using System.Linq;
 using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -117,8 +118,19 @@ namespace Eirora.Client.App
             client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
-            // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
+            // The jetties' sheets: the sea route with the goods waiting on Nyön, from home and from Nyön (TASK-045).
             var world = session.World!;
+            foreach (var (island, name) in new[] { (world.HomeIsland, "19-jetty-home"), (PrototypeHome.Nyon, "20-jetty-nyon") })
+            {
+                var jetty = world.Buildings.First(b => b.Kind == BuildingKind.Jetty && b.Island == island).Tile;
+                client.Focus(jetty.Center());
+                client.Hud.Select(jetty);
+                yield return Capture(client, folder, name);
+            }
+
+            client.Hud.Select(null);
+
+            // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
             var edge = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
                 .Where(world.CanLiftFog).OrderBy(h => h.DistanceTo(Hex.Origin)).ThenBy(h => h).First();
             client.Focus(edge.Center());
