@@ -102,7 +102,7 @@ SPECS = {
     "Hantverkargård": Spec({"timmer": 20, "sten": 20}, 40, 0, 0, "land", 0, 2),
     "Bigård": Spec({"timmer": 6}, 8, 0, 1, "äng", 0, 2),
     "Bryggeri": Spec({"timmer": 15, "sten": 5}, 16, 0, 2, "land", 1, 2),
-    "Mjöderi": Spec({"plank": 10, "sten": 5}, 24, 0, 2, "land", 1, 2),
+    "Mjöderi": Spec({"timmer": 15, "sten": 5}, 24, 0, 2, "land", 1, 2),
     # Steg 3, Sjöfart.
     "Tjärdal": Spec({"timmer": 10, "sten": 5}, 16, 0, 1, "skog", 1, 3),
     "Varv": Spec({"timmer": 20, "plank": 20, "sten": 10}, 40, 80, 2, "hamnläge", 2, 3),
@@ -112,11 +112,11 @@ UPGRADE = Spec({"plank": 10, "sten": 5}, 16, 50, 0, "")
 ROAD_COST, ROAD_WORK = {"sten": 2}, 4  # per bricka
 HOUSING = {"Stuga": (0, 4), "Långhus": (0, 8), "Bondgård": (1, 6), "Hantverkargård": (2, 8)}
 START_HOUSING = 16
-SETTLER_HOUSING = 4    # nybyggarnas bostäder i det förråd eller den brygga som anlägger en bosättning
-# Hur en ny bosättning kommer i gång (D-113, som utvidgar D-106). Avsnitt 14 räknar alternativen.
-SETTLERS = 2             # lediga torpare från hemön som följer med när en bosättning anläggs
-SHARED_BUILDERS = True   # lediga bybor i alla bosättningar bygger på alla öar som sjövägen når
-MATERIAL_BY_SEA = False  # byggmaterial från hemön till en ö tar plats på sjövägen
+START_STOCK = {"fisk": 30, "timmer": 40, "plank": 20, "sten": 20}
+SETTLER_HOUSING = 4    # bostäder i det förråd eller den brygga som anlägger en bosättning
+# Hur D-106 tillämpas, med tillägget i D-113. Avsnitt 14 räknar alternativen.
+SHARED_BUILDERS = True   # lediga bybor i bosättningar som sjövägen förbinder bygger på varandras öar (D-113)
+MATERIAL_BY_SEA = True   # byggmaterial från hemön till en ö tar plats på sjövägen (D-106)
 MIGRANTS_PER_DAY = 1     # bybor som flyttar mellan bosättningar per gryning i hela världen (D-106)
 KEEP_BUILDERS = 0        # lediga bybor som förrådet lämnar åt byggkön när det anställer bärare (D-109)
 AUTO_CARRIERS = True     # förrådet anställer själv; annars sätter spelaren bärarna för hand (D-109)
@@ -239,7 +239,7 @@ class Project:
 class World:
     def __init__(self):
         self.settlements = {HOME: Settlement(HOME, {r: 0.0 for r in RESOURCES}, [12, 0, 0], START_HOUSING)}
-        self.settlements[HOME].stock.update({"fisk": 30, "timmer": 40, "plank": 20, "sten": 20})
+        self.settlements[HOME].stock.update(START_STOCK)
         self.buildings, self.projects, self.roads = [], [], set()
         self.forces = dict(START_FORCES)
         self.credited = {"U": 0, "B": 0, "G": 0}
@@ -425,14 +425,9 @@ class World:
         if kind in DEPOTS:
             self._times.clear()
             if island not in self.settlements:  # det första förrådet eller bryggan anlägger bosättningen (D-106)
-                s = Settlement(island, {r: 0.0 for r in RESOURCES}, [0, 0, 0], SETTLER_HOUSING)
-                self.settlements[island] = s
-                home = self.settlements[HOME]
-                settlers = min(SETTLERS, self.free(home)[0])  # nybyggarna flyttar; världens bybor blir inte fler
-                home.tiers[0] -= settlers
-                s.tiers[0] += settlers
+                self.settlements[island] = Settlement(island, {r: 0.0 for r in RESOURCES}, [0, 0, 0], SETTLER_HOUSING)
                 self.introduce("Ny bosättning")
-                self.log.append(f"Dygn {self.day + 1}: {island} anläggs med {settlers} nybyggare")
+                self.log.append(f"Dygn {self.day + 1}: {island} anläggs")
         if kind == "Sågverk":
             self.introduce("Förädling och minimilager")
         if kind == "Brygga" and island == HOME:
@@ -535,15 +530,23 @@ class World:
         return sorted(self.on(island), key=lambda b: -self.lowest(b))
 
     def staff(self):
-        """Bemanna i ordning; varje byggnad tar de lägsta nivåerna som duger (INV-V2)."""
+        """Bemanna i ordning; varje byggnad tar de lägsta nivåerna som duger (INV-V2).
+
+        Bemanningen är klibbig: byggnader som redan är bemannade behåller sin, och en ny eller
+        obemannad byggnad tar bara lediga bybor, så ingen byggnad förlorar bemanning (D-39).
+        """
         for s in self.settlements.values():
             free = list(s.tiers)
-            for b in self.staffing_order(s.island):
-                need, lowest = b.staff, self.lowest(b)
-                b.staffed = False
-                if not need:
-                    continue
-                if sum(free[lowest:]) >= need:
+            order = self.staffing_order(s.island)
+            for keep in (True, False):
+                for b in order:
+                    if b.staffed != keep:
+                        continue
+                    need, lowest = b.staff, self.lowest(b)
+                    b.staffed = False
+                    if not need or sum(free[lowest:]) < need:
+                        assert not keep, f"{b.kind} förlorar sin bemanning (D-39)"
+                        continue
                     for t in range(lowest, len(TIERS)):
                         take = min(free[t], need)
                         free[t] -= take
@@ -701,15 +704,19 @@ class World:
                 s.stock[r] += moved
 
     def build_hour(self):
-        """Lediga bybor bygger på kön i ordning. Med SHARED_BUILDERS bygger alla bosättningar på alla öar;
-        annars bygger varje bosättning på sin ö, och hemön på öar som ännu saknar bosättning."""
+        """Lediga bybor bygger på kön i ordning, på sin ö och med SHARED_BUILDERS också på öar som
+        sjövägen förbinder med deras (D-113); på en ö som ännu saknar bosättning bygger hemön."""
         labour = {s.island: sum(BUILDER_HOURS[t] * n for t, n in enumerate(self.free(s)))
                   for s in self.settlements.values()}
         for p in list(self.projects):
-            if SHARED_BUILDERS:
-                pools = sorted(labour, key=lambda i: (i != p.island, i != HOME, i))
+            if p.island not in self.settlements:
+                pools = [HOME]
+            elif SHARED_BUILDERS:
+                here = self.settlements[p.island]
+                pools = sorted((o.island for o in self.settlements.values() if o is here or self.linked(o, here)),
+                               key=lambda i: (i != p.island, i != HOME, i))
             else:
-                pools = [p.island if p.island in self.settlements else HOME]
+                pools = [p.island]
             for i in pools:
                 used = min(labour.get(i, 0.0), p.work_left)
                 p.work_left -= used
@@ -717,7 +724,7 @@ class World:
             if p.work_left <= 1e-9:
                 self.projects.remove(p)
                 p.on_done()
-            if SHARED_BUILDERS and sum(labour.values()) <= 1e-9:
+            if sum(labour.values()) <= 1e-9:
                 break
 
     def make(self, b, amount):
@@ -993,9 +1000,9 @@ def keep_growing(w, day, power=True):
     if w.step >= 2:
         drink = math.ceil(0.5 * h) + 2
         if supply(w, NEED_GOODS["dryck"]) < drink and not pending(w, "Bryggeri", "Bigård", "Mjöderi", "Åker"):
-            if power and supply(w, ["honung"]) >= 8 and not w.has("Mjöderi"):
+            if supply(w, ["honung"]) >= 8 and not w.has("Mjöderi"):
                 build_near(w, "Mjöderi")
-            elif power and not w.has("Bigård"):
+            elif not w.has("Bigård"):
                 build_near(w, "Bigård")
             elif not w.has("Bryggeri"):
                 build_near(w, "Bryggeri")
@@ -1242,7 +1249,7 @@ def run(strategy, profile, days=DAYS, w=None, start=0, values=None):
 
 # --- Samma strategi med mer egenvård (D-34) ----------------------------------------------------
 
-D34_TOLERANCE = 0.015  # största dipp med mer egenvård och samma beslut som kalkylen godtar tills F11 är avgjord
+D34_TOLERANCE = 0.001  # största dipp ett enskilt dygn (D-119): strax över de 0,07 % kalkylen mäter, så att en försämring syns
 COMMANDS = ("build", "upgrade", "road", "carrier_cap", "survey", "expedition", "workday", "rush")
 
 
@@ -1411,33 +1418,36 @@ def producers(good):
 
 def chain(good):
     """Kedjan till en vara: byggnaderna, marken råvaran kommer från, Byggkraft, om varje byggnad
-    går att bygga utan krafter (Byggkraft 0 eller handkraft, D-65) och lägsta nivå."""
+    går att bygga utan krafter (Byggkraft 0 eller handkraft, D-65), plank den kostar och lägsta nivå."""
     kind = producers(good)[0]
     spec = SPECS[kind]
     free = spec.build_power == 0 or kind in HAND_BUILT
+    plank = spec.cost.get("plank", 0)
     if kind in RECIPES:
-        kinds, land, power, without, tier = chain(RECIPES[kind][0])
-        return kinds + [kind], land, power + spec.build_power, without and free, max(tier, spec.tier)
-    return [kind], {spec.requirement}, spec.build_power, free, spec.tier
+        kinds, land, power, without, planks, tier = chain(RECIPES[kind][0])
+        return (kinds + [kind], land, power + spec.build_power, without and free, planks + plank,
+                max(tier, spec.tier))
+    return [kind], {spec.requirement}, spec.build_power, free, plank, spec.tier
 
 
 def check_needs():
     """INV-R4: varje behov kan göras utan krafter på minst två sätt som börjar på olika mark, och en
     nivås behov görs alltid av nivån under, så att ingen nivå behöver sig själv för att nås.
 
-    Kontrollen gäller byggnadernas drift och Byggkraft; byggmaterialet (plank och sten till fårgård
-    och stenbrott) kommer ur startlagret och stenbrottet, som i ekonomi v1."""
+    Utan krafter finns inget sågverk, så plank kommer bara ur startlagret. En kedja räknas därför
+    bara om dess plank, tillsammans med stenbrottets, ryms i startlagret."""
+    spare = START_STOCK["plank"] - SPECS["Stenbrott"].cost["plank"]
     rows = []
     for need, goods in NEED_GOODS.items():
         tier = min(t for t, n in enumerate(NEEDS) if need in n)
         chains = {g: chain(g) for g in goods}
-        free = [g for g in goods if chains[g][3]]
+        free = [g for g in goods if chains[g][3] and chains[g][4] <= spare]
         independent = any(not (chains[a][1] & chains[b][1]) for a in free for b in free if a < b)
         assert independent, f"{need}: färre än två källor utan krafter på olika mark (INV-R4)"
-        assert all(c[4] <= max(0, tier - 1) for c in chains.values()), f"{need}: kräver sin egen nivå"
-        for g, (kinds, land, power, without, lowest) in chains.items():
+        assert all(c[5] <= max(0, tier - 1) for c in chains.values()), f"{need}: kräver sin egen nivå"
+        for g, (kinds, land, power, without, planks, lowest) in chains.items():
             how = "ja" if power == 0 else ("handkraft" if without else "nej")
-            rows.append(f"| {need} | {g} | {' → '.join(kinds)} | {', '.join(sorted(land))} | {power} | {how} "
+            rows.append(f"| {need} | {g} | {' → '.join(kinds)} | {', '.join(sorted(land))} | {power} | {planks} | {how} "
                         f"| {TIERS[lowest]} |")
     return rows
 
@@ -1454,45 +1464,30 @@ def catalog():
 # --- Diagnostik: vad en bärare, en väg eller ett förråd ger (CIV-05, LOG-03) ---------------------
 
 def remedies(w, island=HOME):
-    """För förrådet som har mest att bära: vad som når fram nu och med varje åtgärd, räknat med
-    samma regler som simuleringen.
+    """För förrådet som har mest att bära: vad som når fram i dag och med varje åtgärd, räknat med
+    simuleringens egna regler.
 
-    En åtgärd som behöver en bybo tar en ledig om det finns någon; annars visar den vilken
-    byggnad som blir obemannad, den sista i bemanningsordningen, och räknar med det.
+    En bärare till och ett nytt förråd behöver en ledig bybo. Finns ingen tar åtgärden ingen
+    bybo från en annan byggnad (D-39): förrådet står obemannat och ger inget förrän en bybo blir
+    ledig, och då räknas också vad det ger med sin bärare.
     """
     s = w.settlements[island]
     need = w.carrier_load(island)
     depot = max((d for d in w.depots(island) if need.get(d.tile)), key=lambda d: (need[d.tile] / d.carriers, d.tile))
+    free = w.free(s)[0]
 
     def load():
         n = w.carrier_load(island)
         return max(n.get(d.tile, 0.0) / d.carriers for d in w.depots(island) if d.staffed)
 
-    def with_villager(change):
-        """Kör en åtgärd som tar en bybo och återställer världen efteråt; ger (mått, last, kostnad)."""
-        saved = [(b, b.staffed, b.carriers) for b in w.buildings]
-        left = None
-        if w.free(s)[0] == 0:
-            left = next(b for b in reversed(w.staffing_order(island))
-                        if b.staffed and b.staff and b.kind not in DEPOTS)
-            left.staffed = False
-        undo = change()
-        w._times.clear()
-        out, last = w.daily_output(), load()
-        undo()
-        for b, staffed, carriers in saved:
-            b.staffed, b.carriers = staffed, carriers
-        w._times.clear()
-        return out, last, ("en ledig bybo" if left is None else
-                           f"{left.kind.lower()} på {tag(left.tile)} står obemannad")
-
-    rows = [("Nu", f"{depot.carriers} bärare vid förrådet på {tag(depot.tile)}", w.daily_output(), load(), "")]
-    if depot.carriers < MAX_CARRIERS:
-        def more():
-            depot.carriers += 1
-            return lambda: None
-        out, last, cost = with_villager(more)
-        rows.append(("En bärare till", "", out, last, cost))
+    today = w.daily_output()
+    rows = [("Nu", f"{depot.carriers} bärare vid förrådet på {tag(depot.tile)}", today, today, load(), "")]
+    if depot.carriers < min(depot.cap, MAX_CARRIERS):
+        depot.carriers += 1
+        later, last = w.daily_output(), load()
+        depot.carriers -= 1
+        rows.append(("En bärare till", "", later if free else today, later, last,
+                     "en ledig bybo" if free else "ingen ledig bybo i dag; förrådet anställer själv när en blir ledig"))
     served = [b for b in w.on(island) if b.kind not in DEPOTS and w.travel(b.tile, island)[1] == depot.tile
               and w.rate(b)[0]]
     far = max(served, key=lambda b: (w.travel(b.tile, island)[0], b.tile))
@@ -1500,23 +1495,26 @@ def remedies(w, island=HOME):
     if tiles:
         w.roads.update(tiles)
         w._times.clear()
-        rows.append(("Väg", f"till {far.kind.lower()} på {tag(far.tile)}, {len(tiles)} brickor", w.daily_output(),
-                     load(), f"{ROAD_COST['sten'] * len(tiles)} sten, {ROAD_WORK * len(tiles)} arbetstimmar"))
+        out, last = w.daily_output(), load()
+        rows.append(("Väg", f"till {far.kind.lower()} på {tag(far.tile)}, {len(tiles)} brickor", out, out, last,
+                     f"{ROAD_COST['sten'] * len(tiles)} sten, {ROAD_WORK * len(tiles)} arbetstimmar"))
         w.roads.difference_update(tiles)
         w._times.clear()
     best = None
     for p in sorted(TILES):
         if TILES[p].island == island and w.can_build("Förråd", p):
-            def place(p=p):
-                w.buildings.append(Building("Förråd", p, staffed=True))
-                return w.buildings.pop
-            out, last, cost = with_villager(place)
+            w.buildings.append(Building("Förråd", p, staffed=True))
+            w._times.clear()
+            out, last = w.daily_output(), load()
+            w.buildings.pop()
+            w._times.clear()
             if best is None or (out, -last) > (best[1], -best[2]):
-                best = (p, out, last, cost)
+                best = (p, out, last)
     spec = SPECS["Förråd"]
-    rows.append(("Ett förråd till", f"på {tag(best[0])}", best[1], best[2],
-                 ", ".join(f"{n} {r}" for r, n in spec.cost.items()) + f", {spec.work} arbetstimmar, {best[3]}"))
-    return depot, need[depot.tile], w.free(s)[0], rows
+    cost = ", ".join(f"{n} {r}" for r, n in spec.cost.items()) + f", {spec.work} arbetstimmar, en bybo som bärare"
+    rows.append(("Ett förråd till", f"på {tag(best[0])}", best[1] if free else today, best[1], best[2],
+                 cost if free else cost + "; obemannat tills en bybo blir ledig"))
+    return depot, need[depot.tile], free, rows
 
 
 # --- Alternativen i delfrågorna --------------------------------------------------------------------
@@ -1562,7 +1560,8 @@ def main():
     print("|---|---|---|---|---|---|---|---|")
     print("\n".join(catalog()))
     print("\n## Behov och kedjor (INV-R4)\n")
-    print("| Behov | Vara | Kedja | Mark | Byggkraft | Utan krafter | Bemannas av |\n|---|---|---|---|---|---|---|")
+    print("| Behov | Vara | Kedja | Mark | Byggkraft | Plank | Utan krafter | Bemannas av |"
+          "\n|---|---|---|---|---|---|---|---|")
     print("\n".join(check_needs()))
 
     base = World().value()
@@ -1609,9 +1608,9 @@ def main():
         low, high = same_decisions(strat, "måttlig", "hög", LONG_DAYS)
         worst = min(low, key=lambda d: (high[d] / low[d], d))
         below = sum(1 for d in low if high[d] < low[d] - 1e-6)
-        # F11: bärarnas ordning kan ge mer egenvård en något mindre värld några dygn.
-        assert high[worst] >= (1 - D34_TOLERANCE) * low[worst], "mer egenvård ska synas i världen (D-34)"
-        assert high[LONG_DAYS] >= low[LONG_DAYS] * (1 - D34_TOLERANCE)
+        # D-119: D-34 gäller över veckor, och ett enskilt dygn får vara högst D34_TOLERANCE mindre.
+        assert all(high[d] >= low[d] - 1e-6 for d in range(DAYS, LONG_DAYS + 1, DAYS)), "D-34 över veckor (D-119)"
+        assert high[worst] >= (1 - D34_TOLERANCE) * low[worst], "dippen med mer egenvård (D-119)"
         print(f"| {name} | " + " | ".join(f"{low[d]:.0f} / {high[d]:.0f}" for d in (7, 14, 28, 42))
               + f" | dygn {worst}: {high[worst] / low[worst] - 1:+.2%} | {below} |")
     with variant(INPUT_FIRST=True):
@@ -1647,9 +1646,10 @@ def main():
         depot, load, free, rows = remedies(w)
         print(f"{name}, gryningen dygn {days + 1}: förrådet på {tag(depot.tile)} behöver {load:.1f} bärartimmar "
               f"per aktiv timme och har {depot.carriers} bärare; {free} bybor är lediga.\n")
-        print("| Åtgärd | Var | Dagsproduktion | Största last per bärare | Kostnad |\n|---|---|---|---|---|")
-        for what, where, out, last, cost in rows:
-            print(f"| {what} | {where} | {out:.0f} | {last:.2f} | {cost} |")
+        print("| Åtgärd | Var | Dagsproduktion i dag | Med bäraren på plats | Största last per bärare | Kostnad |"
+              "\n|---|---|---|---|---|---|")
+        for what, where, now, later, last, cost in rows:
+            print(f"| {what} | {where} | {now:.0f} | {later:.0f} | {last:.2f} | {cost} |")
         print()
 
     print("\n## Alternativen bakom besluten\n")
@@ -1661,9 +1661,8 @@ def main():
         ("F1", "D-109 med två byggare kvar", strategy_land, "måttlig", {"KEEP_BUILDERS": 2}),
         ("F1", "D-109 (kalkylen)", strategy_land, "måttlig", {}),
         ("F5", "D-113 (kalkylen)", strategy_sea, "måttlig", {}),
-        ("F5", "D-113 med byggmaterialet på sjövägen", strategy_sea, "måttlig", {"MATERIAL_BY_SEA": True}),
-        ("F5", "D-106 utan tillägg", strategy_sea, "måttlig",
-         {"SETTLERS": 0, "SHARED_BUILDERS": False, "MATERIAL_BY_SEA": True}),
+        ("F5", "D-106 utan tillägget", strategy_sea, "måttlig", {"SHARED_BUILDERS": False}),
+        ("F5", "D-113 med byggmaterialet utanför sjövägen", strategy_sea, "måttlig", {"MATERIAL_BY_SEA": False}),
         ("F5", "D-113 med v1:s byggordning", strategy_sea_v1_order, "måttlig", {}),
     ]
     for question, what, strat, profile, rules in alternatives:

@@ -135,10 +135,6 @@ _Avoid_: odlare, jordbrukare (som nivå)
 Den tredje befolkningsnivån i epok 1, som bönder stiger till när de också får dryck; bor i hantverkargårdar, bygger dubbelt så fort och bemannar varvet (D-116).
 _Avoid_: mästare, borgare
 
-**Nybyggare** (`Pioneers`):
-De lediga torpare, högst två, som följer med från hemön när en ny bosättning anläggs och bor i bostäderna i dess förråd eller brygga (D-113).
-_Avoid_: kolonister
-
 **Behov** (`Need`):
 Det en befolkningsnivå förbrukar varje spelardygn, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
 _Avoid_: krav, efterfrågan, hunger
