@@ -56,7 +56,7 @@ public sealed class IslandsFromTheMapTests
     public void ARulesSixStateOnThePrototypesMapGetsTheStoresOfHemonAndNyon(int seed)
     {
         var world = BuiltOutWorld.GenerateSave(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
-        string state = world.Fingerprint();
+        string state = RoadsAreTilesTests.RulesSeven(world.Fingerprint());
 
         Assert.Equal(state, new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
     }
@@ -68,7 +68,7 @@ public sealed class IslandsFromTheMapTests
     {
         var map = Archipelago.Map;
         var world = Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        var lines = world.Fingerprint().Split('\n').ToList();
+        var lines = RoadsAreTilesTests.RulesSeven(world.Fingerprint()).Split('\n').ToList();
         lines.InsertRange(
             lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1,
             [Jetty(Archipelago.Second), Jetty(Archipelago.First)]);
@@ -82,7 +82,7 @@ public sealed class IslandsFromTheMapTests
         Assert.Equal(map.Islands.Select(i => i.Id).Where(i => i is Archipelago.Home or Archipelago.First or Archipelago.Second), stores.Select(s => s[1]).Distinct());
         Assert.All(stores.Where(s => s[1] == Archipelago.First), s => Assert.Equal("0", s[3]));
         Assert.Equal(Enum.GetValues<Resource>().Select(r => ((int)r + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)), stores.Where(s => s[1] == Archipelago.Second).Select(s => s[3]));
-        var reader = new StateReader(migrated);
+        var reader = new StateReader(new RoadsAreTiles().Migrate(migrated, map));
         var read = World.Read(reader, map);
         reader.End();
         Assert.Equal(new[] { Archipelago.Home, Archipelago.First, Archipelago.Second }, read.Islands);
@@ -98,7 +98,7 @@ public sealed class IslandsFromTheMapTests
     public void GoodsOnNyonWithNothingBuiltOffTheHomeIslandAreRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesSix = RulesSix(world.Fingerprint(), world);
+        string rulesSix = RulesSix(RoadsAreTilesTests.RulesSeven(world.Fingerprint()), world);
         Assert.DoesNotContain("stock nyon", new IslandsFromTheMap().Migrate(rulesSix, PrototypeHome.Map), StringComparison.Ordinal);
 
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix.Replace("stock Nyon Stone 0", "stock Nyon Stone 1", StringComparison.Ordinal), PrototypeHome.Map));
@@ -108,7 +108,7 @@ public sealed class IslandsFromTheMapTests
     public void AStateOfAnotherMapOrWithoutTheStoresOfRulesSixIsRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesSix = RulesSix(world.Fingerprint(), world);
+        string rulesSix = RulesSix(RoadsAreTilesTests.RulesSeven(world.Fingerprint()), world);
 
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix, Archipelago.Map));
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(world.Fingerprint(), PrototypeHome.Map));
@@ -116,7 +116,8 @@ public sealed class IslandsFromTheMapTests
     }
 
     /// <summary>
-    /// A state of rules 7 as rules 6 wrote it: every resource on Home, then on Nyon, which holds the store of the one
+    /// A state of rules 7 (see <see cref="RoadsAreTilesTests.RulesSeven"/>) as rules 6 wrote it: every resource on Home,
+    /// then on Nyon, which holds the store of the one
     /// island off the home island built on, if any.
     /// </summary>
     internal static string RulesSix(string state, World world)

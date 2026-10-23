@@ -285,8 +285,10 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 - Världen skapas en kvart före sin första gryning, så att spelardygn 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
   Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta brickor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
 - Vad en byggnad kostar, kräver och producerar läser botarna ur världens innehållskatalog (`World.Content`), så nytt innehåll och ändrade recept följer med av sig själva.
-  Hur avstånd och nivå skalar produktionen går inte att läsa ur världen; `ProductionRateTests` bygger varje byggnad med ett recept och kräver att ett spelardygns tillskott i lagret är det botarna räknar med, och att varje recept i katalogen prövas där.
+  Hur nivån skalar produktionen går inte att läsa ur världen; `ProductionRateTests` bygger varje byggnad med ett recept och kräver att ett spelardygns tillskott, i lagret och i utlagren, är det botarna räknar med, och att varje recept i katalogen prövas där.
 - Måtten är ekonomi v1:s: bybor, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
+  Från regelversion 8 räknar dagsproduktionen med den andel som förrådens bärare hinner få fram, läst ur världens behov av bärartimmar (`World.CarrierNeed`).
+- `BalanceRun.PlaySameDecisions` spelar om en körnings beslut med en annan profil och lägger Gryningskraften utöver den förra på dagsverken, för D-119: med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut och ett enskilt dygn högst 0,1 % mindre.
 
 Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).
 Samma körningar ger alltid samma rapport, byte för byte.
@@ -311,7 +313,7 @@ dotnet run -c Release --project tools/Eirora.Balance -- --maps generated --from 
 ```
 
 `--maps prototype` (standard) spelar prototypens karta.
-Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, produktionstakterna, determinismen och de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, sammanlagt några sekunder; längre körningar görs lokalt.
+Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, samma beslut med hög egenvård i fyra veckor, produktionstakterna, determinismen och de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, sammanlagt några sekunder; längre körningar görs lokalt.
 Okända, upprepade eller överflödiga argument underkänns i stället för att tyst ge andra körningar.
 Ändras balansen med avsikt underkänns `TheBotsWeekIsTheOneEconomyV1Reports`, som skriver ut de nya raderna i samma format som tabellen i [avsnitt 7.1](./design/economy-v1.md#71-balansbotarna-i-simuleringen); byt raderna där mot dem.
 Verktygets egen rapport har fler kolumner och klistras inte in.

@@ -19,7 +19,7 @@ stock home Fish 59687500
 stock home Grain 0
 stock home Timber 10406250
 stock home Planks 30171875
-stock home Stone 39968750
+stock home Stone 49968750
 stock home Wool 77000000
 stock home Wadmal 0
 stock first Fish 0
@@ -36,33 +36,40 @@ stock second Planks 0
 stock second Stone 0
 stock second Wool 0
 stock second Wadmal 0
-building Field 1 -1 1 0 0 0 0 1
-building Storehouse 0 0 1 1 0 0 0 0
-building FishingHut -2 -1 1 0 1 0 0 1
-building Woodcutter 0 -2 1 1 1 0 0 0
-building Longhouse 1 -4 1 0 0 0 0 0
-building Woodcutter 1 0 1 0 0 0 0 1
-building Quarry 3 2 1 0 1 0 0 1
-building Woodcutter -2 4 1 0 1 0 0 1
-building Sawmill 1 1 1 1 0 0 0 0
-building Jetty 1 2 1 1 0 0 0 0
-building Jetty -18 10 1 1 0 0 0 0
-building Woodcutter -18 9 1 1 0 0 0 0
-building FishingHut -16 9 2 1 0 0 0 0
-building Lookout -20 11 1 0 0 0 0 0
-building Storehouse -17 10 1 1 0 0 0 0
-building Longhouse -17 9 1 0 0 0 0 0
-building Longhouse -19 10 1 0 0 0 0 0
-building Cottage -17 7 1 0 0 0 0 0
-building Jetty 15 -11 1 1 0 0 0 0
-building SheepFarm 15 -12 1 1 0 1 9000000 0
-building Lookout -20 10 1 0 0 0 0 0
-building Sawmill 18 -12 1 1 1 0 0 0
-building Jetty -18 7 1 1 0 0 0 0
-building Lookout 3 -5 1 0 0 0 0 0
-building Lookout -2 1 1 0 0 0 0 0
-building Quarry 5 0 1 1 0 0 0 0
-building Quarry 5 -2 1 1 0 0 0 0
+building Field 1 -1 1 0 0 0 1 0 0 0 0
+building Storehouse 0 0 1 1 0 0 0 1 4 0 0
+building FishingHut -2 -1 1 0 0 0 1 0 0 0 0
+building Woodcutter 0 -2 1 1 0 0 0 0 0 0 0
+building Longhouse 1 -4 1 0 0 0 0 0 0 0 0
+building Woodcutter 1 0 1 0 0 0 1 0 0 0 0
+building Quarry 3 2 1 0 0 0 1 0 0 0 0
+building Woodcutter -2 4 1 0 0 0 1 0 0 0 0
+building Sawmill 1 1 1 1 0 0 0 0 0 0 0
+building Jetty 1 2 1 1 0 0 0 1 4 0 0
+building Jetty -18 10 1 1 0 0 0 1 4 0 0
+building Woodcutter -18 9 1 1 0 0 0 0 0 0 0
+building FishingHut -16 9 2 1 0 0 0 0 0 0 0
+building Lookout -20 11 1 0 0 0 0 0 0 0 0
+building Storehouse -17 10 1 1 0 0 0 1 4 0 0
+building Longhouse -17 9 1 0 0 0 0 0 0 0 0
+building Longhouse -19 10 1 0 0 0 0 0 0 0 0
+building Cottage -17 7 1 0 0 0 0 0 0 0 0
+building Jetty 15 -11 1 1 0 0 0 1 4 0 0
+building SheepFarm 15 -12 1 1 1 9000000 0 0 0 0 0
+building Lookout -20 10 1 0 0 0 0 0 0 0 0
+building Sawmill 18 -12 1 1 0 0 0 0 0 0 0
+building Jetty -18 7 1 1 0 0 0 1 4 0 0
+building Lookout 3 -5 1 0 0 0 0 0 0 0 0
+building Lookout -2 1 1 0 0 0 0 0 0 0 0
+building Quarry 5 0 1 1 0 0 0 0 0 0 0
+building Quarry 5 -2 1 1 0 0 0 0 0 0 0
+road 17 -12
+road 16 -11
+road -1 -1
+road 0 -1
+road 2 2
+road 0 3
+road -1 4
 forest 1 -3 26843750
 forest -18 8 1875000
 forest -17 8 1875000

@@ -7,9 +7,9 @@ using static Eirora.Simulation.Tests.Tiles;
 namespace Eirora.Simulation.Tests.Economy;
 
 /// <summary>
-/// A field and a sheep farm grow round the clock and are harvested in the active hours (INV-T5), and distance, level 2
-/// and a workday scale how fast they grow, as they scale every other building's production (economy-v1.md, sections 3
-/// and 5; TASK-038).
+/// A field and a sheep farm grow round the clock and are harvested in the active hours (INV-T5), and level 2 and a
+/// workday scale how fast they grow, as they scale every other building's production (economy-v1.md, section 3;
+/// TASK-038); distance costs the carriers' time instead (D-110).
 /// </summary>
 public sealed class SlowProcessTests
 {
@@ -19,24 +19,15 @@ public sealed class SlowProcessTests
     private static int s_key;
 
     [Fact]
-    public void AFieldTwoStepsFromTheStorehouseGrowsThreeQuartersAsMuch()
+    public void AFieldTwoStepsFromTheStorehouseGrowsAsFastAsOneBesideIt()
     {
         var world = WithFieldAtO2();
-        Assert.Equal(1, world.DepotDistance(O1));
-        Assert.Equal(2, world.DepotDistance(O2));
+        Assert.Equal(1, world.TripFrom(O1).Steps);
+        Assert.Equal(2, world.TripFrom(O2).Steps);
 
         var growth = NightGrowth(world, O1, O2);
 
-        Assert.Equal([NightAtFullRate, NightAtFullRate * 3 / 4], growth);
-    }
-
-    [Fact]
-    public void ARoadBringsAFarFieldBackToFullGrowth()
-    {
-        var world = WithFieldAtO2();
-        world.Settlement.BuildingAt(O2)!.HasRoad = true;
-
-        Assert.Equal([NightAtFullRate, NightAtFullRate], NightGrowth(world, O1, O2));
+        Assert.Equal([NightAtFullRate, NightAtFullRate], growth);
     }
 
     [Fact]
@@ -63,7 +54,7 @@ public sealed class SlowProcessTests
     }
 
     [Fact]
-    public void AFarFieldDeliversThreeQuartersOfANearFieldsHarvestEachDay()
+    public void AFarFieldDeliversAsMuchAsANearFieldWhileTheCarriersKeepUp()
     {
         var near = Morning();
         var far = WithFieldAtO2();
@@ -72,7 +63,7 @@ public sealed class SlowProcessTests
 
         // A game day of growth, 12 grain at full rate, ripens round the clock and is all harvested by dusk.
         Assert.Equal(12 * Quantity.PerUnit, nearGrain);
-        Assert.Equal(9 * Quantity.PerUnit, bothGrain - nearGrain);
+        Assert.Equal(12 * Quantity.PerUnit, bothGrain - nearGrain);
     }
 
     /// <summary>How much grain each field grows in the night's 32 ticks while the villagers sleep, 23:00 to 07:00.</summary>
@@ -85,14 +76,15 @@ public sealed class SlowProcessTests
         return [.. fields.Select((f, i) => world.Settlement.BuildingAt(f)!.Ripe - atDusk[i])];
     }
 
-    /// <summary>The grain that reaches the store from dusk on the 15th to dusk on the 16th.</summary>
+    /// <summary>The grain harvested from dusk on the 15th to dusk on the 16th, in the store or waiting for the carriers.</summary>
     private static long GrainHarvestedOnTheSixteenth(World world)
     {
+        long Grain() => world.Settlement.Stock(Resource.Grain) + world.Buildings.Where(b => b.Kind == BuildingKind.Field).Sum(f => f.Waiting);
         world.AdvanceTo(At("2026-10-15 22:59", 2));
-        long atDusk = world.Settlement.Stock(Resource.Grain);
+        long atDusk = Grain();
         world.AdvanceTo(At("2026-10-16 22:59", 2));
         Assert.All(world.Buildings.Where(b => b.Kind == BuildingKind.Field), f => Assert.Equal(0, f.Ripe));
-        return world.Settlement.Stock(Resource.Grain) - atDusk;
+        return Grain() - atDusk;
     }
 
     private static World WithFieldAtO2()

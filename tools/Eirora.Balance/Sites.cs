@@ -107,7 +107,7 @@ internal sealed class Sites
 
         foreach (var project in _world.Projects)
         {
-            if (project.Kind == ProjectKind.Build && IsDepot(project.Building))
+            if (project.Kind == ProjectKind.Build && project.Building is BuildingKind kind && IsDepot(kind))
             {
                 depots.Add(project.Tile);
             }
@@ -130,9 +130,9 @@ internal sealed class Sites
 
         foreach (var project in _world.Projects)
         {
-            if (project.Kind == ProjectKind.Build && Produces(project.Building))
+            if (project.Kind == ProjectKind.Build && project.Building is BuildingKind kind && Produces(kind))
             {
-                producers.Add((project.Building, project.Tile));
+                producers.Add((kind, project.Tile));
             }
         }
 
@@ -143,9 +143,8 @@ internal sealed class Sites
     public int LevelPercent(Hex tile) =>
         _world.BuildingAt(tile) is { Level: 2 } || _world.Projects.Any(p => p.Kind == ProjectKind.Upgrade && p.Tile == tile) ? 150 : 100;
 
-    /// <summary>Whether a building has or is getting a road to its store.</summary>
-    public bool HasRoad(Hex tile) =>
-        _world.BuildingAt(tile) is { HasRoad: true } || _world.Projects.Any(p => p.Kind == ProjectKind.Road && p.Tile == tile);
+    /// <summary>Whether a building's way to its depot has every road it can take, laid or in the queue.</summary>
+    public bool HasRoad(Hex tile) => _world.TripFrom(tile) is { Reaches: true, Steps: > 1 } && _world.RoadToDepot(tile).Count == 0;
 
     /// <summary>Known land and fishing water of an island richer than normal, in map order.</summary>
     public List<Hex> RichTiles(string? island)
@@ -232,7 +231,11 @@ internal sealed class Sites
         return fewest == int.MaxValue ? int.MaxValue : fewest + 1;
     }
 
-    /// <summary>Share of production that reaches the store: 100, 75 or 50 % by distance, one step better with a road.</summary>
+    /// <summary>
+    /// How near a store the bots want what they build, as a share: 100, 75 or 50 % by distance, one step better with a
+    /// road. Under economy v1 it was the share of production that reached the store; since economy v2 distance costs the
+    /// carriers' time instead (D-110), and the bots still place buildings nearer the store first, as a player would.
+    /// </summary>
     public static int DistancePercent(int steps, bool road)
     {
         int step = steps <= 1 ? 0 : steps <= 3 ? 1 : 2;

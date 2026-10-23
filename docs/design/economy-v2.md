@@ -277,6 +277,7 @@ Havets strategi bygger därför Nyöns brygga före den första bostaden, så at
 - **Bärarna hämtar och lämnar.**
   De hämtar det som väntar vid byggnaderna och bär råvara till förädlingen, som håller 4 enheter framme och aldrig tar förrådet under minimilagret på 20 (LOG-06).
   De tar först där det väntar mest: det fullaste utlagret eller den förädling som har minst råvara kvar, och spelarens prioritet går före (D-111).
+  Spelarens prioritet är bemanningsordningen: en byggnad som spelaren flyttat upp där tar bärarna först, och flyttad ned igen tar de den där det väntar mest.
   Byggmaterial betalas när bygget läggs i kön, som i v1, och bärs inte.
 - **Inget går förlorat.**
   Det bärarna inte hinner med väntar i byggnadens utlager, som rymmer 8 enheter; när det är fullt stannar byggnaden (INV-R2).

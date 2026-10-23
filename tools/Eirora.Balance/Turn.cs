@@ -43,6 +43,7 @@ internal sealed class Turn
         if (result.Accepted)
         {
             _tally.Accepted++;
+            _tally.Decisions.Add((Day, command));
             for (int i = 0; i < s_forces.Length; i++)
             {
                 _tally.Spent[i] += before[i] - World.Available(s_forces[i]);
@@ -78,4 +79,13 @@ internal sealed class Tally
 
     /// <summary>Exploration, Build Power and Dawn Power spent.</summary>
     public int[] Spent { get; } = new int[3];
+
+    /// <summary>Every accepted command and the game day it was given on.</summary>
+    public List<(int Day, GameCommand Command)> Decisions { get; } = [];
+
+    /// <summary>The Dawn Power left once each game day's decisions were made.</summary>
+    public List<int> DawnPowerLeft { get; } = [];
+
+    /// <summary>The development value at the end of each game day.</summary>
+    public List<long> Values { get; } = [];
 }

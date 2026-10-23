@@ -18,24 +18,27 @@ stock home Fish 134937500
 stock home Grain 150000000
 stock home Timber 150000000
 stock home Planks 150000000
-stock home Stone 2000000
+stock home Stone 4000000
 stock home Wool 0
 stock home Wadmal 0
-building Storehouse 0 0 1 1 0 0 0 0
-building FishingHut 1 0 1 1 0 0 0 0
-building Field 0 1 1 1 0 0 963750000 0
-building Woodcutter 1 -1 2 1 0 0 0 0
-building Sawmill -1 -3 1 1 1 0 0 0
-building Woodcutter -1 1 1 1 0 0 0 0
-building Woodcutter -3 2 1 1 0 0 0 0
-building FishingHut 5 -2 1 1 0 0 0 0
-building Woodcutter 3 -2 1 0 0 0 0 0
-building FishingHut 0 5 1 0 0 0 0 0
-building FishingHut 4 -4 1 0 0 0 0 0
-building Woodcutter -3 1 1 0 0 0 0 0
-building Woodcutter 1 -2 1 0 0 0 0 0
-building Jetty 1 2 1 1 0 0 0 0
+building Storehouse 0 0 1 1 0 0 0 1 4 0 0
+building FishingHut 1 0 1 1 0 0 0 0 0 0 0
+building Field 0 1 1 1 0 963750000 0 0 0 0 0
+building Woodcutter 1 -1 2 1 0 0 0 0 0 0 0
+building Sawmill -1 -3 1 1 0 0 0 0 0 0 0
+building Woodcutter -1 1 1 1 0 0 0 0 0 0 0
+building Woodcutter -3 2 1 1 0 0 0 0 0 0 0
+building FishingHut 5 -2 1 1 0 0 0 0 0 0 0
+building Woodcutter 3 -2 1 0 0 0 0 0 0 0 0
+building FishingHut 0 5 1 0 0 0 0 0 0 0 0
+building FishingHut 4 -4 1 0 0 0 0 0 0 0 0
+building Woodcutter -3 1 1 0 0 0 0 0 0 0 0
+building Woodcutter 1 -2 1 0 0 0 0 0 0 0 0
+building Jetty 1 2 1 1 0 0 0 1 4 0 0
 project Build Woodcutter -1 -1 8000
+road 0 -3
+road 0 -2
+road 0 -1
 fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000001c0000000007f0000000003fc000000000ff8000000001ff0000000003ff0000000001ffc000000000f70000000001be0000000007f0000000000f00000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 selfcare -3 Workouts Verified 0
 selfcare -2 Steps SelfReported 7435

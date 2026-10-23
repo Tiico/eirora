@@ -163,14 +163,41 @@ namespace Eirora.Simulation
         /// <summary>Whole units of timber left on a forest tile, at most <see cref="TimberPerForest"/>.</summary>
         public long TimberLeft(Hex tile) => Quantity.Whole(_settlement.ForestLeft(tile));
 
-        /// <summary>Steps over land from a tile to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
-        public int DepotDistance(Hex tile) => _settlement.DepotDistance(tile);
+        /// <summary>
+        /// The way the carriers walk from a tile to the staffed storehouse or jetty on its island that they reach fastest
+        /// (economy-v2.md, section 7); one that does not reach when there is none.
+        /// </summary>
+        public Trip TripFrom(Hex tile) => _settlement.TripFrom(tile);
+
+        /// <summary>
+        /// Millionths of carrier-hours an active hour that the buildings belonging to a storehouse or jetty need for all
+        /// their goods to reach the store, as the depot plans its carriers at dawn (economy-v2.md, section 7.1); 0 for
+        /// any other tile.
+        /// </summary>
+        public long CarrierNeed(Hex depot) => _settlement.BuildingAt(depot) is { } building && Logistics.IsDepot(building.Kind) ? _settlement.NeedAt(building, ActiveTicks) : 0;
+
+        /// <summary>The tiles with a road, in map order (D-112).</summary>
+        public IReadOnlyCollection<Hex> Roads => _settlement.Roads;
+
+        public bool HasRoad(Hex tile) => _settlement.HasRoad(tile);
+
+        /// <summary>Why a road cannot be laid on a tile right now, or <see cref="Rejection.None"/>; its cost aside.</summary>
+        public Rejection CheckRoad(Hex tile) => _settlement.CheckRoad(tile);
+
+        /// <summary>The tiles the carriers walk from a tile to the depot it belongs to, the depot last; empty when none is reached.</summary>
+        public IReadOnlyList<Hex> WayToDepot(Hex tile) => _settlement.WayToDepot(tile);
+
+        /// <summary>The tiles that <see cref="BuildRoad"/> from a building would lay a road on, nearest its depot first.</summary>
+        public IReadOnlyList<Hex> RoadToDepot(Hex tile) => _settlement.RoadToDepot(tile);
 
         /// <summary>
         /// Why each building produces what it does and what holds the world back (TASK-043): a reading that never changes
         /// the world or its fingerprint (INV-D2).
         /// </summary>
-        public Diagnostics Diagnose() => _settlement.Diagnose();
+        public Diagnostics Diagnose() => _settlement.Diagnose(ActiveTicks);
+
+        /// <summary>The quarter hours the villagers are awake in a game day by the rest schedule, which the carriers plan by.</summary>
+        internal int ActiveTicks => (RestSchedule.MinutesPerDay - RestSchedule.DurationMinutes) * 60 / (int)Settlement.TickSeconds;
 
         /// <summary>Whether the fog has lifted from a tile (TASK-032); what lies under the fog stays unknown.</summary>
         public bool IsKnown(Hex hex) => _settlement.Fog.IsKnown(hex);
@@ -426,7 +453,7 @@ namespace Eirora.Simulation
             // The ticks before the dawn grow with the workdays that end now; after it, work can change things again.
             Grow();
             _idleUntilDawn = false;
-            _settlement.Dawn(utcSeconds, _events);
+            _settlement.Dawn(utcSeconds, _events, ActiveTicks);
 
             // The new day's Dawn Power starts at the baseline and is topped up when its sleep is recorded.
             _unreconciled.Add((GameDay, Habit.Sleep));
