@@ -16,10 +16,11 @@ internal sealed class Turn
     private readonly Plan _plan;
     private readonly Tally _tally;
 
-    public Turn(World world, int day, Plan plan, Tally tally)
+    public Turn(World world, int day, int lastDay, Plan plan, Tally tally)
     {
         World = world;
         Day = day;
+        LastDay = lastDay;
         Sites = new Sites(world);
         _plan = plan;
         _tally = tally;
@@ -29,6 +30,9 @@ internal sealed class Turn
 
     /// <summary>The game day that just dawned.</summary>
     public int Day { get; }
+
+    /// <summary>The last game day of the run.</summary>
+    public int LastDay { get; }
 
     public Sites Sites { get; }
 

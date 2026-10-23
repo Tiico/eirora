@@ -37,14 +37,15 @@ public sealed class Strategy
         [new WorkdayOn(BuildingKind.Quarry), new WorkdayOn(BuildingKind.Sawmill), new RushFirst()]);
 
     /// <summary>
-    /// Närområdet, ordnad: the same, with the longhouse first in the queue and the quarry paused while 100 stone is in store,
-    /// so that its villagers build instead, until the week's last day (economy-v1.md, section 7; TASK-044).
+    /// Närområdet, ordnad: Närområdet with the work ordered (economy-v1.md, section 4.1): the first longhouse first in
+    /// the building queue, and the quarry paused while 100 stone is in store, so that its villagers build instead, until
+    /// the last day.
     /// </summary>
     public static Strategy NearOrdered { get; } = new(
         "near-ordered",
         "Närområdet, ordnad",
         Near.Goals,
-        [.. Near.Daily, new BuildFirst(BuildingKind.Longhouse), new PauseWhileStocked(BuildingKind.Quarry, Resource.Stone, 100, lastDay: 7)]);
+        [.. Near.Daily, new QueueFirstUntilBuilt(BuildingKind.Longhouse), new PauseWhileStocked(BuildingKind.Quarry, Resource.Stone, 100)]);
 
     /// <summary>Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth.</summary>
     public static Strategy Sea { get; } = new(
