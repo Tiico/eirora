@@ -625,7 +625,7 @@ namespace Eirora.Client.UI
             Text("sheet-subtitle", _sheet, world.FreeVillagers == 0
                 ? "Inga lediga bybor bygger nu. Pausa en byggnad, så bygger dess bybor."
                 : world.Settlements.Count > 1
-                ? $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger i köns ordning, på sin ö och på öarna som sjövägen når."
+                ? $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger i köns ordning."
                 : $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger på det första projektet.");
             for (int i = 0; i < projects.Count && i < QueueShown; i++)
             {

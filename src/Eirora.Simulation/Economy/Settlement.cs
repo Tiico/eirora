@@ -567,8 +567,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Writes every value of the state that a tick can change into <paramref name="state"/>, which grows as needed,
-        /// and returns how many: the surveys, the expedition, the fog, each settlement's villagers, store and goods
-        /// waiting, what each sea route owes, each building, the queue and the felled forest, each list after its length.
+        /// and returns how many: the surveys, the expedition, the fog, each settlement's villagers, store and goods at its
+        /// depots, what each sea route owes, each building, the queue and the felled forest, each list after its length.
         /// A test fails when a field is added to the economy, a settlement, a building, a project or the fog that is
         /// neither recorded here nor fixed or derived (FastForwardTests.EveryFieldThatATickCanChangeIsCompared).
         /// </summary>
@@ -589,11 +589,11 @@ namespace Eirora.Simulation.Economy
             {
                 state[i++] = _settlements[island].Villagers;
                 var store = _stores[island];
-                _atDepots.TryGetValue(island, out var waiting);
+                _atDepots.TryGetValue(island, out var atDepots);
                 for (int resource = 0; resource < s_resourceCount; resource++)
                 {
                     state[i++] = store[resource];
-                    state[i++] = waiting is null ? 0 : waiting[resource];
+                    state[i++] = atDepots is null ? 0 : atDepots[resource];
                 }
             }
 

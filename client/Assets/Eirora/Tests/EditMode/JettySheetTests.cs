@@ -1,6 +1,7 @@
 using System.Linq;
 using Eirora.Client.App;
 using Eirora.Client.UI;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
@@ -64,6 +65,21 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels(), Does.Contain(Texts.Settlement(_game.World!, _game.World!.SettlementOn(_game.World!.HomeIsland)!) + "."));
             Assert.That(Labels(), Does.Contain(Settlement()));
+        }
+
+        // With more than one settlement the free villagers build in the queue's order on the islands they reach, not
+        // all on the first project (D-113); the subtitle stays on one line.
+        [Test]
+        public void TheQueueSaysTheFreeVillagersBuildInItsOrder()
+        {
+            var world = _game.World!;
+            var meadow = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
+                .First(h => world.CheckBuild(BuildingKind.Cottage, h) == Rejection.None);
+            Assert.That(_game.Apply(new Build(BuildingKind.Cottage, meadow)).Accepted, Is.True);
+            Assume.That(world.FreeVillagers, Is.GreaterThan(1));
+            _hud.OpenQueue();
+
+            Assert.That(Labels(), Does.Contain($"{Texts.FreeVillagers(world.FreeVillagers).Substring(0, 1).ToUpperInvariant()}{Texts.FreeVillagers(world.FreeVillagers).Substring(1)} bygger i köns ordning."));
         }
 
         /// <summary>Nyön's settlement, as the sheets show it.</summary>
