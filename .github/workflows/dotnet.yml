@@ -48,6 +48,10 @@ jobs:
       - name: Test the budget check
         run: tools/device-measurements/test-budget.sh
 
+      # The cold start after a year away is measured by hand (TASK-049); the script is tested against a fake adb.
+      - name: Test the cold-start measurement
+        run: tools/device-measurements/test-cold-start.sh
+
   image:
     name: Server container image
     needs: test
