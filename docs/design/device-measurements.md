@@ -14,6 +14,8 @@ Inga mätningar innehåller hälsodata: mätscenen spelar en påhittad vecka och
 |---|---|---|
 | APK-storlek | Filens storlek | MB |
 | Kallstart | `am start -W -S`, median av fem starter; tiden till Androids första ritade bild | ms |
+| Första bilden av världen | Från aktivitetens start till klientens första bild med världen, ur loggens tidsstämplar, median av fem starter | ms |
+| Framspolning | Hur länge världen spolades fram till klockan innan första bilden, som klienten loggar | ms |
 | Bildfrekvens och bildtid | Presentationstider för appens yta ur `dumpsys SurfaceFlinger --latency`, läst var 2:a sekund | fps, ms (median, 95:e percentil, max) |
 | Hackighet | Andel bilder som tar mer än 50 ms | % |
 | Minne | `TOTAL PSS` ur `dumpsys meminfo`, var 10:e sekund | MB (medel, max) |
@@ -22,7 +24,9 @@ Inga mätningar innehåller hälsodata: mätscenen spelar en påhittad vecka och
 | Batteri under ett dygn | Appens andel av telefonens förbrukning under ungefär 24 timmar med vanlig användning | mAh och % |
 
 Unity ritar i en egen yta som `dumpsys gfxinfo` inte ser, därför används SurfaceFlinger.
-Kallstarten mäts till Androids första bild; Unitys egen laddning efter den syns i bildtiderna och redovisas inte separat än.
+Kallstarten mäts till Androids första bild, som kommer innan Unity har laddat scenen.
+Därför mäts också tiden till klientens första bild med världen, som innehåller Unitys laddning och framspolningen av världen till klockan.
+Klienten loggar raden `Eirora measure: first frame` när den har ritat den bilden, och skriptet läser tiden ur loggens tidsstämplar.
 Skalets temperatur saknas på en del telefoner och på emulatorn; då redovisas bara batteriets.
 
 ## 2. Mätscenen
@@ -31,6 +35,8 @@ Spelet är olika från dygn till dygn, så en mätning av den riktiga världen g
 Klienten har därför en mätscen som startas med argumentet `-eirora-measure day` eller `-eirora-measure night`.
 Den spelar samma vecka som skärmbildsturen på en fast klocka, utan att spara, och stannar sedan i dagsljus klockan 13 eller i viloperiodens natt klockan 01.
 Natten mäts för sig eftersom stjärnor, norrsken och upplysta fönster enligt [art direction](./art-direction.md) kostar annat än dagsljuset.
+Med `-eirora-measure year` laddar scenen i stället en utbyggd värld med 36 byggnader och en expedition till sjöss och stannar klockan ett år efter att spelaren lämnade den, vid samma tid på dagen, så att världen spolas fram ett år när appen startar, som när spelaren kommer tillbaka efter ett års frånvaro (TASK-049).
+Världen är en sparning i `client/Assets/Eirora/Resources/Measurement/AYearAway.bytes`, som .NET-testerna spolar fram på samma sätt.
 Scenen körs tills den stoppas och rör inte spelarens sparade värld.
 
 ## 3. Så körs mätningen
@@ -49,6 +55,30 @@ tools/device-measurements/measure.sh active --light night --out measurements/nig
 ```
 
 Under passet räknar skriptet telefonen som urkopplad (`dumpsys battery unplug`), så att batteristatistiken räknas även med kabeln i; det återställs efteråt.
+
+### Kallstart efter ett års frånvaro
+
+Kommandot `cold-start` mäter bara kallstarterna, fem som standard, utan passet efteråt.
+Mät kallstarten efter ett år och en vanlig kallstart i dagsljus med samma bygge, så att skillnaden visar vad framspolningen kostar:
+
+```bash
+tools/device-measurements/measure.sh cold-start --apk client/Builds/Android/Eirora.apk --light year --out measurements/year-1
+```
+
+```bash
+tools/device-measurements/measure.sh cold-start --light day --out measurements/day-cold-1
+```
+
+Varje start skrivs till `cold-start-ms.txt` och `first-frame-ms.txt`, och `results.tsv` får medianerna `cold_start_median_ms`, `first_frame_median_ms` och `catch_up_median_ms`.
+Pröva resultatet mot telefonens nivå, till exempel referensnivån för en Pixel 7:
+
+```bash
+tools/device-measurements/measure.sh budget measurements/year-1/results.tsv --tier reference
+```
+
+Testet `FastForwardTests.AYearAwayIsCaughtUpInTime` spolar fram samma värld headless med samma avläsning och håller den inom en gräns som är räknad från golvet, se [målenheter och mätbudgetar](./performance-budgets.md#2-budgetar).
+Den 23 oktober 2026 tog det 34 ms processortid på en M1 Pro (.NET 10, Release).
+Kvoten mellan `catch_up_median_ms` på telefonen och den siffran visar alltså hur mycket långsammare telefonen och IL2CPP är, och hur gränsen står sig.
 
 Batteriet under ett dygn mäts med telefonen urkopplad och vanlig användning, med prototypen öppnad några gånger som i dagligt spel:
 

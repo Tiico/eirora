@@ -228,6 +228,11 @@ _Avoid_: påminnelse, push
 Tiden från en gryning till nästa; enheten som krafter räknas per.
 _Avoid_: dag, kalenderdygn (när spelardygnet avses)
 
+**Frånvaro** (`Absence`):
+Tiden då spelaren inte öppnar spelet; världen spolas fram till klockan när spelaren kommer tillbaka och är minst lika utvecklad som förut, hur länge frånvaron än varade (INV-V4).
+Kvartar där bara långsamma processer rör sig, under viloperioden eller när byborna inte har något att göra, räknas i ett steg.
+_Avoid_: offlinetid, paus, inaktivitet
+
 ## Simulering
 
 **Kommando** (`GameCommand`):

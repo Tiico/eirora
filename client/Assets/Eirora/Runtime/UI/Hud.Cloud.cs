@@ -542,7 +542,7 @@ namespace Eirora.Client.UI
                 ? "Din ö är hämtad, men egenvården från tidigare dagar gick inte att läsa med den här telefonens nyckel. Servern kan inte läsa den heller."
                 : "Din ö är hämtad, men egenvården från tidigare dagar är krypterad med en nyckel som den här telefonen saknar. Servern kan inte läsa den heller.");
             Text("sheet-text", card, "Dagarna till och med i dag räknas som vilodagar, och bidragen räknas igen från nästa spelardygn. Byn, krafterna och allt du byggt är kvar.");
-            Text("sheet-text", card, "Den gamla bidragsdelen finns kvar på servern i 90 dagar, om nyckeln skulle dyka upp.");
+            Text("sheet-text", card, "Den gamla bidragsdelen sparas krypterad på servern i 90 dagar och raderas sedan.");
             Button("button button-wide button-primary", card, "Jag förstår", () =>
             {
                 _noticeCard = null;
