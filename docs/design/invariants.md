@@ -99,6 +99,7 @@ När ett basbehov inte uppfylls kan tillväxt stanna, men antalet bybor, byggnad
 **INV-V4 Frånvaro är ofarlig.**
 Hur länge spelaren än är borta utan egenvård och kommandon är världen efteråt minst lika utvecklad som före.
 *Test:* sammansatt test av INV-R1, INV-R3 och INV-V1 för `Δt` upp till ett år med noll bidrag (AC-02).
+Från TASK-049 också i utbyggda världar med byggkö, expedition till sjöss, sjöväg, fulla lager och långsamma processer, med och utan egenvård och med sena bidrag, tillsammans med INV-T5 och INV-D4.
 
 ## 4. Krafter
 
