@@ -150,7 +150,9 @@ Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-000
 Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`.
 Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
 En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
-En journalfil från prototypen i M1 (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
+En journalfil från prototypen (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
+Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på brickor i stället för namngivna platser (TASK-037, D-104).
+En sådan journal skrivs aldrig över: klienten säger att världen inte kan spelas vidare i stället för att visa en annan värld, och lägger journalen undan först när spelaren börjar en ny.
 
 ### Migrationer och gyllene sparningar
 

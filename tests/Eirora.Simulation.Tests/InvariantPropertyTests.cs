@@ -14,6 +14,7 @@ namespace Eirora.Simulation.Tests;
 public sealed class InvariantPropertyTests
 {
     private const int StoragePerStorehouse = 150; // economy-v1.md, section 2.
+    private static readonly Hex[] s_forest = [.. Enumerable.Range(0, PrototypeHome.Map.Disc.Count).Select(i => PrototypeHome.Map.Disc[i]).Where(h => PrototypeHome.Map.TerrainAt(h) == Terrain.Forest)];
 
     // INV-D1: the same start and inputs give the same world.
     [Property(MaxTest = 50)]
@@ -125,7 +126,7 @@ public sealed class InvariantPropertyTests
         return world.Fingerprint() == scenario.Run().Fingerprint();
     }
 
-    // Checked after every step: INV-D7, INV-D8, INV-R1, INV-V1, INV-V2 and INV-F1.
+    // Checked after every step: INV-D7, INV-D8, INV-R1, INV-V1, INV-V2, INV-F1 and one building to a tile.
     [Property(MaxTest = 50)]
     public void EveryStepKeepsTheWorldsInvariants(int seed)
     {
@@ -155,6 +156,11 @@ public sealed class InvariantPropertyTests
             Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(r), 0, capacity)); // INV-R1.
             Assert.All(Enum.GetValues<Resource>(), r => Assert.True(world.Stock(IslandId.Nyon, r) >= 0));
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
+
+            // One building to a tile, counting the queue, and no forest tile below empty or above full (economy-v1.md, section 3.1).
+            var taken = world.Buildings.Select(b => b.Tile).Concat(world.Projects.Where(p => p.Kind == ProjectKind.Build).Select(p => p.Tile)).ToList();
+            Assert.Equal(taken.Count, taken.Distinct().Count());
+            Assert.All(s_forest, tile => Assert.InRange(world.TimberLeft(tile), 0, World.TimberPerForest));
         }
     }
 

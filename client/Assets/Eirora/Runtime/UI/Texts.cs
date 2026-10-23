@@ -67,6 +67,18 @@ namespace Eirora.Client.UI
             return map.RichnessAt(tile) > 100 ? $"{ground}, rik" : ground;
         }
 
+        /// <summary>The timber left on a forest tile, which woodcutters fell and which grows back.</summary>
+        public static string Timber(long left) => left >= World.TimberPerForest
+            ? $"{World.TimberPerForest} timmer att fälla."
+            : $"{left} av {World.TimberPerForest} timmer kvar att fälla. Skogen växer tillbaka.";
+
+        /// <summary>Items joined as Swedish lists them: "a, b och c".</summary>
+        public static string List(IEnumerable<string> items)
+        {
+            var all = items.ToList();
+            return all.Count <= 1 ? string.Concat(all) : string.Join(", ", all.Take(all.Count - 1)) + " och " + all[all.Count - 1];
+        }
+
         /// <summary>What a tile is good for, as a building site (D-79, economy-v1.md, section 3.1).</summary>
         public static string Uses(TileUse uses)
         {
@@ -87,11 +99,8 @@ namespace Eirora.Client.UI
             Add(TileUse.FishingWater, "fiskevatten");
             Add(TileUse.HarborSpot, "hamnläge");
             Add(TileUse.Crest, "Vårdkasens plats");
-            return parts.Count == 0 ? "Här kan inget byggas." : "Duger till " + Join(parts) + ".";
+            return parts.Count == 0 ? "Här kan inget byggas." : "Duger till " + List(parts) + ".";
         }
-
-        private static string Join(List<string> parts) =>
-            parts.Count == 1 ? parts[0] : string.Join(", ", parts.Take(parts.Count - 1)) + " och " + parts[parts.Count - 1];
 
         public static string Cost(BuildingSpec spec)
         {
