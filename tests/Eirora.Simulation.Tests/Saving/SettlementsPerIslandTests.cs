@@ -74,8 +74,8 @@ public sealed class SettlementsPerIslandTests
         Assert.Contains($"stock second Timber {50 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock home Timber {150 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Planks {40 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
-        Assert.Single(migrated.Split('\n'), l => l.StartsWith("waiting ", StringComparison.Ordinal));
-        Assert.Contains($"waiting second Timber {60 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
+        Assert.Single(migrated.Split('\n'), l => l.StartsWith("at-depot ", StringComparison.Ordinal));
+        Assert.Contains($"at-depot second Timber {60 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         var reader = new StateReader(migrated);
         var after = World.Read(reader, map);
         reader.End();
@@ -87,7 +87,7 @@ public sealed class SettlementsPerIslandTests
         long sawn = after.Settlement.Stock(Archipelago.Second, Resource.Planks) - Quantity.Units(40);
         Assert.True(sawn > 0, "The sawmill on the second island sawed nothing.");
         long timber = after.Settlement.Stock(Archipelago.Second, Resource.Timber);
-        Assert.Equal(Quantity.Units(50 + 60) - (2 * sawn), timber + after.Settlement.Waiting(Archipelago.Second, Resource.Timber));
+        Assert.Equal(Quantity.Units(50 + 60) - (2 * sawn), timber + after.Settlement.AtDepot(Archipelago.Second, Resource.Timber));
         Assert.InRange(timber, Quantity.Units(49), Quantity.Units(50));
     }
 
@@ -110,7 +110,7 @@ public sealed class SettlementsPerIslandTests
     internal static string RulesSeven(string state)
     {
         var lines = state.Split('\n').ToList();
-        Assert.DoesNotContain(lines, l => l.StartsWith("waiting ", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, l => l.StartsWith("at-depot ", StringComparison.Ordinal));
         lines.RemoveAll(l => l.StartsWith("owed ", StringComparison.Ordinal));
         long villagers = lines.Where(l => l.StartsWith("settlement ", StringComparison.Ordinal)).Sum(l => long.Parse(l.Split(' ')[2], CultureInfo.InvariantCulture));
         int at = lines.FindIndex(l => l.StartsWith("economy ", StringComparison.Ordinal));
@@ -134,7 +134,7 @@ public sealed class SettlementsPerIslandTests
         Assert.All(world.Buildings, b => Assert.NotNull(world.SettlementOn(b.Island)));
         Assert.All(s_resources, r => Assert.Equal(
             lines.Where(f => f[0] == "stock" && f[2] == r.ToString()).Sum(f => long.Parse(f[3], CultureInfo.InvariantCulture)),
-            world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.Waiting(i, r))));
+            world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.AtDepot(i, r))));
         Assert.All(world.Settlements, s =>
         {
             long capacity = Quantity.Units(world.Buildings.Where(b => b.Island == s.Island).Sum(b => b.Kind switch

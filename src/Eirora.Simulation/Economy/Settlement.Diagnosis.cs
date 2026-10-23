@@ -26,7 +26,7 @@ namespace Eirora.Simulation.Economy
             foreach (var island in _islands)
             {
                 var store = (long[])_stores[island].Clone();
-                if (_waiting.TryGetValue(island, out var waiting))
+                if (_atDepots.TryGetValue(island, out var waiting))
                 {
                     for (int r = 0; r < s_resourceCount; r++)
                     {

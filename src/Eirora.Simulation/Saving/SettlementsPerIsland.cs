@@ -148,7 +148,7 @@ namespace Eirora.Simulation.Saving
                     store[i] = (store[i].Resource, capacity[island]);
                     if (over > shipped)
                     {
-                        waiting.Add($"waiting {island} {store[i].Resource} {Text(over - shipped)}");
+                        waiting.Add($"at-depot {island} {store[i].Resource} {Text(over - shipped)}");
                     }
                 }
             }

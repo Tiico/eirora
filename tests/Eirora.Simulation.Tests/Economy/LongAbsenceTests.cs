@@ -126,7 +126,7 @@ public sealed class LongAbsenceTests
             See("buildings lacking villagers off the home island", world.Diagnose().Settlements.Any(s => s.Settlement.Island != world.HomeIsland && s.MissingStaff > 0));
             See("materials owed", world.Islands.Any(i => world.Settlement.Owed(i) > 0));
             var migrated = FromRulesSeven(world, new Random(seed));
-            See("goods waiting at a depot", migrated.Islands.Any(i => s_resources.Any(r => migrated.Settlement.Waiting(i, r) > 0)));
+            See("goods waiting at a depot", migrated.Islands.Any(i => s_resources.Any(r => migrated.Settlement.AtDepot(i, r) > 0)));
             See("full store", world.Islands.Any(i => s_resources.Any(r => Capacity(world, i) > 0 && world.Settlement.Stock(i, r) == Capacity(world, i))));
             See("felled forest", world.Fingerprint().Contains("\nforest ", StringComparison.Ordinal));
             See("ripening", world.Buildings.Any(b => b.Kind == BuildingKind.SheepFarm && b.Ripe > 0) && world.Buildings.Any(b => b.Kind == BuildingKind.Field && b.Ripe > 0));
@@ -303,7 +303,7 @@ public sealed class LongAbsenceTests
         private Stocks(long[] total) => _total = total;
 
         public static Stocks Of(World world) =>
-            new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.Waiting(i, r)))]);
+            new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.AtDepot(i, r)))]);
 
         /// <summary>
         /// A store shrinks with time only by what recipes and basic needs consume (INV-R3): the sawmill takes two timber

@@ -108,7 +108,7 @@ public sealed class FastForwardTests
             [typeof(Settlement)] =
             [
                 // Recorded.
-                "_stores", "_islands", "_settlements", "_waiting", "_owed", "_buildings", "_projects", "_felled", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
+                "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_buildings", "_projects", "_felled", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
 
                 // Fixed for the world.
                 "_map", "_home", "_founding", "_content", "_mapIndex",

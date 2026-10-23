@@ -47,7 +47,7 @@ namespace Eirora.Simulation.Economy
 
         // Goods that wait at an island's depots for room in its store, as the migration to rules 8 left them; only islands
         // with any have an entry.
-        private readonly Dictionary<string, long[]> _waiting = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, long[]> _atDepots = new(StringComparer.Ordinal);
 
         // Materials paid from the home island's store for work on another island, which its sea route carries before
         // anything else, by the island's place in the map's list (D-106, D-113).
@@ -248,7 +248,7 @@ namespace Eirora.Simulation.Economy
         public IslandSettlement? SettlementOn(string island) => _settlements.TryGetValue(island, out var settlement) ? settlement : null;
 
         /// <summary>Goods waiting at an island's depots for room in its store; nothing on most islands.</summary>
-        public long Waiting(string island, Resource resource) => _waiting.TryGetValue(island, out var waiting) ? waiting[(int)resource] : 0;
+        public long AtDepot(string island, Resource resource) => _atDepots.TryGetValue(island, out var waiting) ? waiting[(int)resource] : 0;
 
         /// <summary>Materials paid from the home island for work on an island that its sea route has yet to carry, in millionths.</summary>
         public long Owed(string island) => _mapIndex.TryGetValue(island, out int at) ? _owed[at] : 0;
@@ -589,7 +589,7 @@ namespace Eirora.Simulation.Economy
             {
                 state[i++] = _settlements[island].Villagers;
                 var store = _stores[island];
-                _waiting.TryGetValue(island, out var waiting);
+                _atDepots.TryGetValue(island, out var waiting);
                 for (int resource = 0; resource < s_resourceCount; resource++)
                 {
                     state[i++] = store[resource];
@@ -741,13 +741,13 @@ namespace Eirora.Simulation.Economy
             // Only what there is, the islands in map order: most worlds have nothing waiting and nothing owed.
             foreach (var island in _islands)
             {
-                if (_waiting.TryGetValue(island, out var waiting))
+                if (_atDepots.TryGetValue(island, out var waiting))
                 {
                     for (int i = 0; i < s_resourceCount; i++)
                     {
                         if (waiting[i] > 0)
                         {
-                            writer.Line("waiting").Text(island).Enum((Resource)i).Long(waiting[i]);
+                            writer.Line("at-depot").Text(island).Enum((Resource)i).Long(waiting[i]);
                         }
                     }
                 }
@@ -828,7 +828,7 @@ namespace Eirora.Simulation.Economy
             }
 
             (int Island, int Resource) previousWaiting = (-1, -1);
-            while (reader.Next("waiting"))
+            while (reader.Next("at-depot"))
             {
                 string island = reader.Text();
                 var resource = reader.Enum<Resource>();
@@ -839,10 +839,10 @@ namespace Eirora.Simulation.Economy
                     throw new FormatException($"{resource} waiting on {island} is not after the previous goods waiting at a settlement.");
                 }
 
-                if (!settlement._waiting.TryGetValue(island, out var waiting))
+                if (!settlement._atDepots.TryGetValue(island, out var waiting))
                 {
                     waiting = new long[s_resourceCount];
-                    settlement._waiting.Add(island, waiting);
+                    settlement._atDepots.Add(island, waiting);
                 }
 
                 waiting[(int)resource] = amount;
@@ -1216,7 +1216,7 @@ namespace Eirora.Simulation.Economy
         {
             foreach (var island in _islands)
             {
-                if (_waiting.TryGetValue(island, out var waiting))
+                if (_atDepots.TryGetValue(island, out var waiting))
                 {
                     var store = _stores[island];
                     long capacity = StorageCapacity(island);
