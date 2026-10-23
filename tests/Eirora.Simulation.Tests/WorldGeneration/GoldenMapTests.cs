@@ -16,7 +16,7 @@ public sealed class GoldenMapTests
 {
     private static readonly ulong[] s_seeds = [0, 1, 20261018, ulong.MaxValue];
 
-    private static readonly string s_folder = Path.Combine(Repository.Root, "tests", "Eirora.Simulation.Tests", "WorldGeneration", "Golden");
+    private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "WorldGeneration", "Golden");
     private static readonly string s_hashes = Path.Combine(s_folder, "maps.txt");
     private static readonly string s_foundings = Path.Combine(s_folder, "foundings.txt");
 

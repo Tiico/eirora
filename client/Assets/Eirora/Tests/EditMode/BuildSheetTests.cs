@@ -17,7 +17,7 @@ namespace Eirora.Client.Tests
     public sealed class BuildSheetTests
     {
         [Test]
-        public void ASiteBesideTheVillageOffersEveryLandBuildingWithItsCostAndEffect()
+        public void ASiteBesideTheVillageOffersItsBuildingsWithTheirCostAndEffect()
         {
             var clock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
             var game = new GameSession(clock, null, () => PrototypeHome.Map);
@@ -32,6 +32,7 @@ namespace Eirora.Client.Tests
                 .Select(a => $"{Label(a, "action-title")} | {Label(a, "action-effect")} | {Label(a, "action-cost")}");
             Assert.That(actions, Is.EqualTo(new[]
             {
+                "Huggarkoja | Fäller 0,5 timmer i timmen från var och en av de två rikaste skogsbrickorna den når. | 6 timmer · 8 h arbete",
                 "Långhus | Ger plats åt åtta bybor. | 10 timmer · 15 plank · 10 sten · 60 Byggkraft · 40 h arbete",
                 "Stuga | Ger plats åt fyra bybor. | 15 timmer · 5 sten · 32 h arbete",
                 "Förråd | Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer. | 10 timmer · 5 sten · 16 h arbete",

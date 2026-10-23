@@ -1,11 +1,15 @@
 namespace Eirora.Simulation.Tests;
 
-/// <summary>The repository the tests run in, for the golden files and the replay corpus checked in beside them.</summary>
+/// <summary>Files the tests keep in the repository: golden saves and maps, and the replay corpus.</summary>
 internal static class Repository
 {
-    public static string Root { get; } = Find();
+    /// <summary>The repository's root folder, the one with Eirora.slnx.</summary>
+    public static readonly string Root = FindRoot();
 
-    private static string Find()
+    /// <summary>A path under the repository's root.</summary>
+    public static string PathTo(params string[] parts) => Path.Combine([Root, .. parts]);
+
+    private static string FindRoot()
     {
         var folder = new DirectoryInfo(AppContext.BaseDirectory);
         while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "Eirora.slnx")))

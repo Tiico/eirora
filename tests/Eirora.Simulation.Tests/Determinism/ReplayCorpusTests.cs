@@ -23,10 +23,9 @@ public sealed class ReplayCorpusTests
     private const int RandomReplays = 20;
 
     private static readonly RestSchedule s_night = new(23 * 60, 8 * 60);
-    private static readonly string s_root = Repository.Root;
-    private static readonly string s_folder = Path.Combine(s_root, "tests", "Replays");
-    private static readonly string s_goldenSaves = Path.Combine(s_root, "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
-    private static readonly string s_goldenMaps = Path.Combine(s_root, "tests", "Eirora.Simulation.Tests", "WorldGeneration", "Golden", "maps.txt");
+    private static readonly string s_folder = Repository.PathTo("tests", "Replays");
+    private static readonly string s_goldenSaves = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
+    private static readonly string s_goldenMaps = Repository.PathTo("tests", "Eirora.Simulation.Tests", "WorldGeneration", "Golden", "maps.txt");
 
     private static readonly (string Name, Func<Journal> Make)[] s_handMade =
     [
@@ -107,7 +106,7 @@ public sealed class ReplayCorpusTests
 
         Assert.Equal(report, Report());
 
-        string folder = Path.Combine(s_root, "artifacts", "determinism");
+        string folder = Repository.PathTo("artifacts", "determinism");
         Directory.CreateDirectory(folder);
         File.WriteAllText(Path.Combine(folder, "dotnet.txt"), string.Concat(report.Select(line => line + "\n")), new UTF8Encoding(false));
     }

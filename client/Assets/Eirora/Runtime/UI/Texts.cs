@@ -107,9 +107,9 @@ namespace Eirora.Client.UI
 
         /// <summary>
         /// What a building does, from its recipe or housing in the content catalog (economy-v1.md, section 3); the
-        /// storehouse, the jetty and the lookout do what the rules say.
+        /// storehouse, the jetty and the lookout do what the rules say. Null for a building that does none of these.
         /// </summary>
-        public static string Effect(BuildingKind kind, BuildingSpec spec)
+        public static string? Effect(BuildingKind kind, BuildingSpec spec)
         {
             if (spec.Recipe is Recipe recipe)
             {
@@ -125,7 +125,8 @@ namespace Eirora.Client.UI
             {
                 BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
                 BuildingKind.Jetty => "Härifrån kan sjövägar och expeditioner utgå.",
-                _ => "Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning.",
+                BuildingKind.Lookout => "Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning.",
+                _ => null,
             };
         }
 

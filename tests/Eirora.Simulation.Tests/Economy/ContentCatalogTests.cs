@@ -16,7 +16,7 @@ public sealed class ContentCatalogTests
     private const BuildingKind Kiln = (BuildingKind)100;
     private const BuildingKind Shed = (BuildingKind)101;
 
-    private static readonly string s_golden = Path.Combine(Repository.Root, "tests", "Eirora.Simulation.Tests", "Economy", "Golden", "content-catalog.txt");
+    private static readonly string s_golden = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Economy", "Golden", "content-catalog.txt");
     private static int s_key;
 
     // The catalog's canonical text changes only with the version that says so: an added building bumps the content

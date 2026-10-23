@@ -17,7 +17,7 @@ public sealed class GoldenSaveTests
 {
     private const string Prototype = "prototype-journal-rules-1";
 
-    private static readonly string s_folder = Path.Combine(Repository.Root, "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
+    private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
     public static TheoryData<string> Saves =>
         Directory.Exists(s_folder)

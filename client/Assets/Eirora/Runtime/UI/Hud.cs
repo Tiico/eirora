@@ -455,7 +455,11 @@ namespace Eirora.Client.UI
 
             if (!spec.Produces)
             {
-                Text("sheet-text", _sheet, Texts.Effect(building.Kind, spec));
+                if (Texts.Effect(building.Kind, spec) is string effect)
+                {
+                    Text("sheet-text", _sheet, effect);
+                }
+
                 return;
             }
 
