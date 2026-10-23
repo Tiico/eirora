@@ -379,7 +379,8 @@ Validatorn kommer före generatorn, så att generatorn byggs mot ett mätbart m�
 M4 bygger vidare på det som redan finns i `src/Eirora.Simulation/Economy/`.
 Byggplatser på varje landbricka kom med [TASK-037](https://github.com/Tiico/eirora/issues/79), och avstånd, dagsverke och nivå 2 skalar alla byggnader sedan [TASK-038](https://github.com/Tiico/eirora/issues/88); uppgraderingar, vägar per byggnad, ett fast minimilager, sjövägen till Nyön och långsamma processer finns också.
 Uppgifterna nedan beskriver det som återstår.
-Tre produktbeslut (TASK-039–041) styr bosättningar, vägar och innehåll; allt annat kan påbörjas direkt och går parallellt med att M2 och M3 stängs.
+Produktägaren valde Anno-bredd med gradvis upplåsning, en bosättning per ö och bärare på land (D-105–D-107, TASK-039–041).
+Ekonomi v2 (TASK-058) räknar fram den ekonomin innan bärarna och innehållet byggs; resten kan påbörjas direkt och går parallellt med att M2 och M3 stängs.
 Scenarierna och balansen (TASK-053–056) väntar på M4:s regler, så att de prövar det som lämnas till M5.
 
 | Uppgift | Milstolpe | Blockeras av |
@@ -396,13 +397,14 @@ Scenarierna och balansen (TASK-053–056) väntar på M4:s regler, så att de pr
 | [TASK-048 — Balansbotar som spelar den riktiga simuleringen](https://github.com/Tiico/eirora/issues/131) | M4 | – |
 | [TASK-049 — Långa frånvaroperioder i en utbyggd värld](https://github.com/Tiico/eirora/issues/132) | M4 | – |
 | [TASK-050 — Flera bosättningar (CIV-01)](https://github.com/Tiico/eirora/issues/133) | M4 | TASK-040, TASK-043, TASK-045 |
-| [TASK-051 — Vägar och transport på land (LOG-01, LOG-02)](https://github.com/Tiico/eirora/issues/134) | M4 | TASK-041, TASK-043 |
-| [TASK-052 — Innehåll enligt O-02](https://github.com/Tiico/eirora/issues/135) | M4 | TASK-039, TASK-042, TASK-043 |
+| [TASK-051 — Bärare och vägar på land (LOG-01, LOG-02)](https://github.com/Tiico/eirora/issues/134) | M4 | TASK-041, TASK-043, TASK-058 |
+| [TASK-052 — Anno-bredd med gradvis upplåsning (D-105)](https://github.com/Tiico/eirora/issues/135) | M4 | TASK-039, TASK-042, TASK-043, TASK-058 |
 | [TASK-053 — Tre scenarier med olika bästa strategi](https://github.com/Tiico/eirora/issues/136) | M4 | TASK-044, TASK-046, TASK-048, TASK-050, TASK-051, TASK-052 |
 | [TASK-054 — Långtidssimulering och förslag till krafternas värden (O-01)](https://github.com/Tiico/eirora/issues/137) | M4 | TASK-053 |
 | [TASK-055 — Beslut: krafternas värden efter balansbotarna (O-01 i M4)](https://github.com/Tiico/eirora/issues/138) | M4 | TASK-054 |
 | [TASK-056 — De beslutade krafternas värden i reglerna](https://github.com/Tiico/eirora/issues/139) | M4 | TASK-055 |
-| [TASK-057 — Grind A4: ekonomi och logistik](https://github.com/Tiico/eirora/issues/140) | M4 | TASK-036 och TASK-039–056 |
+| [TASK-057 — Grind A4: ekonomi och logistik](https://github.com/Tiico/eirora/issues/140) | M4 | TASK-036, TASK-039–056 och TASK-058 |
+| [TASK-058 — Ekonomi v2: befolkningsnivåer, behov, kedjor, upplåsning och bärare](https://github.com/Tiico/eirora/issues/145) | M4 | – |
 
 **Format för backlogpost:** ett GitHub-ärende med Epic, Milstolpe, PRD-referens, Prioritet, Förutsättningar, Beskrivning, Invariant, Acceptanskriterier (Given/When/Then), Testnivå, Integritetspåverkan, Migration och Definition of Done.
 
@@ -506,4 +508,4 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 | 0.4 | 2026-10-18 | Nästa uppgifter TASK-011–026: luckorna till grind A0 och A1 och hela M2 till grind A2. |
 | 0.5 | 2026-10-18 | Uppgifter för M3 TASK-027–036 fram till grind A3. |
 | 0.6 | 2026-10-18 | Grind A0 godkänd: M0 `ACCEPTED`, M1–M3 `IN_PROGRESS`; O-01 i M4 och M5, O-02 i M4. |
-| 0.7 | 2026-10-23 | Uppgifter för M4 TASK-039–057 fram till grind A4; M4 `IN_PROGRESS`. |
+| 0.7 | 2026-10-23 | Uppgifter för M4 TASK-039–058 fram till grind A4, med ekonomi v2 efter D-105–D-107; M4 `IN_PROGRESS`. |
