@@ -114,6 +114,97 @@ namespace Eirora.Client.UI
             return string.Join(" · ", parts);
         }
 
+        /// <summary>
+        /// What a building does in short, as the table in economy-v1.md (section 3) says it: from its recipe or housing in
+        /// the content catalog, and for the storehouse, the jetty and the lookout from the rules. Null for a building that
+        /// does none of these.
+        /// </summary>
+        public static string? Effect(BuildingKind kind, BuildingSpec spec)
+        {
+            if (spec.Recipe is Recipe recipe)
+            {
+                return Effect(recipe);
+            }
+
+            if (spec.Housing > 0)
+            {
+                return $"+{spec.Housing} bostadsplatser";
+            }
+
+            return kind switch
+            {
+                BuildingKind.Storehouse => "Lager 150 per vara",
+                BuildingKind.Jetty => "Sjöväg och expeditioner",
+                BuildingKind.Lookout => "25 % mindre Utforskning",
+                _ => null,
+            };
+        }
+
+        /// <summary>
+        /// What a finished building that produces nothing does, in a sentence for its sheet: the housing the content
+        /// catalog gives it, or what the rules let the storehouse and the lookout do. Null for a building that does none.
+        /// </summary>
+        public static string? Purpose(BuildingKind kind, BuildingSpec spec)
+        {
+            if (spec.Housing > 0)
+            {
+                return spec.Housing == 1 ? "Ger plats åt en bybo." : $"Ger plats åt {Count(spec.Housing)} bybor.";
+            }
+
+            return kind switch
+            {
+                BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
+                BuildingKind.Lookout => "Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning.",
+                _ => null,
+            };
+        }
+
+        private static string Effect(Recipe recipe)
+        {
+            string product = Name(recipe.Product);
+            if (recipe.Inputs.Count > 0)
+            {
+                string inputs = List(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource)}"));
+                return recipe.PerHour == Quantity.PerUnit ? $"{inputs} → 1 {product}/h"
+                    : Quantity.PerUnit % recipe.PerHour == 0 ? $"{inputs} → 1 {product} per {Quantity.PerUnit / recipe.PerHour} h"
+                    : $"{inputs} → 1 {product}, {Amount(recipe.PerHour)}/h";
+            }
+
+            if (recipe.ForestTiles > 0)
+            {
+                return recipe.ForestTiles == 1
+                    ? $"{Amount(recipe.PerHour)} {product}/h från en skogsbricka"
+                    : $"{Amount(recipe.PerHour)} {product}/h per skogsbricka, högst {Count(recipe.ForestTiles)}";
+            }
+
+            return recipe.IsSlowProcess ? $"{Amount(recipe.GrowsPerHour)} {product}/h dygnet runt" : $"{Amount(recipe.PerHour)} {product}/h";
+        }
+
+        /// <summary>Millionths of a unit as a Swedish decimal, such as 1,25.</summary>
+        private static string Amount(long millionths)
+        {
+            string whole = (millionths / Quantity.PerUnit).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            long fraction = millionths % Quantity.PerUnit;
+            return fraction == 0 ? whole : $"{whole},{fraction.ToString("000000", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0')}";
+        }
+
+        /// <summary>A small count in words, as the texts say it; larger counts in digits.</summary>
+        private static string Count(int count) => count switch
+        {
+            2 => "två",
+            3 => "tre",
+            4 => "fyra",
+            5 => "fem",
+            6 => "sex",
+            7 => "sju",
+            8 => "åtta",
+            9 => "nio",
+            10 => "tio",
+            11 => "elva",
+            12 => "tolv",
+            _ => count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+
         /// <summary>Which build this is, so the prototype diary can refer to it (TASK-014).</summary>
         public static string Build(string appVersion) => $"Version {appVersion} · regelversion {RulesVersion.Current}";
 

@@ -111,7 +111,7 @@ public sealed class FastForwardTests
                 "_stores", "_buildings", "_projects", "_felled", "_expeditionLeft", "<Villagers>k__BackingField", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
 
                 // Fixed for the world.
-                "_map", "_homeIsland", "_founding",
+                "_map", "_homeIsland", "_founding", "_content",
 
                 // Derived, or scratch for a single call.
                 "_buildingAt", "_capacity", "_depotDistances", "_woods", "_regrowing", "_before", "_after",

@@ -49,7 +49,7 @@ public sealed class FoundingTests
             Assert.Equal(founding.StartBuildings.Count, founding.StartBuildings.Select(b => b.Tile).Distinct().Count());
             foreach (var (kind, tile) in founding.StartBuildings)
             {
-                var site = BuildingSpec.For(kind).Requirement;
+                var site = ContentCatalog.Current.For(kind).Requirement;
                 Assert.True((map.Features.UsesOf(tile) & site) == site, $"Seed {seed}: the {kind} at {tile} stands where it cannot work.");
                 Assert.True(world.IsKnown(tile), $"Seed {seed}: the {kind} at {tile} is under the fog.");
             }

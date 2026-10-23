@@ -26,7 +26,7 @@ namespace Eirora.Simulation.Commands
         internal override Rejection Execute(World world)
         {
             var settlement = world.Settlement;
-            var spec = BuildingSpec.For(Building);
+            var spec = settlement.Content.For(Building);
             var site = settlement.CheckBuild(Building, Tile);
             if (site != Rejection.None)
             {

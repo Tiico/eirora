@@ -149,8 +149,8 @@ internal static class BuiltOutWorld
         int pick = random.Next(int.MaxValue);
         var settlement = world.Settlement;
         bool building = world.Projects.Count < 4;
-        int staffAfterQueue = world.FreeVillagers - world.Projects.Where(p => p.Kind == ProjectKind.Build).Sum(p => BuildingSpec.For(p.Building).Staff);
-        bool Staffable((BuildingKind Kind, Hex Site) c) => BuildingSpec.For(c.Kind).Staff == 0 || staffAfterQueue - BuildingSpec.For(c.Kind).Staff >= 2;
+        int staffAfterQueue = world.FreeVillagers - world.Projects.Where(p => p.Kind == ProjectKind.Build).Sum(p => world.Content.For(p.Building).Staff);
+        bool Staffable((BuildingKind Kind, Hex Site) c) => world.Content.For(c.Kind).Staff == 0 || staffAfterQueue - world.Content.For(c.Kind).Staff >= 2;
         bool Wanting(BuildingKind kind, IslandId island) =>
             building && !settlement.HasBuilt(kind, island) && !world.Projects.Any(p => p.Building == kind && settlement.IslandOf(p.Tile) == island);
 
@@ -181,7 +181,7 @@ internal static class BuiltOutWorld
         return random.Next(10) switch
         {
             < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
-            4 or 5 => BuiltSite(world, pick, b => b.Level < BuildingSpec.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
+            4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
             6 => BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue) is Hex road ? new BuildRoad(road) : null,
             7 => BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday) is Hex worked ? new Workday(worked) : null,
             8 => new Survey(),
@@ -196,7 +196,7 @@ internal static class BuiltOutWorld
     private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, Func<(BuildingKind Kind, Hex Site), bool> wanted)
     {
         var free = s_buildings
-            .Where(k => world.Settlement.CanAfford(BuildingSpec.For(k).Cost))
+            .Where(k => world.Settlement.CanAfford(world.Content.For(k).Cost))
             .Select(k => s_sites.Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
             .Where(sites => sites.Count > 0)
             .ToList();
@@ -212,7 +212,7 @@ internal static class BuiltOutWorld
     /// <summary>The tile of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>
     private static Hex? BuiltSite(World world, int pick, Func<Building, bool> can)
     {
-        var built = world.Buildings.Where(b => Upgrade.Produces(b.Kind) && can(b)).ToList();
+        var built = world.Buildings.Where(b => world.Content.For(b.Kind).Produces && can(b)).ToList();
         return built.Count > 0 ? built[pick % built.Count].Tile : null;
     }
 
