@@ -40,7 +40,7 @@ namespace Eirora.Client.UI
         private readonly VisualElement _sheet;
         private readonly VisualElement _bar;
         private readonly Dictionary<Force, Label> _forceValues = new();
-        private readonly Label _resources;
+        private readonly VisualElement _resources;
         private readonly Label _status;
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
@@ -76,7 +76,7 @@ namespace Eirora.Client.UI
                 Text("force-name", chip, Texts.Name(force));
             }
 
-            _resources = Text("resources resource", _top, string.Empty);
+            _resources = Container("resources", _top);
             _status = Text("status", _top, string.Empty);
             _sheet.style.display = DisplayStyle.None;
             _top.style.display = DisplayStyle.None;
@@ -191,8 +191,12 @@ namespace Eirora.Client.UI
                 _forceValues[force].text = world.Available(force).ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            _resources.text = string.Join("   ", Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Select(r => $"{Capital(Texts.Name(r))} {world.Stock(r)}"));
+            // One label per resource, spread over the card's width and wrapping rather than running off it.
+            _resources.Clear();
+            foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>())
+            {
+                Text("resource", _resources, $"{Capital(Texts.Name(resource))} {world.Stock(resource)}");
+            }
             string upcoming = world.Phase == Phase.Resting
                 ? $"Världen öppnar klockan {Clock(RestEnd(world))}"
                 : $"Byn vilar klockan {Clock(world.RestSchedule.StartMinuteOfDay)}";
@@ -445,6 +449,11 @@ namespace Eirora.Client.UI
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
                 Text("sheet-subtitle", _sheet, Texts.Staffing(building, world.Content.For(building.Kind)) is string staffing ? $"{ground} · {staffing}" : ground);
+                if (Texts.WhyIdle(building, world.Content.For(building.Kind)) is string idle)
+                {
+                    Text("sheet-text", _sheet, idle);
+                }
+
                 BuildingActions(world, building);
                 StaffingActions(world, building);
                 return;
@@ -544,8 +553,7 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>
-        /// A building's place in the staffing order and its pause (TASK-044): free planning, so it shows no cost, and
-        /// it says why a building waits for villagers.
+        /// A building's place in the staffing order and its pause (TASK-044): free planning, so it shows no force.
         /// </summary>
         private void StaffingActions(World world, Building building)
         {
@@ -553,15 +561,6 @@ namespace Eirora.Client.UI
             if (spec.Staff == 0)
             {
                 return;
-            }
-
-            if (building.Paused)
-            {
-                Text("sheet-text", _sheet, "Pausad: byborna bygger i stället. Nivån och lagret står kvar.");
-            }
-            else if (!building.Staffed)
-            {
-                Text("sheet-text", _sheet, "Byborna räcker inte hit. Flytta upp den i bemanningen eller pausa en byggnad före den.");
             }
 
             var order = world.StaffingOrder;

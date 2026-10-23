@@ -144,6 +144,12 @@ namespace Eirora.Client.UI
         public static string? Staffing(Building building, BuildingSpec spec) =>
             spec.Staff == 0 ? null : building.Paused ? "pausad" : building.Staffed ? "i arbete" : "väntar på bybor";
 
+        /// <summary>Why a building that needs staff stands still, or null when it works or needs none (TASK-044).</summary>
+        public static string? WhyIdle(Building building, BuildingSpec spec) =>
+            spec.Staff == 0 || building.Staffed ? null
+            : building.Paused ? "Pausad: byborna bygger i stället. Nivån och lagret står kvar."
+            : "Byborna räcker inte hit. Flytta upp den i bemanningen eller pausa en byggnad före den.";
+
         /// <summary>What a project in the queue makes: a building, a level or a road.</summary>
         public static string Project(Project project) => project.Kind switch
         {

@@ -42,15 +42,20 @@
     margin-top: 10px;
 }
 
+/* One label per resource, spread over the card with at least a small gap. The row's negative right margin takes back
+   the last label's gap, its left margin lines it up with the status below, whose label keeps its padding, and it
+   wraps only when the stock no longer fits on one line. */
 .resources {
     flex-direction: row;
     flex-wrap: wrap;
-    margin-top: 18px;
+    justify-content: space-between;
+    margin: 18px -12px 0 2px;
 }
 
 .resource {
     font-size: 30px;
-    margin-right: 26px;
+    margin: 0 12px 0 0;
+    padding: 0;
     color: rgb(68, 66, 80);
 }
 
