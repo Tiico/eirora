@@ -1,6 +1,7 @@
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -13,11 +14,16 @@ namespace Eirora.Simulation.Tests;
 /// </summary>
 /// <remarks>
 /// Three in four commands are made to suit the world when they are applied (an affordable building on a site that takes
-/// it, a producing building that can still be upgraded, given a road or worked, a tile at the fog's edge, self-care
-/// within the window), and three in four commands that would come
+/// it, a producing building that can still be upgraded, given a road, worked or paused, a paused building to resume, a
+/// building and a place in the staffing order, a project that is not first in the queue, a tile at the fog's edge,
+/// self-care within the window), and three in four commands that would come
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
+/// <para>
+/// A scenario is played on the prototype's map, or on the <see cref="Archipelago"/>, where three islands can each get a
+/// store and a sea route home (TASK-045).
+/// </para>
 /// </remarks>
 internal sealed class Scenario
 {
@@ -30,14 +36,15 @@ internal sealed class Scenario
         Tiles.F1, Tiles.F2, Tiles.F3, Tiles.M1, Tiles.M2, Tiles.M3, Tiles.P1, Tiles.N0, Tiles.N1, Tiles.N2, Tiles.N9,
     ];
 
-    // Where a suited building is sought: Hemön and its waters, and Nyön.
+    // Where a suited building is sought on the prototype's map: Hemön and its waters, and Nyön.
     private static readonly Hex[] s_sites = [.. Hex.Origin.Within(6), .. PrototypeHome.NyonCentre.Within(2)];
     private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
-    private Scenario(TimeReading install, RestSchedule schedule, IReadOnlyList<Input> inputs)
+    private Scenario(TimeReading install, RestSchedule schedule, bool archipelago, IReadOnlyList<Input> inputs)
     {
         Install = install;
         Schedule = schedule;
+        OnArchipelago = archipelago;
         Inputs = inputs;
     }
 
@@ -45,14 +52,17 @@ internal sealed class Scenario
 
     public RestSchedule Schedule { get; }
 
+    /// <summary>Whether the world is on the <see cref="Archipelago"/> rather than the prototype's map.</summary>
+    public bool OnArchipelago { get; }
+
     public IReadOnlyList<Input> Inputs { get; }
 
-    public static Scenario Generate(int seed, int length = 60)
+    public static Scenario Generate(int seed, int length = 60, bool archipelago = false)
     {
         var random = new Random(seed);
         var install = new TimeReading(At("2026-01-01 00:00", 1).UtcSeconds + (random.Next(360 * 24) * Hour), Stockholm, 3600 * (1 + random.Next(2)));
         var schedule = new RestSchedule(random.Next(96) * 15, (6 * 60) + (random.Next(9) * 30));
-        return new Scenario(install, schedule, Play(random, World.Create(install, schedule), length, "k"));
+        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k"));
     }
 
     /// <summary>
@@ -109,7 +119,10 @@ internal sealed class Scenario
         return inputs;
     }
 
-    public World Start() => World.Create(Install, Schedule);
+    public World Start() => Start(Install, Schedule, OnArchipelago);
+
+    /// <summary>A save of the world the scenario starts from, to play the inputs into.</summary>
+    public Save Begin() => Save.Begin(Start());
 
     /// <summary>Plays every input into a new world.</summary>
     public World Run()
@@ -122,6 +135,12 @@ internal sealed class Scenario
 
         return world;
     }
+
+    private static World Start(TimeReading install, RestSchedule schedule, bool archipelago) =>
+        archipelago ? Archipelago.Create(install, schedule) : World.Create(install, schedule);
+
+    /// <summary>Where a suited building is sought: the islands that can be built on and their waters.</summary>
+    internal static IReadOnlyList<Hex> SitesOf(World world) => world.Map.Hash == Archipelago.Map.Hash ? Archipelago.Sites : s_sites;
 
     private static long Span(Random random) => random.Next(10) switch
     {
@@ -147,7 +166,7 @@ internal sealed class Scenario
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
         var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
-        switch (random.Next(10))
+        switch (random.Next(11))
         {
             case 0 or 1 or 2:
                 int back = suited ? random.Next(RecordSelfCare.DaysBack) : random.Next(-1, RecordSelfCare.DaysBack + 1);
@@ -181,6 +200,21 @@ internal sealed class Scenario
                 };
             case 8:
                 return world => new Workday(suited ? BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday) ?? site : site);
+            case 9:
+                int work = random.Next(4);
+                int place = random.Next(-1, 13);
+                var project = (ProjectKind)random.Next(3);
+                return world => work switch
+                {
+                    0 => new PauseBuilding(suited ? BuiltSite(world, pick, b => !b.Paused) ?? site : site),
+                    1 => new ResumeBuilding(suited ? BuiltSite(world, pick, b => b.Paused) ?? site : site),
+                    2 => suited && world.StaffingOrder.Count > 1
+                        ? new Prioritize(world.StaffingOrder[pick % world.StaffingOrder.Count].Tile, place % world.StaffingOrder.Count)
+                        : new Prioritize(site, place),
+                    _ => suited && world.Projects.Count > 1
+                        ? new QueueFirst(world.Projects[1 + (pick % (world.Projects.Count - 1))].Kind, world.Projects[1 + (pick % (world.Projects.Count - 1))].Tile)
+                        : new QueueFirst(project, site),
+                };
             default:
                 var change = new RestSchedule(random.Next(96) * 15, (5 * 60) + (random.Next(13) * 30));
                 return _ => new ChangeRestSchedule(change);
@@ -190,7 +224,7 @@ internal sealed class Scenario
     /// <summary>One of the affordable buildings that the settlement would take on a tile, or none.</summary>
     private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick)
     {
-        var free = s_sites
+        var free = SitesOf(world)
             .SelectMany(tile => s_buildings.Select(k => (Kind: k, Site: tile)))
             .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(world.Content.For(c.Kind).Cost))
             .ToList();

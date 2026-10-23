@@ -99,7 +99,7 @@ Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett n
    - *Gör:* tittar.
    - *Känner:* att ön är hens egen.
    - *Simuleringen:* `WorldGenerator` skapar världen från en seed; starttillståndet innehåller startkrafterna.
-     Det första dagen börjar vid lokal midnatt samma dag, så att dagens steg räknas (D-51).
+     Den första dagen börjar vid lokal midnatt samma dag, så att dagens steg räknas (D-51).
 4. **Ork.**
    - *Ser:* guiden pekar på fiskeboden.
      *Ork kommer av sömn. Med den ger du byn en extra god dag där den behövs bäst.*
@@ -427,7 +427,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 | Läsa daglig rapport och historik | Ja | |
 | Bygga, placera, uppgradera, riva | Nej | INV-T3 |
 | Använda krafter: extraarbete, kartläggning, expedition | Nej | INV-T3 |
-| Planera: prioriteringar, bemanning, minimilager, vägar | Nej; planering är gratis men ändrar världen | RST-02 |
+| Planera: pausa byggnader, bemanningsordning, byggkö, minimilager, vägar | Nej; planering är gratis men ändrar världen | RST-02, TASK-044 |
 | Handel, hälsningar och andra gruppåtgärder | Nej; servern nekar | RST-02 |
 | Ta emot gruppens interaktioner | Köas till gryningen | RST-11 |
 | Läsa egenvård från hälsokällan när appen öppnas | Ja; krafter vid gryningen | RST-05, D-70, INV-T9 |
@@ -541,7 +541,7 @@ Produktägarens svar på de öppna frågorna i v0.1, loggade i PRD 1.1:
 
 - **D-49:** första sessionen börjar med den guidade turen; hälsokälla och vilotid väljs efteråt, och Utforskning visas med *kartlägg närområdet* (PRD 4.4).
 - **D-50:** den första vilotiden gäller direkt efter turen, även om installationen sker under vilotiden.
-- **D-51:** det första dagen börjar vid lokal midnatt på installationsdagen.
+- **D-51:** den första dagen börjar vid lokal midnatt på installationsdagen.
 - **D-52:** ingen återstartsbonus efter frånvaro (O-12).
 - **D-53:** manuell inmatning kan göras för varje dag sedan senaste besöket, högst sju.
 - **D-54:** manuell inmatning är tillåten under vilan; krafterna krediteras vid gryningen.

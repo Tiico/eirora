@@ -5,6 +5,7 @@ using System.Linq;
 using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -20,8 +21,15 @@ namespace Eirora.Client.App
     /// <remarks>Run a player with: -eirora-screenshots &lt;folder&gt;. It quits when done.</remarks>
     internal static class ScreenshotTour
     {
+        // A building's sheet with its staffing and actions reaches half up the screen; looking this much further south keeps
+        // the building it tells of in view above it.
+        private static readonly Vector3 AboveTheSheet = new(0f, 0f, -1.6f);
+
         public static IEnumerator Run(ClientBootstrap client, string folder)
         {
+            // A macOS player pauses when its window loses focus, which another app in front takes; the tour plays on.
+            Application.runInBackground = true;
+
             // ScreenCapture resolves a relative path against the player's data folder, not the working directory.
             folder = Path.GetFullPath(folder);
             Directory.CreateDirectory(folder);
@@ -59,6 +67,14 @@ namespace Eirora.Client.App
             client.Hud.Select(ScriptedWeek.FishingHut);
             yield return Capture(client, folder, "04-building");
             client.Hud.Select(null);
+
+            // A building that stands still (TASK-043): the sign above it on the island, and its sheet saying why.
+            if (session.World!.Diagnose().Buildings.FirstOrDefault(b => b.StandsStill) is { } still)
+            {
+                client.Hud.Select(still.Building.Tile);
+                yield return Capture(client, folder, "04-standing-still");
+                client.Hud.Select(null);
+            }
 
             clock.Current = ScriptedWeek.At("2026-10-21 22:20");
             session.CatchUp();
@@ -113,17 +129,61 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "13-upgraded");
             client.Hud.Select(null);
 
+            // What holds the island back most, as the report points to it, and a building far from the storehouse with
+            // what a road would give (TASK-043).
+            var diagnosis = session.World!.Diagnose();
+            if (diagnosis.BottleneckOn(session.World!.HomeIsland) is { } bottleneck)
+            {
+                client.Focus(bottleneck.Building.Building.Tile.Center() + AboveTheSheet);
+                client.Hud.Select(bottleneck.Building.Building.Tile);
+                yield return Capture(client, folder, "13-bottleneck");
+                client.Hud.Select(null);
+            }
+
+            if (diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is Simulation.Economy.LongWay)) is { } far)
+            {
+                client.Focus(far.Building.Tile.Center() + AboveTheSheet);
+                client.Hud.Select(far.Building.Tile);
+                yield return Capture(client, folder, "13-long-way");
+                client.Hud.Select(null);
+            }
+
             // Nyön, found by the expedition and joined by the sea route.
             client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
-            // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
+            // The jetties' sheets: the sea route with the goods waiting on Nyön, from home and from Nyön (TASK-045).
             var world = session.World!;
+            foreach (var (island, name) in new[] { (world.HomeIsland, "19-jetty-home"), (PrototypeHome.Nyon, "20-jetty-nyon") })
+            {
+                var jetty = world.Buildings.First(b => b.Kind == BuildingKind.Jetty && b.Island == island).Tile;
+                client.Focus(jetty.Center());
+                client.Hud.Select(jetty);
+                yield return Capture(client, folder, name);
+            }
+
+            client.Hud.Select(null);
+
+            // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
             var edge = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
                 .Where(world.CanLiftFog).OrderBy(h => h.DistanceTo(Hex.Origin)).ThenBy(h => h).First();
             client.Focus(edge.Center());
             client.Hud.SelectFog(edge);
             yield return Capture(client, folder, "14-fog");
+            client.Hud.Select(null);
+
+            // The player's say over the work (TASK-044): the queue with the cottage moved first, and the paused fishing hut.
+            foreach (string refusal in ScriptedWeek.OrderTheWork(session))
+            {
+                Debug.LogError(refusal);
+            }
+
+            client.Focus(Hex.Origin.Center());
+            client.Hud.OpenQueue();
+            yield return Capture(client, folder, "19-queue");
+            client.Hud.Select(ScriptedWeek.FishingHut);
+            yield return Capture(client, folder, "20-paused");
+            client.Hud.Select(null);
 
             // A new world on a generated map (TASK-033): the village at dawn, then the whole archipelago from afar.
             var generatedClock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));

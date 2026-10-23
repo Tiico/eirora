@@ -45,7 +45,46 @@ namespace Eirora.Client.Accounts
         public void Delete(string key) => _store.CallStatic("delete", AndroidSignInBridge.Activity, key);
     }
 
-    /// <summary>Calls SignInBridge.kt; each call answers once through a callback on a Java thread.</summary>
+    /// <summary>
+    /// The contribution key in Block Store (KeyBackup.kt), backed up end to end where the phone has a screen lock.
+    /// </summary>
+    public sealed class AndroidKeyBackup : IKeyBackup
+    {
+        private const string BackupClass = "com.eirora.signin.KeyBackup";
+
+        public async Task<string?> ReadAsync(string name)
+        {
+            string value = await CallAsync("read", name);
+            return value.Length == 0 ? null : value;
+        }
+
+        public async Task<KeyBackupReach?> KeepAsync(string name, string value) => BlockStoreAnswer.Kept(await CallAsync("keep", name, value));
+
+        public Task ForgetAsync(string name) => CallAsync("forget", name);
+
+        /// <summary>Every failure, including one in JNI itself, is a <see cref="KeyBackupException"/>, which never stops the sync.</summary>
+        private static async Task<string> CallAsync(string method, params object[] arguments)
+        {
+            try
+            {
+                var withContext = new object[arguments.Length + 1];
+                withContext[0] = AndroidSignInBridge.Activity;
+                arguments.CopyTo(withContext, 1);
+                return await AndroidSignInBridge.CallOn(BackupClass, method, withContext);
+            }
+            catch (LoginProviderException e)
+            {
+                throw new KeyBackupException(e.Message);
+            }
+            catch (AndroidJavaException)
+            {
+                // The message is Java's and not ours to pass on; the call's name is enough.
+                throw new KeyBackupException($"Block Store's {method} could not be called");
+            }
+        }
+    }
+
+    /// <summary>Calls SignInBridge.kt and KeyBackup.kt; each call answers once through a callback on a Java thread.</summary>
     internal static class AndroidSignInBridge
     {
         private const string BridgeClass = "com.eirora.signin.SignInBridge";
@@ -60,14 +99,26 @@ namespace Eirora.Client.Accounts
             }
         }
 
-        public static Task<string> Call(string method, params object[] arguments)
+        public static Task<string> Call(string method, params object[] arguments) => CallOn(BridgeClass, method, arguments);
+
+        /// <summary>Calls a static method of <paramref name="javaClass"/> that takes a SignInCallback last.</summary>
+        public static Task<string> CallOn(string javaClass, string method, params object[] arguments)
         {
             var callback = new Callback();
             var withCallback = new object[arguments.Length + 1];
             arguments.CopyTo(withCallback, 0);
             withCallback[arguments.Length] = callback;
-            using var bridge = new AndroidJavaClass(BridgeClass);
-            bridge.CallStatic(method, withCallback);
+            try
+            {
+                using var bridge = new AndroidJavaClass(javaClass);
+                bridge.CallStatic(method, withCallback);
+            }
+            catch
+            {
+                callback.Release(); // Java threw and holds no reference to it, so it will never answer.
+                throw;
+            }
+
             return callback.Result;
         }
 
@@ -111,7 +162,7 @@ namespace Eirora.Client.Accounts
                 }
             }
 
-            private void Release()
+            public void Release()
             {
                 lock (s_pending)
                 {

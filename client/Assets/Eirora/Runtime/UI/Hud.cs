@@ -20,11 +20,14 @@ namespace Eirora.Client.UI
 {
     /// <summary>
     /// The prototype's interface, built in code with UI Toolkit (NFR-14): forces and stock at the top, actions at
-    /// the bottom, a sheet for the selected tile, self-care input, the daily report, the account and the night view
-    /// (RST-03).
+    /// the bottom, a sheet for the selected tile, the building queue, self-care input, the daily report, the account
+    /// and the night view (RST-03).
     /// </summary>
     public sealed partial class Hud
     {
+        // The queue sheet lists this many projects, so that it leaves the island in view.
+        private const int QueueShown = 5;
+
         private readonly Func<GameCommand, CommandResult> _apply;
         private readonly IHealthControls? _health;
         private bool _explainingHealth;
@@ -37,12 +40,13 @@ namespace Eirora.Client.UI
         private readonly VisualElement _sheet;
         private readonly VisualElement _bar;
         private readonly Dictionary<Force, Label> _forceValues = new();
-        private readonly Label _resources;
+        private readonly VisualElement _resources;
         private readonly Label _status;
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
         private VisualElement? _setup;
         private World? _world;
+        private Diagnostics? _diagnostics;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
         private Sheet _open;
         private Hex? _tile;
@@ -73,7 +77,7 @@ namespace Eirora.Client.UI
                 Text("force-name", chip, Texts.Name(force));
             }
 
-            _resources = Text("resources resource", _top, string.Empty);
+            _resources = Container("resources", _top);
             _status = Text("status", _top, string.Empty);
             _sheet.style.display = DisplayStyle.None;
             _top.style.display = DisplayStyle.None;
@@ -84,6 +88,7 @@ namespace Eirora.Client.UI
             None,
             Tile,
             Fog,
+            Queue,
             SelfCare,
             Report,
             Account,
@@ -174,10 +179,14 @@ namespace Eirora.Client.UI
             Text("build", card, Texts.Build(Application.version));
         }
 
-        public void Show(World world, IReadOnlyList<GameEvent> sinceDawn)
+        /// <param name="diagnostics">
+        /// The world's diagnosis, shared with the island so that both read the same; diagnosed here when not given.
+        /// </param>
+        public void Show(World world, IReadOnlyList<GameEvent> sinceDawn, Diagnostics? diagnostics = null)
         {
             CloseSetup();
             _world = world;
+            _diagnostics = diagnostics ?? IslandView.DiagnoseWhileAwake(world);
             _sinceDawn = sinceDawn;
             _top.style.display = DisplayStyle.Flex;
             ApplySafeArea();
@@ -187,8 +196,12 @@ namespace Eirora.Client.UI
                 _forceValues[force].text = world.Available(force).ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            _resources.text = string.Join("   ", Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Select(r => $"{Capital(Texts.Name(r))} {world.Stock(r)}"));
+            // One label per resource, spread over the card's width and wrapping rather than running off it.
+            _resources.Clear();
+            foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>())
+            {
+                Text("resource", _resources, $"{Capital(Texts.Name(resource))} {world.Stock(resource)}");
+            }
             string upcoming = world.Phase == Phase.Resting
                 ? $"Världen öppnar klockan {Clock(RestEnd(world))}"
                 : $"Byn vilar klockan {Clock(world.RestSchedule.StartMinuteOfDay)}";
@@ -248,6 +261,9 @@ namespace Eirora.Client.UI
         public bool IsFogged(Hex hex) => _world is not null && !_world.IsKnown(hex);
 
         public void OpenSelfCare() => Open(Sheet.SelfCare);
+
+        /// <summary>Opens the building queue, where a project is moved first and the first one rushed (TASK-044).</summary>
+        public void OpenQueue() => Open(Sheet.Queue);
 
         public void OpenReport() => Open(Sheet.Report);
 
@@ -323,8 +339,12 @@ namespace Eirora.Client.UI
                 {
                     Button("button", _bar, "Kartlagt", () => { }).SetEnabled(false);
                 }
-                CostButton("Skynda på", Force.DawnPower, Rush.Cost, () => Run(new Rush())).SetEnabled(world.Projects.Count > 0);
             }
+
+            // The queue can be looked at during the rest too; ordering it waits for the dawn (D-23, INV-T3).
+            var queue = Button("button", _bar, string.Empty, () => Open(Sheet.Queue));
+            Text("button-title", queue, "Byggkö");
+            Text("button-detail", queue, world.Projects.Count == 0 ? "tom" : $"{world.Projects.Count} st");
 
             Button("button", _bar, "Rapport", () => Open(Sheet.Report));
             if (_account is not null)
@@ -382,6 +402,9 @@ namespace Eirora.Client.UI
                 case Sheet.Fog when _fog is Hex fog:
                     FogSheet(_world, fog);
                     break;
+                case Sheet.Queue:
+                    QueueSheet(_world);
+                    break;
                 case Sheet.SelfCare:
                     if (_explainingHealth)
                     {
@@ -430,16 +453,41 @@ namespace Eirora.Client.UI
             if (building is not null)
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
-                Text("sheet-subtitle", _sheet, $"{ground} · {(building.Staffed ? "i arbete" : "väntar på bybor")}");
-                BuildingActions(world, building);
+                // While the village rests nothing is diagnosed, as the island marks nothing then: the night is rest.
+                var spec = world.Content.For(building.Kind);
+                var diagnosis = _diagnostics?.At(tile);
+                var status = Container("sheet-status", _sheet);
+                if (diagnosis?.StandsStill == true)
+                {
+                    // The same sign that marks it on the island, so the two are read together (UX-05).
+                    status.Add(new StandingStillIcon());
+                }
+
+                string? state = diagnosis is null ? Texts.Resting(building, spec) : Texts.Status(diagnosis, spec);
+                Text("sheet-subtitle", status, state is null ? ground : $"{ground} · {state}");
+                foreach (var hindrance in diagnosis?.Hindrances ?? Array.Empty<Hindrance>())
+                {
+                    Text("sheet-text", _sheet, Texts.Hindrance(hindrance, diagnosis!.Product));
+                }
+
+                BuildingActions(world, building, diagnosis);
+                StaffingActions(world, building);
                 return;
             }
 
             if (project is not null)
             {
+                int place = IndexOf(world.Projects, project);
                 Text("sheet-title", _sheet, $"{Texts.Name(project.Building)} byggs");
-                Text("sheet-subtitle", _sheet, $"{ground} · {Math.Ceiling(project.WorkLeft / 1000.0)} h arbete kvar");
-                Text("sheet-text", _sheet, "Lediga bybor bygger medan de är vakna.");
+                Text("sheet-subtitle", _sheet, $"{ground} · {Texts.WorkLeft(project)}");
+                Text("sheet-text", _sheet, place == 0
+                    ? "Först i byggkön. Lediga bybor bygger här medan de är vakna."
+                    : $"Nummer {place + 1} i byggkön. Lediga bybor bygger på det första projektet.");
+                if (place > 0)
+                {
+                    AddAction("Bygg först", "Lediga bybor går hit före de andra projekten · ingen kraft", true, () => Run(new QueueFirst(project.Kind, project.Tile)));
+                }
+
                 return;
             }
 
@@ -479,7 +527,7 @@ namespace Eirora.Client.UI
             }
         }
 
-        private void BuildingActions(World world, Building building)
+        private void BuildingActions(World world, Building building, BuildingDiagnosis? diagnosis)
         {
             var spec = world.Content.For(building.Kind);
             if (building.Kind == BuildingKind.Jetty)
@@ -516,21 +564,107 @@ namespace Eirora.Client.UI
             if (!building.HasRoad && steps > 1 && steps < int.MaxValue
                 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Road))
             {
-                AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · mer når fram", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
+                // What the road gives, from the diagnosis, beside what it costs (TASK-043).
+                string gives = diagnosis?.Hindrances.OfType<LongWay>().FirstOrDefault() is { } way && diagnosis.Product is Resource product
+                    ? Texts.RoadGives(way, product)
+                    : "mer når fram";
+                AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · {gives}", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
             }
         }
 
-        /// <summary>The jetty: expeditions from home, the sea route, and the other island's goods waiting for the ship.</summary>
+        /// <summary>
+        /// A building's place in the staffing order and its pause (TASK-044): free planning, so it shows no force.
+        /// </summary>
+        private void StaffingActions(World world, Building building)
+        {
+            var spec = world.Content.For(building.Kind);
+            if (spec.Staff == 0)
+            {
+                return;
+            }
+
+            var order = world.StaffingOrder;
+            int place = IndexOf(order, building);
+            var row = Container("row", _sheet);
+            Text("row-label", row, "Plats i bemanningen");
+            var stepper = Container("stepper", row);
+            Button("stepper-button", stepper, "−", () => Run(new Prioritize(building.Tile, place - 1))).SetEnabled(place > 0);
+            Text("stepper-value", stepper, $"{place + 1} av {order.Count}");
+            Button("stepper-button", stepper, "+", () => Run(new Prioritize(building.Tile, place + 1))).SetEnabled(place < order.Count - 1);
+
+            if (building.Paused)
+            {
+                AddAction("Återuppta", "Bemannas igen på sin plats i bemanningen · ingen kraft", true, () => Run(new ResumeBuilding(building.Tile)));
+            }
+            else if (spec.Produces)
+            {
+                AddAction("Pausa", $"{Capital(Texts.Villagers(spec.Staff))} bygger i stället · ingen kraft", true, () => Run(new PauseBuilding(building.Tile)));
+            }
+        }
+
+        /// <summary>
+        /// The building queue in the order the free villagers work on it (TASK-044): any project can be moved first, and
+        /// the first one rushed with Dawn Power. While the villagers rest it is only shown.
+        /// </summary>
+        private void QueueSheet(World world)
+        {
+            Text("sheet-title", _sheet, "Byggkö");
+            var projects = world.Projects;
+            if (projects.Count == 0)
+            {
+                Text("sheet-text", _sheet, "Inget byggs just nu. Tryck på en ruta för att bygga där.");
+                return;
+            }
+
+            bool awake = world.Phase == Phase.Active;
+            Text("sheet-subtitle", _sheet, world.FreeVillagers == 0
+                ? "Inga lediga bybor bygger nu. Pausa en byggnad, så bygger dess bybor."
+                : $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger på det första projektet.");
+            for (int i = 0; i < projects.Count && i < QueueShown; i++)
+            {
+                var project = projects[i];
+                var item = Container("queue-item", _sheet);
+                var text = Container("queue-text", item);
+                Text("queue-title", text, Texts.Project(project));
+                Text("queue-detail", text, i == 0 ? $"Byggs nu · {Texts.WorkLeft(project)}" : Capital(Texts.WorkLeft(project)));
+                if (i > 0 && awake)
+                {
+                    Button("queue-button", item, "Först", () => Run(new QueueFirst(project.Kind, project.Tile)));
+                }
+            }
+
+            if (projects.Count > QueueShown)
+            {
+                Text("sheet-text", _sheet, $"Och {projects.Count - QueueShown} till. Tryck på ett bygge på ön för att flytta det först.");
+            }
+
+            if (awake)
+            {
+                AddAction("Skynda på", $"{Rush.Cost} Ork · {Rush.Hours} h arbete på det första", world.Available(Force.DawnPower) >= Rush.Cost, () => Run(new Rush()));
+            }
+            else
+            {
+                Text("sheet-text", _sheet, "Byborna sover. Kön går att ordna efter gryningen.");
+            }
+        }
+
+        /// <summary>
+        /// The jetty: on the home island the expedition and every sea route with the goods waiting for the ships; on
+        /// another island its own route and store (economy-v1.md, section 5).
+        /// </summary>
         private void JettyActions(World world, Building building)
         {
-            if (building.Island == IslandId.Nyon)
+            if (building.Island != world.HomeIsland)
             {
-                var waiting = Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                    .Where(r => world.Stock(IslandId.Nyon, r) > 0)
-                    .Select(r => $"{world.Stock(IslandId.Nyon, r)} {Texts.Name(r, world.Stock(IslandId.Nyon, r))}")
-                    .ToList();
-                Text("sheet-text", _sheet, $"Skeppen tar {Texts.IslandName(world.Map.IslandAt(building.Tile))}s varor hem, 40 per dygn.");
-                Text("sheet-text", _sheet, waiting.Count == 0 ? "Inget väntar på skeppen just nu." : "Väntar på skeppen: " + string.Join(", ", waiting) + ".");
+                string name = Texts.IslandName(world, building.Island);
+                bool sailing = world.SeaRoutes.Any(r => r.From == building.Island);
+                Text("sheet-text", _sheet, sailing
+                    ? $"Skeppen tar hem varorna från {name}, {SeaRoute.UnitsPerGameDay} per dygn."
+                    : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
+                Text("sheet-text", _sheet, Waiting(world, building.Island) is string goods
+                    ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
+                    : sailing ? "Inget väntar på skeppen just nu." : "Lagret är tomt.");
+                SeaRouteUse(building.Island);
                 return;
             }
 
@@ -546,14 +680,56 @@ namespace Eirora.Client.UI
             }
             else if (world.ExpeditionFinds is Hex found)
             {
-                string island = Texts.IslandName(world.Map.IslandAt(found));
-                Text("sheet-text", _sheet, world.SeaRouteOpen
-                    ? $"Sjövägen till {island} är öppen. Skeppen tar hem 40 varor per dygn."
-                    : $"{char.ToUpperInvariant(island[0])}{island.Substring(1)} är hittad. Bygg en brygga där, så öppnar sjövägen.");
+                string island = world.Map.IslandAt(found)!;
+                if (!world.SeaRoutes.Any(r => r.From == island))
+                {
+                    Text("sheet-text", _sheet, $"{Capital(Texts.IslandName(world, island))} är hittad. Bygg en brygga där, så öppnar sjövägen.");
+                }
             }
             else
             {
                 Text("sheet-text", _sheet, "Ingen ö inom räckhåll är värd en expedition.");
+            }
+
+            if (world.SeaRoutes.Count > 0)
+            {
+                Text("sheet-text", _sheet, world.SeaRoutes.Count == 1
+                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen tar hem {SeaRoute.UnitsPerGameDay} varor per dygn."
+                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen tar hem {SeaRoute.UnitsPerGameDay} varor per dygn från varje ö.");
+            }
+
+            foreach (var route in world.SeaRoutes)
+            {
+                string island = Capital(Texts.IslandName(world, route.From));
+                Text("sheet-text", _sheet, Waiting(world, route.From) is string goods
+                    ? $"{island}: {goods} väntar på skeppen."
+                    : $"{island}: inget väntar på skeppen.");
+                SeaRouteUse(route.From);
+            }
+        }
+
+        /// <summary>The goods in an island's store, such as "12 fisk och 5 sten", or null when it is empty.</summary>
+        private static string? Waiting(World world, string island)
+        {
+            var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
+                .Where(r => world.Stock(island, r) > 0)
+                .Select(r => $"{world.Stock(island, r)} {Texts.Name(r, world.Stock(island, r))}")
+                .ToList();
+            return goods.Count == 0 ? null : Texts.List(goods);
+        }
+
+        /// <summary>
+        /// How much of the capacity of the sea route from an island the ships use, and what keeps goods from reaching home
+        /// (TASK-043); nothing while the village rests or when no route sails from it.
+        /// </summary>
+        private void SeaRouteUse(string island)
+        {
+            if (_diagnostics?.SeaRouteFrom(island) is { } route)
+            {
+                foreach (var line in Texts.SeaRoute(route))
+                {
+                    Text("sheet-text", _sheet, line);
+                }
             }
         }
 
@@ -632,6 +808,16 @@ namespace Eirora.Client.UI
                 Text("report-line", _sheet, line);
             }
 
+            // Worth a look: what holds each island back most, which leads to the building (UX-02, TASK-043).
+            foreach (var island in _world!.Islands)
+            {
+                if (_diagnostics?.BottleneckOn(island) is { } bottleneck)
+                {
+                    string title = island == _world.HomeIsland ? "Flaskhals just nu" : $"Flaskhals på {Texts.IslandName(_world, island)}";
+                    AddAction(title, Texts.Bottleneck(bottleneck), true, () => Select(bottleneck.Building.Building.Tile));
+                }
+            }
+
             Text("build", _sheet, Texts.Build(Application.version));
         }
 
@@ -702,6 +888,20 @@ namespace Eirora.Client.UI
             row.Add(new ForceIcon(force, 30f));
             Text("button-cost-value", row, cost.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return button;
+        }
+
+        private static int IndexOf<T>(IReadOnlyList<T> list, T item)
+            where T : class
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == item)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         private static bool Affordable(World world, BuildingSpec spec) =>
@@ -828,6 +1028,53 @@ namespace Eirora.Client.UI
                         run(new RecordSelfCare(_day, Habit.Sleep, ContributionSource.SelfReported, slept));
                     }
                 });
+            }
+        }
+
+        /// <summary>
+        /// The sign of a building that stands still, as the island shows it above the building: two bars on a light disc
+        /// with a dark rim, so its shape and not its colour says it (UX-05, TASK-043).
+        /// </summary>
+        private sealed class StandingStillIcon : VisualElement
+        {
+            public StandingStillIcon(float size = 34f)
+            {
+                AddToClassList("standing-still");
+                style.width = size;
+                style.height = size;
+                pickingMode = PickingMode.Ignore;
+                generateVisualContent += Draw;
+            }
+
+            private void Draw(MeshGenerationContext context)
+            {
+                var p = context.painter2D;
+                float w = contentRect.width, h = contentRect.height;
+                var centre = new Vector2(w / 2f, h / 2f);
+                float radius = Mathf.Min(w, h) / 2f;
+                Disc(p, centre, radius, Palette.Text);
+                Disc(p, centre, radius * StandingStill.Face, Palette.Birch);
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    float x = centre.x + (side * radius * StandingStill.BarGap);
+                    p.fillColor = Palette.Text;
+                    p.BeginPath();
+                    p.MoveTo(new Vector2(x - (radius * StandingStill.BarWidth), centre.y - (radius * StandingStill.BarHeight)));
+                    p.LineTo(new Vector2(x + (radius * StandingStill.BarWidth), centre.y - (radius * StandingStill.BarHeight)));
+                    p.LineTo(new Vector2(x + (radius * StandingStill.BarWidth), centre.y + (radius * StandingStill.BarHeight)));
+                    p.LineTo(new Vector2(x - (radius * StandingStill.BarWidth), centre.y + (radius * StandingStill.BarHeight)));
+                    p.ClosePath();
+                    p.Fill();
+                }
+            }
+
+            private static void Disc(Painter2D p, Vector2 centre, float radius, Color colour)
+            {
+                p.fillColor = colour;
+                p.BeginPath();
+                p.Arc(centre, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+                p.ClosePath();
+                p.Fill();
             }
         }
 

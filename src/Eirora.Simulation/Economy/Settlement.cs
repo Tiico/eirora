@@ -9,7 +9,7 @@ namespace Eirora.Simulation.Economy
 {
     /// <summary>
     /// The settlement's economy (economy-v1.md): stock on each island, villagers, buildings on the map's tiles, the
-    /// building queue, the forest, expeditions and the sea route between the islands.
+    /// building queue, the forest, expeditions and the sea routes between the islands.
     /// </summary>
     /// <remarks>
     /// The economy moves in quarter-hour ticks at fixed UTC times, so advancing time in parts gives the same world as
@@ -18,7 +18,7 @@ namespace Eirora.Simulation.Economy
     /// and night (INV-T5). Nothing is ever lost to time: a full store stops production and missing food only stops
     /// growth (D-17, D-39).
     /// </remarks>
-    internal sealed class Settlement
+    internal sealed partial class Settlement
     {
         public const long TickSeconds = 15 * 60;
 
@@ -27,7 +27,7 @@ namespace Eirora.Simulation.Economy
 
         private const long WorkPerVillagerPerTick = 250; // Thousandths of a villager-hour.
         private const int StoragePerStorehouse = 150;
-        private const int StorageAtJetty = 150; // A jetty on an island without a storehouse stores goods for the ship.
+        private const int StorageAtJetty = 150; // A jetty off the home island stores goods for the ship.
         private const int ProcessingReserve = 20; // LOG-06 minimum stock left for building (D-44).
         private const int ComfortPerDawn = 2;
         private const int StartingHousing = 16;
@@ -36,14 +36,10 @@ namespace Eirora.Simulation.Economy
         private const long SeaRoutePerTick = 625_000; // 40 units a game day over 16 waking hours (economy-v1.md, section 5).
 
         private static readonly int s_resourceCount = Enum.GetValues(typeof(Resource)).Length;
-        private static readonly IslandId[] s_islands = { IslandId.Home, IslandId.Nyon };
 
-        private readonly Dictionary<IslandId, long[]> _stores = new()
-        {
-            [IslandId.Home] = new long[s_resourceCount],
-            [IslandId.Nyon] = new long[s_resourceCount],
-        };
-
+        // The store on each island where something has been built, by the map's id; it stays when what was built goes.
+        private readonly Dictionary<string, long[]> _stores = new(StringComparer.Ordinal);
+        private readonly List<string> _islands = new(); // The islands with a store, in map order.
         private readonly List<Building> _buildings = new();
         private readonly Dictionary<Hex, Building> _buildingAt = new(); // Only looked up, never iterated.
         private readonly List<Project> _projects = new();
@@ -51,7 +47,7 @@ namespace Eirora.Simulation.Economy
         // Timber left on the forest tiles that are not full, in map order; every other forest tile holds ForestPerTile.
         private readonly SortedDictionary<Hex, long> _felled = new();
         private readonly WorldMap _map;
-        private readonly string? _homeIsland;
+        private readonly string _home;
         private readonly Founding _founding;
         private readonly ContentCatalog _content;
         private readonly Dictionary<Hex, int> _depotDistances = new(); // Forgotten whenever a depot is added.
@@ -59,13 +55,13 @@ namespace Eirora.Simulation.Economy
         private readonly List<Hex> _regrowing = new();
         private long[] _before = new long[64]; // The state before and after a tick's work (RecordState).
         private long[] _after = new long[64];
-        private readonly Dictionary<IslandId, long> _capacity = new(); // Forgotten whenever a building is added.
+        private readonly Dictionary<string, long> _capacity = new(StringComparer.Ordinal); // Forgotten whenever a building is added.
         private long _expeditionLeft;
 
         private Settlement(WorldMap map, Fog fog, Founding founding, ContentCatalog content)
         {
             _map = map;
-            _homeIsland = map.IslandAt(map.Start);
+            _home = map.IslandAt(map.Start) ?? throw new ArgumentException("A map starts on land.", nameof(map));
             _founding = founding;
             _content = content;
             Fog = fog;
@@ -81,7 +77,26 @@ namespace Eirora.Simulation.Economy
 
         public int SurveysDone { get; private set; }
 
+        /// <summary>The buildings in the staffing order (economy-v1.md, section 4.1), which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _buildings;
+
+        /// <summary>The buildings that need staff, in the order villagers are given to them when they do not suffice for all.</summary>
+        public List<Building> StaffingOrder
+        {
+            get
+            {
+                var order = new List<Building>();
+                foreach (var building in _buildings)
+                {
+                    if (_content.For(building.Kind).Staff > 0)
+                    {
+                        order.Add(building);
+                    }
+                }
+
+                return order;
+            }
+        }
 
         public IReadOnlyList<Project> Projects => _projects;
 
@@ -119,8 +134,32 @@ namespace Eirora.Simulation.Economy
             }
         }
 
-        /// <summary>Whether ships sail between the islands: a jetty stands on each.</summary>
-        public bool SeaRouteOpen => HasBuilt(BuildingKind.Jetty, IslandId.Home) && HasBuilt(BuildingKind.Jetty, IslandId.Nyon);
+        /// <summary>The map's id of the island the settlement began on, where materials are paid from and villagers eat.</summary>
+        public string HomeIsland => _home;
+
+        /// <summary>The islands with a store of their own, in map order: the home island and every island built on.</summary>
+        public IReadOnlyList<string> Islands => _islands;
+
+        /// <summary>
+        /// The sea routes, in map order: one from each island with a jetty to the home island, once a jetty stands there too
+        /// (economy-v1.md, section 5).
+        /// </summary>
+        public IReadOnlyList<SeaRoute> SeaRoutes
+        {
+            get
+            {
+                var routes = new List<SeaRoute>();
+                foreach (var island in _islands)
+                {
+                    if (HasSeaRoute(island))
+                    {
+                        routes.Add(new SeaRoute(island, _home));
+                    }
+                }
+
+                return routes;
+            }
+        }
 
         /// <summary>What the world started with on its map, and what its surveys and first expedition find.</summary>
         public Founding Founding => _founding;
@@ -139,7 +178,7 @@ namespace Eirora.Simulation.Economy
             }
 
             var settlement = new Settlement(map, Fog.AtStart(map, hidden), founding, content);
-            var home = settlement._stores[IslandId.Home];
+            var home = settlement.StoreOn(settlement._home);
             home[(int)Resource.Fish] = Quantity.Units(30);
             home[(int)Resource.Timber] = Quantity.Units(40);
             home[(int)Resource.Planks] = Quantity.Units(20);
@@ -156,9 +195,10 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>Stock on the home island, where materials are paid from and villagers eat.</summary>
-        public long Stock(Resource resource) => _stores[IslandId.Home][(int)resource];
+        public long Stock(Resource resource) => _stores[_home][(int)resource];
 
-        public long Stock(IslandId island, Resource resource) => _stores[island][(int)resource];
+        /// <summary>Stock on an island, by the map's id; nothing on an island without a store.</summary>
+        public long Stock(string island, Resource resource) => _stores.TryGetValue(island, out var store) ? store[(int)resource] : 0;
 
         /// <summary>
         /// Whether the fog can be lifted from a tile with Exploration (TASK-032): at the edge of the known, and neither
@@ -173,7 +213,7 @@ namespace Eirora.Simulation.Economy
             }
 
             // An island the expedition finds says so wherever it is tapped, not "lift closer first" only to refuse later.
-            if (_map.Contains(hex) && _map.IslandAt(hex) is string island && island != _homeIsland && !IslandFound(island))
+            if (_map.Contains(hex) && _map.IslandAt(hex) is string island && island != _home && !IslandFound(island))
             {
                 return Rejection.FoundByExpedition;
             }
@@ -197,7 +237,7 @@ namespace Eirora.Simulation.Economy
             return Rejection.None;
         }
 
-        public bool HasBuilt(BuildingKind kind, IslandId? island = null)
+        public bool HasBuilt(BuildingKind kind, string? island = null)
         {
             foreach (var building in _buildings)
             {
@@ -240,7 +280,7 @@ namespace Eirora.Simulation.Economy
 
             // Builders reach another island by its jetty, so the jetty comes first there.
             var island = IslandOf(tile);
-            if (island != IslandId.Home && kind != BuildingKind.Jetty && !HasBuilt(BuildingKind.Jetty, island))
+            if (island != _home && kind != BuildingKind.Jetty && !HasBuilt(BuildingKind.Jetty, island))
             {
                 return Rejection.SiteUnavailable;
             }
@@ -249,18 +289,18 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// The island a building site belongs to: its own for land, and for fishing water the land it lies off. The
-        /// economy keeps the start island apart from the land it reaches by sea (economy-v1.md, section 5).
+        /// The map's id of the island a building site belongs to: its own for land, and for fishing water the land it
+        /// lies off; the home island for open sea, where nothing is built. Each island keeps its own store, joined to the
+        /// home island's by a sea route (economy-v1.md, section 5).
         /// </summary>
-        public IslandId IslandOf(Hex tile) =>
-            MapIslandOf(tile) is string island && island != _homeIsland ? IslandId.Nyon : IslandId.Home;
+        public string IslandOf(Hex tile) => MapIslandOf(tile) ?? _home;
 
         /// <summary>Timber left on a forest tile.</summary>
         public long ForestLeft(Hex tile) => _felled.TryGetValue(tile, out long left) ? left : ForestPerTile;
 
         public bool CanAfford(IReadOnlyDictionary<Resource, int> cost)
         {
-            var home = _stores[IslandId.Home];
+            var home = _stores[_home];
             for (int resource = 0; resource < s_resourceCount; resource++)
             {
                 if (cost.TryGetValue((Resource)resource, out int amount) && home[resource] < Quantity.Units(amount))
@@ -272,24 +312,27 @@ namespace Eirora.Simulation.Economy
             return true;
         }
 
-        public bool IsQueued(Hex tile, ProjectKind kind)
+        public bool IsQueued(Hex tile, ProjectKind kind) => Queued(tile, kind) is not null;
+
+        /// <summary>The project of <paramref name="kind"/> for <paramref name="tile"/> in the queue, or null.</summary>
+        public Project? Queued(Hex tile, ProjectKind kind)
         {
             foreach (var project in _projects)
             {
                 if (project.Tile == tile && project.Kind == kind)
                 {
-                    return true;
+                    return project;
                 }
             }
 
-            return false;
+            return null;
         }
 
         /// <summary>Pays from the home island's store and queues the work; the caller has checked tile, cost and forces.</summary>
         public void Queue(ProjectKind kind, BuildingKind building, Hex tile, IReadOnlyDictionary<Resource, int> cost, int workHours)
         {
             // By resource rather than over the cost, whose order is the dictionary's (docs/development.md#determinism).
-            var home = _stores[IslandId.Home];
+            var home = _stores[_home];
             for (int resource = 0; resource < s_resourceCount; resource++)
             {
                 if (cost.TryGetValue((Resource)resource, out int amount))
@@ -336,7 +379,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whether an expedition can set out: a jetty at home, none at sea, and an island left to find.</summary>
         public Rejection CanSendExpedition()
         {
-            if (!HasBuilt(BuildingKind.Jetty, IslandId.Home))
+            if (!HasBuilt(BuildingKind.Jetty, _home))
             {
                 return Rejection.NoBuildingThere;
             }
@@ -350,6 +393,34 @@ namespace Eirora.Simulation.Economy
         }
 
         public void SendExpedition() => _expeditionLeft = PrototypeIsland.ExpeditionHours * 1000L;
+
+        /// <summary>Pauses or resumes a building and gives the villagers out again (economy-v1.md, section 4.1).</summary>
+        public void SetPaused(Building building, bool paused)
+        {
+            building.Paused = paused;
+            StaffBuildings();
+        }
+
+        /// <summary>
+        /// Moves a building that needs staff to <paramref name="place"/> in the staffing order, counted from 0, and
+        /// gives the villagers out again; the buildings that need no staff keep their places among the others.
+        /// </summary>
+        public void MoveInStaffingOrder(Building building, int place)
+        {
+            var others = StaffingOrder;
+            others.Remove(building);
+            _buildings.Remove(building);
+            int at = place < others.Count ? _buildings.IndexOf(others[place]) : _buildings.IndexOf(others[others.Count - 1]) + 1;
+            _buildings.Insert(at, building);
+            StaffBuildings();
+        }
+
+        /// <summary>Moves a project first in the queue, where the free villagers' work goes; its work so far stays with it.</summary>
+        public void MoveFirst(Project project)
+        {
+            _projects.Remove(project);
+            _projects.Insert(0, project);
+        }
 
         /// <summary>Shortens the first project in the queue by up to <paramref name="hours"/> hours of work.</summary>
         public void Rush(int hours)
@@ -389,7 +460,7 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private int RecordState(ref long[] state)
         {
-            int needed = 7 + (2 * s_resourceCount) + (5 * _buildings.Count) + _projects.Count + (3 * _felled.Count);
+            int needed = 8 + (_islands.Count * s_resourceCount) + (6 * _buildings.Count) + _projects.Count + (3 * _felled.Count);
             if (state.Length < needed)
             {
                 state = new long[2 * needed];
@@ -400,7 +471,8 @@ namespace Eirora.Simulation.Economy
             state[i++] = SurveysDone;
             state[i++] = _expeditionLeft;
             state[i++] = Fog.Lifts;
-            foreach (var island in s_islands)
+            state[i++] = _islands.Count;
+            foreach (var island in _islands)
             {
                 var store = _stores[island];
                 for (int resource = 0; resource < s_resourceCount; resource++)
@@ -414,6 +486,7 @@ namespace Eirora.Simulation.Economy
             {
                 state[i++] = building.Level;
                 state[i++] = building.Staffed ? 1 : 0;
+                state[i++] = building.Paused ? 1 : 0;
                 state[i++] = building.HasRoad ? 1 : 0;
                 state[i++] = building.WorkdayToday ? 1 : 0;
                 state[i++] = building.Ripe;
@@ -439,7 +512,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Villagers eat, the settlement grows if it can, and today's workdays end.</summary>
         public void Dawn(long utcSeconds, List<GameEvent> events)
         {
-            var home = _stores[IslandId.Home];
+            var home = _stores[_home];
             long need = Quantity.Units(Villagers);
             need -= Take(home, Resource.Fish, need);
             need -= Take(home, Resource.Grain, need);
@@ -471,19 +544,19 @@ namespace Eirora.Simulation.Economy
         public void Write(StateWriter writer)
         {
             writer.Line("settlement").Long(Villagers).Long(SurveysDone).Long(_expeditionLeft);
-            foreach (var island in s_islands)
+            foreach (var island in _islands)
             {
                 var store = _stores[island];
                 for (int i = 0; i < s_resourceCount; i++)
                 {
-                    writer.Line("stock").Enum(island).Enum((Resource)i).Long(store[i]);
+                    writer.Line("stock").Text(island).Enum((Resource)i).Long(store[i]);
                 }
             }
 
-            // Buildings and projects keep their order: staffing and the queue follow it.
+            // Buildings and projects keep their order: the staffing order and the queue.
             foreach (var b in _buildings)
             {
-                writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.HasRoad).Bool(b.WorkdayToday).Long(b.Ripe);
+                writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.HasRoad).Bool(b.WorkdayToday).Long(b.Ripe).Bool(b.Paused);
             }
 
             foreach (var p in _projects)
@@ -516,15 +589,30 @@ namespace Eirora.Simulation.Economy
                 throw new FormatException("An expedition never has negative time left.");
             }
 
-            foreach (var island in s_islands)
+            // Each island's store in full, the islands in map order.
+            while (reader.Peek == "stock")
             {
-                var store = settlement._stores[island];
+                string? island = null;
+                long[] store = Array.Empty<long>();
                 for (int i = 0; i < s_resourceCount; i++)
                 {
                     reader.Expect("stock");
-                    bool expected = reader.Enum<IslandId>() == island && reader.Enum<Resource>() == (Resource)i;
+                    string on = reader.Text();
+                    if (island is null)
+                    {
+                        island = on;
+                        int last = settlement._islands.Count > 0 ? IndexOf(map, settlement._islands[settlement._islands.Count - 1]) : -1;
+                        store = IndexOf(map, island) > last ? settlement.StoreOn(island) : throw new FormatException($"The store on {island} is not on the map after the previous one.");
+                    }
+
+                    bool expected = on == island && reader.Enum<Resource>() == (Resource)i;
                     store[i] = expected ? reader.Long() : throw new FormatException($"Expected {(Resource)i} on {island}.");
                 }
+            }
+
+            if (!settlement._stores.ContainsKey(settlement._home))
+            {
+                throw new FormatException($"The home island {settlement._home} has no store.");
             }
 
             while (reader.Next("building"))
@@ -537,14 +625,26 @@ namespace Eirora.Simulation.Economy
                 }
 
                 // A building stays where it stands even on a tile that no longer suits it (INV-V1).
-                var building = new Building(kind, tile, settlement.IslandOf(tile))
+                string island = settlement.IslandOf(tile);
+                if (!settlement._stores.ContainsKey(island))
+                {
+                    throw new FormatException($"{kind} on {tile} stands on {island}, which has no store.");
+                }
+
+                var building = new Building(kind, tile, island)
                 {
                     Level = reader.Int(),
                     Staffed = reader.Bool(),
                     HasRoad = reader.Bool(),
                     WorkdayToday = reader.Bool(),
                     Ripe = reader.Long(),
+                    Paused = reader.Bool(),
                 };
+                if (building.Paused && building.Staffed)
+                {
+                    throw new FormatException($"The paused building on {tile} is staffed.");
+                }
+
                 settlement._buildings.Add(building);
                 settlement._buildingAt.Add(tile, building);
             }
@@ -597,10 +697,11 @@ namespace Eirora.Simulation.Economy
             }
 
             // Distance, level and a workday scale how fast a field or a sheep farm grows, as they scale every other
-            // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown.
+            // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown. Only a
+            // staffed one is tended and grows, so that pausing it costs what it makes (section 4.1; TASK-044).
             foreach (var building in _buildings)
             {
-                if (_content.For(building.Kind).Recipe is Recipe recipe && recipe.IsSlowProcess)
+                if (building.Staffed && _content.For(building.Kind).Recipe is Recipe recipe && recipe.IsSlowProcess)
                 {
                     long grows = recipe.Richness ? Scale(recipe.GrowsPerTick, _map.RichnessAt(building.Tile)) : recipe.GrowsPerTick;
                     building.Ripe += ticks * Scale(grows, DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
@@ -752,25 +853,35 @@ namespace Eirora.Simulation.Economy
             return left != 0 ? left > 0 : a < b;
         }
 
-        /// <summary>Ships goods from Nyön home over the sea route, up to its capacity (economy-v1.md, section 5).</summary>
+        /// <summary>
+        /// Ships goods home over each sea route, up to its capacity (economy-v1.md, section 5): the routes in map order,
+        /// and on each the goods in their fixed order until the player sets import priorities (TASK-046).
+        /// </summary>
         private void Ship()
         {
-            if (!SeaRouteOpen)
+            var home = _stores[_home];
+            long capacity = StorageCapacity(_home);
+            foreach (var island in _islands)
             {
-                return;
-            }
+                if (!HasSeaRoute(island))
+                {
+                    continue;
+                }
 
-            var from = _stores[IslandId.Nyon];
-            var home = _stores[IslandId.Home];
-            long capacity = StorageCapacity(IslandId.Home);
-            long room = SeaRoutePerTick;
-            for (int r = 0; r < s_resourceCount && room > 0; r++)
-            {
-                long moved = Add(home, (Resource)r, Min(room, from[r]), capacity);
-                from[r] -= moved;
-                room -= moved;
+                var from = _stores[island];
+                long room = SeaRoutePerTick;
+                for (int r = 0; r < s_resourceCount && room > 0; r++)
+                {
+                    long moved = Add(home, (Resource)r, Min(room, from[r]), capacity);
+                    from[r] -= moved;
+                    room -= moved;
+                }
             }
         }
+
+        /// <summary>Whether ships sail from an island to the home island: a jetty stands on each.</summary>
+        private bool HasSeaRoute(string island) =>
+            island != _home && HasBuilt(BuildingKind.Jetty, island) && HasBuilt(BuildingKind.Jetty, _home);
 
         private void Explore(long utcSeconds, List<GameEvent> events)
         {
@@ -844,7 +955,7 @@ namespace Eirora.Simulation.Economy
             return taken;
         }
 
-        private long StorageCapacity(IslandId island)
+        private long StorageCapacity(string island)
         {
             if (_capacity.TryGetValue(island, out long capacity))
             {
@@ -857,7 +968,7 @@ namespace Eirora.Simulation.Economy
                 if (building.Island == island)
                 {
                     units += building.Kind == BuildingKind.Storehouse ? StoragePerStorehouse : 0;
-                    units += building.Kind == BuildingKind.Jetty && island != IslandId.Home ? StorageAtJetty : 0;
+                    units += building.Kind == BuildingKind.Jetty && island != _home ? StorageAtJetty : 0;
                 }
             }
 
@@ -872,12 +983,13 @@ namespace Eirora.Simulation.Economy
         /// <summary>A workday gives 150 % production until the next dawn.</summary>
         private static int WorkdayPercent(Building building) => building.WorkdayToday ? 150 : 100;
 
+        private int DistancePercent(Building building) => DistancePercent(DepotDistance(building.Tile), building.HasRoad);
+
         /// <summary>Share of production that reaches the store: 100, 75 or 50 % by distance, one step better with a road.</summary>
-        private int DistancePercent(Building building)
+        private static int DistancePercent(int distance, bool road)
         {
-            int distance = DepotDistance(building.Tile);
             int step = distance <= 1 ? 0 : distance <= 3 ? 1 : 2;
-            if (building.HasRoad && step > 0)
+            if (road && step > 0)
             {
                 step--;
             }
@@ -960,6 +1072,7 @@ namespace Eirora.Simulation.Economy
         private void Complete(BuildingKind kind, Hex tile)
         {
             var building = new Building(kind, tile, IslandOf(tile));
+            StoreOn(building.Island);
             _buildings.Add(building);
             _buildingAt.Add(tile, building);
             _capacity.Clear();
@@ -969,15 +1082,55 @@ namespace Eirora.Simulation.Economy
             }
         }
 
+        /// <summary>The store on an island, made empty the first time something is built there.</summary>
+        private long[] StoreOn(string island)
+        {
+            if (_stores.TryGetValue(island, out var store))
+            {
+                return store;
+            }
+
+            store = new long[s_resourceCount];
+            _stores.Add(island, store);
+            _islands.Clear();
+            foreach (var candidate in _map.Islands)
+            {
+                if (_stores.ContainsKey(candidate.Id))
+                {
+                    _islands.Add(candidate.Id);
+                }
+            }
+
+            return store;
+        }
+
+        /// <summary>Where an island comes in the map's list of islands, or -1 when the map has no such island.</summary>
+        private static int IndexOf(WorldMap map, string island)
+        {
+            for (int i = 0; i < map.Islands.Count; i++)
+            {
+                if (map.Islands[i].Id == island)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// Gives the villagers to the buildings in the staffing order (economy-v1.md, section 4.1): each building that is
+        /// not paused is staffed if enough villagers are left for it, and is otherwise passed over for the next one.
+        /// The villagers left over build.
+        /// </summary>
         private void StaffBuildings()
         {
+            int free = Villagers;
             foreach (var building in _buildings)
             {
                 int staff = _content.For(building.Kind).Staff;
-                if (!building.Staffed && staff > 0 && FreeVillagers >= staff)
-                {
-                    building.Staffed = true;
-                }
+                building.Staffed = staff > 0 && !building.Paused && free >= staff;
+                free -= building.Staffed ? staff : 0;
             }
         }
 

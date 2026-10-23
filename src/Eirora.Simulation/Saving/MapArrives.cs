@@ -10,6 +10,6 @@ namespace Eirora.Simulation.Saving
     {
         public override int FromRules => 1;
 
-        public override string Migrate(string state) => "map " + PrototypeHome.Map.Hash + "\n" + state;
+        public override string Migrate(string state, WorldMap map) => "map " + PrototypeHome.Map.Hash + "\n" + state;
     }
 }

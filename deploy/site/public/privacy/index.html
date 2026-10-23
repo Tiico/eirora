@@ -102,8 +102,9 @@
       <ul>
         <li><strong>På telefonen</strong>, bredvid inloggningsnyckeln: i iOS nyckelring eller krypterad med en nyckel i Android Keystore.</li>
         <li><strong>I nyckelbackupen</strong>, iCloud-nyckelringen på iPhone och Block Store på Android, så att en ny telefon på samma plattform hittar den utan att fråga.
-        Nyckeln går dit bara end-to-end-krypterad, så att Apple och Google inte kan läsa den, och det kräver att telefonen har skärmlås (på iPhone också att iCloud-nyckelringen är påslagen).
+        Nyckeln går dit bara end-to-end-krypterad, så att Apple och Google inte kan läsa den, och det kräver att telefonen har skärmlås (på iPhone också att iCloud-nyckelringen är påslagen, och på Android att säkerhetskopiering från Google är påslagen).
         Utan skärmlås stannar nyckeln på telefonen; på Android följer den då bara med när du flyttar data direkt från telefon till telefon, och appen föreslår en återställningskod eller en nyckelöverföring.
+        På Android hämtar en ny telefon nyckeln ur Block Store bara när den sätts upp från en säkerhetskopia eller från den gamla telefonen.
         I iCloud-nyckelringen finns nyckeln också på dina andra enheter med samma Apple-konto, till exempel iPad och Mac, och den följer med en krypterad säkerhetskopia av iPhonen.</li>
         <li><strong>I en återställningskod</strong>, om du vill: appen visar koden när du ber om det under <em>Konto</em>, och du skriver ner den själv.
         Den som har koden och kommer åt ditt konto kan läsa din egenvård, så förvara den som ett lösenord.
@@ -138,8 +139,10 @@
       <p>Kontot raderar du i appen under <em>Konto → Radera kontot</em>, eller utan appen på <a href="{{deletion}}">{{deletion}}</a>.
       Du bekräftar genom att logga in en gång till; har kontot en Apple-inloggning bekräftar du med Apple.
       Kontot, dess inloggningar, inloggningarna på dina enheter, molnsparningen, de låsta bidragsdelarna och en pågående nyckelöverföring tas då bort från databasen direkt, och inom 30 dagar även ur säkerhetskopiorna.
-      Raderar du kontot i appen tar appen samtidigt bort bidragsnyckeln från telefonen och försöker ta bort den ur iCloud-nyckelringen eller Block Store, som för borttagningen vidare till dina andra enheter.
-      Misslyckas det, eller raderar du kontot på webben, ligger nyckeln kvar där, liksom i krypterade säkerhetskopior av iPhonen som gjorts tidigare, men den öppnar ingenting längre, eftersom servern redan raderat allt den skulle öppna.
+      Raderar du kontot i appen tar appen samtidigt bort bidragsnyckeln från telefonen och försöker ta bort den ur nyckelbackupen.
+      iCloud-nyckelringen för borttagningen vidare till dina andra enheter.
+      Block Store tar bara bort nyckeln från den telefon där du raderar kontot, och ur telefonens säkerhetskopia först vid nästa säkerhetskopiering; nyckelbackupen på den andra plattformen rörs inte.
+      Misslyckas det, eller raderar du kontot på webben, ligger nyckeln kvar i nyckelbackupen, liksom på en Android-telefon som redan hämtat den ur Block Store och i krypterade säkerhetskopior av iPhonen som gjorts tidigare, men den öppnar ingenting längre, eftersom servern redan raderat allt den skulle öppna.
       En återställningskod du skrivit ner slänger du själv.
       Att bara logga ut raderar inte kontot.</p>
       <p>Du har rätt att få veta vilka uppgifter vi har om dig och att få dem rättade, raderade eller utlämnade.
@@ -241,8 +244,9 @@
       <ul>
         <li><strong>On the phone</strong>, next to the sign-in key: in the iOS keychain or encrypted with a key in the Android Keystore.</li>
         <li><strong>In the key backup</strong>, iCloud Keychain on iPhone and Block Store on Android, so that a new phone on the same platform finds it without asking.
-        The key goes there only end-to-end encrypted, so that Apple and Google cannot read it, which requires the phone to have a screen lock (on iPhone also that iCloud Keychain is turned on).
+        The key goes there only end-to-end encrypted, so that Apple and Google cannot read it, which requires the phone to have a screen lock (on iPhone also that iCloud Keychain is turned on, and on Android that backup by Google is turned on).
         Without a screen lock the key stays on the phone; on Android it then moves only when you transfer data directly from phone to phone, and the app suggests a recovery code or a key transfer.
+        On Android a new phone gets the key from Block Store only when it is set up from a backup or from the old phone.
         In iCloud Keychain the key is also on your other devices with the same Apple account, for example iPad and Mac, and it is included in an encrypted backup of the iPhone.</li>
         <li><strong>In a recovery code</strong>, if you want one: the app shows the code when you ask for it under <em>Konto</em> (Account), and you write it down yourself.
         Anyone who has the code and can get into your account can read your self-care, so keep it like a password.
@@ -277,8 +281,10 @@
       <p>You delete the account in the app under <em>Konto → Radera kontot</em> (Account → Delete account), or without the app at <a href="{{deletion}}">{{deletion}}</a>.
       You confirm by signing in once more; if the account has an Apple login, you confirm with Apple.
       The account, its logins, the sign-ins on your devices, the cloud save, the locked contribution parts and any pending key transfer are then removed from the database at once, and from the backups within 30 days.
-      If you delete the account in the app, the app also removes the contribution key from the phone and tries to remove it from iCloud Keychain or Block Store, which pass the removal on to your other devices.
-      If that fails, or if you delete the account on the web, the key stays there, as it does in encrypted iPhone backups made earlier, but it no longer opens anything, because the server has already deleted everything it would open.
+      If you delete the account in the app, the app also removes the contribution key from the phone and tries to remove it from the key backup.
+      iCloud Keychain passes the removal on to your other devices.
+      Block Store removes the key only from the phone where you delete the account, and from that phone's backup only at its next backup; the key backup on the other platform is not touched.
+      If that fails, or if you delete the account on the web, the key stays in the key backup, as it does on an Android phone that has already fetched it from Block Store and in encrypted iPhone backups made earlier, but it no longer opens anything, because the server has already deleted everything it would open.
       A recovery code you have written down is yours to throw away.
       Signing out alone does not delete the account.</p>
       <p>You have the right to know which information we hold about you and to have it corrected, deleted or handed over.

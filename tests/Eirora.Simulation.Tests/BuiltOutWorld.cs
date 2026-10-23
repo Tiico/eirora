@@ -9,21 +9,21 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests;
 
 /// <summary>
-/// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue,
-/// an expedition at sea or the sea route open, workdays, felled forest, ripening fields and sheep, and now and then
-/// stores filled to the brim (TASK-049).
+/// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
+/// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
+/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
-/// the world; a jetty, a sawmill, the expedition and Nyön come first, so that most worlds with self-care reach the sea
-/// route. Everything is drawn from the seed, so the same seed gives the same world.
+/// the world; a jetty, a sawmill, the expedition and a jetty on each island it knows come first, so that most worlds
+/// with self-care reach a sea route. One world in four is built on the <see cref="Archipelago"/>, where it knows a
+/// second island from the start, so that it can have three stores and two sea routes (TASK-045). Everything is drawn
+/// from the seed, so the same seed gives the same world.
 /// </remarks>
 internal static class BuiltOutWorld
 {
     private const long Hour = 3600;
 
-    // Where a building is sought: Hemön and its waters, and Nyön, as in Scenario.
-    private static readonly Hex[] s_sites = [.. Hex.Origin.Within(6), .. PrototypeHome.NyonCentre.Within(2)];
     private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
     // What a settlement builds first at home: a jetty for the expedition, planks and stone for everything after.
@@ -44,11 +44,13 @@ internal static class BuiltOutWorld
     /// <summary>The world as its save, with the journal of everything that built it, as the client would keep it.</summary>
     public static Save GenerateSave(int seed) => GenerateSave(seed, (SelfCare)(Math.Abs(seed) % 3));
 
-    public static Save GenerateSave(int seed, SelfCare selfCare)
+    public static Save GenerateSave(int seed, SelfCare selfCare) => GenerateSave(seed, selfCare, archipelago: Math.Abs(seed % 4) == 3);
+
+    public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago)
     {
         var random = new Random(~seed);
-        var scenario = Scenario.Generate(seed, length: 30);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var scenario = Scenario.Generate(seed, length: 30, archipelago);
+        var save = scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)
         {
@@ -119,6 +121,22 @@ internal static class BuiltOutWorld
             save.Apply($"out-{key++}", new Workday(worked));
         }
 
+        // Before leaving, the player may pause a building, give another villagers first or put a project first.
+        if (random.Next(2) == 0 && BuiltSite(world, random.Next(int.MaxValue), b => !b.Paused) is Hex paused)
+        {
+            save.Apply($"out-{key++}", new PauseBuilding(paused));
+        }
+
+        if (random.Next(2) == 0 && StaffingMove(world, random.Next(int.MaxValue), random.Next(int.MaxValue)) is { } prioritize)
+        {
+            save.Apply($"out-{key++}", prioritize);
+        }
+
+        if (random.Next(2) == 0 && QueueMove(world, random.Next(int.MaxValue)) is { } first)
+        {
+            save.Apply($"out-{key++}", first);
+        }
+
         // The player may leave at any moment of the day, also just before or during the rest.
         save.AdvanceTo(Shift(world.Now, random.Next((int)(20 * Hour))));
         return save;
@@ -140,9 +158,9 @@ internal static class BuiltOutWorld
     }
 
     /// <summary>
-    /// A command that suits the world, or none: a jetty, a sawmill and a quarry, the expedition and Nyön's jetty first,
-    /// then a little of everything. A few projects at a time, and a building that needs staff only while villagers are
-    /// left to build, as a player builds while the villagers keep up.
+    /// A command that suits the world, or none: a jetty, a sawmill and a quarry, the expedition and a jetty on each island
+    /// it knows first, then a little of everything. A few projects at a time, and a building that needs staff only while
+    /// villagers are left to build, as a player builds while the villagers keep up.
     /// </summary>
     private static GameCommand? Suited(World world, Random random, bool expeditionLast)
     {
@@ -151,12 +169,12 @@ internal static class BuiltOutWorld
         bool building = world.Projects.Count < 4;
         int staffAfterQueue = world.FreeVillagers - world.Projects.Where(p => p.Kind == ProjectKind.Build).Sum(p => world.Content.For(p.Building).Staff);
         bool Staffable((BuildingKind Kind, Hex Site) c) => world.Content.For(c.Kind).Staff == 0 || staffAfterQueue - world.Content.For(c.Kind).Staff >= 2;
-        bool Wanting(BuildingKind kind, IslandId island) =>
+        bool Wanting(BuildingKind kind, string island) =>
             building && !settlement.HasBuilt(kind, island) && !world.Projects.Any(p => p.Building == kind && settlement.IslandOf(p.Tile) == island);
 
         foreach (var first in s_first)
         {
-            if (Wanting(first, IslandId.Home) && FreeSite(world, pick, c => c.Kind == first && settlement.IslandOf(c.Site) == IslandId.Home) is { } site)
+            if (Wanting(first, world.HomeIsland) && FreeSite(world, pick, c => c.Kind == first && settlement.IslandOf(c.Site) == world.HomeIsland) is { } site)
             {
                 return new Build(site.Kind, site.Site);
             }
@@ -167,27 +185,49 @@ internal static class BuiltOutWorld
             return new SendExpedition();
         }
 
-        if (Wanting(BuildingKind.Jetty, IslandId.Nyon) && FreeSite(world, pick, c => c.Kind == BuildingKind.Jetty && settlement.IslandOf(c.Site) == IslandId.Nyon) is { } landing)
+        var known = world.Map.Islands.Select(i => i.Id).Where(i => i != world.HomeIsland && world.Map.Features.LandOf(i).Any(world.IsKnown)).ToList();
+        foreach (var island in known)
         {
-            return new Build(landing.Kind, landing.Site);
+            if (Wanting(BuildingKind.Jetty, island) && FreeSite(world, pick, c => c.Kind == BuildingKind.Jetty && settlement.IslandOf(c.Site) == island) is { } landing)
+            {
+                return new Build(landing.Kind, landing.Site);
+            }
         }
 
-        if (building && random.Next(2) == 0 && settlement.HasBuilt(BuildingKind.Jetty, IslandId.Nyon)
-            && FreeSite(world, pick, c => settlement.IslandOf(c.Site) == IslandId.Nyon && Staffable(c)) is { } nyon)
+        var landed = known.Where(i => settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
+        if (building && random.Next(2) == 0 && landed.Count > 0
+            && FreeSite(world, pick, c => settlement.IslandOf(c.Site) == landed[pick % landed.Count] && Staffable(c)) is { } across)
         {
-            return new Build(nyon.Kind, nyon.Site);
+            return new Build(across.Kind, across.Site);
         }
 
-        return random.Next(10) switch
+        return random.Next(12) switch
         {
             < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
             4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
             6 => BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue) is Hex road ? new BuildRoad(road) : null,
             7 => BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday) is Hex worked ? new Workday(worked) : null,
             8 => new Survey(),
+            9 => BuiltSite(world, pick, _ => true) is Hex tile ? (world.BuildingAt(tile)!.Paused ? new ResumeBuilding(tile) : new PauseBuilding(tile)) : null,
+            10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),
             _ => new Rush(),
         };
     }
+
+    /// <summary>A building that needs staff moved to another place in the staffing order, or none.</summary>
+    private static Prioritize? StaffingMove(World world, int pick, int place)
+    {
+        var order = world.StaffingOrder;
+        return order.Count > 1 && order[pick % order.Count] is var moved && order[place % order.Count] != moved
+            ? new Prioritize(moved.Tile, place % order.Count)
+            : null;
+    }
+
+    /// <summary>A project that is not first in the queue moved first, or none.</summary>
+    private static QueueFirst? QueueMove(World world, int pick) =>
+        world.Projects.Count > 1 && world.Projects[1 + (pick % (world.Projects.Count - 1))] is var project
+            ? new QueueFirst(project.Kind, project.Tile)
+            : null;
 
     /// <summary>
     /// One of the affordable buildings that the settlement would take on a tile and that is <paramref name="wanted"/>,
@@ -197,7 +237,7 @@ internal static class BuiltOutWorld
     {
         var free = s_buildings
             .Where(k => world.Settlement.CanAfford(world.Content.For(k).Cost))
-            .Select(k => s_sites.Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
+            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
             .Where(sites => sites.Count > 0)
             .ToList();
         if (free.Count == 0)

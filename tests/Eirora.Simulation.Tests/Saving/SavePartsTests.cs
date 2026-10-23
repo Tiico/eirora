@@ -129,7 +129,7 @@ public sealed class SavePartsTests
     private static Save PlayedSave(int seed)
     {
         var scenario = Scenario.Generate(seed);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var save = scenario.Begin();
         foreach (var input in scenario.Inputs)
         {
             SaveTests.Apply(input, save);

@@ -26,6 +26,8 @@ namespace Eirora.Client.Look
         private readonly MeshFilter _settlement;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
+        private readonly MeshFilter _standingStill;
+        private readonly List<Hex> _markedStandingStill = new();
         private readonly List<Mesh> _meshes = new();
 
         public IslandView(Transform parent, Material flat, Material glow, Looks looks)
@@ -38,12 +40,26 @@ namespace Eirora.Client.Look
             _lights = Create("Lights", parent, glow);
             _lights.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selection = Create("Selection", parent, flat);
+
+            // The signs float above the roofs; a shadow on the ground below would read as something standing there.
+            _standingStill = Create("Standing still", parent, flat);
+            _standingStill.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         /// <summary>The map drawn, or null before the first world is shown.</summary>
         public IslandMap? Map { get; private set; }
 
-        public void Refresh(World world)
+        /// <summary>The buildings marked as standing still, by tile (TASK-043).</summary>
+        public IReadOnlyList<Hex> MarkedStandingStill => _markedStandingStill;
+
+        /// <summary>
+        /// The world's diagnosis while the villagers are awake, and null while they rest, when the village marks nothing
+        /// as standing still (art-direction.md, section 2, principle 3). The island and the sheets read it alike.
+        /// </summary>
+        public static Diagnostics? DiagnoseWhileAwake(World world) => world.Phase == Phase.Active ? world.Diagnose() : null;
+
+        /// <param name="diagnostics">The diagnosis to mark from, shared with the sheets; taken here when not given.</param>
+        public void Refresh(World world, Diagnostics? diagnostics = null)
         {
             if (Map?.WorldMap.Hash != world.Map.Hash)
             {
@@ -98,12 +114,22 @@ namespace Eirora.Client.Look
                 }
             }
 
+            // Buildings that stand still are marked while the villagers are awake; at night the whole village rests.
+            var signs = new MeshBuilder();
+            diagnostics ??= DiagnoseWhileAwake(world);
+            _markedStandingStill.Clear();
             int villager = 0;
             foreach (var building in world.Buildings)
             {
                 var hex = building.Tile;
                 var c = hex.Center() + (Vector3.up * Models.Height(map.Tiles[hex]));
                 _looks.Building(mesh, lights, building.Kind, building.Level, c, Seed(hex));
+                if (diagnostics?.At(hex)?.StandsStill == true)
+                {
+                    StandingStill.Draw(signs, hex.Center() + (Vector3.up * Mathf.Max(Models.Height(map.Tiles[hex]), 0f)), App.CameraRig.Pitch);
+                    _markedStandingStill.Add(hex);
+                }
+
                 if (building.Staffed && world.Phase == Phase.Active)
                 {
                     Models.Villager(mesh, c + new Vector3(-0.42f, 0f, -0.45f), villager++);
@@ -120,9 +146,10 @@ namespace Eirora.Client.Look
                 }
             }
 
-            SeaRoute(mesh, world);
+            SeaRoutes(mesh, world);
             mesh.WriteTo(_settlement.sharedMesh);
             lights.WriteTo(_lights.sharedMesh);
+            signs.WriteTo(_standingStill.sharedMesh);
         }
 
         /// <summary>Marks the selected hex with a glowing rim, or clears the mark.</summary>
@@ -210,31 +237,25 @@ namespace Eirora.Client.Look
         }
 
         /// <summary>
-        /// The fairway between the jetties once ships sail, and the expedition's boat while it is out: along the shortest
-        /// way by sea, from shore to shore, wherever the jetties stand (D-89).
+        /// The fairway of each sea route between its jetty and the home island's, with a ship on it, and the expedition's
+        /// boat while it is out: along the shortest way by sea, from shore to shore, wherever the jetties stand (D-89).
         /// </summary>
-        private static void SeaRoute(MeshBuilder mesh, World world)
+        private static void SeaRoutes(MeshBuilder mesh, World world)
         {
-            var home = JettyOn(world, IslandId.Home);
+            var home = JettyOn(world, world.HomeIsland);
             if (home is null)
             {
                 return;
             }
 
-            var destination = world.SeaRouteOpen ? JettyOn(world, IslandId.Nyon) : world.ExpeditionFinds;
-            if (destination is null)
+            foreach (var route in world.SeaRoutes)
             {
-                return;
-            }
+                var way = Way(world, home.Value, JettyOn(world, route.From)!.Value);
+                if (way.Count < 2)
+                {
+                    continue;
+                }
 
-            var way = Fairway(world.Map.Features.SeaRoute(new[] { home.Value }, new[] { destination.Value }));
-            if (way.Count < 2)
-            {
-                return;
-            }
-
-            if (world.SeaRouteOpen)
-            {
                 float length = Length(way);
                 int dashes = Mathf.Max(3, Mathf.RoundToInt(length / 0.6f) | 1); // Odd, so the line starts and ends with a dash.
                 for (int i = 0; i < dashes; i += 2)
@@ -247,14 +268,17 @@ namespace Eirora.Client.Look
 
                 Models.Boat(mesh, Along(way, length * 0.55f), 0f);
             }
-            else if (world.ExpeditionHoursLeft > 0)
+
+            if (world.ExpeditionHoursLeft > 0 && world.ExpeditionFinds is Hex finds && Way(world, home.Value, finds) is { Count: >= 2 } voyage)
             {
                 float sailed = 1f - (world.ExpeditionHoursLeft / (float)PrototypeIsland.ExpeditionHours);
-                Models.Boat(mesh, Along(way, Length(way) * Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
+                Models.Boat(mesh, Along(voyage, Length(voyage) * Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
             }
         }
 
-        private static Hex? JettyOn(World world, IslandId island) =>
+        private static List<Vector3> Way(World world, Hex from, Hex to) => Fairway(world.Map.Features.SeaRoute(new[] { from }, new[] { to }));
+
+        private static Hex? JettyOn(World world, string island) =>
             world.Buildings.Where(b => b.Kind == BuildingKind.Jetty && b.Island == island).Select(b => (Hex?)b.Tile).FirstOrDefault();
 
         /// <summary>The way through the sea tiles' centres, from where it leaves one shore to where it meets the other.</summary>

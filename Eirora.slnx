@@ -10,9 +10,11 @@
     <Project Path="src/Eirora.WorldGeneration/Eirora.WorldGeneration.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Eirora.Balance/Eirora.Balance.csproj" />
     <Project Path="tools/Eirora.MapCheck/Eirora.MapCheck.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Eirora.Balance.Tests/Eirora.Balance.Tests.csproj" />
     <Project Path="tests/Eirora.CloudSaving.Tests/Eirora.CloudSaving.Tests.csproj" />
     <Project Path="tests/Eirora.Server.Tests/Eirora.Server.Tests.csproj" />
     <Project Path="tests/Eirora.Simulation.Tests/Eirora.Simulation.Tests.csproj" />

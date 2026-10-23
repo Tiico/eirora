@@ -29,7 +29,7 @@ namespace Eirora.Client.Tests
             var world = session.World!;
 
             Assert.That(world.BuildingAt(ScriptedWeek.Sawmill)!.Level, Is.EqualTo(2));
-            Assert.That(world.SeaRouteOpen, Is.True);
+            Assert.That(world.SeaRoutes.Select(r => r.From), Is.EqualTo(new[] { PrototypeHome.Nyon }));
             Assert.That(
                 world.Buildings.Select(b => $"{b.Kind}@{b.Tile}"),
                 Is.SupersetOf(new[] { "Longhouse@(-1, 0)", "Cottage@(0, -1)", "Lookout@(-1, 1)", "Jetty@(10, 0)", "SheepFarm@(10, 1)", "Quarry@(11, 0)" }));
@@ -38,6 +38,41 @@ namespace Eirora.Client.Tests
             var farmland = ScriptedWeek.EmptyFarmland;
             Assert.That(world.CheckBuild(BuildingKind.Field, farmland), Is.EqualTo(Simulation.Commands.Rejection.None));
             Assert.That(world.Projects.Any(p => p.Tile == farmland), Is.False);
+        }
+
+        [Test]
+        public void TheTourOrdersTheWorkWithoutARefusal()
+        {
+            var (session, clock) = Begin();
+            ScriptedWeek.Play(session, clock);
+            clock.Current = ScriptedWeek.At("2026-10-23 13:00");
+            session.CatchUp();
+
+            Assert.That(ScriptedWeek.OrderTheWork(session), Is.Empty);
+
+            var world = session.World!;
+            Assert.That(world.Projects.Count, Is.GreaterThanOrEqualTo(2), "Shot 19 shows a queue with a project to move first.");
+            Assert.That(world.Projects[0].Building, Is.EqualTo(BuildingKind.Cottage));
+            Assert.That(world.BuildingAt(ScriptedWeek.FishingHut)!.Paused, Is.True);
+        }
+
+        [Test]
+        public void TheTourWeekHasABuildingStandingStillABottleneckAndAFarBuildingToShow()
+        {
+            var (session, clock) = Begin();
+            ScriptedWeek.Play(session, clock);
+
+            // Shot 04-standing-still, on the seventh afternoon.
+            clock.Current = ScriptedWeek.At("2026-10-21 13:00");
+            session.CatchUp();
+            Assert.That(session.World!.Diagnose().Buildings.Any(b => b.StandsStill), Is.True);
+
+            // Shots 13-bottleneck and 13-long-way, two days later.
+            clock.Current = ScriptedWeek.At("2026-10-23 13:00");
+            session.CatchUp();
+            var diagnosis = session.World!.Diagnose();
+            Assert.That(diagnosis.BottleneckOn(session.World!.HomeIsland), Is.Not.Null);
+            Assert.That(diagnosis.Buildings.Any(b => b.Hindrances.OfType<LongWay>().Any()), Is.True);
         }
 
         private static (GameSession Session, FixedClock Clock) Begin()

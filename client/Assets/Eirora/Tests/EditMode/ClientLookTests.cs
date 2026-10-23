@@ -7,6 +7,7 @@ using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
+using Eirora.WorldGeneration;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -50,7 +51,21 @@ namespace Eirora.Client.Tests
         {
             Assert.That(Texts.Describe(new ExpeditionReturned(1, PrototypeHome.Nyon)), Is.EqualTo("Expeditionen kom hem. Den hittade Nyön i öster."));
             Assert.That(Texts.Describe(new ExpeditionReturned(1, "first")), Is.EqualTo("Expeditionen kom hem. Den hittade en ny ö."));
-            Assert.That(Texts.IslandName("first"), Is.EqualTo("den nya ön"));
+        }
+
+        // The jetty's sheet tells the islands apart (TASK-045): the home island, Nyön or the island the expedition finds,
+        // and any other by where it lies, as the map lies on the screen with north up.
+        [Test]
+        public void EveryIslandHasANameTheJettysSheetCanTellApart()
+        {
+            var prototype = World.Create(At("2026-10-14 14:00"), s_night);
+            Assert.That(Texts.IslandName(prototype, PrototypeHome.Home), Is.EqualTo("Hemön"));
+            Assert.That(Texts.IslandName(prototype, PrototypeHome.Nyon), Is.EqualTo("Nyön"));
+
+            var generated = World.Create(new ProceduralArchipelagoV1().Generate(ulong.MaxValue), At("2026-10-14 14:00"), s_night);
+            Assert.That(
+                new[] { "home", "first", "second", "skerry-2" }.Select(island => Texts.IslandName(generated, island)),
+                Is.EqualTo(new[] { "Hemön", "den nya ön", "ön i sydväst", "ön i norr" }));
         }
 
         [Test]

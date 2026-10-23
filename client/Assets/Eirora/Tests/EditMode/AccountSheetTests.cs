@@ -155,6 +155,39 @@ namespace Eirora.Client.Tests
             Assert.That(Labels().Any(l => l.Replace("\n", "-") == cloud.RecoveryCode), Is.True);
         }
 
+        // Without a screen lock the key does not follow to a new phone by itself (ADR-0008): the sheet says so beside the
+        // recovery code, and stops saying it once the phone has a screen lock.
+        [Test]
+        public void WithoutAScreenLockTheSheetSuggestsTheRecoveryCodeOrAKeyTransfer()
+        {
+            const string Suggestion = "Telefonen har inget skärmlås, så nyckeln till din egenvård följer inte med till en ny telefon av sig själv. Skriv ner återställningskoden, eller skicka nyckeln med QR-koden när du byter telefon.";
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var backup = new MemoryKeyBackup { Reach = KeyBackupReach.ThisPhone };
+            var cloud = new CloudSaveSync(_account, _game, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask, backup: backup);
+            _hud.UseCloudSync(cloud);
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            _hud.OpenAccount();
+            Assert.That(Labels(), Does.Contain(Suggestion));
+
+            backup.Reach = KeyBackupReach.EndToEnd;
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            Assert.That(Labels(), Does.Not.Contain(Suggestion));
+            Assert.That(Labels(), Does.Contain("Visa återställningskod"));
+
+            backup.Reach = KeyBackupReach.ThisPhone;
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+            Assert.That(Labels(), Does.Contain(Suggestion));
+            backup.Reach = null; // The platform could not say: the sheet claims no missing screen lock.
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            Assert.That(Labels(), Does.Not.Contain(Suggestion));
+            Assert.That(Labels(), Does.Contain("Visa återställningskod"));
+        }
+
         [Test]
         public void ANewPhoneIsAskedForTheKeyBeforeAnythingIsDownloaded()
         {

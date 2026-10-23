@@ -14,26 +14,19 @@ force Exploration 1162 1
 force BuildPower 740 3
 force DawnPower 7338 1
 settlement 20 1 0
-stock Home Fish 132812500
-stock Home Grain 150000000
-stock Home Timber 150000000
-stock Home Planks 0
-stock Home Stone 5000000
-stock Home Wool 0
-stock Home Wadmal 0
-stock Nyon Fish 0
-stock Nyon Grain 0
-stock Nyon Timber 0
-stock Nyon Planks 0
-stock Nyon Stone 0
-stock Nyon Wool 0
-stock Nyon Wadmal 0
-building Storehouse 0 0 1 1 0 0 0
-building FishingHut 1 0 1 1 0 0 0
-building Field 0 1 1 1 0 0 915250000
-building Woodcutter 1 -1 2 1 0 0 0
-building Cottage -2 -1 1 0 0 0 0
-building Weavery 0 -1 1 1 0 0 0
+stock home Fish 132812500
+stock home Grain 150000000
+stock home Timber 150000000
+stock home Planks 0
+stock home Stone 5000000
+stock home Wool 0
+stock home Wadmal 0
+building Storehouse 0 0 1 1 0 0 0 0
+building FishingHut 1 0 1 1 0 0 0 0
+building Field 0 1 1 1 0 0 915250000 0
+building Woodcutter 1 -1 2 1 0 0 0 0
+building Cottage -2 -1 1 0 0 0 0 0
+building Weavery 0 -1 1 1 0 0 0 0
 fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c0000000007f0000000003fc000000000ff8000000001ff0000000001ff0000000000ff8000000000f70000000001be0000000007f0000000000f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 selfcare 0 Sleep Verified 304
 selfcare 1 Steps Verified 19584

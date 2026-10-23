@@ -175,7 +175,7 @@ public sealed class SaveMergeTests
     private static Save PlayedSave(int seed)
     {
         var scenario = Scenario.Generate(seed, 30);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
+        var save = scenario.Begin();
         foreach (var input in scenario.Inputs)
         {
             SaveTests.Apply(input, save);

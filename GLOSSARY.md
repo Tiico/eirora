@@ -11,6 +11,7 @@ _Avoid_: rike, sparfil, karta (när hela världen avses)
 
 **Ö** (`Island`):
 En sammanhängande landmassa i en värld, omgiven av hav.
+Öarna och deras id kommer från kartan, och varje ö där spelaren har byggt har eget lager (TASK-045).
 _Avoid_: region (när en ö avses)
 
 **Arkipelag** (`Archipelago`):
@@ -19,6 +20,7 @@ _Avoid_: delad värld, server, lobby
 
 **Sjöväg** (`SeaRoute`):
 En förbindelse över havet mellan två hamnar, inom en värld eller mellan två världar i en arkipelag.
+Inom en värld har varje ö med brygga en egen sjöväg till hemön, med egen kapacitet (TASK-045).
 _Avoid_: handelsrutt (när förbindelsen i sig avses)
 
 **Karta** (`WorldMap`):
@@ -28,7 +30,7 @@ _Avoid_: värld (när bara kartan avses), seed
 
 **Ruta** (`HexTile`):
 En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landruta är en möjlig byggplats (D-79).
-_Avoid_: bricka, cell, plats
+_Avoid_: ruta, cell, plats
 
 **Byggplats**:
 En ruta som uppfyller en byggnads krav (`TileUse`), till exempel skog, berg, fiskevatten eller hamnläge; vad rutan duger till följer av terräng, höjd och grannar och sparas inte (D-79).
@@ -46,7 +48,7 @@ _Avoid_: hamnplats, kaj, strand (som krav)
 
 **Topp** (`Crest`):
 Startöns enda högsta ruta, där Vårdkasen byggs och som inte bär något annat (D-92); delar två rutor den högsta höjden finns ingen topp.
-_Avoid_: krön, högsta punkt, berg
+_Avoid_: topp, högsta punkt, berg
 
 **Generator** (`WorldGenerator`):
 Det som skapar en karta, av en källtyp och med en fast generatorversion.
@@ -72,28 +74,44 @@ _Avoid_: fog of war, mörker
 ## Civilisation och ekonomi
 
 **Bosättning** (`Settlement`):
-En ös byggnader, bybor, bostäder och lager, grundad av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
-_Avoid_: by, stad (som generella termer)
+En ös byggnader, bybor, bostäder och lager, anlagd av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
+_Avoid_: by, stad (som generella termer), grundande (som är det en ny värld börjar med)
 
 **Bybor** (`Villagers`):
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
 _Avoid_: invånare, befolkning, NPC:er
 
+**Bemanningsordning** (`StaffingOrder`):
+Den ordning som byggnaderna får bybor i när byborna inte räcker till alla, från början byggordningen; spelaren kan ändra den utan kraft (TASK-044).
+_Avoid_: prioritetslista, kö (om bemanningen)
+
+**Pausad byggnad** (`Paused`):
+En byggnad som spelaren har pausat: den bemannas inte och dess bybor bygger, men nivå och lager står kvar tills den återupptas (D-39).
+_Avoid_: avstängd, riven
+
+**Byggkö** (`Projects`):
+Byggen, uppgraderingar och vägar som väntar på de lediga bybornas arbete, i den ordning de får det; spelaren kan flytta ett projekt först (TASK-044).
+_Avoid_: bygglista, order
+
 **Basbehov** (`BasicNeed`):
-Det byborna förbrukar varje dag, i v1 mat; brist stoppar bara tillväxt, aldrig något som redan finns.
+Det behov som alla befolkningsnivåer har, mat, en per bybo och dag; brist stoppar bara tillväxt, aldrig något som redan finns.
 _Avoid_: hunger, underhåll
 
 **Förråd** (`Depot`):
-En byggnad som lagrar resurser och som produktionens avstånd räknas till; en brygga räknas också som förråd för avstånd.
+En byggnad som lagrar resurser och vars bärare hämtar det byggnaderna närmast gör; en brygga är också ett förråd, med ett mindre lager (D-107).
 _Avoid_: lager (om byggnaden), magasin
 
 **Bärare** (`Carrier`):
-Det som flyttar varor på land mellan produktion, förråd och mottagare, en begränsad mängd per timme; vägar gör bärarna snabbare (D-107).
+Bybor som ett förråd eller en brygga anställer själv vid gryningen, en till fyra, för att flytta varor på land mellan byggnaderna och förrådet; avståndet kostar bärartid, och vägar gör bärarna snabbare (D-107, D-109, D-110).
 _Avoid_: transportör, kärra (som term)
 
 **Minimilager** (`Reserve`):
 En gratis planeringsinställning som anger hur mycket av en råvara förädlingen alltid lämnar kvar.
 _Avoid_: buffert, spärr
+
+**Flaskhals** (`Bottleneck`):
+Det som just nu håller tillbaka en byggnad eller en ö mest: en paus, bemanning som saknas, råvara under minimilagret, fälld skog, fullt lager eller lång väg till förrådet; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
+_Avoid_: blockering, stopp (som term)
 
 **Långsam process** (`SlowProcess`):
 En naturlig förändring i världen som fortgår även under vilan, till exempel skogsväxt eller mognad.
@@ -106,6 +124,42 @@ _Avoid_: gratisbygge, långsamt läge
 **Runsten** (`RuneStone`):
 Byggnaden där forskningen ristas och där världens historik bevaras.
 _Avoid_: forskningscenter, bibliotek
+
+**Befolkningsnivå** (`PopulationTier`):
+Det steg en bybo har nått, i epok 1 torpare, bönder eller hantverkare, med egna bostäder, behov och byggnader att arbeta i; en bybo stiger när nivåns behov uppfylls och går aldrig tillbaka (D-105, D-39, D-115).
+_Avoid_: klass, rang, stånd
+
+**Torpare** (`Crofters`):
+Den första befolkningsnivån: alla bybor börjar som torpare, bor i stugor och långhus och behöver bara mat.
+_Avoid_: trälar, arbetare
+
+**Bönder** (`Farmers`):
+Den andra befolkningsnivån, som torpare stiger till när de får kläder; bor i bondgårdar och kan också bemanna bryggeri, mjöderi och tjärdal.
+_Avoid_: odlare, jordbrukare (som nivå)
+
+**Hantverkare** (`Craftsmen`):
+Den tredje befolkningsnivån i epok 1, som bönder stiger till när de också får dryck; bor i hantverkargårdar, bygger dubbelt så fort och bemannar varvet (D-116).
+_Avoid_: mästare, borgare
+
+**Behov** (`Need`):
+Det en befolkningsnivå förbrukar varje dag, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
+_Avoid_: krav, efterfrågan, hunger
+
+**Upplåsning** (`Unlock`):
+Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga i hela världen när någon bosättning uppfyller stegets villkor, till exempel en viss storlek; ett steg som nåtts låses aldrig igen (D-105, D-114).
+_Avoid_: nivå (om steget), teknikträd
+
+**Utlager** (`OutputBuffer`):
+Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret är fullt stannar byggnaden, och inget går förlorat (D-107).
+_Avoid_: buffert, kö (om varorna)
+
+**Väg** (`Road`):
+En ruta där bärarna går dubbelt så fort; vägar läggs ruta för ruta och hjälper alla bärare som går över dem (D-112).
+_Avoid_: stig, gata
+
+**Knarr** (`Knarr`):
+Ett lastskepp som varvet bygger och som ökar sjövägarnas kapacitet till och från varvets ö.
+_Avoid_: skepp (när knarren som kapacitet avses), båt
 
 ## Egenvård och krafter
 
@@ -127,11 +181,11 @@ _Avoid_: stegpoäng
 
 **Styrka** (`BuildPower`):
 Kraften från träningspass; driver större byggprojekt och uppgraderingar.
-_Avoid_: byggkraft, träningspoäng, arbetskraft
+_Avoid_: Styrka, träningspoäng, arbetskraft
 
 **Ork** (`DawnPower`):
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
-_Avoid_: gryningskraft, sömnpoäng, vilobonus
+_Avoid_: Ork, sömnpoäng, vilobonus
 
 **Grundande** (`Founding`):
 Det en ny värld börjar med på sin karta: startbyns byggnader, kartläggningarnas dolda rutor och ön som den första expeditionen hittar.
@@ -178,7 +232,7 @@ _Avoid_: fusk, overifierat, manuell data
 
 **Vilotid** (`RestPeriod`):
 Spelarens återkommande, självvalda dagliga period om 6–10 timmar då byborna sover.
-_Avoid_: viloperiod, natt, sovtid, offlinetid
+_Avoid_: vilotid, natt, sovtid, offlinetid
 
 **Vilolås** (`RestLock`):
 Regeln att inga spelpåverkande handlingar kan utföras under vilotiden.
@@ -199,7 +253,7 @@ _Avoid_: påminnelse, push
 **Dag** (`GameDay`):
 Tiden från en gryning till nästa; enheten som krafter räknas per.
 När det behöver skiljas från kalenderdygnet heter det dag i spelet.
-_Avoid_: spelardygn, kalenderdygn (när dagen i spelet avses)
+_Avoid_: dag, kalenderdygn (när dagen i spelet avses)
 
 **Frånvaro** (`Absence`):
 Tiden då spelaren inte öppnar spelet; världen spolas fram till klockan när spelaren kommer tillbaka och är minst lika utvecklad som förut, hur länge frånvaron än varade (INV-V4).
@@ -338,7 +392,11 @@ _Avoid_: arkiv, gammal backup
 
 **Nyckelöverföring** (`KeyTransfer`):
 Bidragsnyckelns väg från en av spelarens telefoner till en annan via servern, som bara förmedlar den förseglad för den nya telefonens engångsnyckel och glömmer den inom tio minuter.
-_Avoid_: nyckelsynk (som är plattformens nyckelring), nyckeldelning
+_Avoid_: nyckelsynk (som är nyckelbackupen), nyckeldelning
+
+**Nyckelbackup** (`IKeyBackup`):
+Bidragsnyckelns kopia i plattformens end-to-end-krypterade backup, iCloud-nyckelringen på iOS och Block Store på Android, där en ny telefon på samma plattform hittar den utan att fråga; utan skärmlås stannar den på telefonen.
+_Avoid_: molnnyckel, nyckelsynk
 
 **Biljett** (`KeyTransferTicket`):
 Det den nya telefonen visar den gamla, i en QR-kod: överföringens id, den nya telefonens publika engångsnyckel och en hemlighet som aldrig går till servern; den är hemlig tills nyckeln levererats eller överföringen gått ut.
