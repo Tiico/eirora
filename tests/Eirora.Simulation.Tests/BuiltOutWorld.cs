@@ -143,8 +143,8 @@ internal static class BuiltOutWorld
 
     /// <summary>
     /// A command that suits the world, or none: a jetty, a sawmill and a quarry, the expedition and a jetty on each island
-    /// it knows first, then a little of everything. A few projects at a time, and a building that needs staff only while villagers are
-    /// left to build, as a player builds while the villagers keep up.
+    /// it knows first, then a little of everything. A few projects at a time, and a building that needs staff only while
+    /// villagers are left to build, as a player builds while the villagers keep up.
     /// </summary>
     private static GameCommand? Suited(World world, Random random, bool expeditionLast)
     {
