@@ -18,7 +18,7 @@ namespace Eirora.Simulation.Economy
     /// and night (INV-T5). Nothing is ever lost to time: a full store stops production and missing food only stops
     /// growth (D-17, D-39).
     /// </remarks>
-    internal sealed class Settlement
+    internal sealed partial class Settlement
     {
         public const long TickSeconds = 15 * 60;
 
@@ -983,12 +983,13 @@ namespace Eirora.Simulation.Economy
         /// <summary>A workday gives 150 % production until the next dawn.</summary>
         private static int WorkdayPercent(Building building) => building.WorkdayToday ? 150 : 100;
 
+        private int DistancePercent(Building building) => DistancePercent(DepotDistance(building.Tile), building.HasRoad);
+
         /// <summary>Share of production that reaches the store: 100, 75 or 50 % by distance, one step better with a road.</summary>
-        private int DistancePercent(Building building)
+        private static int DistancePercent(int distance, bool road)
         {
-            int distance = DepotDistance(building.Tile);
             int step = distance <= 1 ? 0 : distance <= 3 ? 1 : 2;
-            if (building.HasRoad && step > 0)
+            if (road && step > 0)
             {
                 step--;
             }

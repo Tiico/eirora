@@ -166,6 +166,12 @@ namespace Eirora.Simulation
         /// <summary>Steps over land from a tile to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
         public int DepotDistance(Hex tile) => _settlement.DepotDistance(tile);
 
+        /// <summary>
+        /// Why each building produces what it does and what holds the world back (TASK-043): a reading that never changes
+        /// the world or its fingerprint (INV-D2).
+        /// </summary>
+        public Diagnostics Diagnose() => _settlement.Diagnose();
+
         /// <summary>Whether the fog has lifted from a tile (TASK-032); what lies under the fog stays unknown.</summary>
         public bool IsKnown(Hex hex) => _settlement.Fog.IsKnown(hex);
 

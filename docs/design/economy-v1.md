@@ -181,6 +181,35 @@ Spelaren bestämmer vad byborna arbetar med (CIV-02, TASK-044).
   Varje sjöväg för 40 enheter per spelardygn, delat mellan alla varor, i varornas fasta ordning tills spelaren får importprioritet (TASK-046).
   Sjövägarna lastar av i kartans ordning när Hemöns lager bara rymmer en del.
 
+### Flaskhalsdiagnostik
+
+Spelaren ser alltid varför en vara inte når fram (CIV-05, LOG-03, TASK-043).
+Diagnostiken läser nästa aktiva kvart ur världen utan att ändra den (INV-D2) och ger varje producerande byggnad ett tillstånd: går för fullt, går långsammare eller står still.
+Skälen är de som reglerna ovan ger, i den ordning de verkar:
+
+| Skäl | Tillståndet | Vad bladet säger |
+|---|---|---|
+| Pausad av spelaren | Står still | Att den är pausad och vad pausen kostar |
+| Bemanning saknas | Står still | Hur många bybor som saknas efter byggnaderna före den i bemanningen |
+| Råvaran är under minimilagret | Står still eller går långsammare | Vilken råvara och hur mycket som saknas för en timmes arbete i full takt |
+| Skogen är fälld | Går långsammare eller står still | Hur många av skogsbrickorna som är fällda |
+| Lagret är fullt | Står still eller går långsammare | Vilken vara och hur mycket lagret rymmer |
+| Lång väg till förrådet | Går långsammare | Hur stor andel som når fram och vad en väg eller ett förråd intill skulle ge |
+
+Bemanningen spelar bara roll för det en byggnad producerar.
+Ett förråd eller en brygga utan sina bybor lagrar ändå och räknas ändå som förråd för avståndet, så de står aldrig still av det.
+
+Vad en väg, ett förråd intill eller byggnadens bybor skulle ge räknas genom samma kvart som produktionen, med råvarorna, skogen och lagrets plats som de är.
+Ett sågverk som ändå saknar timmer får alltså ingen vinst av en väg, och då är det timret som är skälet.
+
+Byggkön ingår inte: en kvart då ett bygge blir klart kan ge en byggnad bybor, en nivå eller en väg innan den arbetar, och diagnostiken visar då vad byggnaderna gör som de står nu.
+
+Varje sjöväg visar hur stor del av sin kapacitet den använder och vad som väntar på ön den går från; sjövägarna delar på platsen i Hemöns lager i kartans ordning.
+Varje ö får sin största flaskhals, skälet som kostar mest just nu, och när det är en råvara som saknas också var ett dagsverke gör mest nytta (avsnitt 6, beslut 3).
+En paus är spelarens eget val och blir aldrig öns flaskhals.
+Kartan markerar byggnader som står still med en skylt med två staplar medan byborna är vakna, så att formen och inte färgen bär det (UX-05).
+Senare regler, som bärarna i D-107, lägger till sina skäl utan att ändra hur diagnostiken läses.
+
 ### Logistiska avvägningar
 
 1. **Rikt och långt bort, eller fattigt och nära.**
