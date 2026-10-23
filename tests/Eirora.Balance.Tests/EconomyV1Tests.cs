@@ -55,8 +55,8 @@ public sealed class EconomyV1Tests
 
         Assert.True(
             played.Count == documented.Count && played.All(row => documented.TryGetValue(row.Key, out var doc) && doc == row),
-            "The bots no longer play the week section 7.1 of docs/design/economy-v1.md shows. If the change is meant, run " +
-            "`dotnet run --project tools/Eirora.Balance -- --suite economy-v1` and update the table:\n" + string.Join('\n', played.Select(r => r.ToMarkdown())));
+            "The bots no longer play the week section 7.1 of docs/design/economy-v1.md shows. If the change is meant, " +
+            "replace the rows of the table in section 7.1 with these (the tool's own report has more columns):\n" + string.Join('\n', played.Select(r => r.ToMarkdown())));
     }
 
     [Fact]

@@ -45,6 +45,9 @@ public sealed class BalanceRunTests
         {
             string name = $"seed {run.Spec.Map.Seed}, {run.Spec.Strategy.Name}";
             Assert.True(run.PlanFinishedOn is not null, $"{name} is stuck on: {string.Join(", ", run.GoalsPending)}.");
+
+            // A skipped goal also leaves nothing pending, so the plan is carried out only if none was skipped either.
+            Assert.True(run.GoalsSkipped.Count == 0, $"{name} skipped: {string.Join(", ", run.GoalsSkipped)}.");
             Assert.Equal(28 * 24, run.HoursChecked);
         });
         Assert.All(runs.Where(r => r.Spec.Strategy == Strategy.Sea), run => Assert.Equal(2, run.Islands));

@@ -280,7 +280,8 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
   Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad brickan ger, avståndet till förrådet och vad som redan står där.
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
 - Världen skapas en kvart före sin första gryning, så att spelardygn 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
-  Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta brickor aldrig minskar och att inga lager eller krafter blir negativa (INV-V1, INV-R1, INV-F1).
+  Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta brickor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
+- Produktionstakterna som botarna mäter och väljer byggplats efter är kopior av simuleringens, tills innehållskatalogen (TASK-042) gör dem läsbara; `ProductionRateTests` bygger varje producerande byggnad och kräver att ett spelardygns tillskott i lagret är det botarna räknar med.
 - Måtten är ekonomi v1:s: bybor, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
 
 Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).
@@ -306,8 +307,10 @@ dotnet run -c Release --project tools/Eirora.Balance -- --maps generated --from 
 ```
 
 `--maps prototype` (standard) spelar prototypens karta.
-Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, determinismen och de 20 genererade kartorna, sammanlagt några sekunder; längre körningar görs lokalt.
-Ändras balansen med avsikt, kör `--suite economy-v1` och för in den nya tabellen i [avsnitt 7.1](./design/economy-v1.md#71-balansbotarna-i-simuleringen).
+Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, produktionstakterna, determinismen och de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, sammanlagt några sekunder; längre körningar görs lokalt.
+Okända, upprepade eller överflödiga argument underkänns i stället för att tyst ge andra körningar.
+Ändras balansen med avsikt underkänns `TheBotsWeekIsTheOneEconomyV1Reports`, som skriver ut de nya raderna i samma format som tabellen i [avsnitt 7.1](./design/economy-v1.md#71-balansbotarna-i-simuleringen); byt raderna där mot dem.
+Verktygets egen rapport har fler kolumner och klistras inte in.
 
 ## Servern
 

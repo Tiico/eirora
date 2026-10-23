@@ -268,7 +268,7 @@ internal sealed class Sites
 
     /// <summary>
     /// The forest tiles a woodcutter on <paramref name="tile"/> fells: known forest on the tile and its neighbours that no
-    /// other building stands on, richest first, then in map order (how much timber is left is not shown to the player).
+    /// other building stands on, richest first, then fullest, then in map order, as the simulation fells them.
     /// </summary>
     public List<Hex> Woods(Hex tile, bool planning)
     {
@@ -286,7 +286,8 @@ internal sealed class Sites
         woods.Sort((a, b) =>
         {
             int richer = _map.RichnessAt(b).CompareTo(_map.RichnessAt(a));
-            return richer != 0 ? richer : a.CompareTo(b);
+            int fuller = _world.TimberLeft(b).CompareTo(_world.TimberLeft(a));
+            return richer != 0 ? richer : fuller != 0 ? fuller : a.CompareTo(b);
         });
         return woods;
     }

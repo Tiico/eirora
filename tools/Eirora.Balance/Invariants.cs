@@ -5,21 +5,38 @@ using Eirora.Simulation.Forces;
 namespace Eirora.Balance;
 
 /// <summary>
-/// Checks every hour that nothing decays and nothing goes negative (INV-V1, INV-R1, INV-F1): villagers, housing,
-/// buildings, levels, roads and known tiles never decrease, and no store or force is ever below zero.
+/// Checks every hour that nothing decays and nothing leaves its bounds: villagers, housing, buildings, levels, roads
+/// and known tiles never decrease (INV-V1), every store holds between nothing and its capacity (INV-R1), and forces
+/// are never negative (INV-F1) and never decrease with time alone (INV-F6).
 /// </summary>
+/// <remarks>
+/// Only commands spend forces, and the bots send them at dawn, between two checks; <see cref="AfterCommands"/> takes the
+/// forces as they stand after them, so that the next check sees only what time did.
+/// </remarks>
 internal sealed class Invariants
 {
+    /// <summary>What each storehouse holds of each resource, and a jetty off the home island for the ship (economy-v1.md, section 5).</summary>
+    public const int StoragePerDepot = 150;
+
     private static readonly string[] s_monotone = ["villagers", "housing", "buildings", "levels", "roads", "known tiles"];
+    private static readonly Force[] s_forces = [Force.Exploration, Force.BuildPower, Force.DawnPower];
 
     private long[] _previous;
+    private int[] _forces;
 
-    public Invariants(World world) => _previous = Monotone(world);
+    public Invariants(World world)
+    {
+        _previous = Monotone(world);
+        _forces = Forces(world);
+    }
 
     /// <summary>Hours checked so far.</summary>
     public int Hours { get; private set; }
 
-    /// <exception cref="InvariantViolationException">Something decayed or went negative.</exception>
+    /// <summary>Takes the forces as the commands just sent left them.</summary>
+    public void AfterCommands(World world) => _forces = Forces(world);
+
+    /// <exception cref="InvariantViolationException">Something decayed or left its bounds.</exception>
     public void Check(World world, int day)
     {
         long[] now = Monotone(world);
@@ -33,26 +50,45 @@ internal sealed class Invariants
 
         foreach (var island in Enum.GetValues<IslandId>())
         {
+            long capacity = Capacity(world, island);
             foreach (var resource in Enum.GetValues<Resource>())
             {
-                if (world.Stock(island, resource) < 0)
+                long stock = world.Stock(island, resource);
+                if (stock < 0 || stock > capacity)
                 {
-                    throw new InvariantViolationException($"Game day {day}: {resource} on {island} is {world.Stock(island, resource)} (INV-R1).");
+                    throw new InvariantViolationException($"Game day {day}: {resource} on {island} is {stock}, outside 0–{capacity} (INV-R1).");
                 }
             }
         }
 
-        foreach (var force in Enum.GetValues<Force>())
+        int[] forces = Forces(world);
+        for (int i = 0; i < forces.Length; i++)
         {
-            if (world.Available(force) < 0)
+            if (forces[i] < 0)
             {
-                throw new InvariantViolationException($"Game day {day}: {force} is {world.Available(force)} (INV-F1).");
+                throw new InvariantViolationException($"Game day {day}: {s_forces[i]} is {forces[i]} (INV-F1).");
+            }
+
+            if (forces[i] < _forces[i])
+            {
+                throw new InvariantViolationException($"Game day {day}: {s_forces[i]} fell from {_forces[i]} to {forces[i]} without a command (INV-F6).");
             }
         }
 
         _previous = now;
+        _forces = forces;
         Hours++;
     }
+
+    /// <summary>
+    /// What a store on an island can hold; a world starts with a storehouse on the home island, so its starting stock
+    /// always fits.
+    /// </summary>
+    private static long Capacity(World world, IslandId island) =>
+        StoragePerDepot * world.Buildings.Count(b => b.Island == island
+            && (b.Kind == BuildingKind.Storehouse || (b.Kind == BuildingKind.Jetty && island != IslandId.Home)));
+
+    private static int[] Forces(World world) => [.. s_forces.Select(world.Available)];
 
     private static long[] Monotone(World world)
     {
@@ -74,7 +110,7 @@ internal sealed class Invariants
     }
 }
 
-/// <summary>A run broke an invariant: the simulation let something decay or go negative.</summary>
+/// <summary>A run broke an invariant: the simulation let something decay or leave its bounds.</summary>
 public sealed class InvariantViolationException : Exception
 {
     public InvariantViolationException()

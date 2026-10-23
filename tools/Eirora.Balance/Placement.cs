@@ -6,7 +6,10 @@ namespace Eirora.Balance;
 /// <summary>How a strategy chooses among the tiles where a building can go (economy-v1.md, section 3.1).</summary>
 public enum Placement
 {
-    /// <summary>Where it yields the most that reaches a store: rich ground near a depot; woods another woodcutter fells count half.</summary>
+    /// <summary>
+    /// Where it yields the most that reaches a store, nearer the store among equals: rich ground near a depot; woods
+    /// another woodcutter reaches count half.
+    /// </summary>
     Richest,
 
     /// <summary>A depot where it lifts the yield of the buildings around it the most, near the start when none gains.</summary>
@@ -72,11 +75,17 @@ internal static class Placements
         return tile =>
         {
             long yield = kind == BuildingKind.Woodcutter ? SharedWoodYield(tile, sites, felled) : sites.DailyYield(kind, tile, planning: true);
-            return [yield * Sites.DistancePercent(sites.StepsTo(tile, steps), road: false) / 100];
+            int reaches = Sites.DistancePercent(sites.StepsTo(tile, steps), road: false);
+
+            // As much from nearer the store is better: more of what it makes later, such as at level 2, reaches it.
+            return [yield * reaches / 100, reaches];
         };
     }
 
-    /// <summary>Forest tiles that standing or queued woodcutters fell.</summary>
+    /// <summary>
+    /// Forest tiles that standing or queued woodcutters reach. A woodcutter fells the fullest of its woods, so over
+    /// the days it takes from all of them, not only from the two it fells now.
+    /// </summary>
     private static HashSet<Hex> FelledByOthers(Sites sites)
     {
         var felled = new HashSet<Hex>();
@@ -84,7 +93,7 @@ internal static class Placements
         {
             if (kind == BuildingKind.Woodcutter)
             {
-                felled.UnionWith(sites.Woods(tile, planning: true).Take(Sites.WoodcutterTiles));
+                felled.UnionWith(sites.Woods(tile, planning: true));
             }
         }
 
