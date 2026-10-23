@@ -452,16 +452,16 @@ namespace Eirora.Client.UI
 
             // What only this kind of tile allows comes first; the buildings that any land takes wait behind one row, so
             // that the sheet leaves the island in view, and unfold below it.
-            var buildable = Enum.GetValues(typeof(BuildingKind)).Cast<BuildingKind>()
+            var buildable = world.Content.Buildings
                 .Where(kind => world.CheckBuild(kind, tile) == Rejection.None)
                 .ToList();
-            var special = buildable.Where(kind => BuildingSpec.For(kind).Requirement != TileUse.Land).ToList();
+            var special = buildable.Where(kind => world.Content.For(kind).Requirement != TileUse.Land).ToList();
             var anyLand = buildable.Except(special).ToList();
             bool folded = special.Count > 0 && anyLand.Count > 0 && !_moreBuildingsShown;
             foreach (var kind in folded ? special : special.Concat(anyLand))
             {
-                var spec = BuildingSpec.For(kind);
-                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)));
+                var spec = world.Content.For(kind);
+                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
             }
 
             if (folded)
@@ -481,24 +481,20 @@ namespace Eirora.Client.UI
 
         private void BuildingActions(World world, Building building)
         {
-            bool produces = building.Kind is not (BuildingKind.Longhouse or BuildingKind.Cottage or BuildingKind.Storehouse
-                or BuildingKind.Jetty or BuildingKind.Lookout);
+            var spec = world.Content.For(building.Kind);
             if (building.Kind == BuildingKind.Jetty)
             {
                 JettyActions(world, building);
                 return;
             }
 
-            if (!produces)
+            if (!spec.Produces)
             {
-                Text("sheet-text", _sheet, building.Kind switch
+                if (Texts.Purpose(building.Kind, spec) is string purpose)
                 {
-                    BuildingKind.Longhouse => "Ger plats åt åtta bybor.",
-                    BuildingKind.Cottage => "Ger plats åt fyra bybor.",
-                    BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
-                    BuildingKind.Jetty => "Härifrån kan sjövägar och expeditioner utgå.",
-                    _ => "Kartläggning kostar en fjärdedel mindre Utforskning.",
-                });
+                    Text("sheet-text", _sheet, purpose);
+                }
+
                 return;
             }
 
@@ -513,7 +509,7 @@ namespace Eirora.Client.UI
 
             if (building.Level == 1 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Upgrade))
             {
-                AddAction("Uppgradera till nivå 2", Texts.Cost(BuildingSpec.Upgrade), Affordable(world, BuildingSpec.Upgrade), () => Run(new Upgrade(building.Tile)));
+                AddAction("Uppgradera till nivå 2", Texts.Cost(world.Content.Upgrade), Affordable(world, world.Content.Upgrade), () => Run(new Upgrade(building.Tile)));
             }
 
             int steps = world.DepotDistance(building.Tile);
@@ -653,7 +649,7 @@ namespace Eirora.Client.UI
             }
         }
 
-        private void AddAction(string title, string cost, bool available, System.Action onClick)
+        private void AddAction(string title, string cost, bool available, System.Action onClick, string? effect = null)
         {
             var button = new Button(onClick);
             button.AddToClassList("action");
@@ -662,7 +658,18 @@ namespace Eirora.Client.UI
                 button.AddToClassList("action-unavailable");
             }
 
-            Text("action-title", button, title);
+            if (effect is null)
+            {
+                Text("action-title", button, title);
+            }
+            else
+            {
+                // What the building does sits beside its name, so the sheet is no taller for it.
+                var head = Container("action-head", button);
+                Text("action-title", head, title);
+                Text("action-effect", head, effect);
+            }
+
             Text("action-cost", button, cost);
             _sheet.Add(button);
         }
