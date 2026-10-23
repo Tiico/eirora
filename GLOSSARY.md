@@ -79,6 +79,18 @@ _Avoid_: by, stad (som generella termer), grundande (som är det en ny värld b�
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
 _Avoid_: invånare, befolkning, NPC:er
 
+**Bemanningsordning** (`StaffingOrder`):
+Den ordning som byggnaderna får bybor i när byborna inte räcker till alla, från början byggordningen; spelaren kan ändra den utan kraft (TASK-044).
+_Avoid_: prioritetslista, kö (om bemanningen)
+
+**Pausad byggnad** (`Paused`):
+En byggnad som spelaren har pausat: den bemannas inte och dess bybor bygger, men nivå och lager står kvar tills den återupptas (D-39).
+_Avoid_: avstängd, riven
+
+**Byggkö** (`Projects`):
+Byggen, uppgraderingar och vägar som väntar på de lediga bybornas arbete, i den ordning de får det; spelaren kan flytta ett projekt först (TASK-044).
+_Avoid_: bygglista, order
+
 **Basbehov** (`BasicNeed`):
 Det behov som alla befolkningsnivåer har, mat, en per bybo och spelardygn; brist stoppar bara tillväxt, aldrig något som redan finns.
 _Avoid_: hunger, underhåll
