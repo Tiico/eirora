@@ -152,6 +152,26 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen.
 - Sjövägen mellan Hemön och Nyön för 40 enheter per spelardygn, delat mellan alla varor.
 
+### Flaskhalsdiagnostik
+
+Spelaren ser alltid varför en vara inte når fram (CIV-05, LOG-03, TASK-043).
+Diagnostiken läser nästa aktiva kvart ur världen utan att ändra den (INV-D2) och ger varje byggnad ett läge: går för fullt, går långsammare eller står still.
+Skälen är de som reglerna ovan ger, i den ordning de verkar:
+
+| Skäl | Läget | Vad bladet säger |
+|---|---|---|
+| Bemanning saknas | Står still | Hur många bybor som saknas |
+| Råvaran är under minimilagret | Står still eller går långsammare | Vilken råvara och hur mycket som saknas för en timmes arbete |
+| Inget har vuxit än | Står still | Att åkern eller fårgården väntar på att något ska växa |
+| Skogen är fälld | Går långsammare eller står still | Hur många av skogsbrickorna som är fällda |
+| Lagret är fullt | Står still eller går långsammare | Vilken vara och hur mycket lagret rymmer |
+| Lång väg till förrådet | Går långsammare | Hur stor andel som når fram och vad en väg eller ett förråd intill skulle ge |
+
+Sjövägen visar hur stor del av sin kapacitet den använder och vad som väntar på andra sidan.
+Varje ö får sin största flaskhals, skälet som kostar mest just nu, och när det är en råvara som saknas också var ett dagsverke gör mest nytta (avsnitt 6, beslut 3).
+Kartan markerar byggnader som står still med en skylt med två staplar, så att formen och inte färgen bär det (UX-05).
+Senare regler, som bärarna i D-107, lägger till sina skäl utan att ändra hur diagnostiken läses.
+
 ### Logistiska avvägningar
 
 1. **Rikt och långt bort, eller fattigt och nära.**

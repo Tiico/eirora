@@ -95,6 +95,10 @@ _Avoid_: transportör, kärra (som term)
 En gratis planeringsinställning som anger hur mycket av en råvara förädlingen alltid lämnar kvar.
 _Avoid_: buffert, spärr
 
+**Flaskhals** (`Bottleneck`):
+Det som just nu håller tillbaka en byggnad eller en ö mest: bemanning som saknas, råvara under minimilagret, fullt lager, inget vuxet, fälld skog eller lång väg till förrådet; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
+_Avoid_: blockering, stopp (som term)
+
 **Långsam process** (`SlowProcess`):
 En naturlig förändring i världen som fortgår även under vilan, till exempel skogsväxt eller mognad.
 _Avoid_: passiv produktion
