@@ -72,7 +72,7 @@ _Avoid_: fog of war, mörker
 ## Civilisation och ekonomi
 
 **Bosättning** (`Settlement`):
-En samling byggnader och bybor som fungerar som ett ekonomiskt nav i en värld.
+En ös byggnader, bybor, bostäder och lager, grundad av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
 _Avoid_: by, stad (som generella termer)
 
 **Bybor** (`Villagers`):
@@ -86,6 +86,10 @@ _Avoid_: hunger, underhåll
 **Förråd** (`Depot`):
 En byggnad som lagrar resurser och som produktionens avstånd räknas till; en brygga räknas också som förråd för avstånd.
 _Avoid_: lager (om byggnaden), magasin
+
+**Bärare** (`Carrier`):
+Det som flyttar varor på land mellan produktion, förråd och mottagare, en begränsad mängd per timme; vägar gör bärarna snabbare (D-107).
+_Avoid_: transportör, kärra (som term)
 
 **Minimilager** (`Reserve`):
 En gratis planeringsinställning som anger hur mycket av en råvara förädlingen alltid lämnar kvar.

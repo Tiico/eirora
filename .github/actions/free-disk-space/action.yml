@@ -4,9 +4,15 @@
 # GameCI builds and tests inside the image, which brings its own Android SDK/NDK and .NET, so the runner's own copies
 # can go unless a later step on the runner itself needs them.
 name: Free disk space for Unity
-description: Removes preinstalled SDKs and Docker images that Unity jobs do not use.
+description: Removes preinstalled software that Unity jobs do not use, fastest first, until the job's space is free.
 
 inputs:
+  required-gb:
+    description:
+      Free space on / that the job needs, in GiB; removal stops as soon as this much is free. Measure the job's peak use
+      and add a margin. Without it, everything that may go is removed.
+    required: false
+    default: ""
   keep-android-sdk:
     description: Keep the runner's Android SDK, for steps outside the Unity image such as an emulator.
     required: false
@@ -19,18 +25,47 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
-      with:
-        android: ${{ inputs.keep-android-sdk != 'true' }}
-        dotnet: ${{ inputs.keep-dotnet != 'true' }}
-        haskell: true
-        docker-images: true
-        # Takes minutes for a few GB; the other removals free enough.
-        large-packages: false
-
-    # CodeQL is several GB and only used by code scanning, which the Unity jobs do not run.
-    - name: Remove CodeQL
+    # Ordered by GiB freed per second: the Android SDK frees the most but takes 1-2 minutes, so it goes last and only
+    # when the rest is not enough.
+    - name: Free disk space
       shell: bash
+      env:
+        REQUIRED_GB: ${{ inputs.required-gb }}
+        KEEP_ANDROID_SDK: ${{ inputs.keep-android-sdk }}
+        KEEP_DOTNET: ${{ inputs.keep-dotnet }}
       run: |
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
-        df -h /
+        free_gb() { df --output=avail -BG / | tail -n 1 | tr -dc '0-9'; }
+
+        # Runs the command that removes something unless enough space is already free.
+        remove() {
+          local label="$1"
+          shift
+          local before start
+          before="$(free_gb)"
+          if [ -n "$REQUIRED_GB" ] && [ "$before" -ge "$REQUIRED_GB" ]; then
+            return
+          fi
+          start="$SECONDS"
+          "$@" > /dev/null
+          echo "Removed $label: $before -> $(free_gb) GiB free in $((SECONDS - start)) s"
+        }
+
+        # Measured on ubuntu-24.04 in October 2026, in GiB freed and seconds taken.
+        echo "Free: $(free_gb) GiB, the job needs ${REQUIRED_GB:-as much as possible} GiB"
+        remove "Chrome and Edge" sudo rm -rf /usr/local/share/chromium /opt/google/chrome /opt/microsoft # 2 GiB, 0 s
+        remove Swift sudo rm -rf /usr/share/swift # 3 GiB, 1 s
+        remove PowerShell sudo rm -rf /usr/local/share/powershell # 1 GiB, 1 s
+        remove Haskell sudo rm -rf /opt/ghc /usr/local/.ghcup # 3-4 GiB, 1-6 s
+        remove CodeQL sudo rm -rf /opt/hostedtoolcache/CodeQL # 1-2 GiB, 6-10 s
+        if [ "$KEEP_DOTNET" != "true" ]; then
+          remove .NET sudo rm -rf /usr/share/dotnet # 5-6 GiB, 7-17 s
+        fi
+        remove "Docker images" sudo docker image prune --all --force # 2 GiB, 10-23 s
+        remove "Tool cache" sudo rm -rf /opt/hostedtoolcache # 4 GiB, 32 s
+        if [ "$KEEP_ANDROID_SDK" != "true" ]; then
+          remove "Android SDK" sudo rm -rf /usr/local/lib/android # 11 GiB, 49-134 s
+        fi
+
+        if [ -n "$REQUIRED_GB" ] && [ "$(free_gb)" -lt "$REQUIRED_GB" ]; then
+          echo "::warning title=Little disk space for Unity::$(free_gb) GiB free, the job needs $REQUIRED_GB GiB. It may fail with \"no space left on device\"."
+        fi

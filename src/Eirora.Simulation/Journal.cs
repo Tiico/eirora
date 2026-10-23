@@ -6,6 +6,7 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 
@@ -86,7 +87,8 @@ namespace Eirora.Simulation
             if (!int.TryParse(header[3], NumberStyles.None, CultureInfo.InvariantCulture, out int rules)
                 || rules < RulesVersion.ReplaysJournalsFrom || rules > RulesVersion.Current)
             {
-                throw new FormatException($"The journal uses rules version {header[3]}; this build replays {RulesVersion.ReplaysJournalsFrom} to {RulesVersion.Current}.");
+                string message = $"The journal uses rules version {header[3]}; this build replays {RulesVersion.ReplaysJournalsFrom} to {RulesVersion.Current}.";
+                throw rules > 0 && rules < RulesVersion.ReplaysJournalsFrom ? new JournalFromOlderRulesException(message) : new FormatException(message);
             }
 
             var create = Fields(lines[1]);
