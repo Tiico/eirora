@@ -32,7 +32,10 @@ namespace Eirora.CloudSaving
 
         public SyncOutcome Outcome { get; }
 
-        /// <summary>The device had no world and the cloud save's came down.</summary>
+        /// <summary>
+        /// The cloud save's world came down: the device had none, or had played nothing since the version it was based on
+        /// and the cloud's world without a contribution part was newer (TASK-060).
+        /// </summary>
         public bool Downloaded { get; }
 
         /// <summary>The device's journal and the cloud save's were merged (D-99).</summary>

@@ -49,6 +49,12 @@ namespace Eirora.Client.Accounts
         /// </summary>
         public bool? ConsentOfNewAccounts { get; set; }
 
+        /// <summary>When true, an answer about the consent gets 500, as from a server that is failing.</summary>
+        public bool FailsConsentAnswers { get; set; }
+
+        /// <summary>How many uploads that carried a contribution part were stored.</summary>
+        public int PartsStored { get; private set; }
+
         public List<HttpCall> Calls { get; } = new();
 
         public List<string> AppleCodesRevoked { get; } = new();
@@ -130,7 +136,7 @@ namespace Eirora.Client.Accounts
                 ("GET", "/api/account/cloud-save") => Authorized(call, GetCloudSave),
                 ("PUT", "/api/account/cloud-save") => Authorized(call, account => UploadCloudSave(account, call.Body)),
                 ("GET", "/api/account/contribution-consent") => Authorized(call, account => new HttpReply(200, ConsentJson(ConsentOf(account)))),
-                ("PUT", "/api/account/contribution-consent") => Authorized(call, account => AnswerConsent(account, call.Body)),
+                ("PUT", "/api/account/contribution-consent") => FailsConsentAnswers ? new HttpReply(500) : Authorized(call, account => AnswerConsent(account, call.Body)),
                 ("POST", "/api/account/key-transfers") => Authorized(call, account => CreateKeyTransfer(account, call.Body)),
                 ("GET", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => TakeKeyTransfer(account, TransferId(path))),
                 ("PUT", _) when path.StartsWith(TransfersPath, StringComparison.Ordinal) => Authorized(call, account => DeliverKeyTransfer(account, TransferId(path), call.Body)),
@@ -375,6 +381,7 @@ namespace Eirora.Client.Accounts
             }
 
             int epoch = Math.Max(keyEpoch, upload.keyEpoch);
+            PartsStored += withPart ? 1 : 0;
             _cloudSaves[account] = new StoredCloudSave(version + 1, epoch, world, withPart ? contributions : null, _now());
             return new HttpReply(200, VersionJson(version + 1, epoch));
         }

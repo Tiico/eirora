@@ -193,7 +193,16 @@ namespace Eirora.Client.App
         /// Whether to ask the player if their self-care may be saved on the account (TASK-060): before the first upload,
         /// until an answer is on its way.
         /// </summary>
-        public bool ConsentQuestion => Status == CloudSyncStatus.ConsentNeeded && _pendingAnswer is null;
+        public bool ConsentQuestion => Status == CloudSyncStatus.ConsentNeeded && !AnswerWaiting;
+
+        /// <summary>
+        /// A no, or a withdrawal, has not reached the server yet. It is kept on the phone across launches and sent before
+        /// anything else, and no self-care goes up meanwhile.
+        /// </summary>
+        public bool DeclineWaiting => _account.Account is { } known && _sync.DeclineWaits(known.Id);
+
+        /// <summary>An answer about the self-care waits to reach the server: a yes until the next sync, a no until it gets there.</summary>
+        public bool AnswerWaiting => _pendingAnswer is not null || DeclineWaiting;
 
         /// <summary>With <see cref="ConsentQuestion"/>: the account already holds self-care from before the question, which a decline deletes.</summary>
         public bool ContributionsOnAccount => ConsentQuestion && _contributionsOnAccount;
@@ -239,11 +248,17 @@ namespace Eirora.Client.App
 
         /// <summary>
         /// Gives the player's answer about their self-care to the server and syncs by it (TASK-060): the question, a
-        /// consent given later, or a withdrawal, which deletes the self-care on the server. An answer that cannot reach
-        /// the server waits for the next sync.
+        /// consent given later, or a withdrawal, which deletes the self-care on the server. A no is kept on the phone at
+        /// once, across launches, until the server has it (<see cref="DeclineWaiting"/>); a yes that cannot reach the
+        /// server waits for the next sync.
         /// </summary>
         public Task AnswerConsentAsync(bool given)
         {
+            if (!given && _account.Account is { } known)
+            {
+                _storage.KeepDeclineWaiting(known.Id);
+            }
+
             _pendingAnswer = given;
             _reconcile = true;
             Changed?.Invoke();
@@ -606,7 +621,15 @@ namespace Eirora.Client.App
                     }
 
                     _pendingAnswer = null;
-                    _reconcile = true;
+                    if (answered != StoreStatus.Ok && !answer)
+                    {
+                        // The no stays on the phone and goes first at the next sync; nothing goes up until then.
+                        _dirty = _reconcile = false;
+                        Set(answered == StoreStatus.SignedOut ? CloudSyncStatus.SignedOut : CloudSyncStatus.Failed);
+                        return;
+                    }
+
+                    _reconcile = true; // After a yes that did not get through, the reconciliation asks again.
                 }
 
                 bool reconcile = _reconcile;

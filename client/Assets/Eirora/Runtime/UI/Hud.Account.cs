@@ -84,7 +84,7 @@ namespace Eirora.Client.UI
                 return;
             }
 
-            if (_confirmingWithdrawal && account.IsSignedIn && _cloud is { Consent: ConsentAnswer.Given } withdrawing)
+            if (_confirmingWithdrawal && account.IsSignedIn && _cloud is { Consent: ConsentAnswer.Given or null } withdrawing)
             {
                 ConsentWithdrawalSheet(withdrawing);
                 return;

@@ -6,7 +6,8 @@ namespace Eirora.Client.Accounts
 {
     /// <summary>
     /// What the device keeps about the cloud save: the contribution key per account in the platform keystore, beside
-    /// the refresh token, and the cloud save version the world is based on in a small file beside the save.
+    /// the refresh token, the cloud save version the world is based on in a small file beside the save, and a no to the
+    /// contribution part that has not reached the server yet, in the keystore, so that it outlives a restart.
     /// </summary>
     /// <remarks>
     /// The keystore is not synced or restored to another device (<see cref="ISecureStore"/>); the key's way to a new
@@ -16,6 +17,7 @@ namespace Eirora.Client.Accounts
     {
         public const string KeyPrefix = "eirora.cloud.contribution-key.";
         public const string StateFile = "world.cloud";
+        public const string DeclinePrefix = "eirora.cloud.decline-waiting.";
 
         private readonly ISecureStore _store;
         private readonly string? _statePath;
@@ -61,6 +63,12 @@ namespace Eirora.Client.Accounts
                 File.Move(temporary, _statePath);
             }
         }
+
+        public bool DeclineWaits(Guid accountId) => _store.Read(DeclinePrefix + accountId.ToString("N")) is not null;
+
+        public void KeepDeclineWaiting(Guid accountId) => _store.Write(DeclinePrefix + accountId.ToString("N"), "1");
+
+        public void ForgetDeclineWaiting(Guid accountId) => _store.Delete(DeclinePrefix + accountId.ToString("N"));
 
         public void ForgetState()
         {

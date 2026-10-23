@@ -152,6 +152,77 @@ public sealed class ContributionConsentTests
         Assert.Equal(b.Save.ToParts().World, store.Current.World);
     }
 
+    // A withdrawal is what the player was told happened: it waits on the phone, across a restart, until the server has it,
+    // and no contribution part goes up meanwhile.
+    [Fact]
+    public async Task AWithdrawalThatCannotReachTheServerOutlivesARestartAndNoPartGoesUpMeanwhile()
+    {
+        var store = new FakeCloudSaveStore();
+        var phone = new Device(store, PlayedSave());
+        await phone.Sync.ReconcileAsync(s_account);
+        int parts = store.PartsStored;
+        store.Online = false;
+
+        var withdrawn = await phone.Sync.AnswerConsentAsync(s_account, given: false);
+        var restarted = new Device(store, phone.Save, phone.Storage);
+        var waiting = restarted.Sync.Consent(s_account)!.Answer;
+        store.Online = true;
+        RecordSteps(restarted.Save, 3_000);
+        var result = await restarted.Sync.UploadAsync(s_account);
+
+        Assert.Equal(StoreStatus.Offline, withdrawn);
+        Assert.Equal(ConsentAnswer.Declined, waiting);
+        Assert.Equal(SyncOutcome.Synced, result.Outcome);
+        Assert.Equal(ConsentAnswer.Declined, store.Consent.Answer);
+        Assert.Equal(parts, store.PartsStored);
+        Assert.Null(store.Current!.Contributions);
+        Assert.False(restarted.Sync.DeclineWaits(s_account));
+    }
+
+    [Fact]
+    public async Task AWithdrawalTheServerFailsIsSentAgainAndNoPartGoesUpMeanwhile()
+    {
+        var store = new FakeCloudSaveStore();
+        var phone = new Device(store, PlayedSave());
+        await phone.Sync.ReconcileAsync(s_account);
+        int parts = store.PartsStored;
+        store.FailsAnswers = true;
+
+        var withdrawn = await phone.Sync.AnswerConsentAsync(s_account, given: false);
+        RecordSteps(phone.Save, 3_000);
+        var refused = await phone.Sync.UploadAsync(s_account);
+        var atLaunch = await phone.Sync.ReconcileAsync(s_account);
+        store.FailsAnswers = false;
+        var sent = await phone.Sync.UploadAsync(s_account);
+
+        Assert.Equal(StoreStatus.Failed, withdrawn);
+        Assert.Equal((SyncOutcome.Failed, SyncOutcome.Failed), (refused.Outcome, atLaunch.Outcome));
+        Assert.Equal(SyncOutcome.Synced, sent.Outcome);
+        Assert.Equal(parts, store.PartsStored);
+        Assert.Equal(ConsentAnswer.Declined, store.Consent.Answer);
+        Assert.Null(store.Current!.Contributions);
+    }
+
+    [Fact]
+    public async Task AYesReplacesANoThatIsStillWaiting()
+    {
+        var store = new FakeCloudSaveStore();
+        var phone = new Device(store, PlayedSave());
+        await phone.Sync.ReconcileAsync(s_account);
+        store.Online = false;
+        await phone.Sync.AnswerConsentAsync(s_account, given: false);
+        store.Online = true;
+
+        var answered = await phone.Sync.AnswerConsentAsync(s_account, given: true);
+        var result = await phone.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal(StoreStatus.Ok, answered);
+        Assert.False(phone.Sync.DeclineWaits(s_account));
+        Assert.Equal(SyncOutcome.Synced, result.Outcome);
+        Assert.Equal(ConsentAnswer.Given, store.Consent.Answer);
+        Assert.NotNull(store.Current!.Contributions);
+    }
+
     // Acceptance criterion 4: the answer is the account's, so neither a new launch nor another phone asks again.
     [Fact]
     public async Task ADeclinedConsentIsNotAskedAgain()
@@ -221,6 +292,47 @@ public sealed class ContributionConsentTests
         Assert.Equal(a.Save.ToParts().World, store.Current!.World);
     }
 
+    // Playing on one phone at a time without consent: the phone left untouched takes the newer island without a question.
+    [Fact]
+    public async Task WithoutConsentAPhoneWhereNothingWasPlayedTakesTheNewerIslandWithoutAsking()
+    {
+        var store = new FakeCloudSaveStore { Consent = Declined() };
+        var a = new Device(store, PlayedSave());
+        await a.Sync.ReconcileAsync(s_account);
+        var b = new Device(store);
+        await b.Sync.ReconcileAsync(s_account);
+        Advance(b.Save, Hour);
+        Assert.True(b.Save.Apply("b-schedule", new ChangeRestSchedule(new RestSchedule(22 * 60, 8 * 60))).Accepted);
+        await b.Sync.UploadAsync(s_account);
+        Advance(a.Save, 2 * Hour); // Time passes on the untouched phone, but nothing is played there.
+
+        var result = await a.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal((SyncOutcome.Synced, true, true), (result.Outcome, result.Downloaded, result.WorldPartOnly));
+        Assert.Equal(ReplaceReason.FastForwarded, Assert.Single(a.World.Replacements).Reason);
+        Assert.Equal(new RestSchedule(22 * 60, 8 * 60), a.Save.World.PendingRestSchedule);
+        Assert.Equal(store.Current!.Version, a.Storage.State(s_account)!.Version);
+    }
+
+    [Fact]
+    public async Task WithoutConsentAPhoneWhereSomethingWasPlayedIsStillAsked()
+    {
+        var store = new FakeCloudSaveStore { Consent = Declined() };
+        var a = new Device(store, PlayedSave());
+        await a.Sync.ReconcileAsync(s_account);
+        var b = new Device(store);
+        await b.Sync.ReconcileAsync(s_account);
+        Advance(b.Save, Hour);
+        b.Save.Apply("b-schedule", new ChangeRestSchedule(new RestSchedule(22 * 60, 8 * 60)));
+        await b.Sync.UploadAsync(s_account);
+        RecordSteps(a.Save, 3_000);
+
+        var result = await a.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal((SyncOutcome.ChoiceNeeded, true), (result.Outcome, result.CloudWithoutContributions));
+        Assert.Empty(a.World.Replacements);
+    }
+
     // The state beside the save can be lost, as with a backup that restores the save alone: the same world is not a choice.
     [Fact]
     public async Task WithoutConsentAPhoneThatLostItsStateButHoldsTheCloudsWorldIsNotAsked()
@@ -260,7 +372,7 @@ public sealed class ContributionConsentTests
     }
 
     [Fact]
-    public async Task AnAnswerThatDoesNotReachTheServerChangesNothing()
+    public async Task ANoThatDoesNotReachTheServerChangesNothingThereAndWaitsOnThePhone()
     {
         var store = new FakeCloudSaveStore { Consent = Unanswered() };
         var phone = new Device(store, PlayedSave());
@@ -271,7 +383,7 @@ public sealed class ContributionConsentTests
 
         Assert.Equal(StoreStatus.Offline, answered);
         Assert.Equal(ConsentAnswer.Unanswered, store.Consent.Answer);
-        Assert.True(phone.Sync.Consent(s_account)!.NeedsAnswer);
+        Assert.Equal(ConsentAnswer.Declined, phone.Sync.Consent(s_account)!.Answer); // The no waits on the phone.
     }
 
     private static ContributionConsent Unanswered() => new(ConsentAnswer.Unanswered, 0, null);

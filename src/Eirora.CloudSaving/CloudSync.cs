@@ -62,6 +62,11 @@ namespace Eirora.CloudSaving
                 return new SyncResult(SyncOutcome.NoWorld, new SyncChanges());
             }
 
+            if (await SendWaitingDeclineAsync(accountId) is { } notSent)
+            {
+                return new SyncResult(notSent, new SyncChanges());
+            }
+
             // The consent is the one the last reconciliation heard; when it changed since, the server answers 409.
             var state = _storage.State(accountId);
             if (state is null || Consent(accountId) is not { NeedsAnswer: false } consent)
@@ -86,17 +91,33 @@ namespace Eirora.CloudSaving
 
         /// <summary>
         /// The player's answer about the contribution part as this device last heard it from the server, or null before
-        /// it asked (TASK-060).
+        /// it asked (TASK-060). A no that waits to reach the server is the answer already: nothing is sealed meanwhile.
         /// </summary>
-        public ContributionConsent? Consent(Guid accountId) => _consentAccount == accountId ? _consent : null;
+        public ContributionConsent? Consent(Guid accountId) => _storage.DeclineWaits(accountId)
+            ? new ContributionConsent(ConsentAnswer.Declined, ContributionConsent.CurrentVersion, null)
+            : _consentAccount == accountId ? _consent : null;
+
+        /// <summary>Whether a no, or a withdrawal, waits on this device to reach the server.</summary>
+        public bool DeclineWaits(Guid accountId) => _storage.DeclineWaits(accountId);
 
         /// <summary>
         /// Gives the server the player's answer about the contribution part (TASK-060). A decline, or a withdrawal,
-        /// deletes the contribution part and the locked ones on the server; the device keeps its key and its world. The
-        /// caller reconciles next, which uploads by the answer.
+        /// deletes the contribution part and the locked ones on the server; the device keeps its key and its world. A no
+        /// is kept on the device first, across launches, until the server has it, and every reconciliation and upload
+        /// sends it before anything else, so that no contribution part goes up after the player said no. A yes replaces a
+        /// no that is still waiting. The caller reconciles next, which uploads by the answer.
         /// </summary>
         public async Task<StoreStatus> AnswerConsentAsync(Guid accountId, bool given)
         {
+            if (given)
+            {
+                _storage.ForgetDeclineWaiting(accountId);
+            }
+            else
+            {
+                _storage.KeepDeclineWaiting(accountId);
+            }
+
             var reply = await _store.AnswerConsentAsync(new ContributionConsentAnswer(given, ContributionConsent.CurrentVersion));
             if (reply.Status != StoreStatus.Ok)
             {
@@ -108,6 +129,7 @@ namespace Eirora.CloudSaving
                 return StoreStatus.Failed;
             }
 
+            _storage.ForgetDeclineWaiting(accountId);
             Remember(accountId, consent);
             return StoreStatus.Ok;
         }
@@ -160,15 +182,21 @@ namespace Eirora.CloudSaving
             }
         }
 
-        /// <summary>Forgets the account's key and state on this device, as when the account is deleted (ADR-0008).</summary>
+        /// <summary>Forgets the account's key, state and waiting answer on this device, as when the account is deleted (ADR-0008).</summary>
         public void Forget(Guid accountId)
         {
             _storage.ForgetKey(accountId);
             _storage.ForgetState();
+            _storage.ForgetDeclineWaiting(accountId);
         }
 
         private async Task<SyncResult> ReconcileAsync(Guid accountId, WorldChoice? choice, SyncChanges changes, int attempt)
         {
+            if (await SendWaitingDeclineAsync(accountId) is { } notSent)
+            {
+                return new SyncResult(notSent, changes);
+            }
+
             var asked = await _store.GetConsentAsync();
             if (asked.Status != StoreStatus.Ok || asked.Value is not { } consent)
             {
@@ -358,8 +386,9 @@ namespace Eirora.CloudSaving
         /// The cloud save holds no contribution part this device takes: the account keeps none without consent
         /// (TASK-060), or has none yet since consent was given. Its world goes on from the world part alone, with its game
         /// days so far closed, as on a phone without the key (D-101). A device that holds the cloud's world, or uploaded
-        /// the cloud's version itself, goes on from its own world; any other device with a world asks the player, since
-        /// there are no journals to merge.
+        /// the cloud's version itself, goes on from its own world; a device where nothing was played since the version it
+        /// is based on takes the cloud's newer world; any other device with a world asks the player, since there are no
+        /// journals to merge.
         /// </summary>
         private async Task<SyncResult> FromTheWorldPartAsync(Guid accountId, CloudSave remote, Save? local, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
         {
@@ -378,33 +407,38 @@ namespace Eirora.CloudSaving
             }
 
             // The phone holds the cloud's world, or goes on from the version it uploaded itself.
+            var state = _storage.State(accountId);
             bool sameWorld = local is not null && local.ToParts().World.SequenceEqual(remote.World);
-            if (local is not null && (sameWorld || (_storage.State(accountId) is { } state && state.Version == remote.Version)))
+            if (local is not null && (sameWorld || state?.Version == remote.Version))
             {
                 var key = withContributions ? SealingKey(accountId, remote) : null;
                 if (key is null && sameWorld)
                 {
-                    _storage.KeepState(new CloudSyncState(accountId, remote.Version, 0));
+                    KeepState(accountId, remote.Version, 0, local);
                     return new SyncResult(SyncOutcome.Synced, changes, remote.Version);
                 }
 
                 return await SendOrStartOverAsync(accountId, local, remote.Version, key, changes, choice, attempt);
             }
 
-            if (local is not null && choice is null)
+            // Nothing was played on the phone since the version it is based on, and the cloud moved on from that version:
+            // the cloud's world is newer and the phone has nothing of its own to lose, so nothing is asked.
+            bool untouched = local is not null && state is { AcceptedCommands: { } commands } && state.Version < remote.Version
+                && local.World.AcceptedCommands == commands;
+            if (local is not null && !untouched && choice is null)
             {
                 return new SyncResult(SyncOutcome.ChoiceNeeded, changes, null, alone.World.GameDay, remote.SavedAt, cloudWithoutContributions: true);
             }
 
-            if (local is not null && choice == WorldChoice.KeepPhone)
+            if (local is not null && !untouched && choice == WorldChoice.KeepPhone)
             {
                 _world.KeepAside(alone);
                 return await GoOnFromAsync(accountId, local, remote, withContributions, changes, choice, attempt);
             }
 
             // The world part alone closed the game days so far, so it goes up again as the device's world.
-            _world.Replace(alone, local is null ? ReplaceReason.Downloaded : ReplaceReason.CloudChosen);
-            changes.Downloaded = local is null;
+            _world.Replace(alone, local is null ? ReplaceReason.Downloaded : untouched ? ReplaceReason.FastForwarded : ReplaceReason.CloudChosen);
+            changes.Downloaded = local is null || untouched;
             changes.WorldPartOnly = true;
             return await GoOnFromAsync(accountId, alone, remote, withContributions, changes, choice, attempt);
         }
@@ -417,7 +451,7 @@ namespace Eirora.CloudSaving
         private Task<SyncResult> GoOnFromAsync(Guid accountId, Save save, CloudSave remote, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
         {
             var key = withContributions ? SealingKey(accountId, remote) : null;
-            _storage.KeepState(new CloudSyncState(accountId, remote.Version, key?.Epoch ?? 0));
+            KeepState(accountId, remote.Version, key?.Epoch ?? 0, save);
             return SendOrStartOverAsync(accountId, save, remote.Version, key, changes, choice, attempt);
         }
 
@@ -434,7 +468,7 @@ namespace Eirora.CloudSaving
         /// </summary>
         private Task<SyncResult> BeginEpochAsync(Guid accountId, Save save, long baseVersion, ContributionKey key, SyncChanges changes, WorldChoice? choice, int attempt)
         {
-            _storage.KeepState(new CloudSyncState(accountId, baseVersion, key.Epoch));
+            KeepState(accountId, baseVersion, key.Epoch, save);
             return SendOrStartOverAsync(accountId, save, baseVersion, key, changes, choice, attempt);
         }
 
@@ -446,7 +480,7 @@ namespace Eirora.CloudSaving
                 return await SendOrStartOverAsync(accountId, save, remote.Version, key, changes, choice, attempt);
             }
 
-            _storage.KeepState(new CloudSyncState(accountId, remote.Version, key.Epoch));
+            KeepState(accountId, remote.Version, key.Epoch, save);
             return new SyncResult(SyncOutcome.Synced, changes, remote.Version);
         }
 
@@ -477,11 +511,27 @@ namespace Eirora.CloudSaving
             var reply = await _store.UploadAsync(upload);
             if (reply.Status == StoreStatus.Ok && reply.Value is { } version)
             {
-                _storage.KeepState(new CloudSyncState(accountId, version.Version, upload.KeyEpoch));
+                KeepState(accountId, version.Version, upload.KeyEpoch, save);
                 return (StoreStatus.Ok, new SyncResult(SyncOutcome.Synced, changes, version.Version));
             }
 
             return (reply.Status, new SyncResult(Outcome(reply.Status), changes));
+        }
+
+        /// <summary>Remembers the cloud save version the device's world is based on, with how much the player had done then.</summary>
+        private void KeepState(Guid accountId, long version, int keyEpoch, Save save) =>
+            _storage.KeepState(new CloudSyncState(accountId, version, keyEpoch, save.World.AcceptedCommands));
+
+        /// <summary>Sends a no that waits on the device; the outcome when it still does not get through, or null when it did or none waited.</summary>
+        private async Task<SyncOutcome?> SendWaitingDeclineAsync(Guid accountId)
+        {
+            if (!_storage.DeclineWaits(accountId))
+            {
+                return null;
+            }
+
+            var sent = await AnswerConsentAsync(accountId, given: false);
+            return sent == StoreStatus.Ok ? null : Outcome(sent);
         }
 
         private void Remember(Guid accountId, ContributionConsent consent)

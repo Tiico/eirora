@@ -659,6 +659,57 @@ namespace Eirora.Client.Tests
             Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
         }
 
+        // The player was told the self-care is no longer saved: a withdrawal that cannot reach the server outlives a
+        // relaunch, goes first when the server is back, and no self-care goes up meanwhile.
+        [Test]
+        public void AWithdrawalOfflineOutlivesARelaunchAndNoSelfCareGoesUp()
+        {
+            var phone = Phone("a", withWorld: true);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            int parts = _server.PartsStored;
+            _server.Online = false;
+
+            Wait(phone.Cloud.AnswerConsentAsync(false));
+            var waiting = (phone.Cloud.Status, phone.Cloud.DeclineWaiting, phone.Cloud.Consent);
+            var relaunched = new CloudSaveSync(phone.Account, phone.Game, phone.Storage, phone.Delay, () => _now);
+            bool stillWaiting = relaunched.DeclineWaiting;
+            _server.Online = true;
+            Wait(relaunched.ReconcileAsync());
+            phone.Game.Apply(new RecordSelfCare(phone.Game.World!.GameDay, Habit.Steps, ContributionSource.SelfReported, 5_000));
+
+            Assert.That(waiting, Is.EqualTo((CloudSyncStatus.Offline, true, (ConsentAnswer?)ConsentAnswer.Declined)));
+            Assert.That(stillWaiting, Is.True);
+            Assert.That(_server.ConsentOf("player").Answer, Is.EqualTo(ConsentAnswer.Declined));
+            Assert.That(_server.PartsStored, Is.EqualTo(parts));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Null);
+            Assert.That(relaunched.DeclineWaiting, Is.False);
+            Assert.That(relaunched.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
+        [Test]
+        public void AWithdrawalTheServerFailsIsSentAgainAndNoSelfCareGoesUpMeanwhile()
+        {
+            var phone = Phone("a", withWorld: true);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            int parts = _server.PartsStored;
+            long version = _server.CloudSaveOf("player")!.Version;
+            _server.FailsConsentAnswers = true;
+
+            Wait(phone.Cloud.AnswerConsentAsync(false));
+            phone.Game.Apply(new RecordSelfCare(phone.Game.World!.GameDay, Habit.Steps, ContributionSource.SelfReported, 5_000));
+            var meanwhile = (phone.Cloud.Status, phone.Cloud.DeclineWaiting, _server.CloudSaveOf("player")!.Version);
+            _server.FailsConsentAnswers = false;
+            phone.Game.Apply(new RecordSelfCare(phone.Game.World!.GameDay, Habit.Sleep, ContributionSource.SelfReported, 420));
+
+            Assert.That(meanwhile, Is.EqualTo((CloudSyncStatus.Failed, true, version)));
+            Assert.That(_server.PartsStored, Is.EqualTo(parts));
+            Assert.That(_server.ConsentOf("player").Answer, Is.EqualTo(ConsentAnswer.Declined));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Null);
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
         // An account from before the question (the issue's migration) keeps its self-care until the player answers, and
         // the question says that a no deletes it.
         [Test]

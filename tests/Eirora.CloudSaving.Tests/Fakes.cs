@@ -25,6 +25,12 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 
     public int Uploads { get; private set; }
 
+    /// <summary>How many uploads that carried a contribution part were stored.</summary>
+    public int PartsStored { get; private set; }
+
+    /// <summary>True: an answer about the consent gets a server error, as a 500 would.</summary>
+    public bool FailsAnswers { get; set; }
+
     public ContributionConsent Consent { get; set; } = new(ConsentAnswer.Given, ContributionConsent.CurrentVersion, DateTimeOffset.UtcNow);
 
     public Task<StoreReply<ContributionConsent>> GetConsentAsync() =>
@@ -42,6 +48,11 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
         if (!SignedIn)
         {
             return Task.FromResult(new StoreReply<ContributionConsent>(StoreStatus.SignedOut));
+        }
+
+        if (FailsAnswers)
+        {
+            return Task.FromResult(new StoreReply<ContributionConsent>(StoreStatus.Failed));
         }
 
         Consent = new ContributionConsent(answer.Given ? ConsentAnswer.Given : ConsentAnswer.Declined, answer.Version, DateTimeOffset.UtcNow);
@@ -114,6 +125,7 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
         }
 
         int keyEpoch = Math.Max(epoch, upload.KeyEpoch);
+        PartsStored += upload.HasContributions ? 1 : 0;
         Current = new CloudSave(version + 1, keyEpoch, upload.World, upload.HasContributions ? upload.Contributions : null, DateTimeOffset.UtcNow);
         return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Ok, new CloudSaveVersion(version + 1, keyEpoch)));
     }
@@ -123,6 +135,7 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 internal sealed class MemoryStorage : ICloudSyncStorage
 {
     private readonly Dictionary<Guid, string> _keys = [];
+    private readonly HashSet<Guid> _declines = [];
     private string? _state;
 
     public ContributionKey? Key(Guid accountId) => _keys.TryGetValue(accountId, out var text) ? ContributionKey.TryParse(text) : null;
@@ -136,6 +149,12 @@ internal sealed class MemoryStorage : ICloudSyncStorage
     public void KeepState(CloudSyncState state) => _state = state.ToText();
 
     public void ForgetState() => _state = null;
+
+    public bool DeclineWaits(Guid accountId) => _declines.Contains(accountId);
+
+    public void KeepDeclineWaiting(Guid accountId) => _declines.Add(accountId);
+
+    public void ForgetDeclineWaiting(Guid accountId) => _declines.Remove(accountId);
 
     /// <summary>The key as the platform's key sync would carry it to another phone (TASK-023b).</summary>
     public void CopyKeyTo(MemoryStorage other, Guid accountId) => other._keys[accountId] = _keys[accountId];

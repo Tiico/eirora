@@ -261,6 +261,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
     private sealed class MemoryStorage : ICloudSyncStorage
     {
         private readonly Dictionary<Guid, string> _keys = [];
+        private readonly HashSet<Guid> _declines = [];
         private string? _state;
 
         public ContributionKey? Key(Guid accountId) => _keys.TryGetValue(accountId, out var text) ? ContributionKey.TryParse(text) : null;
@@ -274,6 +275,12 @@ public sealed class CloudSyncTests(ServerFixture fixture)
         public void KeepState(CloudSyncState state) => _state = state.ToText();
 
         public void ForgetState() => _state = null;
+
+        public bool DeclineWaits(Guid accountId) => _declines.Contains(accountId);
+
+        public void KeepDeclineWaiting(Guid accountId) => _declines.Add(accountId);
+
+        public void ForgetDeclineWaiting(Guid accountId) => _declines.Remove(accountId);
 
         public void CopyKeyTo(MemoryStorage other, Guid accountId) => other._keys[accountId] = _keys[accountId];
     }

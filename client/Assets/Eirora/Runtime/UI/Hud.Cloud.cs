@@ -152,7 +152,7 @@ namespace Eirora.Client.UI
         {
             Text(titleClass, parent, "Egenvården på kontot?");
             Text("sheet-text", parent, "Din ö sparas på kontot så att den kan följa med till en ny telefon: kartan, byn och krafternas saldon. Den sparas vad du än svarar här.");
-            Text("sheet-text", parent, "Egenvården per spelardygn kan sparas där också, i en egen bidragsdel. Den krypteras på telefonen med en nyckel som bara dina enheter har, så servern kan aldrig läsa den.");
+            Text("sheet-text", parent, "Din egenvård kan sparas där också, i en egen bidragsdel: summorna per spelardygn, vad varje spelardygn gav ön och spelets journal. Den krypteras på telefonen med en nyckel som bara dina enheter har, så servern kan aldrig läsa den.");
             Text("sheet-text", parent, "Med den följer egenvården med till en ny telefon. Utan den stannar egenvården här, och spelet fungerar precis som vanligt.");
             if (contributionsOnAccount)
             {
@@ -165,18 +165,31 @@ namespace Eirora.Client.UI
             Button("button", choices, "Nej tack", () => answer(false));
         }
 
-        private void AnswerConsent(CloudSaveSync cloud, bool given)
+        private void AnswerConsent(CloudSaveSync cloud, bool given) =>
+            _ = AnswerConsentAsync(cloud, given, given ? "Din egenvård sparas krypterad på kontot." : "Din egenvård stannar på telefonen. Din ö sparas på kontot.");
+
+        /// <summary>Gives the answer and says what came of it once the server has answered, never before.</summary>
+        private async Task AnswerConsentAsync(CloudSaveSync cloud, bool given, string done)
         {
-            _ = cloud.AnswerConsentAsync(given);
-            Toast(given ? "Din egenvård sparas krypterad på kontot." : "Din egenvård stannar på telefonen. Din ö sparas på kontot.");
+            await cloud.AnswerConsentAsync(given);
+            Toast(cloud.DeclineWaiting
+                ? "Ditt nej har inte nått servern än. Egenvården laddas inte upp, och nejet skickas igen vid nästa synk."
+                : cloud.AnswerWaiting
+                    ? "Servern går inte att nå just nu. Ditt svar skickas när den nås."
+                    : cloud.Consent == (given ? ConsentAnswer.Given : ConsentAnswer.Declined)
+                        ? done
+                        : "Ditt svar kom inte fram. Försök igen om en stund.");
         }
 
         /// <summary>The account sheet's part for the self-care on the account: give it later, or withdraw it (TASK-060).</summary>
         private void ConsentActions(CloudSaveSync cloud)
         {
+            // Withdrawing is always there for a signed-in player: also before the phone has heard the answer, as at an
+            // offline launch, since a no is safe to send whatever the account said.
             switch (cloud.Consent)
             {
                 case ConsentAnswer.Given:
+                case null:
                     AddAction("Sluta spara egenvården på kontot", "Den raderas från servern och stannar på telefonen", true, () =>
                     {
                         _confirmingWithdrawal = true;
@@ -184,7 +197,9 @@ namespace Eirora.Client.UI
                     });
                     break;
                 case ConsentAnswer.Declined:
-                    Text("sheet-text", _sheet, "Din egenvård stannar på telefonen. Din ö sparas på kontot ändå.");
+                    Text("sheet-text", _sheet, cloud.DeclineWaiting
+                        ? "Ditt nej har inte nått servern än. Egenvården laddas inte upp under tiden, och nejet skickas vid nästa synk."
+                        : "Din egenvård stannar på telefonen. Din ö sparas på kontot ändå.");
                     AddAction("Spara egenvården på kontot", "Krypterad, så att den följer med till en ny telefon", true, OpenConsent);
                     break;
             }
@@ -231,8 +246,7 @@ namespace Eirora.Client.UI
             Button("button", choices, "Sluta spara", () =>
             {
                 _confirmingWithdrawal = false;
-                _ = cloud.AnswerConsentAsync(false);
-                Toast("Egenvården sparas inte längre på kontot. Den finns kvar på telefonen.");
+                _ = AnswerConsentAsync(cloud, false, "Egenvården är raderad från servern och finns kvar på telefonen.");
                 ShowSheet();
             });
             Button("button", choices, "Avbryt", () =>

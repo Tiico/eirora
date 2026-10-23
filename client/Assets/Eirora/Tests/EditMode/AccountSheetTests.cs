@@ -183,6 +183,17 @@ namespace Eirora.Client.Tests
             Assert.That(Actions(), Does.Contain("Spara egenvården på kontot").And.Not.Contain("Sluta spara egenvården på kontot"));
         }
 
+        // Konto always offers to stop, also when the phone could not ask the server what the account said.
+        [Test]
+        public void TheWithdrawalIsOfferedAlsoBeforeThePhoneHeardTheAnswer()
+        {
+            SignedInCloudOffline();
+
+            _hud.OpenAccount();
+
+            Assert.That(Actions(), Does.Contain("Sluta spara egenvården på kontot"));
+        }
+
         [Test]
         public void TheFirstLaunchOffersToFetchTheIslandFromTheAccount()
         {
@@ -468,6 +479,19 @@ namespace Eirora.Client.Tests
             _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
             cloud.ReconcileAsync().GetAwaiter().GetResult();
             return cloud;
+        }
+
+        /// <summary>The player signed in on an earlier launch, and this launch could not reach the server.</summary>
+        private void SignedInCloudOffline()
+        {
+            _server.Online = true;
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            _server.Online = false;
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var cloud = new CloudSaveSync(_account, _game, _cloudStorage, () => Task.CompletedTask);
+            _hud.UseCloudSync(cloud);
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>Clicks a button as a tap would, through its <see cref="Clickable"/>; the root is in no panel to send events to.</summary>
