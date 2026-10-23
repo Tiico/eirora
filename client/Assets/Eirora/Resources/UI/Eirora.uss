@@ -190,11 +190,20 @@
     color: rgb(43, 42, 51);
 }
 
+.action-head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .action-effect {
+    flex-shrink: 1;
+    margin-top: 4px; /* Centred beside the larger title, this sets both on one baseline. */
+    margin-left: 20px;
     font-size: 27px;
     color: rgb(43, 42, 51);
     white-space: normal;
-    margin-top: 2px;
+    -unity-text-align: middle-right;
 }
 
 .action-cost {

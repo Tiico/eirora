@@ -106,8 +106,9 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>
-        /// What a building does, from its recipe or housing in the content catalog (economy-v1.md, section 3); the
-        /// storehouse, the jetty and the lookout do what the rules say. Null for a building that does none of these.
+        /// What a building does in short, as the table in economy-v1.md (section 3) says it: from its recipe or housing in
+        /// the content catalog, and for the storehouse, the jetty and the lookout from the rules. Null for a building that
+        /// does none of these.
         /// </summary>
         public static string? Effect(BuildingKind kind, BuildingSpec spec)
         {
@@ -118,13 +119,32 @@ namespace Eirora.Client.UI
 
             if (spec.Housing > 0)
             {
+                return $"+{spec.Housing} bostadsplatser";
+            }
+
+            return kind switch
+            {
+                BuildingKind.Storehouse => "Lager 150 per vara",
+                BuildingKind.Jetty => "Sjöväg och expeditioner",
+                BuildingKind.Lookout => "25 % mindre Utforskning",
+                _ => null,
+            };
+        }
+
+        /// <summary>
+        /// What a finished building that produces nothing does, in a sentence for its sheet: the housing the content
+        /// catalog gives it, or what the rules let the storehouse and the lookout do. Null for a building that does none.
+        /// </summary>
+        public static string? Purpose(BuildingKind kind, BuildingSpec spec)
+        {
+            if (spec.Housing > 0)
+            {
                 return spec.Housing == 1 ? "Ger plats åt en bybo." : $"Ger plats åt {Count(spec.Housing)} bybor.";
             }
 
             return kind switch
             {
                 BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
-                BuildingKind.Jetty => "Härifrån kan sjövägar och expeditioner utgå.",
                 BuildingKind.Lookout => "Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning.",
                 _ => null,
             };
@@ -136,24 +156,17 @@ namespace Eirora.Client.UI
             if (recipe.Inputs.Count > 0)
             {
                 string inputs = Join(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource)}").ToList());
-                return recipe.PerHour == Quantity.PerUnit ? $"Gör 1 {product} av {inputs} i timmen."
-                    : recipe.PerHour * 2 == Quantity.PerUnit ? $"Gör 1 {product} av {inputs} varannan timme."
-                    : $"Gör {Amount(recipe.PerHour)} {product} i timmen, av {inputs} för var och en.";
+                return recipe.PerHour == Quantity.PerUnit ? $"{inputs} → 1 {product}/h"
+                    : Quantity.PerUnit % recipe.PerHour == 0 ? $"{inputs} → 1 {product} per {Quantity.PerUnit / recipe.PerHour} h"
+                    : $"{inputs} → 1 {product}, {Amount(recipe.PerHour)}/h";
             }
 
             if (recipe.ForestTiles > 0)
             {
-                string tiles = recipe.ForestTiles == 1 ? "den rikaste skogsbrickan" : $"var och en av de {Count(recipe.ForestTiles)} rikaste skogsbrickorna";
-                return $"Fäller {Amount(recipe.PerHour)} {product} i timmen från {tiles} den når.";
+                return $"{Amount(recipe.PerHour)} {product}/h per skogsbricka";
             }
 
-            if (recipe.IsSlowProcess)
-            {
-                string harvested = recipe.Product == Resource.Wool ? "klipps" : "skördas";
-                return $"Ger {Amount(recipe.GrowsPerHour)} {product} i timmen. Den växer dygnet runt och {harvested} när byborna är vakna.";
-            }
-
-            return $"Ger {Amount(recipe.PerHour)} {product} i timmen.";
+            return recipe.IsSlowProcess ? $"{Amount(recipe.GrowsPerHour)} {product}/h dygnet runt" : $"{Amount(recipe.PerHour)} {product}/h";
         }
 
         /// <summary>Millionths of a unit as a Swedish decimal, such as 1,25.</summary>

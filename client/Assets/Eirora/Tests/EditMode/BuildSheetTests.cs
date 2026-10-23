@@ -32,18 +32,18 @@ namespace Eirora.Client.Tests
                 .Select(a => $"{Label(a, "action-title")} | {Label(a, "action-effect")} | {Label(a, "action-cost")}");
             Assert.That(actions, Is.EqualTo(new[]
             {
-                "Huggarkoja | Fäller 0,5 timmer i timmen från var och en av de två rikaste skogsbrickorna den når. | 6 timmer · 8 h arbete",
-                "Långhus | Ger plats åt åtta bybor. | 10 timmer · 15 plank · 10 sten · 60 Byggkraft · 40 h arbete",
-                "Stuga | Ger plats åt fyra bybor. | 15 timmer · 5 sten · 32 h arbete",
-                "Förråd | Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer. | 10 timmer · 5 sten · 16 h arbete",
-                "Sågverk | Gör 1 plank av 2 timmer i timmen. | 15 timmer · 5 sten · 30 Byggkraft · 24 h arbete",
-                "Väveri | Gör 1 vadmal av 2 ull varannan timme. | 10 plank · 5 sten · 60 Byggkraft · 24 h arbete",
-                "Utkiksvarde | Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning. | 10 sten · 40 Byggkraft · 12 h arbete",
+                "Huggarkoja | 0,5 timmer/h per skogsbricka | 6 timmer · 8 h arbete",
+                "Långhus | +8 bostadsplatser | 10 timmer · 15 plank · 10 sten · 60 Byggkraft · 40 h arbete",
+                "Stuga | +4 bostadsplatser | 15 timmer · 5 sten · 32 h arbete",
+                "Förråd | Lager 150 per vara | 10 timmer · 5 sten · 16 h arbete",
+                "Sågverk | 2 timmer → 1 plank/h | 15 timmer · 5 sten · 30 Byggkraft · 24 h arbete",
+                "Väveri | 2 ull → 1 vadmal per 2 h | 10 plank · 5 sten · 60 Byggkraft · 24 h arbete",
+                "Utkiksvarde | 25 % mindre Utforskning | 10 sten · 40 Byggkraft · 12 h arbete",
             }));
         }
 
         [Test]
-        public void EveryProducingBuildingTellsItsRateAsEconomyV1Says()
+        public void EveryProducingBuildingTellsItsRateAsTheTableInEconomyV1Does()
         {
             var effects = ContentCatalog.Current.Buildings
                 .Where(kind => ContentCatalog.Current.For(kind).Produces)
@@ -51,14 +51,23 @@ namespace Eirora.Client.Tests
 
             Assert.That(effects, Is.EqualTo(new[]
             {
-                "Fiskebod | Ger 1,25 fisk i timmen.",
-                "Åker | Ger 0,5 säd i timmen. Den växer dygnet runt och skördas när byborna är vakna.",
-                "Huggarkoja | Fäller 0,5 timmer i timmen från var och en av de två rikaste skogsbrickorna den når.",
-                "Fårgård | Ger 0,4 ull i timmen. Den växer dygnet runt och klipps när byborna är vakna.",
-                "Stenbrott | Ger 0,75 sten i timmen.",
-                "Sågverk | Gör 1 plank av 2 timmer i timmen.",
-                "Väveri | Gör 1 vadmal av 2 ull varannan timme.",
+                "Fiskebod | 1,25 fisk/h",
+                "Åker | 0,5 säd/h dygnet runt",
+                "Huggarkoja | 0,5 timmer/h per skogsbricka",
+                "Fårgård | 0,4 ull/h dygnet runt",
+                "Stenbrott | 0,75 sten/h",
+                "Sågverk | 2 timmer → 1 plank/h",
+                "Väveri | 2 ull → 1 vadmal per 2 h",
             }));
+        }
+
+        [Test]
+        public void AHouseTellsOnItsSheetHowManyItHousesAsTheCatalogSays()
+        {
+            var catalog = ContentCatalog.Current;
+
+            Assert.That(Texts.Purpose(BuildingKind.Longhouse, catalog.For(BuildingKind.Longhouse)), Is.EqualTo("Ger plats åt åtta bybor."));
+            Assert.That(Texts.Purpose(BuildingKind.Cottage, catalog.For(BuildingKind.Cottage)), Is.EqualTo("Ger plats åt fyra bybor."));
         }
 
         private static string Label(VisualElement action, string className) => action.Q<Label>(className: className)?.text ?? "–";

@@ -455,9 +455,9 @@ namespace Eirora.Client.UI
 
             if (!spec.Produces)
             {
-                if (Texts.Effect(building.Kind, spec) is string effect)
+                if (Texts.Purpose(building.Kind, spec) is string purpose)
                 {
-                    Text("sheet-text", _sheet, effect);
+                    Text("sheet-text", _sheet, purpose);
                 }
 
                 return;
@@ -623,10 +623,16 @@ namespace Eirora.Client.UI
                 button.AddToClassList("action-unavailable");
             }
 
-            Text("action-title", button, title);
-            if (effect is not null)
+            if (effect is null)
             {
-                Text("action-effect", button, effect);
+                Text("action-title", button, title);
+            }
+            else
+            {
+                // What the building does sits beside its name, so the sheet is no taller for it.
+                var head = Container("action-head", button);
+                Text("action-title", head, title);
+                Text("action-effect", head, effect);
             }
 
             Text("action-cost", button, cost);
