@@ -33,7 +33,7 @@ namespace Eirora.Client.Tests
                 .Select(a => $"{Label(a, "action-title")} | {Label(a, "action-effect")} | {Label(a, "action-cost")}");
             Assert.That(actions, Is.EqualTo(new[]
             {
-                "Huggarkoja | 0,5 timmer/h per skogsbricka | 6 timmer · 8 h arbete",
+                "Huggarkoja | 0,5 timmer/h per skogsbricka, högst två | 6 timmer · 8 h arbete",
                 "Långhus | +8 bostadsplatser | 10 timmer · 15 plank · 10 sten · 60 Byggkraft · 40 h arbete",
                 "Stuga | +4 bostadsplatser | 15 timmer · 5 sten · 32 h arbete",
                 "Förråd | Lager 150 per vara | 10 timmer · 5 sten · 16 h arbete",
@@ -54,7 +54,7 @@ namespace Eirora.Client.Tests
             {
                 "Fiskebod | 1,25 fisk/h",
                 "Åker | 0,5 säd/h dygnet runt",
-                "Huggarkoja | 0,5 timmer/h per skogsbricka",
+                "Huggarkoja | 0,5 timmer/h per skogsbricka, högst två",
                 "Fårgård | 0,4 ull/h dygnet runt",
                 "Stenbrott | 0,75 sten/h",
                 "Sågverk | 2 timmer → 1 plank/h",

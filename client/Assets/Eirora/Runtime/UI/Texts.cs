@@ -164,7 +164,7 @@ namespace Eirora.Client.UI
             string product = Name(recipe.Product);
             if (recipe.Inputs.Count > 0)
             {
-                string inputs = Join(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource)}").ToList());
+                string inputs = List(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource)}"));
                 return recipe.PerHour == Quantity.PerUnit ? $"{inputs} → 1 {product}/h"
                     : Quantity.PerUnit % recipe.PerHour == 0 ? $"{inputs} → 1 {product} per {Quantity.PerUnit / recipe.PerHour} h"
                     : $"{inputs} → 1 {product}, {Amount(recipe.PerHour)}/h";
@@ -172,7 +172,9 @@ namespace Eirora.Client.UI
 
             if (recipe.ForestTiles > 0)
             {
-                return $"{Amount(recipe.PerHour)} {product}/h per skogsbricka";
+                return recipe.ForestTiles == 1
+                    ? $"{Amount(recipe.PerHour)} {product}/h från en skogsbricka"
+                    : $"{Amount(recipe.PerHour)} {product}/h per skogsbricka, högst {Count(recipe.ForestTiles)}";
             }
 
             return recipe.IsSlowProcess ? $"{Amount(recipe.GrowsPerHour)} {product}/h dygnet runt" : $"{Amount(recipe.PerHour)} {product}/h";

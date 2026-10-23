@@ -1,12 +1,18 @@
+using System;
 using System.Collections.Generic;
 using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Economy
 {
     /// <summary>What a building costs, needs and does (economy-v1.md, section 3), as the content catalog gives it.</summary>
+    /// <remarks>
+    /// Content is entered here, so a spec refuses what could never work: a negative amount, which a queued build would
+    /// add to the store instead of paying, no work, no level, or a recipe without villagers to run it, since only a staffed
+    /// building produces.
+    /// </remarks>
     public sealed class BuildingSpec
     {
-        public BuildingSpec(
+        internal BuildingSpec(
             IReadOnlyDictionary<Resource, int> cost,
             int workHours,
             int buildPower,
@@ -24,6 +30,25 @@ namespace Eirora.Simulation.Economy
             Housing = housing;
             MaxLevel = maxLevel;
             Recipe = recipe;
+
+            // By resource rather than over the cost, whose order is the dictionary's (docs/development.md#determinism).
+            foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+            {
+                if (cost.TryGetValue(resource, out int amount) && amount < 1)
+                {
+                    throw new ArgumentException("Every resource a building costs is at least one unit.", nameof(cost));
+                }
+            }
+
+            if (workHours < 1 || buildPower < 0 || staff < 0 || housing < 0 || maxLevel < 1)
+            {
+                throw new ArgumentException("A building takes work, at least level 1 and nothing negative.");
+            }
+
+            if (recipe is not null && staff < 1)
+            {
+                throw new ArgumentException("A building with a recipe needs staff, since only a staffed building produces.", nameof(staff));
+            }
         }
 
         /// <summary>Whole units of each resource, paid when the work is queued.</summary>

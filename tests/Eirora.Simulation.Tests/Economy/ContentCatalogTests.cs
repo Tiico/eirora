@@ -89,6 +89,43 @@ public sealed class ContentCatalogTests
         Assert.Throws<ArgumentException>(() => new Recipe(Resource.Planks, perHour: 1_000_000, inputs: [new(Resource.Timber, 2)], growsPerHour: 500_000));
     }
 
+    // Processing checks each raw material's reserve on its own and before adding the product, so either would take the
+    // store below the reserve (LOG-06).
+    [Fact]
+    public void ARecipeRefusesARawMaterialTwiceOrOneThatIsItsProduct()
+    {
+        Assert.Throws<ArgumentException>(() => new Recipe(Resource.Planks, perHour: 1_000_000, inputs: [new(Resource.Timber, 1), new(Resource.Timber, 1)]));
+        Assert.Throws<ArgumentException>(() => new Recipe(Resource.Timber, perHour: 1_000_000, inputs: [new(Resource.Timber, 2)]));
+    }
+
+    public static TheoryData<string, Func<BuildingSpec>> UnworkableSpecs => new()
+    {
+        { "a negative cost, which a queued build would add to the store", () => new(Timber(-4), workHours: 2, buildPower: 0, staff: 1, TileUse.Land) },
+        { "a resource listed at no units", () => new(Timber(0), workHours: 2, buildPower: 0, staff: 1, TileUse.Land) },
+        { "no work", () => new(Timber(4), workHours: 0, buildPower: 0, staff: 1, TileUse.Land) },
+        { "negative Build Power", () => new(Timber(4), workHours: 2, buildPower: -1, staff: 1, TileUse.Land) },
+        { "negative staff", () => new(Timber(4), workHours: 2, buildPower: 0, staff: -1, TileUse.Land) },
+        { "negative housing", () => new(Timber(4), workHours: 2, buildPower: 0, staff: 0, TileUse.Land, housing: -4) },
+        { "no level", () => new(Timber(4), workHours: 2, buildPower: 0, staff: 1, TileUse.Land, maxLevel: 0) },
+        { "a recipe nobody runs, so it never produces", () => new(Timber(4), workHours: 2, buildPower: 0, staff: 0, TileUse.Land, recipe: new(Resource.Stone, perHour: 1_000_000)) },
+    };
+
+    [Theory]
+    [MemberData(nameof(UnworkableSpecs))]
+    public void ABuildingSpecRefusesWhatCouldNeverWork(string what, Func<BuildingSpec> spec)
+    {
+        Assert.NotEmpty(what);
+        Assert.Throws<ArgumentException>(spec);
+    }
+
+    [Fact]
+    public void ABuildingIsInTheCatalogOnlyOnce()
+    {
+        Assert.Throws<ArgumentException>(() => ContentCatalog.Current.With(BuildingKind.Field, Spec(recipe: null)));
+    }
+
+    private static Dictionary<Resource, int> Timber(int amount) => new() { [Resource.Timber] = amount };
+
     /// <summary>A building that costs only timber, needs one villager and stands on any land.</summary>
     private static BuildingSpec Spec(Recipe? recipe) =>
         new(new Dictionary<Resource, int> { [Resource.Timber] = 4 }, workHours: 2, buildPower: 0, staff: 1, TileUse.Land, maxLevel: 2, recipe: recipe);

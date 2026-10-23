@@ -15,9 +15,9 @@ namespace Eirora.Simulation.Economy
     public sealed class Recipe
     {
         /// <summary>Quarter-hour ticks in an hour, the step a rate is divided into.</summary>
-        internal const long TicksPerHour = 4;
+        internal const long TicksPerHour = 3600 / Settlement.TickSeconds;
 
-        public Recipe(
+        internal Recipe(
             Resource product,
             long perHour,
             bool richness = false,
@@ -41,6 +41,24 @@ namespace Eirora.Simulation.Economy
             if (kinds > 1)
             {
                 throw new ArgumentException("A recipe processes, grows or fells, never more than one of them.");
+            }
+
+            // Processing checks the reserve of each raw material on its own and before the product is added, so a raw
+            // material listed twice, or one that is also the product, would take the store below the reserve (LOG-06).
+            for (int i = 0; i < Inputs.Count; i++)
+            {
+                for (int j = i + 1; j < Inputs.Count; j++)
+                {
+                    if (Inputs[i].Resource == Inputs[j].Resource)
+                    {
+                        throw new ArgumentException($"{Inputs[i].Resource} is a raw material of the recipe twice.", nameof(inputs));
+                    }
+                }
+
+                if (Inputs[i].Resource == product)
+                {
+                    throw new ArgumentException($"{product} is both the product and a raw material of the recipe.", nameof(inputs));
+                }
             }
         }
 
@@ -77,7 +95,7 @@ namespace Eirora.Simulation.Economy
     /// <summary>A raw material of a recipe: how many units of it one unit of the product takes.</summary>
     public readonly struct Ingredient
     {
-        public Ingredient(Resource resource, int perProduct)
+        internal Ingredient(Resource resource, int perProduct)
         {
             if (perProduct <= 0)
             {
