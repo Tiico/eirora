@@ -62,7 +62,13 @@ object SignInBridge {
     fun authenticate(activity: Activity, url: String, callback: SignInCallback) {
         pendingWebSignIn?.onCancel()
         pendingWebSignIn = callback
-        activity.startActivity(Intent(activity, WebSignInActivity::class.java).putExtra(WebSignInActivity.EXTRA_URL, url))
+        try {
+            activity.startActivity(Intent(activity, WebSignInActivity::class.java).putExtra(WebSignInActivity.EXTRA_URL, url))
+        } catch (error: RuntimeException) {
+            // The caller gets the exception and lets the callback go, so nothing may answer it later.
+            pendingWebSignIn = null
+            throw error
+        }
     }
 
     internal fun completeWebSignIn(answer: String?, error: String? = null) {

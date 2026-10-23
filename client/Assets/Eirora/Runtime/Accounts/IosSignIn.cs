@@ -42,49 +42,37 @@ namespace Eirora.Client.Accounts
     }
 
     /// <summary>
-    /// The contribution key in iCloud Keychain (EiroraKeyBackup.mm); the keychain answers at once. A failure carries the
-    /// keychain's OSStatus, which holds nothing of the key, so that it can be told apart on a device.
+    /// The contribution key in iCloud Keychain (EiroraKeyBackup.mm); the keychain answers at once, and
+    /// <see cref="KeychainStatus"/> says what its answers mean.
     /// </summary>
     public sealed class IosKeyBackup : IKeyBackup
     {
-        private const int ErrSecSuccess = 0;
-        private const int ErrSecItemNotFound = -25300;
-
-        public Task<string?> ReadAsync(string name)
+        public Task<string?> ReadAsync(string name) => Answer(() =>
         {
             string? value = EiroraKeyBackupRead(name, out int status);
-            return status switch
-            {
-                ErrSecSuccess => Task.FromResult(value),
-                ErrSecItemNotFound => Task.FromResult<string?>(null),
-                _ => Task.FromException<string?>(Failed(status)),
-            };
-        }
+            return KeychainStatus.Read(status, value);
+        });
 
-        public Task<KeyBackupReach?> KeepAsync(string name, string value)
+        public Task<KeyBackupReach?> KeepAsync(string name, string value) =>
+            Answer(() => KeychainStatus.Kept(EiroraKeyBackupKeep(name, value, out int reach), reach));
+
+        public Task ForgetAsync(string name) => Answer(() =>
         {
-            int status = EiroraKeyBackupKeep(name, value, out int reach);
-            if (status != ErrSecSuccess)
+            KeychainStatus.Forgot(EiroraKeyBackupForget(name));
+            return true;
+        });
+
+        private static Task<T> Answer<T>(System.Func<T> call)
+        {
+            try
             {
-                return Task.FromException<KeyBackupReach?>(Failed(status));
+                return Task.FromResult(call());
             }
-
-            KeyBackupReach? known = reach switch
+            catch (KeyBackupException e)
             {
-                1 => KeyBackupReach.EndToEnd,
-                0 => KeyBackupReach.ThisPhone,
-                _ => null,
-            };
-            return Task.FromResult(known);
+                return Task.FromException<T>(e);
+            }
         }
-
-        public Task ForgetAsync(string name)
-        {
-            int status = EiroraKeyBackupForget(name);
-            return status is ErrSecSuccess or ErrSecItemNotFound ? Task.CompletedTask : Task.FromException(Failed(status));
-        }
-
-        private static KeyBackupException Failed(int status) => new($"Keychain error {status}");
 
         [DllImport("__Internal")]
         private static extern string? EiroraKeyBackupRead(string name, out int status);

@@ -58,12 +58,7 @@ namespace Eirora.Client.Accounts
             return value.Length == 0 ? null : value;
         }
 
-        public async Task<KeyBackupReach?> KeepAsync(string name, string value) => await CallAsync("keep", name, value) switch
-        {
-            "end-to-end" => KeyBackupReach.EndToEnd,
-            "this-phone" => KeyBackupReach.ThisPhone,
-            _ => null, // Block Store could not say whether it encrypts end to end.
-        };
+        public async Task<KeyBackupReach?> KeepAsync(string name, string value) => BlockStoreAnswer.Kept(await CallAsync("keep", name, value));
 
         public Task ForgetAsync(string name) => CallAsync("forget", name);
 
@@ -120,7 +115,7 @@ namespace Eirora.Client.Accounts
             }
             catch
             {
-                callback.Release(); // Java never got it, so it will never answer.
+                callback.Release(); // Java threw and holds no reference to it, so it will never answer.
                 throw;
             }
 
