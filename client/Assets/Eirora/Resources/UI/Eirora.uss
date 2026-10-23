@@ -50,7 +50,8 @@
 
 .resource {
     font-size: 30px;
-    margin-right: 26px;
+    margin: 0 18px 0 0;
+    padding: 0;
     color: rgb(68, 66, 80);
 }
 

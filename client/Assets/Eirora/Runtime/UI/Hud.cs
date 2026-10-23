@@ -37,7 +37,7 @@ namespace Eirora.Client.UI
         private readonly VisualElement _sheet;
         private readonly VisualElement _bar;
         private readonly Dictionary<Force, Label> _forceValues = new();
-        private readonly Label _resources;
+        private readonly VisualElement _resources;
         private readonly Label _status;
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
@@ -74,7 +74,7 @@ namespace Eirora.Client.UI
                 Text("force-name", chip, Texts.Name(force));
             }
 
-            _resources = Text("resources resource", _top, string.Empty);
+            _resources = Container("resources", _top);
             _status = Text("status", _top, string.Empty);
             _sheet.style.display = DisplayStyle.None;
             _top.style.display = DisplayStyle.None;
@@ -189,8 +189,15 @@ namespace Eirora.Client.UI
                 _forceValues[force].text = world.Available(force).ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            _resources.text = string.Join("   ", Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Select(r => $"{Capital(Texts.Name(r))} {world.Stock(r)}"));
+            // One label a resource, so that a row too long for the card wraps between them instead of running past its edge.
+            _resources.Clear();
+            foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+            {
+                Text("resource", _resources, $"{Capital(Texts.Name(resource))} {world.Stock(resource)}");
+            }
+
+            // USS has no :last-child, and the last one's margin would wrap a row that fits.
+            _resources[_resources.childCount - 1].style.marginRight = 0;
             string upcoming = world.Phase == Phase.Resting
                 ? $"Världen öppnar klockan {Clock(RestEnd(world))}"
                 : $"Byn vilar klockan {Clock(world.RestSchedule.StartMinuteOfDay)}";
