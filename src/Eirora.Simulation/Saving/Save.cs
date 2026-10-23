@@ -88,6 +88,7 @@ namespace Eirora.Simulation.Saving
         /// Takes over a prototype journal from M1: it is replayed once, and the created world and the journal become the
         /// save's first segment (ADR-0006).
         /// </summary>
+        /// <exception cref="JournalFromOlderRulesException">The journal is from rules this version no longer replays.</exception>
         /// <exception cref="FormatException">The text is not a prototype journal this version can replay.</exception>
         public static Save FromPrototypeJournal(string text)
         {
