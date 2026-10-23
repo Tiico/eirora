@@ -47,6 +47,7 @@ namespace Eirora.Simulation.Economy
         };
 
         private readonly List<Building> _buildings = new();
+        private readonly Dictionary<Hex, Building> _buildingAt = new(); // Only looked up, never iterated.
         private readonly List<Project> _projects = new();
 
         // Timber left on the forest tiles that are not full, in map order; every other forest tile holds ForestPerTile.
@@ -57,6 +58,8 @@ namespace Eirora.Simulation.Economy
         private readonly Dictionary<Hex, int> _depotDistances = new(); // Forgotten whenever a depot is added.
         private readonly List<Hex> _woods = new();
         private readonly List<Hex> _regrowing = new();
+        private readonly long[] _before = new long[2 * s_resourceCount]; // The stores before a tick's work.
+        private readonly Dictionary<IslandId, long> _capacity = new(); // Forgotten whenever a building is added.
         private long _expeditionLeft;
 
         private Settlement(WorldMap map, Fog fog, Founding founding)
@@ -203,18 +206,7 @@ namespace Eirora.Simulation.Economy
             return false;
         }
 
-        public Building? BuildingAt(Hex tile)
-        {
-            foreach (var building in _buildings)
-            {
-                if (building.Tile == tile)
-                {
-                    return building;
-                }
-            }
-
-            return null;
-        }
+        public Building? BuildingAt(Hex tile) => _buildingAt.TryGetValue(tile, out var building) ? building : null;
 
         /// <summary>
         /// What a known tile is good for now (D-79): what the map gives, except forest when there is no known forest
@@ -362,19 +354,37 @@ namespace Eirora.Simulation.Economy
             first.WorkLeft = first.WorkLeft > hours * 1000L ? first.WorkLeft - (hours * 1000L) : 0;
         }
 
-        /// <summary>One quarter hour; villagers work only when <paramref name="awake"/>.</summary>
-        public void Tick(bool awake, long utcSeconds, List<GameEvent> events)
+        /// <summary>
+        /// One quarter hour with the villagers awake; while they rest only <see cref="GrowSlowProcesses"/> moves. Returns
+        /// whether their work changed anything: when it did not, nothing but the slow processes changes until the next dawn.
+        /// </summary>
+        /// <remarks>
+        /// Work that changes nothing has full stores or nothing to work with, and the slow processes cannot change that:
+        /// what has grown is harvested only into a store with room, and a forest tile that grows back has timber left.
+        /// </remarks>
+        public bool Tick(long utcSeconds, List<GameEvent> events)
         {
-            GrowSlowProcesses();
-            if (!awake)
-            {
-                return;
-            }
+            GrowSlowProcesses(1);
+            var home = _stores[IslandId.Home];
+            var nyon = _stores[IslandId.Nyon];
+            Array.Copy(home, _before, s_resourceCount);
+            Array.Copy(nyon, 0, _before, s_resourceCount, s_resourceCount);
+            long expedition = _expeditionLeft;
+            int projects = _projects.Count;
+            long work = projects > 0 ? _projects[0].WorkLeft : 0;
 
             Build(utcSeconds, events);
             Produce();
             Ship();
             Explore(utcSeconds, events);
+
+            bool changed = expedition != _expeditionLeft || projects != _projects.Count || (projects > 0 && work != _projects[0].WorkLeft);
+            for (int i = 0; i < s_resourceCount && !changed; i++)
+            {
+                changed = home[i] != _before[i] || nyon[i] != _before[s_resourceCount + i];
+            }
+
+            return changed;
         }
 
         /// <summary>Villagers eat, the settlement grows if it can, and today's workdays end.</summary>
@@ -487,6 +497,7 @@ namespace Eirora.Simulation.Economy
                     Ripe = reader.Long(),
                 };
                 settlement._buildings.Add(building);
+                settlement._buildingAt.Add(tile, building);
             }
 
             while (reader.Next("project"))
@@ -515,13 +526,17 @@ namespace Eirora.Simulation.Economy
             return settlement;
         }
 
-        private void GrowSlowProcesses()
+        /// <summary>
+        /// <paramref name="ticks"/> quarter hours of the slow processes, which go on day and night (INV-T5): the same as
+        /// as many single ticks, since nothing else changes how fast they grow.
+        /// </summary>
+        public void GrowSlowProcesses(int ticks)
         {
             _regrowing.Clear();
             _regrowing.AddRange(_felled.Keys);
             foreach (var tile in _regrowing)
             {
-                long grown = _felled[tile] + ForestRegrowthPerTick;
+                long grown = _felled[tile] + (ticks * ForestRegrowthPerTick);
                 if (grown < ForestPerTile)
                 {
                     _felled[tile] = grown;
@@ -538,17 +553,22 @@ namespace Eirora.Simulation.Economy
             {
                 if (building.Kind == BuildingKind.Field)
                 {
-                    building.Ripe += Scale(125_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
+                    building.Ripe += ticks * Scale(125_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
                 }
                 else if (building.Kind == BuildingKind.SheepFarm)
                 {
-                    building.Ripe += Scale(100_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
+                    building.Ripe += ticks * Scale(100_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
                 }
             }
         }
 
         private void Build(long utcSeconds, List<GameEvent> events)
         {
+            if (_projects.Count == 0)
+            {
+                return;
+            }
+
             long labour = FreeVillagers * WorkPerVillagerPerTick;
             while (_projects.Count > 0 && (labour > 0 || _projects[0].WorkLeft == 0))
             {
@@ -779,6 +799,11 @@ namespace Eirora.Simulation.Economy
 
         private long StorageCapacity(IslandId island)
         {
+            if (_capacity.TryGetValue(island, out long capacity))
+            {
+                return capacity;
+            }
+
             int units = 0;
             foreach (var building in _buildings)
             {
@@ -789,7 +814,9 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            return Quantity.Units(units);
+            capacity = Quantity.Units(units);
+            _capacity[island] = capacity;
+            return capacity;
         }
 
         /// <summary>Production at level 2 is 150 % of level 1's.</summary>
@@ -885,7 +912,10 @@ namespace Eirora.Simulation.Economy
 
         private void Complete(BuildingKind kind, Hex tile)
         {
-            _buildings.Add(new Building(kind, tile, IslandOf(tile)));
+            var building = new Building(kind, tile, IslandOf(tile));
+            _buildings.Add(building);
+            _buildingAt.Add(tile, building);
+            _capacity.Clear();
             if (kind is BuildingKind.Storehouse or BuildingKind.Jetty)
             {
                 _depotDistances.Clear();
@@ -904,15 +934,15 @@ namespace Eirora.Simulation.Economy
             }
         }
 
-        private static long Scale(long amount, params int[] percents)
-        {
-            foreach (int percent in percents)
-            {
-                amount = amount * percent / 100;
-            }
+        // Percent by percent, rounding down after each. One overload per arity rather than a params array, which would be
+        // allocated for every building every tick.
+        private static long Scale(long amount, int percent) => amount * percent / 100;
 
-            return amount;
-        }
+        private static long Scale(long amount, int first, int second, int third) =>
+            Scale(Scale(Scale(amount, first), second), third);
+
+        private static long Scale(long amount, int first, int second, int third, int fourth) =>
+            Scale(Scale(amount, first, second, third), fourth);
 
         private static long Min(long a, long b) => a < b ? a : b;
     }

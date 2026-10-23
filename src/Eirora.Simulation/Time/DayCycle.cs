@@ -128,6 +128,17 @@ namespace Eirora.Simulation.Time
             Now = target;
         }
 
+        /// <summary>
+        /// When the rest under way ends, for a span whose zone and offset are <paramref name="span"/>'s: the moment
+        /// <see cref="AdvanceTo"/> would break the dawn. Only while resting.
+        /// </summary>
+        public long RestEndUtc(TimeReading span)
+        {
+            int offset = string.Equals(span.ZoneId, _restZoneId, StringComparison.Ordinal) ? span.OffsetSeconds : _restLastOffset;
+            long end = _restEndLocal - offset;
+            return end < Now.UtcSeconds ? Now.UtcSeconds : end;
+        }
+
         /// <summary>When a recent game day began: local midnight for day 0, otherwise its dawn; null if too old.</summary>
         public long? GameDayStartUtc(int day)
         {
