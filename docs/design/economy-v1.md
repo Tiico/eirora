@@ -1,14 +1,15 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, O-02  
+> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
 
 Den första ekonomin för prototypen: 12 byggnader, 7 resurser, recept, logistik och vad krafterna kostar.
 Siffrorna är räknade timme för timme över sju spelardygn i kalkylen ovan, inte uppskattade.
 Kalkylen är ett räkneark i kodform; spelets simulering skrivs i C# i M1.
-Innehållsomfånget (O-02, CIV-09) prövas i prototypen.
+Innehållsomfånget avgjordes i M4: Anno-bredd med gradvis upplåsning, en bosättning per ö och bärare på land (D-105–D-107, avsnitt 10).
+Den ekonomin tas fram i ekonomi v2 (TASK-058); ekonomi v1 beskriver det som spelas i dag.
 
 ## 1. Grundidé
 
@@ -311,3 +312,16 @@ Produktägarens svar på de öppna frågorna i v1.1 (TASK-037):
 Produktägarens svar på avvikelsen som [grind A0](./gate-a0.md#3-avvikelser-mellan-dokument-och-kalkyl) hittade (TASK-038):
 
 - **D-103:** avstånd, nivå 2 och dagsverke skalar hur fort åkern och fårgården växer, som avsnitt 3 och 5 redan sa; tidigare skalade de bara hur mycket som kunde skördas i timmen, ett tak som aldrig nåddes.
+
+Produktägarens svar på besluten om innehåll, bosättningar och transport i M4 (TASK-039–041):
+
+- **D-105:** innehållet får Anno-bredd: befolkningsnivåer med egna behov och fler än 20 byggnader redan i epok 1.
+  Nivåerna och behoven låses upp gradvis under epoken, till exempel när en bosättning når en viss storlek, så att första veckan är lika lätt som i dag och den guidade turen förblir kort.
+- **D-106:** en bosättning per ö.
+  Det första förrådet eller den första bryggan på en ö grundar öns bosättning, med egna bybor, bostäder och lager.
+  Byborna bemannar bara byggnader på sin ö, äter ur sin ös lager och flyttar över en sjöväg till en bosättning med lediga bostäder, högst en per spelardygn.
+- **D-107:** transporten på land sker med bärare med kapacitet i stället för bara avståndsklasser.
+  Varje förråd har bärare som flyttar en begränsad mängd per timme, och vägar gör dem snabbare.
+  Flaskhalsdiagnostiken ska alltid visa varför en vara inte når fram och vad en väg, ett förråd eller fler bärare skulle ge.
+
+Nivåer, behov, byggnader, kedjor, upplåsning och bärarnas regler räknas fram i ekonomi v2 (TASK-058), som ersätter avsnitt 2–6 när den är godkänd.
