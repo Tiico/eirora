@@ -375,8 +375,9 @@ namespace Eirora.Client.App
             {
                 text = await _backup.ReadAsync(KeyBackups.Name(accountId));
             }
-            catch (KeyBackupException)
+            catch (KeyBackupException problem)
             {
+                Report(problem);
                 return false; // The player is asked, as without a backup.
             }
 
@@ -419,9 +420,10 @@ namespace Eirora.Client.App
                 _backedUpKey = text;
                 SetKeyReach(reach);
             }
-            catch (KeyBackupException)
+            catch (KeyBackupException problem)
             {
                 // The next sync tries again; until then the account sheet suggests nothing it cannot back up.
+                Report(problem);
                 SetKeyReach(null);
             }
         }
@@ -445,11 +447,18 @@ namespace Eirora.Client.App
             {
                 await _backup.ForgetAsync(KeyBackups.Name(accountId));
             }
-            catch (KeyBackupException)
+            catch (KeyBackupException problem)
             {
                 // Without the account, a key left in the backup opens nothing the server still keeps (ADR-0008).
+                Report(problem);
             }
         }
+
+        /// <summary>
+        /// Logs why the platform's backup failed, so that it can be told apart on a device: the reason is a status code
+        /// or one of our own answers, never a key (<see cref="KeyBackupException"/>).
+        /// </summary>
+        private static void Report(KeyBackupException problem) => UnityEngine.Debug.LogWarning("Key backup: " + problem.Message);
 
         private void SetKeyReach(KeyBackupReach? reach)
         {

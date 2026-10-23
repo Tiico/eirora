@@ -11,6 +11,8 @@ using Eirora.Simulation.Commands;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Eirora.Client.Tests
 {
@@ -571,9 +573,11 @@ namespace Eirora.Client.Tests
             backup.Failing = true;
             var silent = Phone("c", withWorld: false, backup: backup);
             silent.SignIn();
+            LogAssert.Expect(LogType.Warning, "Key backup: The backup does not answer"); // Why, so that a device shows it.
             Wait(silent.Cloud.ReconcileAsync());
 
             Assert.That(silent.Cloud.Status, Is.EqualTo(CloudSyncStatus.KeyNeeded));
+            LogAssert.Expect(LogType.Warning, "Key backup: The backup does not answer");
             Wait(old.Cloud.ReconcileAsync());
             Assert.That(old.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced), "a backup that does not answer never stops the sync");
             Assert.That(old.Cloud.KeyReach, Is.Null);

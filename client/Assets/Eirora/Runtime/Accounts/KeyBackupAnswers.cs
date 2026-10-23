@@ -56,7 +56,9 @@ namespace Eirora.Client.Accounts
     public static class BlockStoreAnswer
     {
         /// <summary>How far a kept key reaches; null when Block Store could not say whether it encrypts end to end.</summary>
-        /// <exception cref="KeyBackupException">An answer KeyBackup.kt never gives, so that a gap between the two shows.</exception>
+        /// <exception cref="KeyBackupException">
+        /// An answer KeyBackup.kt never gives: the sync logs it, instead of reading it as an unknown reach.
+        /// </exception>
         public static KeyBackupReach? Kept(string answer) => answer switch
         {
             "end-to-end" => KeyBackupReach.EndToEnd,
