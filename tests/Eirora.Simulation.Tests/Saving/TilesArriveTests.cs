@@ -22,7 +22,7 @@ public sealed class TilesArriveTests
     {
         var world = NewWorld();
         Assert.True(world.Apply("cottage", new Build(BuildingKind.Cottage, L1)).Accepted);
-        string state = world.Fingerprint();
+        string state = StaffingIsOrderedTests.RulesFive(world.Fingerprint());
 
         string migrated = new TilesArrive().Migrate(RulesThree(state, FullForests));
 
@@ -35,7 +35,7 @@ public sealed class TilesArriveTests
     public void AFelledForestSiteLeavesItsShareOfTimberOnItsOwnTile()
     {
         // The old-growth forest counted four tiles and had half its timber left: 20 on each.
-        string state = NewWorld().Fingerprint();
+        string state = StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint());
 
         string migrated = new TilesArrive().Migrate(RulesThree(state, "forest F1 10000000\nforest F2 120000000\nforest F3 80000000\n"));
 
@@ -47,10 +47,10 @@ public sealed class TilesArriveTests
     {
         // Under rules 3 the western mountain was a quarry site; under rules 4 it is the crest, which takes only the
         // Vårdkase (D-92). What was built stays where it stands (INV-V1).
-        string state = RulesThree(NewWorld().Fingerprint(), FullForests)
+        string state = RulesThree(StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint()), FullForests)
             .Replace("\nforest F1", "\nbuilding Quarry M1 1 1 0 0 0\nforest F1", StringComparison.Ordinal);
 
-        var world = World.Read(new StateReader(new TilesArrive().Migrate(state)), PrototypeHome.Map);
+        var world = World.Read(new StateReader(Migrations.ToCurrent(state, 3, Migrations.All)), PrototypeHome.Map);
         long stone = world.Stock(Resource.Stone);
         world.AdvanceTo(At("2026-10-14 18:00", 2));
 
@@ -62,13 +62,16 @@ public sealed class TilesArriveTests
     [Fact]
     public void AStateFromAnotherMapOrWithAnUnknownSiteIsRefused()
     {
-        string state = RulesThree(NewWorld().Fingerprint(), FullForests);
+        string state = RulesThree(StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint()), FullForests);
 
         Assert.Throws<FormatException>(() => new TilesArrive().Migrate("map 00" + state[state.IndexOf('\n')..]));
         Assert.Throws<FormatException>(() => new TilesArrive().Migrate(state.Replace("building Storehouse S ", "building Storehouse X9 ", StringComparison.Ordinal)));
     }
 
-    /// <summary>The same world as rules 3 wrote it: buildings and projects on site ids, and a forest line per forest site.</summary>
+    /// <summary>
+    /// The same world as rules 3 wrote it, from a state of rules 4 or 5: buildings and projects on site ids, and a forest
+    /// line per forest site.
+    /// </summary>
     private static string RulesThree(string state, string forests)
     {
         var lines = state.Split('\n').Select(line =>
@@ -107,7 +110,8 @@ public sealed class TilesArriveTests
         bool Kept(string line) => !renamed.Any(prefix => line.StartsWith(prefix, StringComparison.Ordinal));
         Assert.Equal(before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(Kept), after.Where(Kept));
 
-        // Each building is the same kind, level, staff, road, workday and harvest, on its site's tile.
+        // Each building is the same kind, level, staff, road, workday and harvest, on its site's tile, and running since
+        // rules 6.
         var buildingsBefore = before.Where(l => l.StartsWith("building ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
         var buildingsAfter = after.Where(l => l.StartsWith("building ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
         Assert.NotEmpty(buildingsBefore);
@@ -117,7 +121,7 @@ public sealed class TilesArriveTests
             var site = PrototypeSites.HexOf(pair.First[2]);
             Assert.Equal(pair.First[1], pair.Second[1]);
             Assert.Equal((site.Q, site.R), (int.Parse(pair.Second[2], CultureInfo.InvariantCulture), int.Parse(pair.Second[3], CultureInfo.InvariantCulture)));
-            Assert.Equal(pair.First[3..], pair.Second[4..]);
+            Assert.Equal([.. pair.First[3..], "0"], pair.Second[4..]);
         });
     }
 }

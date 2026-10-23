@@ -20,11 +20,14 @@ namespace Eirora.Client.UI
 {
     /// <summary>
     /// The prototype's interface, built in code with UI Toolkit (NFR-14): forces and stock at the top, actions at
-    /// the bottom, a sheet for the selected tile, self-care input, the daily report, the account and the night view
-    /// (RST-03).
+    /// the bottom, a sheet for the selected tile, the building queue, self-care input, the daily report, the account
+    /// and the night view (RST-03).
     /// </summary>
     public sealed partial class Hud
     {
+        // The queue sheet lists this many projects, so that it leaves the island in view.
+        private const int QueueShown = 5;
+
         private readonly Func<GameCommand, CommandResult> _apply;
         private readonly IHealthControls? _health;
         private bool _explainingHealth;
@@ -37,7 +40,7 @@ namespace Eirora.Client.UI
         private readonly VisualElement _sheet;
         private readonly VisualElement _bar;
         private readonly Dictionary<Force, Label> _forceValues = new();
-        private readonly Label _resources;
+        private readonly VisualElement _resources;
         private readonly Label _status;
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
@@ -73,7 +76,7 @@ namespace Eirora.Client.UI
                 Text("force-name", chip, Texts.Name(force));
             }
 
-            _resources = Text("resources resource", _top, string.Empty);
+            _resources = Container("resources", _top);
             _status = Text("status", _top, string.Empty);
             _sheet.style.display = DisplayStyle.None;
             _top.style.display = DisplayStyle.None;
@@ -84,6 +87,7 @@ namespace Eirora.Client.UI
             None,
             Tile,
             Fog,
+            Queue,
             SelfCare,
             Report,
             Account,
@@ -187,8 +191,12 @@ namespace Eirora.Client.UI
                 _forceValues[force].text = world.Available(force).ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            _resources.text = string.Join("   ", Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Select(r => $"{Capital(Texts.Name(r))} {world.Stock(r)}"));
+            // One label per resource, spread over the card's width and wrapping rather than running off it.
+            _resources.Clear();
+            foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>())
+            {
+                Text("resource", _resources, $"{Capital(Texts.Name(resource))} {world.Stock(resource)}");
+            }
             string upcoming = world.Phase == Phase.Resting
                 ? $"Världen öppnar klockan {Clock(RestEnd(world))}"
                 : $"Byn vilar klockan {Clock(world.RestSchedule.StartMinuteOfDay)}";
@@ -248,6 +256,9 @@ namespace Eirora.Client.UI
         public bool IsFogged(Hex hex) => _world is not null && !_world.IsKnown(hex);
 
         public void OpenSelfCare() => Open(Sheet.SelfCare);
+
+        /// <summary>Opens the building queue, where a project is moved first and the first one rushed (TASK-044).</summary>
+        public void OpenQueue() => Open(Sheet.Queue);
 
         public void OpenReport() => Open(Sheet.Report);
 
@@ -323,8 +334,12 @@ namespace Eirora.Client.UI
                 {
                     Button("button", _bar, "Kartlagt", () => { }).SetEnabled(false);
                 }
-                CostButton("Rusta", Force.DawnPower, Rush.Cost, () => Run(new Rush())).SetEnabled(world.Projects.Count > 0);
             }
+
+            // The queue can be looked at during the rest too; ordering it waits for the dawn (D-23, INV-T3).
+            var queue = Button("button", _bar, string.Empty, () => Open(Sheet.Queue));
+            Text("button-title", queue, "Byggkö");
+            Text("button-detail", queue, world.Projects.Count == 0 ? "tom" : $"{world.Projects.Count} st");
 
             Button("button", _bar, "Rapport", () => Open(Sheet.Report));
             if (_account is not null)
@@ -382,6 +397,9 @@ namespace Eirora.Client.UI
                 case Sheet.Fog when _fog is Hex fog:
                     FogSheet(_world, fog);
                     break;
+                case Sheet.Queue:
+                    QueueSheet(_world);
+                    break;
                 case Sheet.SelfCare:
                     if (_explainingHealth)
                     {
@@ -430,16 +448,30 @@ namespace Eirora.Client.UI
             if (building is not null)
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
-                Text("sheet-subtitle", _sheet, $"{ground} · {(building.Staffed ? "i arbete" : "väntar på bybor")}");
+                Text("sheet-subtitle", _sheet, Texts.Staffing(building, world.Content.For(building.Kind)) is string staffing ? $"{ground} · {staffing}" : ground);
+                if (Texts.WhyIdle(building, world.Content.For(building.Kind)) is string idle)
+                {
+                    Text("sheet-text", _sheet, idle);
+                }
+
                 BuildingActions(world, building);
+                StaffingActions(world, building);
                 return;
             }
 
             if (project is not null)
             {
+                int place = IndexOf(world.Projects, project);
                 Text("sheet-title", _sheet, $"{Texts.Name(project.Building)} byggs");
-                Text("sheet-subtitle", _sheet, $"{ground} · {Math.Ceiling(project.WorkLeft / 1000.0)} h arbete kvar");
-                Text("sheet-text", _sheet, "Lediga bybor bygger medan de är vakna.");
+                Text("sheet-subtitle", _sheet, $"{ground} · {Texts.WorkLeft(project)}");
+                Text("sheet-text", _sheet, place == 0
+                    ? "Först i byggkön. Lediga bybor bygger här medan de är vakna."
+                    : $"Nummer {place + 1} i byggkön. Lediga bybor bygger på det första projektet.");
+                if (place > 0)
+                {
+                    AddAction("Bygg först", "Lediga bybor går hit före de andra projekten · ingen kraft", true, () => Run(new QueueFirst(project.Kind, project.Tile)));
+                }
+
                 return;
             }
 
@@ -517,6 +549,82 @@ namespace Eirora.Client.UI
                 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Road))
             {
                 AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · mer når fram", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
+            }
+        }
+
+        /// <summary>
+        /// A building's place in the staffing order and its pause (TASK-044): free planning, so it shows no force.
+        /// </summary>
+        private void StaffingActions(World world, Building building)
+        {
+            var spec = world.Content.For(building.Kind);
+            if (spec.Staff == 0)
+            {
+                return;
+            }
+
+            var order = world.StaffingOrder;
+            int place = IndexOf(order, building);
+            var row = Container("row", _sheet);
+            Text("row-label", row, "Plats i bemanningen");
+            var stepper = Container("stepper", row);
+            Button("stepper-button", stepper, "−", () => Run(new Prioritize(building.Tile, place - 1))).SetEnabled(place > 0);
+            Text("stepper-value", stepper, $"{place + 1} av {order.Count}");
+            Button("stepper-button", stepper, "+", () => Run(new Prioritize(building.Tile, place + 1))).SetEnabled(place < order.Count - 1);
+
+            if (building.Paused)
+            {
+                AddAction("Återuppta", "Bemannas igen på sin plats i bemanningen · ingen kraft", true, () => Run(new ResumeBuilding(building.Tile)));
+            }
+            else if (spec.Produces)
+            {
+                AddAction("Pausa", $"{Capital(Texts.Villagers(spec.Staff))} bygger i stället · ingen kraft", true, () => Run(new PauseBuilding(building.Tile)));
+            }
+        }
+
+        /// <summary>
+        /// The building queue in the order the free villagers work on it (TASK-044): any project can be moved first, and
+        /// the first one rushed with Dawn Power. While the villagers rest it is only shown.
+        /// </summary>
+        private void QueueSheet(World world)
+        {
+            Text("sheet-title", _sheet, "Byggkö");
+            var projects = world.Projects;
+            if (projects.Count == 0)
+            {
+                Text("sheet-text", _sheet, "Inget byggs just nu. Tryck på en bricka för att bygga där.");
+                return;
+            }
+
+            bool awake = world.Phase == Phase.Active;
+            Text("sheet-subtitle", _sheet, world.FreeVillagers == 0
+                ? "Inga lediga bybor bygger nu. Pausa en byggnad, så bygger dess bybor."
+                : $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger på det första projektet.");
+            for (int i = 0; i < projects.Count && i < QueueShown; i++)
+            {
+                var project = projects[i];
+                var item = Container("queue-item", _sheet);
+                var text = Container("queue-text", item);
+                Text("queue-title", text, Texts.Project(project));
+                Text("queue-detail", text, i == 0 ? $"Byggs nu · {Texts.WorkLeft(project)}" : Capital(Texts.WorkLeft(project)));
+                if (i > 0 && awake)
+                {
+                    Button("queue-button", item, "Först", () => Run(new QueueFirst(project.Kind, project.Tile)));
+                }
+            }
+
+            if (projects.Count > QueueShown)
+            {
+                Text("sheet-text", _sheet, $"Och {projects.Count - QueueShown} till. Tryck på ett bygge på ön för att flytta det först.");
+            }
+
+            if (awake)
+            {
+                AddAction("Rusta", $"{Rush.Cost} Gryningskraft · {Rush.Hours} h arbete på det första", world.Available(Force.DawnPower) >= Rush.Cost, () => Run(new Rush()));
+            }
+            else
+            {
+                Text("sheet-text", _sheet, "Byborna sover. Kön går att ordna efter gryningen.");
             }
         }
 
@@ -702,6 +810,20 @@ namespace Eirora.Client.UI
             row.Add(new ForceIcon(force, 30f));
             Text("button-cost-value", row, cost.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return button;
+        }
+
+        private static int IndexOf<T>(IReadOnlyList<T> list, T item)
+            where T : class
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == item)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
 
         private static bool Affordable(World world, BuildingSpec spec) =>

@@ -66,7 +66,11 @@ namespace Eirora.Simulation
         /// <summary>Villagers not working in a building; they build.</summary>
         public int FreeVillagers => _settlement.FreeVillagers;
 
+        /// <summary>The buildings in the staffing order, which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _settlement.Buildings;
+
+        /// <summary>The buildings that need staff, in the order villagers are given to them (economy-v1.md, section 4.1).</summary>
+        public IReadOnlyList<Building> StaffingOrder => _settlement.StaffingOrder;
 
         /// <summary>The building queue, first in line first.</summary>
         public IReadOnlyList<Project> Projects => _settlement.Projects;
