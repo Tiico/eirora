@@ -281,7 +281,8 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
 - Världen skapas en kvart före sin första gryning, så att spelardygn 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
   Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta brickor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
-- Produktionstakterna som botarna mäter och väljer byggplats efter är kopior av simuleringens, tills innehållskatalogen (TASK-042) gör dem läsbara; `ProductionRateTests` bygger varje producerande byggnad och kräver att ett spelardygns tillskott i lagret är det botarna räknar med.
+- Vad en byggnad kostar, kräver och producerar läser botarna ur världens innehållskatalog (`World.Content`), så nytt innehåll och ändrade recept följer med av sig själva.
+  Hur avstånd och nivå skalar produktionen går inte att läsa ur världen; `ProductionRateTests` bygger varje byggnad med ett recept och kräver att ett spelardygns tillskott i lagret är det botarna räknar med, och att varje recept i katalogen prövas där.
 - Måtten är ekonomi v1:s: bybor, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
 
 Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).

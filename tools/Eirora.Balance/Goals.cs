@@ -142,7 +142,7 @@ public sealed class UpgradeOne : Goal
     {
         var world = turn.World;
         var candidates = world.Buildings
-            .Where(b => b.Kind == Building && b.Level < BuildingSpec.For(b.Kind).MaxLevel && !world.Projects.Any(p => p.Kind == ProjectKind.Upgrade && p.Tile == b.Tile))
+            .Where(b => b.Kind == Building && b.Level < world.Content.For(b.Kind).MaxLevel && !world.Projects.Any(p => p.Kind == ProjectKind.Upgrade && p.Tile == b.Tile))
             .Select(b => b.Tile)
             .ToList();
         if (candidates.Count == 0)

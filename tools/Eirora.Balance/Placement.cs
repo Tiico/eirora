@@ -71,10 +71,11 @@ internal static class Placements
     private static Func<Hex, long[]> Richest(BuildingKind kind, Sites sites)
     {
         int[] steps = sites.StepsFrom(sites.PlannedDepots());
-        var felled = kind == BuildingKind.Woodcutter ? FelledByOthers(sites) : [];
+        var fells = sites.RecipeOf(kind) is { ForestTiles: > 0 } recipe ? recipe : null;
+        var felled = fells is not null ? FelledByOthers(sites) : [];
         return tile =>
         {
-            long yield = kind == BuildingKind.Woodcutter ? SharedWoodYield(tile, sites, felled) : sites.DailyYield(kind, tile, planning: true);
+            long yield = fells is not null ? SharedWoodYield(fells, tile, sites, felled) : sites.DailyYield(kind, tile, planning: true);
             int reaches = Sites.DistancePercent(sites.StepsTo(tile, steps), road: false);
 
             // As much from nearer the store is better: more of what it makes later, such as at level 2, reaches it.
@@ -83,15 +84,15 @@ internal static class Placements
     }
 
     /// <summary>
-    /// Forest tiles that standing or queued woodcutters reach. A woodcutter fells the fullest of its woods, so over
-    /// the days it takes from all of them, not only from the two it fells now.
+    /// Forest tiles that standing or queued buildings that fell reach. A woodcutter fells the fullest of its woods, so
+    /// over the days it takes from all of them, not only from the ones it fells now.
     /// </summary>
     private static HashSet<Hex> FelledByOthers(Sites sites)
     {
         var felled = new HashSet<Hex>();
         foreach (var (kind, tile) in sites.Producers())
         {
-            if (kind == BuildingKind.Woodcutter)
+            if (sites.RecipeOf(kind) is { ForestTiles: > 0 })
             {
                 felled.UnionWith(sites.Woods(tile, planning: true));
             }
@@ -101,12 +102,12 @@ internal static class Placements
     }
 
     /// <summary>A woodcutter's daily timber when the woods it shares with another woodcutter give it half.</summary>
-    private static long SharedWoodYield(Hex tile, Sites sites, HashSet<Hex> felled)
+    private static long SharedWoodYield(Recipe recipe, Hex tile, Sites sites, HashSet<Hex> felled)
     {
         long yield = 0;
-        foreach (var wood in sites.Woods(tile, planning: true).Take(Sites.WoodcutterTiles))
+        foreach (var wood in sites.Woods(tile, planning: true).Take(recipe.ForestTiles))
         {
-            long timber = sites.DailyYieldOfWood(wood);
+            long timber = sites.DailyYieldOfWood(recipe, wood);
             yield += felled.Contains(wood) ? timber / 2 : timber;
         }
 

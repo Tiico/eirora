@@ -7,9 +7,11 @@ using Eirora.Simulation.Time;
 namespace Eirora.Balance.Tests;
 
 /// <summary>
-/// The rates the bots measure and place buildings by (<see cref="Sites.DailyYield"/>, <see cref="Measures.Delivered"/>)
-/// against what the simulation actually produces: for each producing building, at a level and a distance from the store,
-/// one game day's gain in store equals what the bots say the producers of that resource deliver.
+/// The yields the bots measure and place buildings by (<see cref="Sites.DailyYield"/>, <see cref="Measures.Delivered"/>)
+/// against what the simulation actually produces: for each recipe in the content catalog, at a level and a distance from
+/// the store, one game day's gain in store equals what the bots say the producers of that resource deliver. The bots read
+/// the rates from the catalog, so this holds their reading of it, and the distance and level steps they cannot read, to
+/// the simulation.
 /// </summary>
 /// <remarks>
 /// A day runs from just before one dawn to just before the next, so it holds every waking quarter hour once; what the
@@ -25,6 +27,22 @@ public sealed class ProductionRateTests
     private static readonly Hex s_plainMountain = new(-3, -1); // Four steps from the store: half reaches it.
     private static readonly Hex s_pasture = new(-2, -1); // Two steps: three quarters.
     private static readonly Hex s_nextToTheStore = new(-1, 0);
+
+    private static readonly BuildingKind[] s_measured =
+    [
+        BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.Quarry, BuildingKind.SheepFarm,
+        BuildingKind.Sawmill, BuildingKind.Weavery,
+    ];
+
+    [Fact]
+    public void EveryRecipeInTheCatalogIsMeasuredHere()
+    {
+        var catalog = ContentCatalog.Current;
+
+        Assert.Equal(
+            catalog.Buildings.Where(kind => catalog.For(kind).Recipe is not null).Order(),
+            s_measured.Order());
+    }
 
     [Fact]
     public void FishAtLevelTwoAndFromFartherAway()
@@ -120,7 +138,7 @@ public sealed class ProductionRateTests
         {
             _world.AdvanceTo(At(DawnOf(day) - 1));
             var sites = new Sites(_world);
-            var producers = _world.Buildings.Where(b => b.Staffed && Makes(b.Kind) == resource).ToList();
+            var producers = _world.Buildings.Where(b => b.Staffed && _world.Content.For(b.Kind).Recipe?.Product == resource).ToList();
             Assert.Equal(buildings, producers.Count);
             long expected = producers.Sum(b => Measures.Delivered(_world, sites, b.Kind, b.Tile)) / Sites.Weights[(int)resource];
 
@@ -153,17 +171,5 @@ public sealed class ProductionRateTests
         private static long DawnOf(int day) => FirstDawn + ((day - 1) * Day);
 
         private static TimeReading At(long utc) => new(utc, BalanceRun.Zone, 0);
-
-        private static Resource? Makes(BuildingKind kind) => kind switch
-        {
-            BuildingKind.FishingHut => Resource.Fish,
-            BuildingKind.Field => Resource.Grain,
-            BuildingKind.Woodcutter => Resource.Timber,
-            BuildingKind.SheepFarm => Resource.Wool,
-            BuildingKind.Quarry => Resource.Stone,
-            BuildingKind.Sawmill => Resource.Planks,
-            BuildingKind.Weavery => Resource.Wadmal,
-            _ => null,
-        };
     }
 }

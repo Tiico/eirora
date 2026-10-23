@@ -11,12 +11,14 @@ namespace Eirora.Balance;
 /// </summary>
 /// <remarks>
 /// Yields are whole millionths of a weighted unit a game day (<see cref="Quantity.PerUnit"/>), so that decisions and
-/// reports are the same on every machine. Ties are broken in map order.
+/// reports are the same on every machine. Ties are broken in map order. What a building makes, from what and how fast
+/// is read from the world's content catalog; how distance and level scale it is not readable from the world, and
+/// <c>ProductionRateTests</c> holds the bots' reading of it to what the simulation produces.
 /// </remarks>
 internal sealed class Sites
 {
-    public const int ActiveHours = 16;
-    public const int WoodcutterTiles = 2;
+    /// <summary>The bots' waking hours a game day, outside the rest they keep.</summary>
+    public static readonly int ActiveHours = 24 - (BalanceRun.Rest.DurationMinutes / 60);
 
     /// <summary>Weights of the development value (economy_v1.py, WEIGHT), indexed by <see cref="Resource"/>.</summary>
     public static readonly int[] Weights = [1, 1, 1, 3, 2, 2, 6];
@@ -73,7 +75,7 @@ internal sealed class Sites
     /// </summary>
     public List<Hex> Free(BuildingKind kind, string island)
     {
-        var requirement = BuildingSpec.For(kind).Requirement;
+        var requirement = _world.Content.For(kind).Requirement;
         var free = new List<Hex>();
         for (int i = 0; i < _map.Disc.Count; i++)
         {
@@ -244,27 +246,33 @@ internal sealed class Sites
 
     /// <summary>
     /// What a building on <paramref name="tile"/> yields in a game day at level 1 next to a store, weighted
-    /// (economy_v1.py, daily_output); 0 for a building that produces nothing. Fields and sheep grow day and night.
+    /// (economy_v1.py, daily_output), by its recipe; 0 for a building without one. Slow processes grow day and night,
+    /// and processing counts what the building makes when its raw materials last.
     /// </summary>
     /// <param name="planning">Whether queued buildings count as standing, so that a woodcutter's forest is read as it will be.</param>
     public long DailyYield(BuildingKind kind, Hex tile, bool planning)
     {
-        int richness = _map.RichnessAt(tile);
-        return kind switch
+        if (RecipeOf(kind) is not Recipe recipe)
         {
-            BuildingKind.FishingHut => Weighted(Resource.Fish, 1_250_000L * richness / 100 * ActiveHours),
-            BuildingKind.Field => Weighted(Resource.Grain, 500_000L * richness / 100 * 24),
-            BuildingKind.SheepFarm => Weighted(Resource.Wool, 400_000L * richness / 100 * 24),
-            BuildingKind.Woodcutter => Woods(tile, planning).Take(WoodcutterTiles).Sum(DailyYieldOfWood),
-            BuildingKind.Quarry => Weighted(Resource.Stone, 750_000L * richness / 100 * ActiveHours),
-            BuildingKind.Sawmill => Weighted(Resource.Planks, 1_000_000L * ActiveHours),
-            BuildingKind.Weavery => Weighted(Resource.Wadmal, 500_000L * ActiveHours),
-            _ => 0,
-        };
+            return 0;
+        }
+
+        if (recipe.ForestTiles > 0)
+        {
+            return Woods(tile, planning).Take(recipe.ForestTiles).Sum(wood => DailyYieldOfWood(recipe, wood));
+        }
+
+        long perHour = recipe.IsSlowProcess ? recipe.GrowsPerHour : recipe.PerHour;
+        long richness = recipe.Richness ? _map.RichnessAt(tile) : 100;
+        return Weights[(int)recipe.Product] * (perHour * richness / 100) * (recipe.IsSlowProcess ? 24 : ActiveHours);
     }
 
-    /// <summary>The weighted timber a woodcutter fells from one forest tile in a game day.</summary>
-    public long DailyYieldOfWood(Hex wood) => Weighted(Resource.Timber, 500_000L * _map.RichnessAt(wood) / 100 * ActiveHours);
+    /// <summary>What a building of this kind makes, or null when it makes nothing.</summary>
+    public Recipe? RecipeOf(BuildingKind kind) => _world.Content.For(kind).Recipe;
+
+    /// <summary>The weighted product a felling recipe takes from one forest tile in a game day.</summary>
+    public long DailyYieldOfWood(Recipe recipe, Hex wood) =>
+        Weights[(int)recipe.Product] * (recipe.PerHour * (recipe.Richness ? _map.RichnessAt(wood) : 100) / 100) * ActiveHours;
 
     /// <summary>
     /// The forest tiles a woodcutter on <paramref name="tile"/> fells: known forest on the tile and its neighbours that no
@@ -302,8 +310,5 @@ internal sealed class Sites
 
     public static bool IsDepot(BuildingKind kind) => kind is BuildingKind.Storehouse or BuildingKind.Jetty;
 
-    public static bool Produces(BuildingKind kind) => kind is BuildingKind.FishingHut or BuildingKind.Field or BuildingKind.Woodcutter
-        or BuildingKind.SheepFarm or BuildingKind.Quarry or BuildingKind.Sawmill or BuildingKind.Weavery;
-
-    private static long Weighted(Resource resource, long perDay) => perDay * Weights[(int)resource];
+    public bool Produces(BuildingKind kind) => RecipeOf(kind) is not null;
 }
