@@ -23,7 +23,8 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 
 Simuleringen, kartgeneratorerna, kontrakten och molnsparningen byggs från samma källkod av både .NET och Unity.
 Därför gäller C# 9 och netstandard2.1 där, och inga Unity-API:er; `dotnet build` och arkitekturtestet underkänner det som inte håller.
-Molnsparningen är det enda paketet med ett beroende utanför netstandard: BouncyCastle.Cryptography, som .NET hämtar från NuGet och Unity läser från `client/Assets/Plugins/BouncyCastle/` (samma version, se dess `README.md` och `scripts/update-bouncycastle.sh`).
+Molnsparningen är det enda paketet med beroenden utanför netstandard: BouncyCastle.Cryptography för krypteringen och ZXing.Net för QR-koderna i nyckelöverföringen.
+.NET hämtar dem från NuGet och Unity läser dem från `client/Assets/Plugins/BouncyCastle/` och `client/Assets/Plugins/ZXing/` (samma versioner, se deras `README.md`, `scripts/update-bouncycastle.sh` och `scripts/update-zxing.sh`).
 
 ## Förutsättningar
 
@@ -153,7 +154,9 @@ Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-000
 Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`.
 Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
 En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
-En journalfil från prototypen i M1 (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
+En journalfil från prototypen (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
+Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på brickor i stället för namngivna platser (TASK-037, D-104).
+En sådan journal skrivs aldrig över: klienten säger att världen inte kan spelas vidare i stället för att visa en annan värld, och lägger journalen undan först när spelaren börjar en ny.
 
 ### Migrationer och gyllene sparningar
 

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The cloud save on the device (ADR-0008, TASK-023): the contribution key, the encryption of the contribution part and
-    the reconciliation with the server's copy, shared by the Unity client and the headless tests that drive two devices.
-    Also a local Unity package (package.json, Eirora.CloudSaving.asmdef): Unity compiles these same sources against the
-    BouncyCastle assembly under client/Assets/Plugins.
+    The cloud save on the device (ADR-0008, TASK-023): the contribution key, the encryption of the contribution part,
+    the reconciliation with the server's copy and the key transfer between phones, shared by the Unity client and the
+    headless tests that drive two devices. Also a local Unity package (package.json, Eirora.CloudSaving.asmdef): Unity
+    compiles these same sources against the BouncyCastle and ZXing.Net assemblies under client/Assets/Plugins.
   -->
   <PropertyGroup>
     <!-- Unity's compiler builds these sources too: netstandard2.1 and C# 9, so no implicit usings (C# 10). -->
@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" />
+    <PackageReference Include="ZXing.Net" />
   </ItemGroup>
 
   <ItemGroup>
