@@ -3,35 +3,49 @@ using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Economy
 {
-    /// <summary>The bottleneck diagnosis (TASK-043): why a building stands still, read from the settlement.</summary>
+    /// <summary>
+    /// The bottleneck diagnosis (TASK-043): why a building or a settlement stands still, read from the economy.
+    /// </summary>
     /// <remarks>
     /// The diagnosis walks the work of the next quarter hour with the villagers awake as <see cref="Tick"/> does it,
-    /// on copies of the stores and the forest, and never changes the state (INV-D2). What a road, a storehouse beside
-    /// the building or its villagers would give is the same walk on further copies, so every gain is limited by the
-    /// raw materials, the forest and the room as the rules would limit it. The walk leaves out the building queue: a
-    /// quarter hour in which a project finishes can staff, upgrade or give a road to a building before it works, and
-    /// the diagnosis then tells what the buildings would make as they stand now. Its only writes are the caches of
-    /// depot distances and the woods list, which are not state. DiagnosticsTests.TheDiagnosisForetellsTheNextQuarterHour
-    /// keeps it in step with the rules.
+    /// on copies of the stores, the goods waiting at the depots and the forest, and never changes the state (INV-D2).
+    /// What a road, a storehouse beside the building or its villagers would give is the same walk on further copies,
+    /// so every gain is limited by the raw materials, the forest and the room as the rules would limit it. The walk
+    /// leaves out the building queue: a quarter hour in which a project finishes can staff, upgrade or give a road to a
+    /// building before it works, and the diagnosis then tells what the buildings would make as they stand now. Its only
+    /// writes are the caches of depot distances and the woods list, which are not state.
+    /// DiagnosticsTests.TheDiagnosisForetellsTheNextQuarterHour keeps it in step with the rules.
     /// </remarks>
     internal sealed partial class Settlement
     {
         public Diagnostics Diagnose()
         {
+            // The goods waiting at the depots move in first, as in Tick.
             var stores = new Dictionary<string, long[]>(System.StringComparer.Ordinal);
+            var free = new Dictionary<string, int>(System.StringComparer.Ordinal); // As StaffBuildings gives them out: in the staffing order.
             foreach (var island in _islands)
             {
-                stores[island] = (long[])_stores[island].Clone();
+                var store = (long[])_stores[island].Clone();
+                if (_waiting.TryGetValue(island, out var waiting))
+                {
+                    for (int r = 0; r < s_resourceCount; r++)
+                    {
+                        Add(store, (Resource)r, waiting[r], StorageCapacity(island));
+                    }
+                }
+
+                stores[island] = store;
+                free[island] = _settlements[island].Villagers;
             }
 
             var forest = new Dictionary<Hex, long>(); // Timber left on the tiles felled so far this quarter hour.
             var buildings = new List<BuildingDiagnosis>(_buildings.Count);
-            int free = Villagers; // As StaffBuildings gives them out: in the staffing order.
             foreach (var building in _buildings)
             {
                 var spec = _content.For(building.Kind);
-                int lacking = !building.Staffed && !building.Paused && spec.Staff > free ? spec.Staff - free : 0;
-                free -= building.Staffed ? spec.Staff : 0;
+                int left = free[building.Island];
+                int lacking = !building.Staffed && !building.Paused && spec.Staff > left ? spec.Staff - left : 0;
+                free[building.Island] = left - (building.Staffed ? spec.Staff : 0);
 
                 // Staffing matters only to what a building makes: a storehouse or a jetty without its villagers still
                 // stores goods and is a depot, so it never stands still for want of them.
@@ -41,13 +55,35 @@ namespace Eirora.Simulation.Economy
             }
 
             var seaRoutes = DiagnoseSeaRoutes(stores);
-            var bottlenecks = new Dictionary<string, Bottleneck?>(System.StringComparer.Ordinal);
+            var settlements = new List<SettlementDiagnosis>(_islands.Count);
             foreach (var island in _islands)
             {
-                bottlenecks[island] = BottleneckOn(island, buildings);
+                settlements.Add(DiagnoseSettlement(_settlements[island], BottleneckOn(island, buildings)));
             }
 
-            return new Diagnostics(buildings, seaRoutes, bottlenecks, stores);
+            return new Diagnostics(buildings, seaRoutes, settlements, stores);
+        }
+
+        /// <summary>
+        /// Whether a settlement would grow if dawn came now and what holds it back (economy-v2.md, section 6): villagers,
+        /// food in its own store for every one of them and housing for one more. Where its buildings lack villagers, the free villagers
+        /// of the settlements a sea route joins to it can move there, one a dawn in the whole world.
+        /// </summary>
+        private SettlementDiagnosis DiagnoseSettlement(IslandSettlement settlement, Bottleneck? bottleneck)
+        {
+            var store = _stores[settlement.Island];
+            long food = store[(int)Resource.Fish] + store[(int)Resource.Grain];
+            var growth = settlement.Villagers == 0 ? Growth.Empty
+                : food < Quantity.Units(settlement.Villagers) ? Growth.Hungry
+                : HousingOf(settlement) <= settlement.Villagers ? Growth.Full
+                : Growth.Grows;
+            int nearby = 0;
+            foreach (var island in _islands)
+            {
+                nearby += Linked(island, settlement.Island) ? FreeVillagersOf(_settlements[island]) : 0;
+            }
+
+            return new SettlementDiagnosis(settlement, Quantity.Whole(food), growth, MissingStaffOn(settlement.Island), nearby, bottleneck);
         }
 
         private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, int lacking, long[] store, Dictionary<Hex, long> forest)
@@ -216,7 +252,7 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// The ships' next quarter hour on every sea route, as <see cref="Ship"/> does, after the islands' production: the
-        /// routes in map order, each sharing the room in the home island's store with those before it.
+        /// routes in map order, each sharing the home island's store with those before it.
         /// </summary>
         private List<SeaRouteDiagnosis> DiagnoseSeaRoutes(Dictionary<string, long[]> stores)
         {
@@ -230,22 +266,32 @@ namespace Eirora.Simulation.Economy
                     continue;
                 }
 
+                // What the route owes for building and the food it takes out come first.
+                long room = SeaRoutePerTick;
+                long owed = Min(room, _owed[_mapIndex[island]]);
+                room -= owed;
+                long food = Quantity.Units(FoodDays * _settlements[island].Villagers);
+                long supplies = SupplyFood(home, stores[island], StorageCapacity(island), food, room);
+                room -= supplies;
+
+                // What the island has above what it keeps, in its store now.
                 var waiting = new List<(Resource, long)>();
                 var now = _stores[island];
                 for (int r = 0; r < s_resourceCount; r++)
                 {
-                    if (Quantity.Whole(now[r]) > 0)
+                    long spare = Quantity.Whole(now[r] - (IsFood((Resource)r) ? food : 0));
+                    if (spare > 0)
                     {
-                        waiting.Add(((Resource)r, Quantity.Whole(now[r])));
+                        waiting.Add(((Resource)r, spare));
                     }
                 }
 
                 var hindrances = new List<Hindrance>();
                 var from = stores[island];
-                long room = SeaRoutePerTick;
                 for (int r = 0; r < s_resourceCount && room > 0; r++)
                 {
-                    long wanted = Min(room, from[r]);
+                    long spare = from[r] - (IsFood((Resource)r) ? food : 0);
+                    long wanted = Min(room, spare > 0 ? spare : 0);
                     long moved = Add(home, (Resource)r, wanted, capacity);
                     if (moved < wanted)
                     {
@@ -256,7 +302,8 @@ namespace Eirora.Simulation.Economy
                     room -= moved;
                 }
 
-                routes.Add(new SeaRouteDiagnosis(new SeaRoute(island, _home), PerHour(SeaRoutePerTick), PerHour(SeaRoutePerTick - room), waiting, hindrances));
+                routes.Add(new SeaRouteDiagnosis(
+                    new SeaRoute(island, _home), PerHour(SeaRoutePerTick), PerHour(SeaRoutePerTick - room), waiting, hindrances, Quantity.Whole(_owed[_mapIndex[island]] + Quantity.PerUnit - 1), PerHour(supplies)));
             }
 
             return routes;

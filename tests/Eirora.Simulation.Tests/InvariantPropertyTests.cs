@@ -14,7 +14,7 @@ namespace Eirora.Simulation.Tests;
 public sealed class InvariantPropertyTests
 {
     private const int StoragePerStorehouse = 150; // economy-v1.md, section 2.
-    private const int StorageAtJetty = 150; // A jetty off the home island stores goods for the ship (economy-v1.md, section 5).
+    private const int StorageAtJetty = 50; // Every jetty stores goods for the ship (economy-v2.md, section 6).
 
     // INV-D1: the same start and inputs give the same world.
     [Property(MaxTest = 50)]
@@ -152,7 +152,8 @@ public sealed class InvariantPropertyTests
             }
 
             Assert.True(world.Now.UtcSeconds >= was.UtcSeconds); // INV-D8.
-            Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2.
+            Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2, and in each settlement.
+            Assert.All(world.Settlements, s => Assert.InRange(s.FreeVillagers, 0, s.Villagers));
             Assert.All(world.Islands, island => Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(island, r), 0, Capacity(world, island)))); // INV-R1.
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
 
@@ -223,7 +224,7 @@ public sealed class InvariantPropertyTests
     private static long Capacity(World world, string island) => world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
     {
         BuildingKind.Storehouse => StoragePerStorehouse,
-        BuildingKind.Jetty when island != world.HomeIsland => StorageAtJetty,
+        BuildingKind.Jetty => StorageAtJetty,
         _ => 0,
     });
 

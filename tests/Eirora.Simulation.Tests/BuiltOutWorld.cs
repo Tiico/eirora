@@ -11,7 +11,8 @@ namespace Eirora.Simulation.Tests;
 /// <summary>
 /// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
 /// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
-/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044).
+/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044),
+/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
@@ -114,6 +115,15 @@ internal static class BuiltOutWorld
             {
                 save.Apply($"out-{key++}", new Build(free.Kind, free.Site));
             }
+        }
+
+        // Now and then a building on another island with a settlement, which its own store or the home island's pays;
+        // the ships carry the home island's materials before anything else (D-106, D-113).
+        var settled = world.Islands.Where(i => i != world.HomeIsland && world.Settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
+        if (random.Next(2) == 0 && settled.Count > 0
+            && FreeSite(world, random.Next(int.MaxValue), c => world.Settlement.IslandOf(c.Site) == settled[key % settled.Count]) is { } away)
+        {
+            save.Apply($"out-{key++}", new Build(away.Kind, away.Site));
         }
 
         if (BuiltSite(world, random.Next(int.MaxValue), b => b.Staffed && !b.WorkdayToday) is Hex worked)
@@ -236,8 +246,8 @@ internal static class BuiltOutWorld
     private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, Func<(BuildingKind Kind, Hex Site), bool> wanted)
     {
         var free = s_buildings
-            .Where(k => world.Settlement.CanAfford(world.Content.For(k).Cost))
-            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
+            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile))
+                .Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site)).ToList())
             .Where(sites => sites.Count > 0)
             .ToList();
         if (free.Count == 0)

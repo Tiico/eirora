@@ -22,9 +22,12 @@ public sealed class StaffingIsOrderedTests
         var after = world.Fingerprint().Split('\n');
 
         // The save keeps the contributions in a part of their own (D-101), which follows the world in the fingerprint.
-        // Rules 7 named the stores by the map's islands (IslandsFromTheMapTests), which keeps every amount.
-        var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l) && !IsStock(l)).ToList();
-        Assert.Equal(kept, after.Where(l => !IsBuilding(l) && !IsStock(l)).Take(kept.Count));
+        // Rules 7 named the stores by the map's islands (IslandsFromTheMapTests), which keeps every amount, and rules 8
+        // gave the villagers to the settlements (SettlementsPerIslandTests), here all to the home island's.
+        var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l) && !IsStock(l) && !IsSettlement(l)).ToList();
+        Assert.Equal(kept, after.Where(l => !IsBuilding(l) && !IsStock(l) && !IsSettlement(l)).Take(kept.Count));
+        string[] settlement = before.Single(IsSettlement).Split(' ');
+        Assert.Equal([$"economy {settlement[2]} {settlement[3]}", $"settlement home {settlement[1]}"], after.Where(IsSettlement));
         Assert.Equal(
             before.Where(l => l.StartsWith("stock Home ", StringComparison.Ordinal)).Select(l => l["stock Home".Length..]),
             after.Where(IsStock).Select(l => l["stock home".Length..]));
@@ -52,4 +55,6 @@ public sealed class StaffingIsOrderedTests
     private static bool IsBuilding(string line) => line.StartsWith("building ", StringComparison.Ordinal);
 
     private static bool IsStock(string line) => line.StartsWith("stock ", StringComparison.Ordinal);
+
+    private static bool IsSettlement(string line) => line.StartsWith("settlement ", StringComparison.Ordinal) || line.StartsWith("economy ", StringComparison.Ordinal);
 }

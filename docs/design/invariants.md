@@ -90,6 +90,7 @@ Bara ett uttryckligt rivningskommando från spelaren kan minska något av dem (D
 
 **INV-V2 Arbetsfördelning.**
 Summan av bybor i arbetsgrupper är högst antalet bybor, och ingen arbetsgrupp har ett negativt antal.
+Från TASK-050 gäller det i varje bosättning, eftersom byborna bara bemannar byggnader på sin egen ö (D-106).
 *Test:* kontrolleras efter varje steg.
 
 **INV-V3 Ouppfyllda basbehov kostar bara tillväxt.**
@@ -102,6 +103,7 @@ Hur länge spelaren än är borta utan egenvård och kommandon är världen efte
 Från TASK-049 också i utbyggda världar med byggkö, expedition till sjöss, sjöväg, fulla lager och långsamma processer, med och utan egenvård och med sena bidrag, tillsammans med INV-T5 och INV-D4.
 Från TASK-044 också med pausade byggnader och spelarens bemanningsordning och byggkö: under frånvaron förblir det pausade pausat, ordningarna står kvar och aldrig färre bybor arbetar.
 Från TASK-045 också i världar på en genererad karta med lager på tre öar och två sjövägar.
+Från TASK-050 också med en bosättning per ö, byggnader som väntar på bybor som flyttar, byggmaterial som sjövägen ännu ska bära och varor från regelversion 7 som väntar vid förrådet på plats i lagret.
 
 Framspolningen hoppar över kvartar där bara långsamma processer rör sig: viloperioden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
 Det håller bara om inget tillstånd som kvartarna driver kan börja ändras utan att något av det som jämförs ändras först.

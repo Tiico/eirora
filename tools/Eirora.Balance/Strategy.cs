@@ -47,7 +47,10 @@ public sealed class Strategy
         Near.Goals,
         [.. Near.Daily, new QueueFirstUntilBuilt(BuildingKind.Longhouse), new PauseWhileStocked(BuildingKind.Quarry, Resource.Stone, 100)]);
 
-    /// <summary>Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth.</summary>
+    /// <summary>
+    /// Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth. The jetty there
+    /// goes first in the queue, so that its settlement is founded and villagers can move there early (D-106).
+    /// </summary>
     public static Strategy Sea { get; } = new(
         "sea",
         "Havet",
@@ -63,7 +66,7 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Weavery, Placement.Village),
             new BuildOne(BuildingKind.Longhouse, Placement.Village),
         ],
-        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new RushFirst()]);
+        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst()]);
 
     /// <summary>Naiv: builds the first thing it can wherever it fits, upgrades what it has, and never reads the map.</summary>
     public static Strategy Naive { get; } = new(

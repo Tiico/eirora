@@ -14,7 +14,8 @@ pending-schedule 630 390 1787556574
 force Exploration 312 2
 force BuildPower 1480 4
 force DawnPower 7844 0
-settlement 24 2 0
+economy 2 0
+settlement home 24
 stock home Fish 128343750
 stock home Grain 150000000
 stock home Timber 150000000

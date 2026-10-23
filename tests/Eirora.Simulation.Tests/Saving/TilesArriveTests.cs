@@ -108,14 +108,18 @@ public sealed class TilesArriveTests
 
         var after = Save.Load(bytes).World.Fingerprint().Split('\n');
 
-        // Everything but the records that named sites, and the stores that rules 6 named by the map's islands
-        // (IslandsFromTheMapTests), is the same, line for line.
-        string[] renamed = ["building ", "project ", "forest ", "sites-revealed ", "tiles-revealed ", "project-completed ", "expedition-returned ", "stock "];
+        // Everything but the records that named sites, the stores that rules 7 named by the map's islands
+        // (IslandsFromTheMapTests) and the villagers that rules 8 gave to the settlements (SettlementsPerIslandTests), is
+        // the same, line for line.
+        string[] renamed = ["building ", "project ", "forest ", "sites-revealed ", "tiles-revealed ", "project-completed ", "expedition-returned ", "stock ", "settlement ", "economy "];
         bool Kept(string line) => !renamed.Any(prefix => line.StartsWith(prefix, StringComparison.Ordinal));
         Assert.Equal(before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(Kept), after.Where(Kept));
         Assert.Equal(
             before.Where(l => l.StartsWith("stock Home ", StringComparison.Ordinal)).Select(l => l["stock Home".Length..]),
             after.Where(l => l.StartsWith("stock ", StringComparison.Ordinal)).Select(l => l["stock home".Length..]));
+
+        string[] settlement = before.Single(l => l.StartsWith("settlement ", StringComparison.Ordinal)).Split(' ');
+        Assert.Equal([$"economy {settlement[2]} {settlement[3]}", $"settlement home {settlement[1]}"], after.Where(l => l.StartsWith("economy ", StringComparison.Ordinal) || l.StartsWith("settlement ", StringComparison.Ordinal)));
 
         // Each building is the same kind, level, staff, road, workday and harvest, on its site's tile, and running since
         // rules 6.

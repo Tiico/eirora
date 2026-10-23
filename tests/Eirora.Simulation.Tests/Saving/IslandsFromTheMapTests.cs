@@ -58,7 +58,7 @@ public sealed class IslandsFromTheMapTests
         var world = BuiltOutWorld.GenerateSave(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
         string state = world.Fingerprint();
 
-        Assert.Equal(state, new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
+        Assert.Equal(SettlementsPerIslandTests.RulesSeven(state), new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
     }
 
     // Under rules 6 every island but the home island shared Nyon's store; it goes to the island of the first building off
@@ -76,7 +76,7 @@ public sealed class IslandsFromTheMapTests
         string nyon = string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
         string rulesSix = RulesSix(state, world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
 
-        string migrated = new IslandsFromTheMap().Migrate(rulesSix, map);
+        string migrated = new SettlementsPerIsland().Migrate(new IslandsFromTheMap().Migrate(rulesSix, map), map);
 
         var stores = migrated.Split('\n').Where(l => l.StartsWith("stock ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
         Assert.Equal(map.Islands.Select(i => i.Id).Where(i => i is Archipelago.Home or Archipelago.First or Archipelago.Second), stores.Select(s => s[1]).Distinct());
@@ -116,14 +116,15 @@ public sealed class IslandsFromTheMapTests
     }
 
     /// <summary>
-    /// A state of rules 7 as rules 6 wrote it: every resource on Home, then on Nyon, which holds the store of the one
-    /// island off the home island built on, if any.
+    /// A state of rules 8 as rules 6 wrote it: all the villagers on the settlement's line (rules 7,
+    /// <see cref="SettlementsPerIslandTests.RulesSeven"/>), and every resource on Home, then on Nyon, which holds the
+    /// store of the one island off the home island built on, if any.
     /// </summary>
     internal static string RulesSix(string state, World world)
     {
         var off = world.Islands.Where(i => i != world.HomeIsland).ToList();
         Assert.True(off.Count <= 1, "Rules 6 had one store for every island off the home island.");
-        var lines = state.Split('\n').ToList();
+        var lines = SettlementsPerIslandTests.RulesSeven(state).Split('\n').ToList();
         int at = lines.FindIndex(l => l.StartsWith("stock ", StringComparison.Ordinal));
         string Store(string name, string? island) =>
             string.Join('\n', Enum.GetValues<Resource>().Select(r => $"stock {name} {r} {(island is null ? 0 : world.Settlement.Stock(island, r))}"));

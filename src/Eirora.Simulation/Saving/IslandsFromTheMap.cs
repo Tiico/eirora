@@ -99,7 +99,7 @@ namespace Eirora.Simulation.Saving
         }
 
         /// <summary>The island of a tile as rules 6 told it: its own for land, or the first land next to it, counter-clockwise from east.</summary>
-        private static string? IslandOf(WorldMap map, Hex tile)
+        internal static string? IslandOf(WorldMap map, Hex tile)
         {
             if (!map.Contains(tile))
             {

@@ -198,7 +198,7 @@ public sealed class RushFirst : DailyMove
 }
 
 /// <summary>
-/// Moves the first queued building of a kind first in the building queue, until one of its kind stands
+/// Moves the first queued building of a kind first in the building queue, until one of its kind stands on its island
 /// (economy-v1.md, section 4.1); the work it already has goes with it.
 /// </summary>
 public sealed class QueueFirstUntilBuilt : DailyMove
@@ -212,8 +212,8 @@ public sealed class QueueFirstUntilBuilt : DailyMove
     internal override void Make(Turn turn)
     {
         var world = turn.World;
-        if (world.Buildings.Any(b => b.Kind == Building)
-            || world.Projects.FirstOrDefault(p => p.Kind == ProjectKind.Build && p.Building == Building) is not Project project
+        if (world.Projects.FirstOrDefault(p => p.Kind == ProjectKind.Build && p.Building == Building) is not Project project
+            || world.Buildings.Any(b => b.Kind == Building && b.Island == world.IslandOf(project.Tile))
             || world.Projects[0] == project)
         {
             return;

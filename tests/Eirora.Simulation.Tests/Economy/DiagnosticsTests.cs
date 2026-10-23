@@ -273,7 +273,7 @@ public sealed class DiagnosticsTests
     [Fact]
     public void TheSeaRouteSaysHowMuchOfItsCapacityIsUsedAndWhatWaits()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0");
 
         var route = Assert.Single(world.Diagnose().SeaRoutes);
 
@@ -287,8 +287,8 @@ public sealed class DiagnosticsTests
     public void AFullStoreAtHomeHoldsTheShipsBack()
     {
         var world = Edited(
-            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 1 0 0 0 0"),
-            stock: (PrototypeHome.Home, Resource.Wool, 150));
+            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0"),
+            stock: (PrototypeHome.Home, Resource.Wool, 150 + 50)); // A storehouse and a jetty.
 
         var route = world.Diagnose().SeaRouteFrom(PrototypeHome.Nyon)!;
 
@@ -308,8 +308,9 @@ public sealed class DiagnosticsTests
     [Fact]
     public void EachSeaRouteSaysItsOwnUseAndTheRoutesShareTheRoomAtHomeInMapOrder()
     {
-        // Room for half a unit of wool at home: the first island's ships take it, and the second island's wait.
-        var world = OnTheArchipelago(home: 149.5m, first: 30, second: 30);
+        // Room for half a unit of wool at home, with its storehouse and jetty: the first island's ships take it, and the
+        // second island's wait.
+        var world = OnTheArchipelago(home: 199.5m, first: 30, second: 30);
 
         var routes = world.Diagnose().SeaRoutes;
 
@@ -379,8 +380,8 @@ public sealed class DiagnosticsTests
     public void TheDiagnosisForetellsWhatTheShipsCarry()
     {
         var world = Edited(
-            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 1 0 0 0 0"),
-            stock: (PrototypeHome.Home, Resource.Wool, 140));
+            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0"),
+            stock: (PrototypeHome.Home, Resource.Wool, 190));
         for (int hour = 0; hour < 12; hour++)
         {
             for (int quarter = 0; quarter < 4; quarter++)
@@ -390,7 +391,7 @@ public sealed class DiagnosticsTests
             }
         }
 
-        Assert.Equal(150, world.Stock(PrototypeHome.Home, Resource.Wool));
+        Assert.Equal(150 + 50, world.Stock(PrototypeHome.Home, Resource.Wool));
         Assert.Contains(world.Diagnose().SeaRouteFrom(PrototypeHome.Nyon)!.Hindrances, h => h is StoreFull { Resource: Resource.Wool });
     }
 
@@ -446,9 +447,10 @@ public sealed class DiagnosticsTests
     {
         var world = Archipelago.Create(At("2026-10-14 14:00", 2), Night);
         world.AdvanceTo(At("2026-10-15 09:00", 2));
+        // The other islands' settlements have no villagers, so their jetties are not staffed.
         var jetties = new[] { Archipelago.Home, Archipelago.First, Archipelago.Second }
-            .Select(island => Archipelago.Map.Features.LandOf(island).First(h => Archipelago.Map.Features.IsHarborSpot(h) && world.BuildingAt(h) is null))
-            .Select(tile => $"building Jetty {tile.Q} {tile.R} 1 1 0 0 0 0");
+            .Select(island => (Tile: Archipelago.Map.Features.LandOf(island).First(h => Archipelago.Map.Features.IsHarborSpot(h) && world.BuildingAt(h) is null), Home: island == Archipelago.Home))
+            .Select(jetty => $"building Jetty {jetty.Tile.Q} {jetty.Tile.R} 1 {(jetty.Home ? 1 : 0)} 0 0 0 0");
         world = Edited(world, stock: (Archipelago.First, Resource.Wool, first));
         world = Edited(world, stock: (Archipelago.Second, Resource.Wool, second));
         return Edited(world, stock: (Archipelago.Home, Resource.Wool, home), buildings: string.Join('\n', jetties));
@@ -479,6 +481,7 @@ public sealed class DiagnosticsTests
             // An island without a store gets an empty one after the others, as building there first would give it.
             if (!lines.Any(l => l.StartsWith($"stock {island} ", StringComparison.Ordinal)))
             {
+                lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {island} 0");
                 lines.InsertRange(
                     lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
                     Enum.GetValues<Resource>().Select(r => $"stock {island} {r} 0"));
@@ -490,10 +493,8 @@ public sealed class DiagnosticsTests
 
         if (villagers is int count)
         {
-            int at = lines.FindIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal));
-            var parts = lines[at].Split(' ');
-            parts[1] = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            lines[at] = string.Join(' ', parts);
+            int at = lines.FindIndex(l => l.StartsWith($"settlement {world.HomeIsland} ", StringComparison.Ordinal));
+            lines[at] = $"settlement {world.HomeIsland} {count.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
         }
 
         if (buildings is not null)

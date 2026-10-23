@@ -5,7 +5,7 @@ namespace Eirora.Simulation.Economy
 {
     /// <summary>
     /// Why goods do not reach the store and what holds the world back (CIV-05, LOG-03): each building's production and
-    /// what hinders it, each sea route's use, and each island's largest bottleneck (GLOSSARY: Flaskhals).
+    /// what hinders it, each sea route's use, and each settlement's growth and largest bottleneck (GLOSSARY: Flaskhals).
     /// </summary>
     /// <remarks>
     /// A reading of the world as it is: it tells what the next quarter hour with the villagers awake would do and never
@@ -14,18 +14,17 @@ namespace Eirora.Simulation.Economy
     public sealed class Diagnostics
     {
         private readonly Dictionary<Hex, BuildingDiagnosis> _byTile = new();
-        private readonly Dictionary<string, Bottleneck?> _bottlenecks;
 
         internal Diagnostics(
             IReadOnlyList<BuildingDiagnosis> buildings,
             IReadOnlyList<SeaRouteDiagnosis> seaRoutes,
-            Dictionary<string, Bottleneck?> bottlenecks,
+            IReadOnlyList<SettlementDiagnosis> settlements,
             IReadOnlyDictionary<string, long[]> nextStores)
         {
             Buildings = buildings;
             NextStores = nextStores;
             SeaRoutes = seaRoutes;
-            _bottlenecks = bottlenecks;
+            Settlements = settlements;
             foreach (var building in buildings)
             {
                 _byTile[building.Building.Tile] = building;
@@ -38,6 +37,9 @@ namespace Eirora.Simulation.Economy
         /// <summary>Every sea route that ships sail, in map order, as <see cref="World.SeaRoutes"/> lists them.</summary>
         public IReadOnlyList<SeaRouteDiagnosis> SeaRoutes { get; }
 
+        /// <summary>Every settlement, in map order, as <see cref="World.Settlements"/> lists them.</summary>
+        public IReadOnlyList<SettlementDiagnosis> Settlements { get; }
+
         /// <summary>What each island's store would hold after the quarter hour diagnosed, which keeps the diagnosis true to the rules.</summary>
         internal IReadOnlyDictionary<string, long[]> NextStores { get; }
 
@@ -49,7 +51,21 @@ namespace Eirora.Simulation.Economy
         /// section 6, decision 3); null when nothing there is held back.
         /// </summary>
         /// <param name="island">The map's id of the island.</param>
-        public Bottleneck? BottleneckOn(string island) => _bottlenecks.TryGetValue(island, out var bottleneck) ? bottleneck : null;
+        public Bottleneck? BottleneckOn(string island) => SettlementOn(island)?.Bottleneck;
+
+        /// <summary>The settlement on an island, by the map's id, or null when none has been founded there.</summary>
+        public SettlementDiagnosis? SettlementOn(string island)
+        {
+            foreach (var settlement in Settlements)
+            {
+                if (settlement.Settlement.Island == island)
+                {
+                    return settlement;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>The sea route from an island, by the map's id, or null when no ships sail from it.</summary>
         public SeaRouteDiagnosis? SeaRouteFrom(string island)
@@ -130,16 +146,28 @@ namespace Eirora.Simulation.Economy
         }
     }
 
-    /// <summary>A sea route to the home island: how much of its capacity is used and what waits on the other side.</summary>
+    /// <summary>
+    /// A sea route between an island and the home island: how much of its capacity is used both ways, and what waits on
+    /// the island for the ships (economy-v2.md, section 6).
+    /// </summary>
     public sealed class SeaRouteDiagnosis
     {
-        internal SeaRouteDiagnosis(SeaRoute route, long capacityPerHour, long shippedPerHour, IReadOnlyList<(Resource Resource, long Units)> waiting, IReadOnlyList<Hindrance> hindrances)
+        internal SeaRouteDiagnosis(
+            SeaRoute route,
+            long capacityPerHour,
+            long shippedPerHour,
+            IReadOnlyList<(Resource Resource, long Units)> waiting,
+            IReadOnlyList<Hindrance> hindrances,
+            long materialsOwed,
+            long suppliesPerHour)
         {
             Route = route;
             CapacityPerHour = capacityPerHour;
             ShippedPerHour = shippedPerHour;
             Waiting = waiting;
             Hindrances = hindrances;
+            MaterialsOwed = materialsOwed;
+            SuppliesPerHour = suppliesPerHour;
         }
 
         public SeaRoute Route { get; }
@@ -147,13 +175,28 @@ namespace Eirora.Simulation.Economy
         /// <summary>Millionths of a unit the ships carry home at most an active hour, shared by every resource.</summary>
         public long CapacityPerHour { get; }
 
-        /// <summary>Millionths of a unit they would carry home in the next active hour at this pace.</summary>
+        /// <summary>
+        /// Millionths of a unit they would carry in the next active hour at this pace, both ways and with the materials
+        /// for building.
+        /// </summary>
         public long ShippedPerHour { get; }
 
         /// <summary>The share of the capacity in use, in percent.</summary>
         public int UsedPercent => CapacityPerHour > 0 ? (int)(ShippedPerHour * 100 / CapacityPerHour) : 0;
 
-        /// <summary>Whole units waiting on the island the route sails from, by resource; only resources with any.</summary>
+        /// <summary>
+        /// Whole units, rounded up, of the materials that the home island paid for work on the island and that take the
+        /// route's room before anything else (D-106, D-113).
+        /// </summary>
+        public long MaterialsOwed { get; }
+
+        /// <summary>Millionths of a unit of food they would carry out to the island in the next active hour.</summary>
+        public long SuppliesPerHour { get; }
+
+        /// <summary>
+        /// Whole units on the island the route sails from that wait for the ships, by resource, above the food the island
+        /// keeps; only resources with any.
+        /// </summary>
         public IReadOnlyList<(Resource Resource, long Units)> Waiting { get; }
 
         /// <summary>What keeps goods from reaching home, such as a full store there.</summary>
@@ -181,5 +224,63 @@ namespace Eirora.Simulation.Economy
         /// a workday does not help, as when what is missing is villagers, room or a shorter way.
         /// </summary>
         public Building? Workday { get; }
+    }
+}
+
+namespace Eirora.Simulation.Economy
+{
+    /// <summary>Whether a settlement would grow if dawn came now (economy-v1.md, section 4; D-39).</summary>
+    public enum Growth
+    {
+        /// <summary>Its store feeds every villager and it has housing for one more.</summary>
+        Grows,
+
+        /// <summary>It has no villagers yet, who come only by moving over a sea route (D-106).</summary>
+        Empty,
+
+        /// <summary>Its store does not hold food for every villager, so it does not grow; no one leaves (D-39).</summary>
+        Hungry,
+
+        /// <summary>Every home is taken, so no one more can move in until a cottage or a longhouse is built.</summary>
+        Full,
+    }
+
+    /// <summary>
+    /// A settlement's growth and what holds it back (TASK-050): whether it would grow if dawn came now, the villagers its
+    /// buildings lack and who could move there to staff them, and the island's largest bottleneck.
+    /// </summary>
+    public sealed class SettlementDiagnosis
+    {
+        internal SettlementDiagnosis(IslandSettlement settlement, long food, Growth growth, int missingStaff, int freeNearby, Bottleneck? bottleneck)
+        {
+            Settlement = settlement;
+            Food = food;
+            Growth = growth;
+            MissingStaff = missingStaff;
+            FreeNearby = freeNearby;
+            Bottleneck = bottleneck;
+        }
+
+        public IslandSettlement Settlement { get; }
+
+        /// <summary>Whole units of food in its store, of which each villager eats one at dawn.</summary>
+        public long Food { get; }
+
+        public Growth Growth { get; }
+
+        /// <summary>The villagers that its buildings lack, leaving out the paused ones.</summary>
+        public int MissingStaff { get; }
+
+        /// <summary>
+        /// Free villagers in the settlements a sea route joins to it, who move here one a dawn in the whole world while its
+        /// buildings lack villagers and it has housing for them (D-106).
+        /// </summary>
+        public int FreeNearby { get; }
+
+        /// <summary>What costs its island most right now, or null when nothing there is held back.</summary>
+        public Bottleneck? Bottleneck { get; }
+
+        /// <summary>Whether it stands still: it would not grow at dawn and no villager can move in to staff its buildings.</summary>
+        public bool StandsStill => Growth != Growth.Grows && !(MissingStaff > 0 && FreeNearby > 0 && Growth != Growth.Full);
     }
 }
