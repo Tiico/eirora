@@ -796,7 +796,7 @@ def main():
     base = World().value()
     print(f"\nStartvärde: {base:.0f}\n")
     print("| Körning | Profil | Bybor | Byggnader | Nivå 2 | Öar | Plankor | Sten | Tyg "
-          "| Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |")
+          "| Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |")
     print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for name, strat, profile in runs:
         w = run(strat, profile)

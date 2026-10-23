@@ -459,7 +459,7 @@ def main():
         print(f"\n## Vecka då spelaren når varje steg (Styrka: {rule}, "
               f"handkraft: {'ja' if hand else 'nej'})\n")
         print("| Profil | " + " | ".join(MILESTONES)
-              + " | Dygn | Bybor | Byggnader | Dagsproduktion | Använt U/B/G | Sparat U/B/G |")
+              + " | Dygn | Bybor | Byggnader | Dagsproduktion | Använt U/S/O | Sparat U/S/O |")
         print("|---|" + "---|" * (len(MILESTONES) + 6))
         for name in ORDER:
             w = run(name, rule, hand)

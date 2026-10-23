@@ -293,7 +293,7 @@ Steg för steg, med integritetsförklaring: se [UX-resorna](./docs/design/ux-jou
 
 1. Välj språk och tillgänglighet.
 2. Guidad tur: en liten bosättning på en ö vid gryning.
-3. Lär dig de tre krafterna genom tre konkreta handlingar: att arbeta extra (Ork), kartlägg närområdet (Utforskning), bygg en brygga (Styrka); planering är gratis.
+3. Lär dig de tre krafterna genom tre konkreta handlingar: arbeta extra (Ork), kartlägg närområdet (Utforskning), bygg en brygga (Styrka); planering är gratis.
 4. Integritetsförklaring: hälsokälla eller manuell inmatning, båda fullvärdiga.
 5. Välj vilotid (6–10 h) med nattläget och vilolåset framför dig.
 6. Erbjudande att bjuda in vänner, utan press.

@@ -152,7 +152,7 @@ Varje vecka har minst ett beslut om var en kraft ska riktas och minst ett val me
 | 2 | Expedition till Ytterön och brygga där, Runstenen, första forskningssteget | Expedition till Nyön, brygga på Nyön, Runstenen, första forskningssteget, en uppgradering till | Styrka till sjöväg eller långhus; forskningens första inriktning |
 | 3 | Grunden, långhus, forskningssteg, dimman | Grunden, expedition till Ytterön, forskningssteg | Spara till grunden eller bygga nu |
 | 4 | Dimman, Styrka sparas till stommen | Brygga på Ytterön, dimman | Vilken inriktning; vilka dimrutor först |
-| 5 | Stommen, forskningssteg | Stommen, forskningssteg | Plank till stommen, forskning eller uppgraderingar |
+| 5 | Stommen, forskningssteg | Stommen, forskningssteg | Plankor till stommen, forskning eller uppgraderingar |
 | 6 | Dimman över innerhavet, Styrka sparas till elden | Dimman, Styrka sparas till elden | Spara till elden eller uppgradera; vilken flaskhals får extraarbetet |
 | 7 | **Elden: Vårdkasen tänds** | Dimman närmar sig innerhavet | Var dimman lyfts mot innerhavet; fynden avgörs i M5 |
 | 8 | Epok 2 | **Elden: Vårdkasen tänds** | |

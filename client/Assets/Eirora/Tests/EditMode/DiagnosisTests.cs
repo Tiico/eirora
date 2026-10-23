@@ -80,6 +80,16 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void ASawmillThatProducesFullySaysOnePlankAnHourInTheSingular()
+        {
+            var world = Edited(Morning(), "stock home Timber 100000000", "building Sawmill -1 0 1 1 0 0 0 0");
+
+            var sheet = SheetOf(world, s_beside);
+
+            Assert.That(sheet.Subtitle, Is.EqualTo("Äng · går för fullt · 1 planka/h"));
+        }
+
+        [Test]
         public void AHouseSaysNothingOfVillagersItNeverNeeds()
         {
             var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0 0");
@@ -151,7 +161,7 @@ namespace Eirora.Client.Tests
             var bottleneck = root.Query<Button>(className: "action").ToList().Single();
 
             Assert.That(Label(bottleneck, "action-title"), Is.EqualTo("Flaskhals just nu"));
-            Assert.That(Label(bottleneck, "action-cost"), Is.EqualTo("Sågverket väntar på timmer. Ett extraarbete på skogshuggaren ger mer timmer."));
+            Assert.That(Label(bottleneck, "action-cost"), Is.EqualTo("Sågverket väntar på timmer. Att arbeta extra på skogshuggaren ger mer timmer."));
 
             Hex? selected = null;
             hud.SelectionChanged += tile => selected = tile;

@@ -101,7 +101,7 @@ Den lediga bybon gör klart fiskeboden vid det rika fiskevattnet kl. 09.
 Fiskeboden kan ändå inte bemannas förrän två bybor är lediga.
 Resten av dagen bygger bybon på långhuset, som har 26 av 40 arbetstimmar kvar kl. 23.
 
-| Tid | Fisk | Säd | Timmer | Plank | Sten |
+| Tid | Fisk | Säd | Timmer | Plankor | Sten |
 |---|---|---|---|---|---|
 | 07:00, efter besluten | 40 | 63,5 | 27 | 2 | 114,9 |
 | 11:00 | 45 | 75,5 | 20,75 | 8 | 123,9 |

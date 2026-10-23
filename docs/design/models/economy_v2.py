@@ -1560,14 +1560,14 @@ def main():
     print("|---|---|---|---|---|---|---|---|")
     print("\n".join(catalog()))
     print("\n## Behov och kedjor (INV-R4)\n")
-    print("| Behov | Vara | Kedja | Mark | Styrka | Plank | Utan krafter | Bemannas av |"
+    print("| Behov | Vara | Kedja | Mark | Styrka | Plankor | Utan krafter | Bemannas av |"
           "\n|---|---|---|---|---|---|---|---|")
     print("\n".join(check_needs()))
 
     base = World().value()
     print(f"\n## Sju dygn\n\nStartvärde: {base:.0f}\n")
-    print("| Körning | Profil | Bybor | Nivåer T/B/H | Byggnader | Bosättningar | Plank | Sten "
-          "| Bärarnas last | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G "
+    print("| Körning | Profil | Bybor | Nivåer T/B/H | Byggnader | Bosättningar | Plankor | Sten "
+          "| Bärarnas last | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O "
           "| Värde per använd kraft |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     runs = [
         ("Närområdet", strategy_land, "måttlig"),

@@ -33,7 +33,7 @@ Den ekonomin tas fram i ekonomi v2 (TASK-058); ekonomi v1 beskriver det som spel
 | Fisk | Basbehov (mat) | Fiskebod |
 | Säd | Basbehov (mat) | Åker (långsam process) |
 | Timmer | Byggmaterial, råvara | Skogshuggare; skogen växer tillbaka (långsam process) |
-| Plank | Byggmaterial | Sågverk |
+| Plankor | Byggmaterial | Sågverk |
 | Sten | Byggmaterial | Stenbrott |
 | Ull | Råvara | Fårgård (långsam process) |
 | Tyg | Komfort, ger snabbare tillväxt | Väveri |
@@ -286,7 +286,7 @@ Båda körningarna har samma måttliga egenvård från [forces.md](./forces.md):
 
 Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg, 8 h sömn, sex pass): den bygger det första som går där det går, uppgraderar det den redan har och läser inte kartan.
 
-| Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
+| Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 316 | 180/260/440 | 461/110/229 | 1,03 |
 | Närområdet, ordnad | måttlig | 19 | 13 | 1 | 150 | 213 | 1 254 | 180/260/440 | 461/110/244 | 0,96 |
@@ -331,7 +331,7 @@ Egenvården registreras som dagliga summor vid varje gryning enligt profilerna i
 Strategierna har inga fasta koordinater: de läser kartan och väljer byggplats efter vad rutan ger, avståndet till förrådet och vad som redan står där, så att samma strategier spelar genererade kartor.
 Hur botarna körs står i [development.md](../development.md#balansbotar).
 
-| Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
+| Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 12 | 1 | 204 | 194 | 1 267 | 180/260/410 | 461/110/233 | 1,01 |
 | Närområdet, ordnad | måttlig | 19 | 12 | 1 | 148 | 218 | 1 281 | 180/260/410 | 461/110/259 | 1,03 |

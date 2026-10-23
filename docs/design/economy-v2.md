@@ -80,7 +80,7 @@ Behoven ger alltså bara tillväxt och avancemang, inget som kan förloras vid f
 | Vilt | Mat, råvara till skinn | Jaktstuga (ny) |
 | Säd | Mat, råvara till öl | Åker (långsam process) |
 | Timmer | Byggmaterial, råvara | Skogshuggare; skogen växer tillbaka (långsam process) |
-| Plank | Byggmaterial, knarrar | Sågverk |
+| Plankor | Byggmaterial, knarrar | Sågverk |
 | Sten | Byggmaterial | Stenbrott |
 | Ull | Råvara | Fårgård (långsam process) |
 | Tyg | Kläder | Väveri |
@@ -92,7 +92,7 @@ Behoven ger alltså bara tillväxt och avancemang, inget som kan förloras vid f
 
 Kalkylen prövar kedjorna mot INV-R4 och stoppar om ett behov inte kan göras utan krafter på minst två sätt som börjar på olika mark, eller om ett behov kräver sin egen nivå:
 
-| Behov | Vara | Kedja | Mark | Styrka | Plank | Utan krafter | Bemannas av |
+| Behov | Vara | Kedja | Mark | Styrka | Plankor | Utan krafter | Bemannas av |
 |---|---|---|---|---|---|---|---|
 | Mat | Fisk | Fiskebod | Fiskevatten | 0 | 0 | Ja | Torpare |
 | Mat | Vilt | Jaktstuga | Skog | 0 | 0 | Ja | Torpare |
@@ -354,7 +354,7 @@ Första veckan följer varje strategi sin egen plan.
 
 Som jämförelse körs samma **naiva** strategi med **hög** egenvård som i v1.
 
-| Körning | Egenvård | Bybor | Nivåer T/B/H | Byggnader | Bosättningar | Plank | Sten | Bärarnas last | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
+| Körning | Egenvård | Bybor | Nivåer T/B/H | Byggnader | Bosättningar | Plankor | Sten | Bärarnas last | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 19/0/0 | 11 | 1 | 47 | 210 | 72 % | 228 | 1 407 | 180/260/440 | 461/110/229 | 1,13 |
 | Havet | måttlig | 21 | 21/0/0 | 12 | 2 | 42 | 29 | 29 % | 246 | 1 284 | 250/210/360 | 426/160/260 | 1,07 |

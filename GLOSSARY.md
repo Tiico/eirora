@@ -30,7 +30,7 @@ _Avoid_: värld (när bara kartan avses), seed
 
 **Ruta** (`HexTile`):
 En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landruta är en möjlig byggplats (D-79).
-_Avoid_: ruta, cell, plats
+_Avoid_: bricka, cell, plats
 
 **Byggplats**:
 En ruta som uppfyller en byggnads krav (`TileUse`), till exempel skog, berg, fiskevatten eller hamnläge; vad rutan duger till följer av terräng, höjd och grannar och sparas inte (D-79).
@@ -48,7 +48,7 @@ _Avoid_: hamnplats, kaj, strand (som krav)
 
 **Topp** (`Crest`):
 Startöns enda högsta ruta, där Vårdkasen byggs och som inte bär något annat (D-92); delar två rutor den högsta höjden finns ingen topp.
-_Avoid_: topp, högsta punkt, berg
+_Avoid_: krön, högsta punkt, berg
 
 **Generator** (`WorldGenerator`):
 Det som skapar en karta, av en källtyp och med en fast generatorversion.
@@ -181,11 +181,11 @@ _Avoid_: stegpoäng
 
 **Styrka** (`BuildPower`):
 Kraften från träningspass; driver större byggprojekt och uppgraderingar.
-_Avoid_: Styrka, träningspoäng, arbetskraft
+_Avoid_: Byggkraft, träningspoäng, arbetskraft
 
 **Ork** (`DawnPower`):
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
-_Avoid_: Ork, sömnpoäng, vilobonus
+_Avoid_: Gryningskraft, sömnpoäng, vilobonus
 
 **Grundande** (`Founding`):
 Det en ny värld börjar med på sin karta: startbyns byggnader, kartläggningarnas dolda rutor och ön som den första expeditionen hittar.
@@ -232,7 +232,7 @@ _Avoid_: fusk, overifierat, manuell data
 
 **Vilotid** (`RestPeriod`):
 Spelarens återkommande, självvalda dagliga period om 6–10 timmar då byborna sover.
-_Avoid_: vilotid, natt, sovtid, offlinetid
+_Avoid_: viloperiod, natt, sovtid, offlinetid
 
 **Vilolås** (`RestLock`):
 Regeln att inga spelpåverkande handlingar kan utföras under vilotiden.
@@ -253,7 +253,7 @@ _Avoid_: påminnelse, push
 **Dag** (`GameDay`):
 Tiden från en gryning till nästa; enheten som krafter räknas per.
 När det behöver skiljas från kalenderdygnet heter det dag i spelet.
-_Avoid_: dag, kalenderdygn (när dagen i spelet avses)
+_Avoid_: spelardygn, kalenderdygn (när dagen i spelet avses)
 
 **Frånvaro** (`Absence`):
 Tiden då spelaren inte öppnar spelet; världen spolas fram till klockan när spelaren kommer tillbaka och är minst lika utvecklad som förut, hur länge frånvaron än varade (INV-V4).

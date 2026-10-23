@@ -408,8 +408,8 @@ namespace Eirora.Client.UI
 
             return building.Building.Paused ? "pausad" : building.Production switch
             {
-                Production.Full => $"går för fullt · {Rate(building.PerHour)} {Name(product)}/h",
-                Production.Reduced => $"går långsammare · {Rate(building.PerHour)} {Name(product)}/h",
+                Production.Full => $"går för fullt · {Rate(building.PerHour, product)}/h",
+                Production.Reduced => $"går långsammare · {Rate(building.PerHour, product)}/h",
                 _ => "står still",
             };
         }
@@ -436,7 +436,7 @@ namespace Eirora.Client.UI
 
         /// <summary>What a road gives a building far from the storehouse, beside the road's cost on its sheet.</summary>
         public static string RoadGives(LongWay way, Resource product) =>
-            $"{Rate(way.WithRoadPerHour)} {Name(product)}/h i stället för {Rate(way.PerHour)}";
+            $"{Rate(way.WithRoadPerHour, product)}/h i stället för {Rate(way.PerHour)}";
 
         /// <summary>The sea route's use now and what keeps goods from reaching home, for the jetties' sheets.</summary>
         public static IEnumerable<string> SeaRoute(SeaRouteDiagnosis route)
@@ -471,7 +471,7 @@ namespace Eirora.Client.UI
             };
 
             return bottleneck.Workday is Building workday && bottleneck.Hindrance is WaitingForInput missing
-                ? $"{held} Ett extraarbete på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
+                ? $"{held} Att arbeta extra på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
                 : held;
         }
 
@@ -486,12 +486,19 @@ namespace Eirora.Client.UI
                 : $"{whole},{fraction.ToString("00", System.Globalization.CultureInfo.InvariantCulture)}";
         }
 
+        /// <summary>A resource's rate, such as "0,92 plankor" but "1 planka"; the caller adds the hour.</summary>
+        private static string Rate(long millionths, Resource resource)
+        {
+            string rate = Rate(millionths);
+            return $"{rate} {(rate == "1" ? Name(resource, 1) : Name(resource))}";
+        }
+
         private static string Way(LongWay way, Resource? product)
         {
             string steps = way.Steps == int.MaxValue ? "inget förråd nås över land" : $"{Count(way.Steps)} steg till närmaste förråd";
             string text = $"{Share(way.Percent)} når fram, {steps}.";
             return product is Resource made && way.BesideDepotPerHour > way.PerHour
-                ? $"{text} Ett förråd intill ger {Rate(way.BesideDepotPerHour)} {Name(made)}/h."
+                ? $"{text} Ett förråd intill ger {Rate(way.BesideDepotPerHour, made)}/h."
                 : text;
         }
 
