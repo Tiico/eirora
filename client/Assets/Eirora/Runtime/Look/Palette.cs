@@ -21,6 +21,9 @@ namespace Eirora.Client.Look
         public static readonly Color Stone = Hex(0x8E8B93);
         public static readonly Color Wool = Hex(0xF7F3EA);
 
+        /// <summary>A road of trodden earth, darker than the sand so it reads on the beach too (D-112).</summary>
+        public static readonly Color Road = Hex(0xC9A97C);
+
         /// <summary>Rune glow: a light colour, never a surface colour.</summary>
         public static readonly Color RuneGlow = Hex(0xFFD27A);
 

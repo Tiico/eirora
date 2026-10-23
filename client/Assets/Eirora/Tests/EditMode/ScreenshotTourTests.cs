@@ -57,22 +57,27 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
-        public void TheTourWeekHasABuildingStandingStillABottleneckAndAFarBuildingToShow()
+        public void TheTourWeekHasABuildingStandingStillABottleneckCarriersAndARoadToShow()
         {
             var (session, clock) = Begin();
             ScriptedWeek.Play(session, clock);
 
-            // Shot 04-standing-still, on the seventh afternoon.
-            clock.Current = ScriptedWeek.At("2026-10-21 13:00");
+            // Shot 04-standing-still, on the seventh morning, after which the tour lays a road to the far fishing hut.
+            clock.Current = ScriptedWeek.At("2026-10-21 10:00");
             session.CatchUp();
             Assert.That(session.World!.Diagnose().Buildings.Any(b => b.StandsStill), Is.True);
+            Assert.That(ScriptedWeek.LayARoad(session), Is.Empty);
 
-            // Shots 13-bottleneck and 13-long-way, two days later.
+            // Shots 13-bottleneck and 21-storehouse-carriers, two days later.
             clock.Current = ScriptedWeek.At("2026-10-23 13:00");
             session.CatchUp();
             var diagnosis = session.World!.Diagnose();
             Assert.That(diagnosis.BottleneckOn(session.World!.HomeIsland), Is.Not.Null);
-            Assert.That(diagnosis.Buildings.Any(b => b.Hindrances.OfType<LongWay>().Any()), Is.True);
+            Assert.That(diagnosis.DepotAt(Hex.Origin)!.Depot.Carriers, Is.GreaterThanOrEqualTo(1));
+
+            // Shot 22-road: the road to the far fishing hut, laid by then.
+            Assert.That(session.World!.Roads, Is.Not.Empty);
+            Assert.That(session.World!.Projects.Where(p => p.Kind == ProjectKind.Road), Is.Empty, "Every road tile is laid.");
         }
 
         private static (GameSession Session, FixedClock Clock) Begin()
