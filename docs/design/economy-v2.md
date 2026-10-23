@@ -478,7 +478,7 @@ I alla fyra är byborna, byggnaderna, nivåerna, krafterna och den upptäckta ka
 
 1. **En bosättning per ö gör havet långsammare.**
    Havet behövde en ny byggordning för att hålla jämna steg, och byggare från hemön ([delfråga F5](#f5-får-byggare-från-andra-öar-bygga)) är det som håller havet levande.
-   Nybyggare som följer med när en bosättning anläggs behövs inte: utan dem blir Havet något bättre, eftersom byborna stannar hemma och bygger.
+   Nybyggare som följer med när en bosättning anläggs behövs inte: flytten räcker, och byborna som stannar hemma bygger under tiden.
 2. **Bärarna gör folk ännu knappare.**
    Varje bärare är en byggare mindre, och utan lediga bybor är vägen den enda åtgärd som hjälper.
 3. **Bärarnas ordning kan ta tillbaka en del av ett dagsverke.**
