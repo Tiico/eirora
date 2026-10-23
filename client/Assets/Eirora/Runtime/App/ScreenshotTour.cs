@@ -22,6 +22,9 @@ namespace Eirora.Client.App
     {
         public static IEnumerator Run(ClientBootstrap client, string folder)
         {
+            // A macOS player pauses when its window loses focus, which another app in front takes; the tour plays on.
+            Application.runInBackground = true;
+
             // ScreenCapture resolves a relative path against the player's data folder, not the working directory.
             folder = Path.GetFullPath(folder);
             Directory.CreateDirectory(folder);
@@ -59,6 +62,14 @@ namespace Eirora.Client.App
             client.Hud.Select(ScriptedWeek.FishingHut);
             yield return Capture(client, folder, "04-building");
             client.Hud.Select(null);
+
+            // A building that stands still (TASK-043): the sign above it on the island, and its sheet saying why.
+            if (session.World!.Diagnose().Buildings.FirstOrDefault(b => b.StandsStill) is { } still)
+            {
+                client.Hud.Select(still.Building.Tile);
+                yield return Capture(client, folder, "04-standing-still");
+                client.Hud.Select(null);
+            }
 
             clock.Current = ScriptedWeek.At("2026-10-21 22:20");
             session.CatchUp();
@@ -113,9 +124,33 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "13-upgraded");
             client.Hud.Select(null);
 
+            // What holds the island back most, as the report points to it, and a building far from the storehouse with
+            // what a road would give (TASK-043).
+            var diagnosis = session.World!.Diagnose();
+            if (diagnosis.BottleneckOn(Simulation.Economy.IslandId.Home) is { } bottleneck)
+            {
+                client.Focus(bottleneck.Building.Building.Tile.Center());
+                client.Hud.Select(bottleneck.Building.Building.Tile);
+                yield return Capture(client, folder, "13-bottleneck");
+                client.Hud.Select(null);
+            }
+
+            if (diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is Simulation.Economy.LongWay)) is { } far)
+            {
+                client.Focus(far.Building.Tile.Center());
+                client.Hud.Select(far.Building.Tile);
+                yield return Capture(client, folder, "13-long-way");
+                client.Hud.Select(null);
+            }
+
             // Nyön, found by the expedition and joined by the sea route.
             client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
+
+            // The sea route's use and what waits for the ships, on Nyön's jetty (TASK-043).
+            client.Hud.Select(session.World!.Buildings.First(b => b.Kind == Simulation.Economy.BuildingKind.Jetty && b.Island == Simulation.Economy.IslandId.Nyon).Tile);
+            yield return Capture(client, folder, "10-sea-route");
+            client.Hud.Select(null);
 
             // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
             var world = session.World!;

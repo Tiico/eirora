@@ -26,6 +26,8 @@ namespace Eirora.Client.Look
         private readonly MeshFilter _settlement;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
+        private readonly MeshFilter _standingStill;
+        private readonly List<Hex> _markedStandingStill = new();
         private readonly List<Mesh> _meshes = new();
 
         public IslandView(Transform parent, Material flat, Material glow, Looks looks)
@@ -38,10 +40,17 @@ namespace Eirora.Client.Look
             _lights = Create("Lights", parent, glow);
             _lights.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _selection = Create("Selection", parent, flat);
+
+            // The signs float above the roofs; a shadow on the ground below would read as something standing there.
+            _standingStill = Create("Standing still", parent, flat);
+            _standingStill.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         /// <summary>The map drawn, or null before the first world is shown.</summary>
         public IslandMap? Map { get; private set; }
+
+        /// <summary>The buildings marked as standing still, by tile (TASK-043).</summary>
+        public IReadOnlyList<Hex> MarkedStandingStill => _markedStandingStill;
 
         public void Refresh(World world)
         {
@@ -98,12 +107,22 @@ namespace Eirora.Client.Look
                 }
             }
 
+            // Buildings that stand still are marked while the villagers are awake; at night the whole village rests.
+            var signs = new MeshBuilder();
+            var diagnostics = world.Phase == Phase.Active ? world.Diagnose() : null;
+            _markedStandingStill.Clear();
             int villager = 0;
             foreach (var building in world.Buildings)
             {
                 var hex = building.Tile;
                 var c = hex.Center() + (Vector3.up * Models.Height(map.Tiles[hex]));
                 _looks.Building(mesh, lights, building.Kind, building.Level, c, Seed(hex));
+                if (diagnostics?.At(hex)?.StandsStill == true)
+                {
+                    StandingStill.Draw(signs, hex.Center() + (Vector3.up * Mathf.Max(Models.Height(map.Tiles[hex]), 0f)), App.CameraRig.Pitch);
+                    _markedStandingStill.Add(hex);
+                }
+
                 if (building.Staffed && world.Phase == Phase.Active)
                 {
                     Models.Villager(mesh, c + new Vector3(-0.42f, 0f, -0.45f), villager++);
@@ -123,6 +142,7 @@ namespace Eirora.Client.Look
             SeaRoute(mesh, world);
             mesh.WriteTo(_settlement.sharedMesh);
             lights.WriteTo(_lights.sharedMesh);
+            signs.WriteTo(_standingStill.sharedMesh);
         }
 
         /// <summary>Marks the selected hex with a glowing rim, or clears the mark.</summary>

@@ -162,6 +162,25 @@
     margin-bottom: 14px;
 }
 
+/* The subtitle of a building's sheet, after the sign it shares with the island when it stands still (TASK-043). */
+.sheet-status {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+    margin-bottom: 14px;
+}
+
+.sheet-status > .sheet-subtitle {
+    margin: 0;
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.standing-still {
+    flex-shrink: 0;
+    margin-right: 12px;
+}
+
 .sheet-text {
     font-size: 32px;
     white-space: normal;
