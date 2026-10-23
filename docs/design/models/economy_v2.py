@@ -618,8 +618,8 @@ class World:
                 if k > 0:
                     s.tiers[t - 1] -= k
                     s.tiers[t] += k
-            room = self.housing(s, 0) - s.tiers[0]
-            if s.fed and room > 0:
+            room = self.torpare_room(s)
+            if s.fed and room > 0 and s.population() > 0:  # en tom bosättning växer inte (D-121)
                 s.tiers[0] += 1
                 # Kläder för en bybo till förbrukas bara när den får plats, och bara det som
                 # blir över när nivåerna har fått sina kläder till nästa gryning.
@@ -642,25 +642,37 @@ class World:
                 self.introduce(name)
                 self.log.append(f"Dygn {day + 1}: steget {name} låses upp")
 
+    def torpare_room(self, s):
+        """Lediga torparbostäder. En bonde eller hantverkare som har flyttat till en ö utan bostäder
+        för sin nivå bor i en torparbostad tills öns egna finns, och går aldrig ner en nivå (D-124, D-39)."""
+        lodgers = sum(max(0, s.tiers[t] - self.housing(s, t)) for t in (1, 2))
+        return self.housing(s, 0) - s.tiers[0] - lodgers
+
+    def room_for(self, s, tier):
+        """Får en bybo av nivån plats: i en bostad för sin nivå, annars i en torparbostad (D-124)."""
+        return (tier > 0 and self.housing(s, tier) > s.tiers[tier]) or self.torpare_room(s) > 0
+
     def migrate(self):
-        """Lediga torpare flyttar över sjövägen till bosättningar med plats och arbete (D-106).
+        """Lediga bybor flyttar över sjövägen till bosättningar med plats och arbete (D-106, D-124).
 
         Högst MIGRANTS_PER_DAY flyttar i hela världen per gryning, först till den bosättning som
         saknar flest bybor till sina byggnader, från den förbundna bosättning som har flest lediga.
+        Den som flyttar är en ledig bybo av den lägsta nivå som har plats, och den behåller sin nivå.
         """
         for _ in range(MIGRANTS_PER_DAY):
             wanted = []
             for s in self.settlements.values():
                 missing = sum(b.staff for b in self.on(s.island) if b.staff and not b.staffed)
-                if missing and self.housing(s, 0) > s.tiers[0]:
+                if missing and any(self.room_for(s, t) for t in range(len(TIERS))):
                     wanted.append((missing, s.island, s))
             for _, _, s in sorted(wanted, key=lambda x: (-x[0], x[1])):
                 senders = [o for o in self.settlements.values() if o is not s and self.linked(o, s)
-                           and self.free(o)[0] > 0]
+                           and any(n and self.room_for(s, t) for t, n in enumerate(self.free(o)))]
                 if senders:
-                    sender = max(senders, key=lambda o: (self.free(o)[0], o.island))
-                    sender.tiers[0] -= 1
-                    s.tiers[0] += 1
+                    sender = max(senders, key=lambda o: (sum(self.free(o)), o.island))
+                    tier = next(t for t, n in enumerate(self.free(sender)) if n and self.room_for(s, t))
+                    sender.tiers[tier] -= 1
+                    s.tiers[tier] += 1
                     self.staff()
                     break
 
@@ -899,7 +911,11 @@ class World:
         stock = sum(WEIGHT[r] * v for s in self.settlements.values() for r, v in [*s.stock.items(), *s.waiting.items()])
         waiting = sum(WEIGHT[b.product()] * b.out for b in self.buildings if b.product())
         people = sum(TIER_VALUE[t] * n for t, n in enumerate(self.tier_counts()))
-        return people + (stock + waiting) / 2 + 3 * self.daily_output()
+        # En knarr är värd sitt material, också medan varvet bygger den: annars ser det ut som en
+        # mindre värld när varvet börjar en knarr ett dygn tidigare (D-119).
+        knarrar = sum(self.knarrar.values()) + sum(1 for b in self.buildings if b.knarr_work > 0)
+        knarr = knarrar * sum(WEIGHT[r] * n for r, n in KNARR_COST.items())
+        return people + (stock + waiting + knarr) / 2 + 3 * self.daily_output()
 
 
 # --- Hjälp för strategierna ----------------------------------------------------------------
@@ -945,7 +961,7 @@ def grow_island(w, s):
     for kind in ("Fårgård", "Stenbrott"):
         if not w.has(kind, s.island) and not pending(w, kind):
             build_near_on(w, kind, s.island)
-    if w.housing(s, 0) - s.tiers[0] < 2 and not pending(w, "Stuga"):
+    if w.torpare_room(s) < 2 and not pending(w, "Stuga"):
         build_near_on(w, "Stuga", s.island)
     if supply(w, NEED_GOODS["mat"], s.island) < s.population() + 2 and not pending(w, "Fiskebod", "Jaktstuga"):
         build_near_on(w, "Fiskebod", s.island) or build_near_on(w, "Jaktstuga", s.island)
@@ -965,7 +981,7 @@ def keep_growing(w, day, power=True):
         return  # första veckan följer varje strategi sin egen plan
     home = w.settlements[HOME]
     t, b, h = home.tiers
-    if w.housing(home, 0) - t < 3 and not pending(w, "Stuga", "Långhus"):
+    if w.torpare_room(home) < 3 and not pending(w, "Stuga", "Långhus"):
         if power and w.forces["B"] >= 120 and home.stock["plank"] >= 15 + SURPLUS["plank"]:
             build_near(w, "Långhus")
         else:
