@@ -45,12 +45,14 @@
 .resources {
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: space-between;
     margin-top: 18px;
+    margin-right: -14px; /* The last resource's margin falls outside the card, so the row wraps only when the text does not fit. */
 }
 
 .resource {
-    font-size: 30px;
-    margin-right: 26px;
+    font-size: 27px;
+    margin-right: 14px;
     color: rgb(68, 66, 80);
 }
 
