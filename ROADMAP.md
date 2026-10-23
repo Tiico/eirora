@@ -381,7 +381,7 @@ Byggplatser på varje landbricka kom med [TASK-037](https://github.com/Tiico/eir
 Uppgifterna nedan beskriver det som återstår.
 Produktägaren valde Anno-bredd med gradvis upplåsning, en bosättning per ö och bärare på land (D-105–D-107, TASK-039–041).
 Ekonomi v2 (TASK-058) räknar fram den ekonomin innan bärarna och innehållet byggs.
-Två produktbeslut återstår: vad rivning ger tillbaka (TASK-059) och krafternas värden efter balansbotarna (TASK-055).
+Vad rivning ger tillbaka är avgjort (D-108, TASK-059), och ett produktbeslut återstår: krafternas värden efter balansbotarna (TASK-055).
 Uppgifter utan blockerare i tabellen kan påbörjas direkt och går parallellt med att M2 och M3 stängs.
 TASK-043–047 byggs ovanpå innehållskatalogen i TASK-042, eftersom alla ändrar `Settlement`.
 Scenarierna och balansen (TASK-053–056) väntar på M4:s regler, så att de prövar det som lämnas till M5.
@@ -397,7 +397,7 @@ Varje uppgift som tillför tillstånd utökar frånvarotestet från TASK-049, s�
 | [TASK-044 — Arbetsfördelning: pausa och prioritera byggnader, ordna byggkön](https://github.com/Tiico/eirora/issues/127) | M4 | TASK-042, TASK-049 |
 | [TASK-045 — Varje ö har eget lager och egen sjöväg](https://github.com/Tiico/eirora/issues/128) | M4 | TASK-042, TASK-049 |
 | [TASK-046 — Minimilager, importprioritet och reservering (LOG-06)](https://github.com/Tiico/eirora/issues/129) | M4 | TASK-043, TASK-045 |
-| [TASK-047 — Rivning av byggnader (D-38)](https://github.com/Tiico/eirora/issues/130) | M4 | TASK-042, TASK-049, TASK-059 |
+| [TASK-047 — Rivning av byggnader (D-38)](https://github.com/Tiico/eirora/issues/130) | M4 | TASK-042, TASK-049 |
 | [TASK-048 — Balansbotar som spelar den riktiga simuleringen](https://github.com/Tiico/eirora/issues/131) | M4 | – |
 | [TASK-049 — Långa frånvaroperioder i en utbyggd värld](https://github.com/Tiico/eirora/issues/132) | M4 | – |
 | [TASK-050 — Flera bosättningar (CIV-01)](https://github.com/Tiico/eirora/issues/133) | M4 | TASK-040, TASK-043, TASK-045 |
