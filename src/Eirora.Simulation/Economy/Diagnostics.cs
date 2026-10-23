@@ -5,7 +5,7 @@ namespace Eirora.Simulation.Economy
 {
     /// <summary>
     /// Why goods do not reach the store and what holds the world back (CIV-05, LOG-03): each building's production and
-    /// what hinders it, the sea route's use, and each island's largest bottleneck (GLOSSARY: Flaskhals).
+    /// what hinders it, each sea route's use, and each island's largest bottleneck (GLOSSARY: Flaskhals).
     /// </summary>
     /// <remarks>
     /// A reading of the world as it is: it tells what the next quarter hour with the villagers awake would do and never
@@ -14,17 +14,17 @@ namespace Eirora.Simulation.Economy
     public sealed class Diagnostics
     {
         private readonly Dictionary<Hex, BuildingDiagnosis> _byTile = new();
-        private readonly Dictionary<IslandId, Bottleneck?> _bottlenecks;
+        private readonly Dictionary<string, Bottleneck?> _bottlenecks;
 
         internal Diagnostics(
             IReadOnlyList<BuildingDiagnosis> buildings,
-            SeaRouteDiagnosis seaRoute,
-            Dictionary<IslandId, Bottleneck?> bottlenecks,
-            IReadOnlyDictionary<IslandId, long[]> nextStores)
+            IReadOnlyList<SeaRouteDiagnosis> seaRoutes,
+            Dictionary<string, Bottleneck?> bottlenecks,
+            IReadOnlyDictionary<string, long[]> nextStores)
         {
             Buildings = buildings;
             NextStores = nextStores;
-            SeaRoute = seaRoute;
+            SeaRoutes = seaRoutes;
             _bottlenecks = bottlenecks;
             foreach (var building in buildings)
             {
@@ -35,10 +35,11 @@ namespace Eirora.Simulation.Economy
         /// <summary>Every building, in the order the settlement works them.</summary>
         public IReadOnlyList<BuildingDiagnosis> Buildings { get; }
 
-        public SeaRouteDiagnosis SeaRoute { get; }
+        /// <summary>Every sea route that ships sail, in map order, as <see cref="World.SeaRoutes"/> lists them.</summary>
+        public IReadOnlyList<SeaRouteDiagnosis> SeaRoutes { get; }
 
-        /// <summary>What the stores would hold after the quarter hour diagnosed, which keeps the diagnosis true to the rules.</summary>
-        internal IReadOnlyDictionary<IslandId, long[]> NextStores { get; }
+        /// <summary>What each island's store would hold after the quarter hour diagnosed, which keeps the diagnosis true to the rules.</summary>
+        internal IReadOnlyDictionary<string, long[]> NextStores { get; }
 
         /// <summary>The building on a tile, or null when none stands there.</summary>
         public BuildingDiagnosis? At(Hex tile) => _byTile.TryGetValue(tile, out var building) ? building : null;
@@ -47,7 +48,22 @@ namespace Eirora.Simulation.Economy
         /// What costs an island most right now, so the player sees where Dawn Power does most good (economy-v1.md,
         /// section 6, decision 3); null when nothing there is held back.
         /// </summary>
-        public Bottleneck? BottleneckOn(IslandId island) => _bottlenecks.TryGetValue(island, out var bottleneck) ? bottleneck : null;
+        /// <param name="island">The map's id of the island.</param>
+        public Bottleneck? BottleneckOn(string island) => _bottlenecks.TryGetValue(island, out var bottleneck) ? bottleneck : null;
+
+        /// <summary>The sea route from an island, by the map's id, or null when no ships sail from it.</summary>
+        public SeaRouteDiagnosis? SeaRouteFrom(string island)
+        {
+            foreach (var route in SeaRoutes)
+            {
+                if (route.Route.From == island)
+                {
+                    return route;
+                }
+            }
+
+            return null;
+        }
     }
 
     /// <summary>How a building produces right now.</summary>
@@ -114,20 +130,19 @@ namespace Eirora.Simulation.Economy
         }
     }
 
-    /// <summary>The sea route between the islands: how much of its capacity is used and what waits on the other side.</summary>
+    /// <summary>A sea route to the home island: how much of its capacity is used and what waits on the other side.</summary>
     public sealed class SeaRouteDiagnosis
     {
-        internal SeaRouteDiagnosis(bool open, long capacityPerHour, long shippedPerHour, IReadOnlyList<(Resource Resource, long Units)> waiting, IReadOnlyList<Hindrance> hindrances)
+        internal SeaRouteDiagnosis(SeaRoute route, long capacityPerHour, long shippedPerHour, IReadOnlyList<(Resource Resource, long Units)> waiting, IReadOnlyList<Hindrance> hindrances)
         {
-            Open = open;
+            Route = route;
             CapacityPerHour = capacityPerHour;
             ShippedPerHour = shippedPerHour;
             Waiting = waiting;
             Hindrances = hindrances;
         }
 
-        /// <summary>Whether ships sail: a jetty stands on each island.</summary>
-        public bool Open { get; }
+        public SeaRoute Route { get; }
 
         /// <summary>Millionths of a unit the ships carry home at most an active hour, shared by every resource.</summary>
         public long CapacityPerHour { get; }
@@ -138,7 +153,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>The share of the capacity in use, in percent.</summary>
         public int UsedPercent => CapacityPerHour > 0 ? (int)(ShippedPerHour * 100 / CapacityPerHour) : 0;
 
-        /// <summary>Whole units waiting on the other island for the ships, by resource; only resources with any.</summary>
+        /// <summary>Whole units waiting on the island the route sails from, by resource; only resources with any.</summary>
         public IReadOnlyList<(Resource Resource, long Units)> Waiting { get; }
 
         /// <summary>What keeps goods from reaching home, such as a full store there.</summary>

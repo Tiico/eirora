@@ -18,8 +18,8 @@ namespace Eirora.Simulation.Economy
     {
         public Diagnostics Diagnose()
         {
-            var stores = new Dictionary<IslandId, long[]>();
-            foreach (var island in s_islands)
+            var stores = new Dictionary<string, long[]>(System.StringComparer.Ordinal);
+            foreach (var island in _islands)
             {
                 stores[island] = (long[])_stores[island].Clone();
             }
@@ -40,14 +40,14 @@ namespace Eirora.Simulation.Economy
                     : new BuildingDiagnosis(building, Production.None, null, 0, System.Array.Empty<Hindrance>()));
             }
 
-            var seaRoute = DiagnoseSeaRoute(stores);
-            var bottlenecks = new Dictionary<IslandId, Bottleneck?>();
-            foreach (var island in s_islands)
+            var seaRoutes = DiagnoseSeaRoutes(stores);
+            var bottlenecks = new Dictionary<string, Bottleneck?>(System.StringComparer.Ordinal);
+            foreach (var island in _islands)
             {
                 bottlenecks[island] = BottleneckOn(island, buildings);
             }
 
-            return new Diagnostics(buildings, seaRoute, bottlenecks, stores);
+            return new Diagnostics(buildings, seaRoutes, bottlenecks, stores);
         }
 
         private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, int lacking, long[] store, Dictionary<Hex, long> forest)
@@ -214,26 +214,35 @@ namespace Eirora.Simulation.Economy
             return timber != 0 ? timber > 0 : a < b;
         }
 
-        /// <summary>The ships' next quarter hour, as <see cref="Ship"/> does, after the islands' production.</summary>
-        private SeaRouteDiagnosis DiagnoseSeaRoute(Dictionary<IslandId, long[]> stores)
+        /// <summary>
+        /// The ships' next quarter hour on every sea route, as <see cref="Ship"/> does, after the islands' production: the
+        /// routes in map order, each sharing the room in the home island's store with those before it.
+        /// </summary>
+        private List<SeaRouteDiagnosis> DiagnoseSeaRoutes(Dictionary<string, long[]> stores)
         {
-            var waiting = new List<(Resource, long)>();
-            var nyon = _stores[IslandId.Nyon];
-            for (int r = 0; r < s_resourceCount; r++)
+            var routes = new List<SeaRouteDiagnosis>();
+            var home = stores[_home];
+            long capacity = StorageCapacity(_home);
+            foreach (var island in _islands)
             {
-                if (Quantity.Whole(nyon[r]) > 0)
+                if (!HasSeaRoute(island))
                 {
-                    waiting.Add(((Resource)r, Quantity.Whole(nyon[r])));
+                    continue;
                 }
-            }
 
-            var hindrances = new List<Hindrance>();
-            long room = SeaRoutePerTick;
-            if (SeaRouteOpen)
-            {
-                var from = stores[IslandId.Nyon];
-                var home = stores[IslandId.Home];
-                long capacity = StorageCapacity(IslandId.Home);
+                var waiting = new List<(Resource, long)>();
+                var now = _stores[island];
+                for (int r = 0; r < s_resourceCount; r++)
+                {
+                    if (Quantity.Whole(now[r]) > 0)
+                    {
+                        waiting.Add(((Resource)r, Quantity.Whole(now[r])));
+                    }
+                }
+
+                var hindrances = new List<Hindrance>();
+                var from = stores[island];
+                long room = SeaRoutePerTick;
                 for (int r = 0; r < s_resourceCount && room > 0; r++)
                 {
                     long wanted = Min(room, from[r]);
@@ -246,10 +255,11 @@ namespace Eirora.Simulation.Economy
                     from[r] -= moved;
                     room -= moved;
                 }
+
+                routes.Add(new SeaRouteDiagnosis(new SeaRoute(island, _home), PerHour(SeaRoutePerTick), PerHour(SeaRoutePerTick - room), waiting, hindrances));
             }
 
-            long shipped = SeaRouteOpen ? SeaRoutePerTick - room : 0;
-            return new SeaRouteDiagnosis(SeaRouteOpen, PerHour(SeaRoutePerTick), PerHour(shipped), waiting, hindrances);
+            return routes;
         }
 
         /// <summary>
@@ -257,7 +267,7 @@ namespace Eirora.Simulation.Economy
         /// the player's own choice and never the bottleneck. A missing raw material is eased by a workday on the building
         /// that makes it.
         /// </summary>
-        private static Bottleneck? BottleneckOn(IslandId island, List<BuildingDiagnosis> buildings)
+        private static Bottleneck? BottleneckOn(string island, List<BuildingDiagnosis> buildings)
         {
             BuildingDiagnosis? worst = null;
             Hindrance? why = null;

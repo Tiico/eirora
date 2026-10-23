@@ -118,8 +118,14 @@ namespace Eirora.Simulation
         /// <summary>Whole units of a resource in store.</summary>
         public long Stock(Resource resource) => Quantity.Whole(_settlement.Stock(resource));
 
-        /// <summary>Whole units of a resource in store on an island; goods reach home by sea route.</summary>
-        public long Stock(IslandId island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
+        /// <summary>Whole units of a resource in store on an island, by the map's id; goods reach home by sea route.</summary>
+        public long Stock(string island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
+
+        /// <summary>The map's id of the island the settlement began on, where materials are paid from and villagers eat.</summary>
+        public string HomeIsland => _settlement.HomeIsland;
+
+        /// <summary>The islands with a store of their own, in map order: the home island and every island built on.</summary>
+        public IReadOnlyList<string> Islands => _settlement.Islands;
 
         /// <summary>When the world was created (D-51).</summary>
         public long CreatedUtc => Cycle.CreatedUtc;
@@ -142,8 +148,8 @@ namespace Eirora.Simulation
         /// <summary>A tile of the island the first expedition finds, or null when the map has none worth the journey.</summary>
         public Hex? ExpeditionFinds => _settlement.Founding.ExpeditionFinds;
 
-        /// <summary>Whether ships sail between the islands.</summary>
-        public bool SeaRouteOpen => _settlement.SeaRouteOpen;
+        /// <summary>The sea routes that ships sail, in map order: one from each island with a jetty to the home island.</summary>
+        public IReadOnlyList<SeaRoute> SeaRoutes => _settlement.SeaRoutes;
 
         /// <summary>The building on a tile, if any.</summary>
         public Building? BuildingAt(Hex tile) => _settlement.BuildingAt(tile);

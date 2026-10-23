@@ -175,7 +175,11 @@ Spelaren bestämmer vad byborna arbetar med (CIV-02, TASK-044).
 - Ett förråd rymmer 150 av varje resurs.
   Fullt lager stoppar produktionen; inget går förlorat.
 - Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen.
-- Sjövägen mellan Hemön och Nyön för 40 enheter per spelardygn, delat mellan alla varor.
+- Varje ö där spelaren har byggt har eget lager; öarna är kartans (TASK-045).
+  En brygga utanför Hemön rymmer också 150 av varje resurs, så att varorna har någonstans att vänta på skeppen.
+- Varje ö med brygga får en egen sjöväg till Hemön när Hemön har en brygga.
+  Varje sjöväg för 40 enheter per spelardygn, delat mellan alla varor, i varornas fasta ordning tills spelaren får importprioritet (TASK-046).
+  Sjövägarna lastar av i kartans ordning när Hemöns lager bara rymmer en del.
 
 ### Flaskhalsdiagnostik
 
@@ -200,7 +204,7 @@ Ett sågverk som ändå saknar timmer får alltså ingen vinst av en väg, och d
 
 Byggkön ingår inte: en kvart då ett bygge blir klart kan ge en byggnad bybor, en nivå eller en väg innan den arbetar, och diagnostiken visar då vad byggnaderna gör som de står nu.
 
-Sjövägen visar hur stor del av sin kapacitet den använder och vad som väntar på andra sidan.
+Varje sjöväg visar hur stor del av sin kapacitet den använder och vad som väntar på ön den går från; sjövägarna delar på platsen i Hemöns lager i kartans ordning.
 Varje ö får sin största flaskhals, skälet som kostar mest just nu, och när det är en råvara som saknas också var ett dagsverke gör mest nytta (avsnitt 6, beslut 3).
 En paus är spelarens eget val och blir aldrig öns flaskhals.
 Kartan markerar byggnader som står still med en skylt med två staplar medan byborna är vakna, så att formen och inte färgen bär det (UX-05).

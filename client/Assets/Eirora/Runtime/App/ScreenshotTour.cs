@@ -5,6 +5,7 @@ using System.Linq;
 using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -131,7 +132,7 @@ namespace Eirora.Client.App
             // What holds the island back most, as the report points to it, and a building far from the storehouse with
             // what a road would give (TASK-043).
             var diagnosis = session.World!.Diagnose();
-            if (diagnosis.BottleneckOn(Simulation.Economy.IslandId.Home) is { } bottleneck)
+            if (diagnosis.BottleneckOn(session.World!.HomeIsland) is { } bottleneck)
             {
                 client.Focus(bottleneck.Building.Building.Tile.Center() + AboveTheSheet);
                 client.Hud.Select(bottleneck.Building.Building.Tile);
@@ -151,13 +152,19 @@ namespace Eirora.Client.App
             client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));
             yield return Capture(client, folder, "10-nyon");
 
-            // The sea route's use and what waits for the ships, on Nyön's jetty (TASK-043).
-            client.Hud.Select(session.World!.Buildings.First(b => b.Kind == Simulation.Economy.BuildingKind.Jetty && b.Island == Simulation.Economy.IslandId.Nyon).Tile);
-            yield return Capture(client, folder, "10-sea-route");
+            // The jetties' sheets: the sea route with the goods waiting on Nyön, from home and from Nyön (TASK-045).
+            var world = session.World!;
+            foreach (var (island, name) in new[] { (world.HomeIsland, "19-jetty-home"), (PrototypeHome.Nyon, "20-jetty-nyon") })
+            {
+                var jetty = world.Buildings.First(b => b.Kind == BuildingKind.Jetty && b.Island == island).Tile;
+                client.Focus(jetty.Center());
+                client.Hud.Select(jetty);
+                yield return Capture(client, folder, name);
+            }
+
             client.Hud.Select(null);
 
             // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).
-            var world = session.World!;
             var edge = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
                 .Where(world.CanLiftFog).OrderBy(h => h.DistanceTo(Hex.Origin)).ThenBy(h => h).First();
             client.Focus(edge.Center());

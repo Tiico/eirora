@@ -27,7 +27,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void ASawmillWithoutTimberAboveTheReserveSaysItWaitsForTimberAndHowMuchIsMissing()
         {
-            var world = Edited(Morning(), "stock Home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -142,7 +142,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void TheReportPointsToTheIslandsBottleneckAndWhereAWorkdayEasesIt()
         {
-            var world = Edited(Morning(), "stock Home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
             var root = new VisualElement();
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
@@ -164,7 +164,7 @@ namespace Eirora.Client.Tests
         public void ABottleneckOfAFullStoreSaysWhetherTheBuildingStandsStillOrGoesSlower()
         {
             // The fishing hut's quarter hour of fish fits only in part, so it goes slower rather than standing still.
-            var world = Edited(Morning(), "stock Home Fish 149800000");
+            var world = Edited(Morning(), "stock home Fish 149800000");
             var root = new VisualElement();
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());

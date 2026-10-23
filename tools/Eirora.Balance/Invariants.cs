@@ -48,7 +48,7 @@ internal sealed class Invariants
             }
         }
 
-        foreach (var island in Enum.GetValues<IslandId>())
+        foreach (var island in world.Islands)
         {
             long capacity = Capacity(world, island);
             foreach (var resource in Enum.GetValues<Resource>())
@@ -84,9 +84,9 @@ internal sealed class Invariants
     /// What a store on an island can hold; a world starts with a storehouse on the home island, so its starting stock
     /// always fits.
     /// </summary>
-    private static long Capacity(World world, IslandId island) =>
+    private static long Capacity(World world, string island) =>
         StoragePerDepot * world.Buildings.Count(b => b.Island == island
-            && (b.Kind == BuildingKind.Storehouse || (b.Kind == BuildingKind.Jetty && island != IslandId.Home)));
+            && (b.Kind == BuildingKind.Storehouse || (b.Kind == BuildingKind.Jetty && island != world.HomeIsland)));
 
     private static int[] Forces(World world) => [.. s_forces.Select(world.Available)];
 

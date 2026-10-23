@@ -108,10 +108,10 @@ public sealed class FastForwardTests
             [typeof(Settlement)] =
             [
                 // Recorded.
-                "_stores", "_buildings", "_projects", "_felled", "_expeditionLeft", "<Villagers>k__BackingField", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
+                "_stores", "_islands", "_buildings", "_projects", "_felled", "_expeditionLeft", "<Villagers>k__BackingField", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
 
                 // Fixed for the world.
-                "_map", "_homeIsland", "_founding", "_content",
+                "_map", "_home", "_founding", "_content",
 
                 // Derived, or scratch for a single call.
                 "_buildingAt", "_capacity", "_depotDistances", "_woods", "_regrowing", "_before", "_after",
@@ -142,7 +142,7 @@ public sealed class FastForwardTests
 
         Assert.True(world.Buildings.Count >= 30, $"The year scene's world has only {world.Buildings.Count} buildings.");
         Assert.Equal((Phase.Active, TestClock.Stockholm), (world.Phase, world.Now.ZoneId));
-        Assert.True(world.SeaRouteOpen || world.ExpeditionHoursLeft > 0, "The year scene's world has neither the sea route nor an expedition at sea.");
+        Assert.True(world.SeaRoutes.Count > 0 || world.ExpeditionHoursLeft > 0, "The year scene's world has neither the sea route nor an expedition at sea.");
     }
 
     [Fact]
@@ -200,10 +200,10 @@ public sealed class FastForwardTests
     /// </summary>
     private static World Saturated(World world, Random random)
     {
-        long Capacity(IslandId island) => Quantity.Units(world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
+        long Capacity(string island) => Quantity.Units(world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
         {
             BuildingKind.Storehouse => 150,
-            BuildingKind.Jetty when island != IslandId.Home => 150,
+            BuildingKind.Jetty when island != world.HomeIsland => 150,
             _ => 0,
         }));
 
@@ -213,7 +213,7 @@ public sealed class FastForwardTests
             string[] parts = line.Split(' ');
             if (parts[0] == "stock" && (voyage > 0 || random.Next(10) < 8))
             {
-                return $"stock {parts[1]} {parts[2]} {Capacity(Enum.Parse<IslandId>(parts[1]))}";
+                return $"stock {parts[1]} {parts[2]} {Capacity(parts[1])}";
             }
 
             return parts[0] == "settlement" && voyage > 0 ? $"settlement {parts[1]} {parts[2]} {voyage}" : line;

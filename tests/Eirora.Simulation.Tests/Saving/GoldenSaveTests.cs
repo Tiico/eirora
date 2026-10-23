@@ -89,15 +89,16 @@ public sealed class GoldenSaveTests
         Assert.Equal(save.World.Fingerprint(), again.Replay().Fingerprint());
     }
 
-    /// <summary>Makes the golden save of the current version from a fixed scenario.</summary>
+    /// <summary>
+    /// Makes the golden save of the current version from a fixed scenario: from rules 7 on, a world built out on the
+    /// archipelago with a store on each of three islands, two sea routes home with goods waiting, and paused buildings
+    /// (TASK-044, TASK-045).
+    /// </summary>
     private static void Write(string name)
     {
-        var scenario = Scenario.Generate(20261018, length: 150);
-        var save = Save.Begin(scenario.Install, scenario.Schedule);
-        foreach (var input in scenario.Inputs)
-        {
-            SaveTests.Apply(input, save);
-        }
+        var save = BuiltOutWorld.GenerateSave(7);
+        Assert.Equal(2, save.World.SeaRoutes.Count);
+        Assert.Contains(save.World.Buildings, b => b.Paused);
 
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
