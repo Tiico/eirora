@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
@@ -53,6 +54,34 @@ namespace Eirora.Client.App
                     {
                         refused.Add($"Day {day}: {Describe(command)} was refused ({result.Rejection}).");
                     }
+                }
+            }
+
+            return refused;
+        }
+
+        /// <summary>
+        /// The player's say over the work, for the tour's shots of the queue and a paused building (TASK-044): a field on
+        /// the empty farmland and a cottage on the nearest free meadow, the cottage moved first, and the start fishing
+        /// hut paused. Returns the commands the world refused, which should be none.
+        /// </summary>
+        public static IReadOnlyList<string> OrderTheWork(GameSession session)
+        {
+            var world = session.World!;
+            var meadow = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
+                .Where(h => h != EmptyFarmland && world.CheckBuild(BuildingKind.Cottage, h) == Rejection.None)
+                .OrderBy(h => h.DistanceTo(Hex.Origin)).ThenBy(h => h).First();
+            var refused = new List<string>();
+            foreach (var command in new GameCommand[]
+            {
+                new Build(BuildingKind.Field, EmptyFarmland), new Build(BuildingKind.Cottage, meadow),
+                new QueueFirst(ProjectKind.Build, meadow), new PauseBuilding(FishingHut),
+            })
+            {
+                var result = session.Apply(command);
+                if (!result.Accepted)
+                {
+                    refused.Add($"{Describe(command)} was refused ({result.Rejection}).");
                 }
             }
 

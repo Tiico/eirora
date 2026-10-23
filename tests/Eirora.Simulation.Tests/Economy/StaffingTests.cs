@@ -10,7 +10,7 @@ using static Eirora.Simulation.Tests.Tiles;
 namespace Eirora.Simulation.Tests.Economy;
 
 /// <summary>
-/// The player's say over the villagers' work (economy-v1.md, section 4; TASK-044, CIV-02): pausing a building, the
+/// The player's say over the villagers' work (economy-v1.md, section 4.1; TASK-044, CIV-02): pausing a building, the
 /// staffing order and the order of the building queue, all free of forces (D-23) and stopped by the rest lock (INV-T3).
 /// </summary>
 /// <remarks>

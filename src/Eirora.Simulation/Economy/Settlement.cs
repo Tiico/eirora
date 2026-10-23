@@ -81,7 +81,7 @@ namespace Eirora.Simulation.Economy
 
         public int SurveysDone { get; private set; }
 
-        /// <summary>The buildings in the staffing order (economy-v1.md, section 4), which is also the order they work in.</summary>
+        /// <summary>The buildings in the staffing order (economy-v1.md, section 4.1), which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _buildings;
 
         /// <summary>The buildings that need staff, in the order villagers are given to them when they do not suffice for all.</summary>
@@ -373,7 +373,7 @@ namespace Eirora.Simulation.Economy
 
         public void SendExpedition() => _expeditionLeft = PrototypeIsland.ExpeditionHours * 1000L;
 
-        /// <summary>Pauses or resumes a building and gives the villagers out again (economy-v1.md, section 4).</summary>
+        /// <summary>Pauses or resumes a building and gives the villagers out again (economy-v1.md, section 4.1).</summary>
         public void SetPaused(Building building, bool paused)
         {
             building.Paused = paused;
@@ -655,7 +655,7 @@ namespace Eirora.Simulation.Economy
 
             // Distance, level and a workday scale how fast a field or a sheep farm grows, as they scale every other
             // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown. Only a
-            // staffed one is tended and grows, so that pausing it costs what it makes (section 4; TASK-044).
+            // staffed one is tended and grows, so that pausing it costs what it makes (section 4.1; TASK-044).
             foreach (var building in _buildings)
             {
                 if (building.Staffed && _content.For(building.Kind).Recipe is Recipe recipe && recipe.IsSlowProcess)
@@ -1028,7 +1028,7 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Gives the villagers to the buildings in the staffing order (economy-v1.md, section 4): each building that is
+        /// Gives the villagers to the buildings in the staffing order (economy-v1.md, section 4.1): each building that is
         /// not paused is staffed if enough villagers are left for it, and is otherwise passed over for the next one.
         /// The villagers left over build.
         /// </summary>

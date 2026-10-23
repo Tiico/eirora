@@ -69,7 +69,7 @@ namespace Eirora.Simulation
         /// <summary>The buildings in the staffing order, which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _settlement.Buildings;
 
-        /// <summary>The buildings that need staff, in the order villagers are given to them (economy-v1.md, section 4).</summary>
+        /// <summary>The buildings that need staff, in the order villagers are given to them (economy-v1.md, section 4.1).</summary>
         public IReadOnlyList<Building> StaffingOrder => _settlement.StaffingOrder;
 
         /// <summary>The building queue, first in line first.</summary>
