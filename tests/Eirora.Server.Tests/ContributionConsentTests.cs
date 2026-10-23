@@ -1,7 +1,10 @@
 using System.Net;
 using Eirora.Contracts;
 using Eirora.Server.CloudSaves;
+using Eirora.Server.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Eirora.Server.Tests;
 
@@ -80,6 +83,26 @@ public sealed class ContributionConsentTests(ServerFixture fixture)
         Assert.Equal(consent.AnsweredAt, (await api.GetConsentAsync(tokens.Access)).Consent!.AnsweredAt);
         Assert.Equal((HttpStatusCode.OK, 2L, 1), (status, version!.Version, version.KeyEpoch));
         Assert.Equal(upload.Contributions, (await api.GetCloudSaveAsync(tokens.Access)).Save!.Contributions);
+    }
+
+    // Linux clocks tick in 100 ns, PostgreSQL keeps microseconds: the answer must say the time the account keeps, so that
+    // what the player is shown agreeing to is what the account can show later.
+    [Fact]
+    public async Task TheAnswerSaysTheTimeTheAccountKeepsToTheMicrosecond()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
+        var clock = new FixedTime(new DateTimeOffset(2026, 10, 23, 13, 57, 41, TimeSpan.Zero).AddTicks(2_389_917));
+        await using var scope = _server.Services.CreateAsyncScope();
+        var saves = new CloudSaveService(scope.ServiceProvider.GetRequiredService<EiroraDbContext>(), clock, NullLogger<CloudSaveService>.Instance);
+
+        var answered = await saves.AnswerConsentAsync(accountId, Yes, Cancel);
+        var kept = await saves.GetConsentAsync(accountId, Cancel);
+
+        Assert.Equal(clock.GetUtcNow().AddTicks(-7), answered!.AnsweredAt);
+        Assert.Equal(answered.AnsweredAt, kept.AnsweredAt);
+        Assert.Equal(answered.AnsweredAt, (await api.GetConsentAsync(tokens.Access)).Consent!.AnsweredAt);
     }
 
     // Acceptance criterion 3.
@@ -248,4 +271,9 @@ public sealed class ContributionConsentTests(ServerFixture fixture)
     }
 
     private static CloudSaveUpload WorldOnly(long baseVersion) => new(baseVersion, 0, TestSaves.World(), null);
+
+    private sealed class FixedTime(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
 }

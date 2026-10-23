@@ -49,7 +49,7 @@ public sealed partial class CloudSaveService(EiroraDbContext db, TimeProvider ti
             return new UploadResult(UploadStatus.Conflict, new CloudSaveVersion(save?.Version ?? 0, save?.KeyEpoch ?? 0));
         }
 
-        var now = time.GetUtcNow();
+        var now = Now();
         if (save is null)
         {
             save = new StoredCloudSave { AccountId = accountId, World = upload.World! };
@@ -119,7 +119,7 @@ public sealed partial class CloudSaveService(EiroraDbContext db, TimeProvider ti
             AccountId = accountId,
             Given = answer.Given,
             Version = answer.Version,
-            AnsweredAt = time.GetUtcNow(),
+            AnsweredAt = Now(),
         };
         db.ContributionConsents.Add(stored);
         await db.SaveChangesAsync(cancellationToken);
@@ -144,6 +144,16 @@ public sealed partial class CloudSaveService(EiroraDbContext db, TimeProvider ti
     {
         var lockedBefore = time.GetUtcNow() - LockedRetention;
         await db.LockedContributions.Where(l => l.LockedAt <= lockedBefore).ExecuteDeleteAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The time as the database keeps it: PostgreSQL holds microseconds, and a clock that ticks in 100 ns (as on Linux)
+    /// would otherwise answer with a time the account does not keep.
+    /// </summary>
+    private DateTimeOffset Now()
+    {
+        var now = time.GetUtcNow();
+        return now.AddTicks(-(now.Ticks % TimeSpan.TicksPerMicrosecond));
     }
 
     private Task<StoredContributionConsent?> LatestConsentAsync(Guid accountId, CancellationToken cancellationToken) =>
