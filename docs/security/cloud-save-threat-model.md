@@ -8,9 +8,9 @@ Inloggningen och kontot har en egen hotmodell, [sign-in-threat-model.md](./sign-
 
 ## Det som skyddas
 
-- **Bidragsdelen:** egenvården per spelardygn, de använda idempotensnycklarna och journalerna (D-100).
+- **Bidragsdelen:** egenvården per dag, de använda idempotensnycklarna och journalerna (D-100).
   Den är personuppgifter av särskild kategori, och servern ser den bara som chiffertext.
-- **Världsdelen:** kartan och senaste snapshoten utom det som hålls per spelardygn.
+- **Världsdelen:** kartan och senaste snapshoten utom det som hålls per dag.
   Den hör till ett känt konto men avslöjar inget om egenvården.
 - **Spelarens värld:** att bara spelarens egna enheter ersätter molnsparningen, och att två av dem inte skriver över varandras spel (ACC-03).
 - **Servern:** att en uppladdning inte kan fälla den eller fylla dess minne.
@@ -59,7 +59,7 @@ sequenceDiagram
 |---|---|---|---|
 | Behörighet (IDOR) | En spelare läser eller ersätter någon annans molnsparning | Ingen route tar ett konto-id; molnsparningen är alltid tokenens `sub`, som i resten av `/api/account` | `AnotherPlayersTokenOnlyEverReachesThatPlayersOwnCloudSave`, `WithoutAValidTokenTheCloudSaveIsNotReached` |
 | Informationsläckage | Databasen läcker, eller en administratör läser bidragen | Bidragsdelen krypteras på enheten och lagras som exakt de byte som laddades upp; servern har ingen nyckel och dekrypterar aldrig | `TheContributionPartIsStoredAsTheBytesThatWereUploaded` |
-| Informationsläckage | En klient lägger egenvård per spelardygn i världsdelen | Världsdelen måste laddas som en världsdel: bara kartan och snapshoten, och en snapshot som skrivs tillbaka till exakt samma text, så att ingen extra rad följer med | `AnUploadWhoseWorldPartDoesNotLoadIsRejectedAndNothingIsStored` |
+| Informationsläckage | En klient lägger egenvård per dag i världsdelen | Världsdelen måste laddas som en världsdel: bara kartan och snapshoten, och en snapshot som skrivs tillbaka till exakt samma text, så att ingen extra rad följer med | `AnUploadWhoseWorldPartDoesNotLoadIsRejectedAndNothingIsStored` |
 | Informationsläckage | Molnsparningens innehåll hamnar i loggar | Uppladdningar loggas inte; bara att en bidragsdel låstes, utan värden | `LogsNeverContainTokensNoncesOrIdentifiers` |
 | Manipulering | Två enheter som spelat offline skriver över varandras spel | Uppladdningen anger vilken version den bygger på, kontots rad är låst medan versionen jämförs och skrivs, och en annan bas ger 409 med den nuvarande versionen, så att klienten slår ihop journalerna (D-99) | `AnUploadBasedOnAnotherVersionConflictsAndSaysWhichIsCurrent`, `OfUploadsAtOnceFromTheSameVersionOnlyOneIsStored` |
 | Manipulering | En ny telefon skriver över kontots molnsparning med en ny värld vid första inloggningen | Basversion 0 godtas bara när kontot saknar molnsparning | `AnUploadBasedOnAnotherVersionConflictsAndSaysWhichIsCurrent` (0) |
@@ -93,7 +93,7 @@ sequenceDiagram
 - **En stulen access-token kan ersätta molnsparningen** inom sina 15 minuter, utan färsk inloggning, eftersom uppladdningar sker i bakgrunden.
   Tjuven kan inte läsa bidragen och inte tillverka en bidragsdel som går att dekryptera, men kan byta ut världsdelen.
   Telefonen har kvar sin värld, och slår aldrig ihop en molnsparning vars bidragsdel inte öppnas med nyckeln: spelaren väljer, och den utbytta delen låses under en ny nyckelepok (D-102).
-- **Världsdelen är inte krypterad.** Den visar kartan, byn, krafternas saldon, dimman och klockan för ett känt konto, men inget per spelardygn (D-100).
+- **Världsdelen är inte krypterad.** Den visar kartan, byn, krafternas saldon, dimman och klockan för ett känt konto, men inget per dag (D-100).
 - **Metadata syns för servern:** när molnsparningen senast laddades upp, hur många gånger och hur stor bidragsdelen är, och därmed ungefär hur mycket spelaren spelar.
 - **En app som är nyare än servern** kan inte ladda upp en världsdel som servern inte kan läsa (400) förrän servern uppdaterats; servern driftsätts därför före appen.
 - **Kestrels gräns för hela begäran** prövas inte av integrationstesterna, eftersom testservern inte begränsar storleken; gränserna per del gör det.

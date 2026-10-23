@@ -37,9 +37,9 @@
       <p>Om du tillåter det läser Eirora tre slags uppgifter från Health Connect: antal steg, träningspass och hur länge du sover.
       Eirora läser inget annat, till exempel ingen plats, ingen puls och ingen sömnkvalitet.</p>
       <p>Uppgifterna läses när du öppnar spelet, aldrig i bakgrunden, och används bara för att räkna ut spelets krafter.
-      Spelet sparar summor per spelardygn på telefonen, aldrig de enskilda posterna, och skriver aldrig något till Health Connect.</p>
+      Spelet sparar summor per dag på telefonen, aldrig de enskilda posterna, och skriver aldrig något till Health Connect.</p>
       <p>Hälsodata skickas aldrig till oss i en form som vi kan läsa.
-      Har du ett konto följer summorna per spelardygn med molnsparningen, men krypterade på telefonen med en nyckel som bara du har (se <a href="#sv-molnsparning">Molnsparning</a>).
+      Har du ett konto följer summorna per dag med molnsparningen, men krypterade på telefonen med en nyckel som bara du har (se <a href="#sv-molnsparning">Molnsparning</a>).
       Telefonens egen säkerhetskopia kan ta med summorna till ditt Google- eller iCloud-konto, se <a href="#sv-din-varld">Din värld</a>.
       Hälsodata används aldrig för reklam och säljs aldrig.
       Eiroras användning följer <a href="https://support.google.com/googleplay/android-developer/answer/12991134">Google Plays regler för hälsobehörigheter</a>.</p>
@@ -47,9 +47,9 @@
       Spelet fungerar lika bra om du i stället skriver in dina vanor själv.</p>
 
       <h2 id="sv-din-varld">Din värld</h2>
-      <p>Din ö och dina summor per spelardygn sparas på telefonen, även om du har ett konto.
+      <p>Din ö och dina summor per dag sparas på telefonen, även om du har ett konto.
       Med ett konto finns också en kopia på servern, se <a href="#sv-molnsparning">Molnsparning</a>.
-      Telefonen kan säkerhetskopiera appens data, sparningen och summorna per spelardygn med, på samma sätt som för andra appar, så att världen kan följa med till en ny telefon: Android till ditt eget Google-konto och iPhone till din iCloud-säkerhetskopia.
+      Telefonen kan säkerhetskopiera appens data, sparningen och summorna per dag med, på samma sätt som för andra appar, så att världen kan följa med till en ny telefon: Android till ditt eget Google-konto och iPhone till din iCloud-säkerhetskopia.
       Den säkerhetskopian hanteras av Google eller Apple och syns inte för oss.
       Den är end-to-end-krypterad bara om telefonen har skärmlås på Android, och bara om Avancerat dataskydd för iCloud är påslaget på iPhone; annars kan Google eller Apple läsa den.</p>
 
@@ -83,9 +83,9 @@
       <p>Molnsparningen har två delar:</p>
       <ul>
         <li><strong>Världsdelen</strong> är kartan och ön som den ser ut nu, med byggnader, krafternas saldon och spelets klocka.
-        Servern kan läsa den, men den innehåller inget per spelardygn som går att räkna tillbaka till din egenvård.
+        Servern kan läsa den, men den innehåller inget per dag som går att räkna tillbaka till din egenvård.
         Saldona växer med din egenvård, och varje kraft kommer från en viss vana, så den som jämför två sparningar kan se ungefär hur mycket av varje vana som gett kraft däremellan.</li>
-        <li><strong>Bidragsdelen</strong> är det som visar din egenvård: summorna per spelardygn, vad varje spelardygn gav i spelet och spelets journal över det ön fått.
+        <li><strong>Bidragsdelen</strong> är det som visar din egenvård: summorna per dag, vad varje dag gav i spelet och spelets journal över det ön fått.
         Den krypteras på telefonen med bidragsnyckeln innan den skickas, och servern lagrar bara krypterade byte som den aldrig kan läsa.</li>
       </ul>
       <p>Servern sparar också molnsparningens versionsnummer, vilken generation av bidragsnyckeln som används och när molnsparningen senast sparades.

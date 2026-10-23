@@ -84,7 +84,7 @@ Varje resurs som behövs för basbehov kan produceras utan krafter, på minst tv
 ## 3. Bybor och världens beständighet
 
 **INV-V1 Inget går förlorat med tiden.**
-När tiden går minskar aldrig antalet bybor, byggnader, byggnadsnivåer, bosättningar, utforskade brickor, avslutad forskning, epokframsteg eller historik (D-08, D-17).
+När tiden går minskar aldrig antalet bybor, byggnader, byggnadsnivåer, bosättningar, utforskade rutor, avslutad forskning, epokframsteg eller historik (D-08, D-17).
 Bara ett uttryckligt rivningskommando från spelaren kan minska något av dem (D-38).
 *Test:* för varje sådant attribut `M` gäller `M(advance(S, Δt)) ≥ M(S)`.
 
@@ -101,7 +101,7 @@ Hur länge spelaren än är borta utan egenvård och kommandon är världen efte
 *Test:* sammansatt test av INV-R1, INV-R3 och INV-V1 för `Δt` upp till ett år med noll bidrag (AC-02).
 Från TASK-049 också i utbyggda världar med byggkö, expedition till sjöss, sjöväg, fulla lager och långsamma processer, med och utan egenvård och med sena bidrag, tillsammans med INV-T5 och INV-D4.
 
-Framspolningen hoppar över kvartar där bara långsamma processer rör sig: viloperioden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
+Framspolningen hoppar över kvartar där bara långsamma processer rör sig: vilotiden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
 Det håller bara om inget tillstånd som kvartarna driver kan börja ändras utan att något av det som jämförs ändras först.
 Den som lägger till sådant tillstånd, till exempel skepp med last på väg, reservationer, köer per bosättning eller vägnät (TASK-045, TASK-046, TASK-050, TASK-051), tar med det i `Settlement.RecordState` och låter `BuiltOutWorld` nå det.
 Testet `FastForwardTests.EveryFieldThatATickCanChangeIsCompared` underkänner ett nytt fält som varken jämförs eller är fast eller härlett, och `FastForwardGivesTheSameWorldAsEveryQuarterHour` jämför med att läsa varje kvart.
@@ -113,17 +113,17 @@ Varje krafts saldo är ett heltal ≥ 0.
 *Test:* kontrolleras efter varje steg i varje genererad sekvens, och schematest över saldots typ.
 
 **INV-F2 Endast egenvård skapar krafter, och bara sin egen.**
-Steg ger bara Utforskning, träningspass bara Byggkraft och sömnlängd bara Gryningskraft (D-15).
+Steg ger bara Utforskning, träningspass bara Styrka och sömnlängd bara Ork (D-15).
 Inget kommando växlar krafter mot varandra eller mot resurser, och ingenting kan köpas för pengar (MON-04).
 *Test:* den enda händelsetyp som ökar ett kraftsaldo är omvandling av ett bidrag av motsvarande vana.
 
 **INV-F3 Mer egenvård hjälper alltid, men allt mindre.**
-För omvandlingen `f` av en vanas bidrag under ett spelardygn gäller att `f` är växande, konkav och begränsad (HLT-05).
+För omvandlingen `f` av en vanas bidrag under en dag gäller att `f` är växande, konkav och begränsad (HLT-05).
 Konkaviteten gäller den exakta kurvan före avrundning till hela krafter, se [krafternas regler](./forces.md).
 *Test:* `f(x + d) ≥ f(x)`, `f(x + 2d) − f(x + d) ≤ f(x + d) − f(x)` och `f(x) ≤ taket` för alla `x, d ≥ 0`.
 
-**INV-F4 Gryningskraften har ett golv.**
-Ingen inloggad sömnlängd ger mindre Gryningskraft än saknad data, som ger neutral grundnivå (D-16, HLT-06).
+**INV-F4 Orken har ett golv.**
+Ingen inloggad sömnlängd ger mindre Ork än saknad data, som ger neutral grundnivå (D-16, HLT-06).
 *Test:* `f_sömn(x) ≥ f_sömn(saknas)` för alla `x ≥ 0`.
 
 **INV-F5 Spendering är exakt.**
@@ -142,7 +142,7 @@ Klassningen påverkar bara gruppbidrag, se INV-G3.
 
 **INV-F8 Uppdelningen spelar ingen roll.**
 Samma bidrag ger samma kraftsaldo oavsett i hur många delar och i vilken ordning de krediteras, så länge inga kommandon kommer emellan.
-*Test:* för varje uppdelning av ett spelardygns bidrag i delmängder ger kreditering i följd samma saldo som kreditering i ett steg, även när sparandets tak nås.
+*Test:* för varje uppdelning av en dags bidrag i delmängder ger kreditering i följd samma saldo som kreditering i ett steg, även när sparandets tak nås.
 
 ## 5. Bidrag
 
@@ -166,7 +166,7 @@ Har kraften spenderats sedan bidraget krediterades tar den aldrig mer än bidrag
 Simuleringstillstånd, snapshots och händelser innehåller bara aggregerade bidrag, aldrig enskilda hälsoposter (HLT-10).
 *Test:* schematest som underkänner rådatatyper i allt som serialiseras.
 
-## 6. Tid, viloperiod och långsamma processer
+## 6. Tid, vilotid och långsamma processer
 
 **INV-T1 Fasen bestäms av schema och tid, aldrig av sömn.**
 `phase(S)` är en funktion av gällande viloschema, simuleringstid och tidszon, inget annat.
@@ -175,8 +175,8 @@ Upplåsning kräver aldrig bevisad sömn (RST-10).
 
 **INV-T2 Tillåtna övergångar.**
 Fasen går bara `ACTIVE → RESTING → DAWN → ACTIVE`.
-`DAWN` är ögonblicket då vilan slutar och nästa spelardygn börjar; simuleringen rapporterar det som en händelse ([ADR-0005](../adr/0005-time-arrives-as-readings.md)).
-*Test:* kontrolleras över varje genererad tidslinje: skymning och gryning växlar, och varje gryning ökar spelardygnet med ett.
+`DAWN` är ögonblicket då vilan slutar och nästa dag börjar; simuleringen rapporterar det som en händelse ([ADR-0005](../adr/0005-time-arrives-as-readings.md)).
+*Test:* kontrolleras över varje genererad tidslinje: skymning och gryning växlar, och varje gryning ökar dagen med ett.
 
 **INV-T3 Vilolåset.**
 Under `RESTING` nekas varje spelpåverkande kommando enligt INV-D7.
@@ -185,24 +185,24 @@ Administrativa kommandon (konto, integritet, tillgänglighet, hjälp, radering, 
 
 **INV-T4 Byborna arbetar inte under vilan.**
 Under `RESTING` sker ingen produktion, konsumtion eller transport som drivs av bybor (D-22, RST-04).
-*Test:* under `advance` över en viloperiod kommer alla förändringar från långsamma processer eller bidragsimport.
+*Test:* under `advance` över en vilotid kommer alla förändringar från långsamma processer eller bidragsimport.
 
 **INV-T5 Långsamma processer bryr sig inte om vilan.**
 En långsam process gör lika stora framsteg under `Δt` oavsett fas (CIV-06).
 *Test:* framsteg över samma `Δt` är identiskt för två tillstånd som bara skiljer sig i viloschema.
 
-**INV-T6 Viloperiodens längd.**
+**INV-T6 Vilotidens längd.**
 Ett viloschema har alltid en längd om 6–10 timmar i lokal tid (D-22, D-37).
 Vid sommartidsövergång kan den verkliga längden därför bli 5–11 timmar.
 *Test:* varje kommando som sätter en längd utanför intervallet nekas, och över genererade sommartidsövergångar slutar vilan alltid på schemats lokala klockslag.
 
 **INV-T7 Schemaändringar väntar 24 timmar.**
-En ändring av viloschemat påverkar inte fasen förrän tidigast 24 timmar senare, och en pågående viloperiod kan aldrig kortas (RST-09, AC-05).
+En ändring av viloschemat påverkar inte fasen förrän tidigast 24 timmar senare, och en pågående vilotid kan aldrig kortas (RST-09, AC-05).
 *Test:* efter en ändring vid tid `t` är fasen för varje `t' < t + 24 h` densamma som med det gamla schemat.
 
 **INV-T8 Tidszonsbyte rör inte pågående vila.**
-Ett byte av tidszon eller en sommartidsövergång ändrar varken start eller slut för en viloperiod som redan pågår (AC-05).
-*Test:* fasen över en pågående viloperiod är identisk med och utan tidszonsbyte.
+Ett byte av tidszon eller en sommartidsövergång ändrar varken start eller slut för en vilotid som redan pågår (AC-05).
+*Test:* fasen över en pågående vilotid är identisk med och utan tidszonsbyte.
 
 **INV-T9 Krafter från natten finns vid gryningen.**
 Bidrag som importeras under vilan krediteras senast vid `DAWN` (RST-05).
@@ -222,12 +222,12 @@ En medlems utfall är växande i de andra medlemmarnas bidrag.
 
 **INV-G3 Tak för egenrapporterade gruppbidrag.**
 Det dagliga taket för egenrapporterade gruppbidrag är lägre än för verifierade (D-18, SOC-07).
-*Test:* för varje vana och spelardygn ger egenrapporterade gruppbidrag aldrig mer än sitt tak, och taket är strikt lägre än det verifierade.
+*Test:* för varje vana och dag ger egenrapporterade gruppbidrag aldrig mer än sitt tak, och taket är strikt lägre än det verifierade.
 
 ## Beslut
 
 Produktägarens svar på de öppna frågorna i v0.1:
 
-- **D-37:** viloperiodens 6–10 timmar räknas i lokal tid (INV-T6).
+- **D-37:** vilotidens 6–10 timmar räknas i lokal tid (INV-T6).
 - **D-38:** rivning är ett uttryckligt kommando och det enda undantaget från INV-V1.
 - **D-39:** ouppfyllda basbehov stoppar bara tillväxt (INV-V3); siffrorna sätts i TASK-004.

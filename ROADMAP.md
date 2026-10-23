@@ -145,7 +145,7 @@ Minst två strategier fungerar och ingen dominerar.
 
 ### M5 — Krafter, expeditioner, forskning och första epoken
 
-1. Fullständiga regler för Utforskning, Byggkraft och Gryningskraft med tak och avtagande avkastning (O-01).
+1. Fullständiga regler för Utforskning, Styrka och Ork med tak och avtagande avkastning (O-01).
 2. Expeditioner som drivs av Utforskning: rutter, fynd, nya öar.
 3. Forskning med minst tre inriktningar.
 4. Guidad tur och löpande introduktion med tutorialelement.
@@ -172,7 +172,7 @@ Raderingen är verifierad.
 ### M7 — Vilolås och dygnscykel
 
 1. Tillståndsmaskinen `ACTIVE → RESTING → DAWN → ACTIVE` i simuleringen.
-2. Viloperiod 6–10 h, 24 timmars fördröjning vid ändring, IANA-tidszoner och sommartid.
+2. Vilotid 6–10 h, 24 timmars fördröjning vid ändring, IANA-tidszoner och sommartid.
 3. Bybornas arbete pausar och långsamma processer fortgår.
 4. Servern nekar gruppåtgärder under vila.
    Interaktioner som berör en vilande medlem köas.
@@ -377,7 +377,7 @@ Validatorn kommer före generatorn, så att generatorn byggs mot ett mätbart m�
 ### Uppgifter för M4
 
 M4 bygger vidare på det som redan finns i `src/Eirora.Simulation/Economy/`.
-Byggplatser på varje landbricka kom med [TASK-037](https://github.com/Tiico/eirora/issues/79), och avstånd, dagsverke och nivå 2 skalar alla byggnader sedan [TASK-038](https://github.com/Tiico/eirora/issues/88); uppgraderingar, vägar per byggnad, ett fast minimilager, sjövägen till Nyön och långsamma processer finns också.
+Byggplatser på varje landruta kom med [TASK-037](https://github.com/Tiico/eirora/issues/79), och avstånd, extraarbete och nivå 2 skalar alla byggnader sedan [TASK-038](https://github.com/Tiico/eirora/issues/88); uppgraderingar, vägar per byggnad, ett fast minimilager, sjövägen till Nyön och långsamma processer finns också.
 Uppgifterna nedan beskriver det som återstår.
 Produktägaren valde Anno-bredd med gradvis upplåsning, en bosättning per ö och bärare på land (D-105–D-107, TASK-039–041).
 Ekonomi v2 (TASK-058) räknar fram den ekonomin innan bärarna och innehållet byggs.

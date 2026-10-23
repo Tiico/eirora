@@ -155,7 +155,7 @@ Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.s
 Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
 En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
 En journalfil från prototypen (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
-Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på brickor i stället för namngivna platser (TASK-037, D-104).
+Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på rutor i stället för namngivna platser (TASK-037, D-104).
 En sådan journal skrivs aldrig över: klienten säger att världen inte kan spelas vidare i stället för att visa en annan värld, och lägger journalen undan först när spelaren börjar en ny.
 
 ### Migrationer och gyllene sparningar
@@ -254,7 +254,7 @@ dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-
 ```
 
 Seedverktyget (TASK-034) skriver en fristående HTML-sida som öppnas i webbläsaren.
-För en seed visar den kartan med startön, expeditionernas öar, hamnlägen, krönet, innerhavet och farlederna, och validatorns rapport.
+För en seed visar den kartan med startön, expeditionernas öar, hamnlägen, toppen, innerhavet och farlederna, och validatorns rapport.
 För ett intervall visar den dessutom per regel de kartor som ligger närmast gränsen, så att generatorn kan förbättras där den är svagast:
 
 ```bash
@@ -370,7 +370,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 7. Koppla den andra leverantören efter att ha bekräftat med den första, logga ut och logga in med den; samma konto nås.
    Ta sedan bort en av inloggningarna efter att ha bekräftat med den som blir kvar.
 8. Radera kontot från inställningarna: ett konto med Apple-inloggning bekräftas med Apple, och appen visas inte längre under Apple-ID → Logga in med Apple.
-9. Allt ovan fungerar under viloperioden (RST-07), och i flygplansläge säger appen att servern inte går att nå utan att spelet påverkas.
+9. Allt ovan fungerar under vilotiden (RST-07), och i flygplansläge säger appen att servern inte går att nå utan att spelet påverkas.
 10. Raderingssidan på `https://<värd>/account/delete` raderar ett konto med Google och med Apple från en dators webbläsare.
 
 ## CI

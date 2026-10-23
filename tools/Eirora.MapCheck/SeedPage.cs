@@ -163,9 +163,9 @@ internal static class SeedPage
     private static string Legend() =>
         "<ul class=\"legend\">"
         + Swatch("#2F7FA3", "djupt hav") + Swatch("#6CC4C0", "grunt hav") + Swatch("#F0D9A8", "strand") + Swatch("#9BCB7A", "gräsmark")
-        + Swatch("#3F7F55", "skog") + Swatch("#D9C878", "åker") + Swatch("#B5D98E", "bete") + Swatch("#A3A0A8", "berg")
+        + Swatch("#3F7F55", "skog") + Swatch("#D9C878", "åker") + Swatch("#B5D98E", "betesmark") + Swatch("#A3A0A8", "berg")
         + "<li><span class=\"key\" style=\"background:#3D93B6\"></span>innerhav</li><li><span class=\"key route-key\"></span>farled till expeditionernas öar</li>"
-        + "<li><span class=\"key harbour-key\"></span>hamnläge</li><li><span class=\"key crest-key\"></span>krön</li><li>Mörkare grön eller ljusare turkos: rik mark eller rikt fiskevatten</li></ul>\n";
+        + "<li><span class=\"key harbour-key\"></span>hamnläge</li><li><span class=\"key crest-key\"></span>topp</li><li>Mörkare grön eller ljusare turkos: rik mark eller rikt fiskevatten</li></ul>\n";
 
     private static string Swatch(string colour, string name) => $"<li><span class=\"key\" style=\"background:{colour}\"></span>{name}</li>";
 

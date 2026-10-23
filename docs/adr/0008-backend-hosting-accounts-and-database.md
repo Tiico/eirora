@@ -6,7 +6,7 @@
 Backend är en enda ASP.NET Core-container och en PostgreSQL 18-databas, beskrivna i en Docker Compose-fil som är likadan i alla miljöer.
 Prototyp och beta körs på produktägarens egen Ubuntu-server bakom Traefik, med krypterad backup till objektlagring hos ett EU-bolag; före den publika butiksreleasen flyttas samma container och databas till Azure Container Apps och Azure Database for PostgreSQL i Sweden Central.
 Konton är egna, i `Eirora.Server` med OpenIddict, och skapas först när spelaren loggar in med Sign in with Apple eller Google; dessförinnan finns ingenting om spelaren på servern, och inga lösenord eller e-postadresser lagras någonsin.
-Bidrag per spelardygn ligger i en egen, end-to-end-krypterad del av molnsparningen med en bidragsnyckel som bara spelarens enheter har (D-57); förloras nyckeln går bidragshistoriken förlorad, aldrig världen.
+Bidrag per dag ligger i en egen, end-to-end-krypterad del av molnsparningen med en bidragsnyckel som bara spelarens enheter har (D-57); förloras nyckeln går bidragshistoriken förlorad, aldrig världen.
 
 Vi valde detta därför att servern bara äger det delade (ADR-0001) och har låg last långt efter release, så en container och en vanlig PostgreSQL räcker och kan flyttas med en dump och en ny driftsättning.
 Egna konton med enbart federerad inloggning ger minst personuppgifter, all kontodata i EU och ingen inlåsning, medan de färdiga tjänsterna antingen lagrar inloggningar utanför EU eller saknar export av användare.
@@ -63,9 +63,9 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
 ## Bidragen i molnsparningen (D-57)
 
 - Molnsparningen har två delar: världsdelen och bidragsdelen.
-  Bidragsdelen innehåller allt som avslöjar egenvården per spelardygn: bidragen, den kraft varje spelardygn har krediterats och journalens avläsningar av egenvård.
-  Världsdelen innehåller resten, med krafternas saldon men inget per spelardygn som går att räkna tillbaka till egenvården.
-  _Ändrat 2026-10-21 (#38, D-100): bidragsdelen bär också de använda idempotensnycklarna, segmentens start och hela journalen, så att världsdelen bara är kartan och senaste snapshoten utom det som hålls per spelardygn._
+  Bidragsdelen innehåller allt som avslöjar egenvården per dag: bidragen, den kraft varje dag har krediterats och journalens avläsningar av egenvård.
+  Världsdelen innehåller resten, med krafternas saldon men inget per dag som går att räkna tillbaka till egenvården.
+  _Ändrat 2026-10-21 (#38, D-100): bidragsdelen bär också de använda idempotensnycklarna, segmentens start och hela journalen, så att världsdelen bara är kartan och senaste snapshoten utom det som hålls per dag._
 - Bidragsdelen krypteras på enheten med XChaCha20-Poly1305 och en slumpad nonce på 192 bitar, med konto-id, nyckelepok och sparningens version som associerade data, så att servern inte kan byta delar mellan spelare eller sparningar.
   Krypteringen kommer från BouncyCastle.Cryptography, som är netstandard och fungerar likadant i .NET och under IL2CPP; .NET:s `AesGcm` finns inte i Unitys Mono.
   Servern lagrar bara chiffertext och dekrypterar aldrig.
@@ -81,8 +81,8 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
     _Ändrat 2026-10-22 (#108, del 2): i klienten visar den nya telefonen biljetten som en QR-kod under frågan om nyckeln (`Hud.Cloud`), och frågar servern varannan sekund medan koden är på skärmen; den gamla telefonen skannar koden från kontoarket med bakkameran (`WebCamQrScanner`, Unitys `WebCamTexture`), visar biljettens kontrollkod på sex siffror, som också står under QR-koden på den nya telefonen, och skickar nyckeln först när spelaren bekräftat; så kan inte den som kan skapa en överföring för kontot samla in nyckeln genom att få sin kod framför kameran. QR-koderna görs och läses med ZXing.Net i `Eirora.CloudSaving` (`QrCodes`), som Unity läser från `client/Assets/Plugins/ZXing/` och .NET hämtar från NuGet, så att .NET-testerna prövar rundturen. Kameran körs bara medan skannerarket är öppet och bilderna stannar i telefonen; Android ber om kameratillstånd vid första användning, iOS med texten i spelarinställningarna (`ProjectSetup`). Den tysta synken via nyckelring och Block Store kommer i del 3._
 - Saknar en ny telefon nyckeln börjar en ny nyckelepok och världen fortsätter.
   Bidragsdelen från den gamla epoken markeras som låst och sparas i 90 dagar om nyckeln skulle dyka upp, och raderas sedan eller tidigare om spelaren väljer det.
-  Världen, krafternas saldon och allt byggt finns kvar; spelardygnen före den nya epoken kan inte längre rättas i efterhand och räknas som tomma i Byggkraftens rullande vecka (D-63), som för en ny värld.
-  Det gäller spelardygnen till och med världsdelens senaste spelardygn, eftersom det dygnet redan kan ha krediterats (D-101).
+  Världen, krafternas saldon och allt byggt finns kvar; dagarna före den nya epoken kan inte längre rättas i efterhand och räknas som tomma i Styrkans rullande vecka (D-63), som för en ny värld.
+  Det gäller dagarna till och med världsdelens senaste dag, eftersom det dygnet redan kan ha krediterats (D-101).
   _Ändrat 2026-10-22 (#38, D-102): har telefonen redan en annan värld, eller öppnas bidragsdelen inte med telefonens nyckel för dess epok, väljer spelaren mellan att hämta kontots ö och att behålla telefonens. Den som inte väljs sparas undan på telefonen och raderas inte. En bidragsdel som inte öppnas slås aldrig ihop; väljer spelaren telefonens ö låses den under en ny nyckelepok, som när nyckeln saknas._
   _Ändrat 2026-10-22 (#108, del 1): en ny telefon utan nyckeln frågar först efter den (från den gamla telefonen eller som återställningskod) och börjar en ny epok bara när spelaren väljer att fortsätta utan._
 - Chiffertexten är fortfarande personuppgifter av särskild kategori enligt GDPR, eftersom den hör till ett känt konto.
@@ -148,7 +148,7 @@ Hög tillgänglighet slås på när intäkterna motiverar det; utan den ger ett 
 - TASK-023 lagrar en molnsparning per konto med en version som varje uppladdning höjer med ett.
   En uppladdning som bygger på en annan version eller en äldre nyckelepok får 409 med den nuvarande versionen, så att klienten slår ihop journalerna (D-99); sparningens version i bidragsdelens associerade data är den version uppladdningen blir.
   Servern tar högst 1 MiB världsdel och 8 MiB bidragsdel, och kontrollerar bara att världsdelen laddas ([hotmodell](../security/cloud-save-threat-model.md)).
-- TASK-020 och TASK-023 delar sparningen i världsdel och bidragsdel; TASK-019:s snapshot och fingeravtryck måste därför kunna laddas med bidragsdelen saknad, och spelardygnen före en ny nyckelepok räknas som stängda.
+- TASK-020 och TASK-023 delar sparningen i världsdel och bidragsdel; TASK-019:s snapshot och fingeravtryck måste därför kunna laddas med bidragsdelen saknad, och dagarna före en ny nyckelepok räknas som stängda.
 - Klienten får två nya native-delar: iCloud-nyckelringen och Block Store, vid sidan av hälsoadaptrarna (ADR-0007).
 - Spelare utan konto har ingen molnbackup.
   Spelet föreslår inloggning i lugna lägen, till exempel efter turen, men kräver den aldrig (ACC-04, HLT-12).

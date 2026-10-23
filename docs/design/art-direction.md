@@ -46,23 +46,23 @@ Det här är redan bestämt och gäller oavsett riktning:
 3. **Natten är vila, inte spektakel.**
    Nattvyn ses ofta vid sänggående, så den har låg ljusstyrka, långsamma eller inga rörelser, inga blinkande effekter och varmt ljus före kallt.
 4. **Färg bär aldrig information ensam** (UX-05).
-   Krafterna har egna former: Utforskning är en fyruddig kompasstjärna, Byggkraft ett gavelhus och Gryningskraft en sol vid horisonten.
+   Krafterna har egna former: Utforskning är en fyruddig kompasstjärna, Styrka ett gavelhus och Ork en sol vid horisonten.
 5. **Myten är en underström.**
    Nordisk mytologi syns i form, material, ornamentik och ljus, inte genom gudar i bild eller tunga symboler i gränssnittet.
 6. **Skönheten ska hålla på målenheterna.**
    Varje riktning har en lågnivå där dyra effekter ersätts med billigare motsvarigheter utan att stämningen går förlorad.
 
-### Dygnsljuset följer spelardygnet [BESLUTAT]
+### Dygnsljuset följer dagen [BESLUTAT]
 
-Enligt ordlistan är gryning övergången när viloperioden slutar.
+Enligt ordlistan är gryning övergången när vilotiden slutar.
 Därför följer dygnsljuset spelarens viloschema i stället för solen på spelarens ort (D-84):
 
 | Ljusstämning | När |
 |---|---|
-| Natt | Under viloperioden |
-| Gryning | Från viloperiodens slut och ungefär en timme framåt |
-| Dag | Resten av spelardygnet fram till skymningen |
-| Skymning | Ungefär en timme före viloperiodens början |
+| Natt | Under vilotiden |
+| Gryning | Från vilotidens slut och ungefär en timme framåt |
+| Dag | Resten av dagen fram till skymningen |
+| Skymning | Ungefär en timme före vilotidens början |
 
 Ljuset interpoleras mjukt mellan de fyra nyckelstämningarna.
 Då ser en skiftarbetare som vaknar klockan 14 ändå sin värld vakna i gryningsljus.
@@ -70,14 +70,14 @@ Då ser en skiftarbetare som vaknar klockan 14 ändå sin värld vakna i gryning
 ### Kamera [FÖRSLAG]
 
 - **Spelkamera:** lutad cirka 40–50° med tre zoomnivåer (nära, normal, översikt) och fri rotation (UX-01).
-- **Nattvykamera:** när viloperioden börjar glider kameran långsamt ned mot horisonten så att himlen, stjärnorna och den sovande bosättningen syns.
+- **Nattvykamera:** när vilotiden börjar glider kameran långsamt ned mot horisonten så att himlen, stjärnorna och den sovande bosättningen syns.
   Spelaren kan fortfarande panorera och titta, men inte ge kommandon.
 
 ### Bybor
 
 Byborna modelleras som arbetsgrupper, inte individer.
 I bild syns de som små figurer kring byggnaderna på dagen och försvinner in i husen på natten, när fönstren dämpas.
-Figurerna är cirka en femtedel av en hexbrickas bredd höga och läses som grupper, inte som personer att följa.
+Figurerna är cirka en femtedel av en hexrutas bredd höga och läses som grupper, inte som personer att följa.
 
 ## 3. Riktning A: Gryningsdiorama
 
@@ -94,7 +94,7 @@ Det mytologiska kommer genom ljuset och enstaka inslag, som en samlingshall med 
 |---|---|---|
 | Townscaper (Oskar Stålberg) | Facetterade, lekfulla hus i hamnmiljö; tydliga siluetter och mjukt ljus | [Steam](https://store.steampowered.com/app/1291340/Townscaper/), [oskarstalberg.com](https://www.oskarstalberg.com/) |
 | Islanders (Grizzly Games) | Platta färger, ren låg polygontäthet, öar som pjäser på ett bord; få men tunga beslut | [Steam](https://store.steampowered.com/app/1046030/ISLANDERS/) |
-| Dorfromantik (Toukana Interactive) | Hexbrickor som läses på ett ögonkast; mjuk, varm palett | [Steam](https://store.steampowered.com/app/1455840/Dorfromantik/) |
+| Dorfromantik (Toukana Interactive) | Hexrutor som läses på ett ögonkast; mjuk, varm palett | [Steam](https://store.steampowered.com/app/1455840/Dorfromantik/) |
 | Before We Leave (Balancing Monkey Games) | Lugnt civilisationsbygge på hexöar i low-poly | [Steam](https://store.steampowered.com/app/1073910/Before_We_Leave/) |
 | Alto's Odyssey (Snowman) | Gradienthimlar och dygnsljus som fungerar på mobil | [altosodyssey.com](https://www.altosodyssey.com/) |
 | Nikolai Astrup (målare) | Klara, mättade nordiska färger och ljusa nätter | [Wikipedia](https://en.wikipedia.org/wiki/Nikolai_Astrup) |
@@ -114,13 +114,13 @@ Det mytologiska kommer genom ljuset och enstaka inslag, som en samlingshall med 
 | Dimma | `#C9C2DD` | Pärlemorlila moln över outforskat |
 | Tak, falurött | `#B4473A` | Bosättningens signalfärg |
 | Vägg, björk | `#F3E9DA` | Ljusa väggar |
-| Krafter | `#2A7FB0` · `#B4473A` · `#C27A12` | Utforskning, Byggkraft, Gryningskraft |
+| Krafter | `#2A7FB0` · `#B4473A` · `#C27A12` | Utforskning, Styrka, Ork |
 | Gränssnitt | `#FBF7EF` panel · `#2B2A33` text | Ljusa paneler |
 
 ### Formspråk
 
 - **Polygontäthet:** låg och jämn.
-  Hexbricka 12–40 trianglar, träd 20–60, hus 60–200, specialbyggnad högst 600, bybo 30–60.
+  Hexruta 12–40 trianglar, träd 20–60, hus 60–200, specialbyggnad högst 600, bybo 30–60.
 - **Siluetter:** branta sadeltak, torn och skorstenar som syns även när huset är 20 px högt.
 - **Arkitektur:** faluröda stugor, båthus, en samlingshall med torn; enkla former med tydlig gavel.
 - **Bybor:** enkla kägelfigurer i krafternas och byns färger.
@@ -138,7 +138,7 @@ Det mytologiska kommer genom ljuset och enstaka inslag, som en samlingshall med 
 ### Läsbarhet på liten skärm
 
 Den mest läsbara riktningen.
-Ljusa, åtskilda terrängfärger och tydliga höjdsteg gör att hexbrickorna läses även i översiktszoom.
+Ljusa, åtskilda terrängfärger och tydliga höjdsteg gör att hexrutorna läses även i översiktszoom.
 Faluröda tak sticker ut mot all terräng, så bosättningar hittas direkt.
 Svagheten är att ljusa ytor kan bli bländande i starkt solljus utomhus; dagsljuset hålls därför under full vithet.
 
@@ -204,7 +204,7 @@ Allvar och värme som i John Bauers skogar och Theodor Kittelsens nätter.
 | Torvtak | `#6B7F3E` | Levande torv |
 | Tjärat trä | `#4A3426` | Väggar och stavkyrka |
 | Accenter | `#E39B4A` härdglöd · `#9E3B2E` ullrött | Eld och segel |
-| Krafter | `#6A9CB8` · `#B85F38` · `#E6B04F` | Utforskning, Byggkraft, Gryningskraft |
+| Krafter | `#6A9CB8` · `#B85F38` · `#E6B04F` | Utforskning, Styrka, Ork |
 | Gränssnitt | `#2A2420` panel · `#EDE6D8` text | Mörka paneler som brunt trä |
 
 ### Formspråk
@@ -261,7 +261,7 @@ Förslag till budget: högst 250 000 synliga trianglar; dislagren begränsas til
 
 Myten blir synlig genom ljus.
 Djupa kalla toner, självlysande runor och ett världsträd vid bosättningen.
-Gryningskraften syns som guldljus i världen.
+Orken syns som guldljus i världen.
 Natten med dämpat norrsken är riktningens höjdpunkt och knyter direkt an till namnets aurora.
 
 ### Moodboard
@@ -291,7 +291,7 @@ Natten med dämpat norrsken är riktningens höjdpunkt och knyter direkt an till
 | Tak, skiffer | `#3D4A6B` | Mörka, branta tak |
 | Vägg, kalk | `#D8D2E2` | Ljusa väggar som fångar glöden |
 | Ljus | `#FFD27A` runglöd · `#6EF0B4` och `#9B7BF0` norrsken | Endast som ljus, aldrig som yta |
-| Krafter | `#59C3E8` · `#F08A5D` · `#FFD27A` | Utforskning, Byggkraft, Gryningskraft |
+| Krafter | `#59C3E8` · `#F08A5D` · `#FFD27A` | Utforskning, Styrka, Ork |
 | Gränssnitt | `#101830` panel · `#E8EEF8` text | Mörka paneler som natthimmel |
 
 ### Formspråk
@@ -307,7 +307,7 @@ Natten med dämpat norrsken är riktningens höjdpunkt och knyter direkt an till
 
 | Stämning | Zenit | Horisont | Sol eller måne | Himmelsljus | Karaktär |
 |---|---|---|---|---|---|
-| Gryning | `#3B3F8E` | `#F3A7B4` | `#FFC0A8`, 14° | `#CDB6E2` | Rosa och violett; runorna slocknar långsamt, Gryningskraften syns som guldljus i världsträdet |
+| Gryning | `#3B3F8E` | `#F3A7B4` | `#FFC0A8`, 14° | `#CDB6E2` | Rosa och violett; runorna slocknar långsamt, Orken syns som guldljus i världsträdet |
 | Dag | `#4A9CD8` | `#C3E5F3` | `#FFF3DA`, 55° | `#CFE6F5` | Krispigt, kallt dagsljus; inga glödeffekter |
 | Skymning | `#2A1F5C` | `#E07088` | `#FF8A6A`, 12° | `#9A7EC4` | Magenta och violett; runorna börjar glöda, första stjärnorna |
 | Natt (vilolås) | `#060A1A` | `#10274A` | Måne `#86AEE0`, 38° | `#2E4A78` | Dämpat norrsken, stjärnor, glödande runor över en sovande bosättning |
@@ -322,7 +322,7 @@ Glöd och norrsken drar blicken; de får aldrig ligga över spelinformation och 
 
 - Text i gränssnittet har kontrasten 15,1:1 mot panelen, dämpad text 8,4:1.
 - Krafternas färger har 7,1–12,3:1 mot panelen, högst av de tre.
-- Svagaste paret är Byggkraft mot Gryningskraft vid deuteranopi (ΔE 12,1), fortfarande över målet 10.
+- Svagaste paret är Styrka mot Ork vid deuteranopi (ΔE 12,1), fortfarande över målet 10.
 - Norrskenet rör sig långsamt och stängs av med reducerad rörelse; det får inte flimra.
 - Ljust grönt norrsken vid sänggående kan väcka i stället för lugna; därför är det kraftigt dämpat och ligger nära horisonten.
 
@@ -338,7 +338,7 @@ Geometrin är lika billig som i A.
 
 | Styrkor | Risker |
 |---|---|
-| Mest särpräglad; knyter an till namnet (aurora) och till Gryningskraften | Högst prestandakostnad och batteriförbrukning |
+| Mest särpräglad; knyter an till namnet (aurora) och till Orken | Högst prestandakostnad och batteriförbrukning |
 | Natten blir en gåva: vilolåset blir vackert att titta på | Kall dagspalett kan kännas mindre varm och omhändertagande |
 | Starka siluetter mot ljus himmel | Glöd kan bli effektsökeri och konkurrera med spelinformation |
 
@@ -374,7 +374,7 @@ Siffrorna är startvärden som mäts och fastställs i M1 och M2 (O-13).
 - A:s svaghet är att den liknar andra lugna byggspel.
   Den vägs upp av att nattvyn lånas från C: dämpat norrsken, stjärnor och glödande runor när byborna sover.
   Vilolåset, spelets mest särpräglade mekanik, blir då också spelets mest särpräglade bild, och namnets aurora syns.
-- Nattens norrsken är ett avgränsat inslag som bara syns under viloperioden, så C:s prestandakostnad gäller en nästan stillastående vy som ändå renderas med låg bildfrekvens.
+- Nattens norrsken är ett avgränsat inslag som bara syns under vilotiden, så C:s prestandakostnad gäller en nästan stillastående vy som ändå renderas med låg bildfrekvens.
 - B:s material och ornamentik kan användas som kosmetiska byggnadsstilar senare (MON-02) utan att bli grunden.
 
 Om produktägaren hellre prioriterar särprägel framför läsbarhet är C det starkaste alternativet; om nordisk autenticitet väger tyngst är det B.
@@ -407,7 +407,7 @@ Det betyder:
 - **Grunden är A.**
   A:s palett, formspråk, polygonbudget och ljusstämningar för gryning, dag och skymning i avsnitt 3 gäller.
 - **Natten är C:s.**
-  Under viloperioden ersätts A:s nattstämning av C:s: zenit `#060A1A`, horisont `#10274A`, måne `#86AEE0` på 38°, himmelsljus `#2E4A78`, stjärnor och dämpat norrsken `#6EF0B4` mot `#9B7BF0`.
+  Under vilotiden ersätts A:s nattstämning av C:s: zenit `#060A1A`, horisont `#10274A`, måne `#86AEE0` på 38°, himmelsljus `#2E4A78`, stjärnor och dämpat norrsken `#6EF0B4` mot `#9B7BF0`.
 - **Glöden får en plats i A:s värld.**
   Runglöd `#FFD27A` läggs till i A:s palett som ljusfärg, aldrig som ytfärg.
   Den syns i runristade gränsstenar och samlingshallens fönster och tänds i skymningen, starkast under natten.
@@ -430,7 +430,7 @@ Nästa steg följer avsnitt 9.
 
 1. Ska dygnsljuset följa spelarens viloschema (förslaget i avsnitt 2) eller solen på spelarens ort?
    Avgjord: viloschemat (D-84).
-2. Ska kameran sänkas automatiskt till nattvyn när viloperioden börjar, eller ska spelaren behålla spelkameran?
+2. Ska kameran sänkas automatiskt till nattvyn när vilotiden börjar, eller ska spelaren behålla spelkameran?
    I prototypen behålls spelkameran (D-86); frågan avgörs i M7 eller M9.
 3. Ska byborna synas som små figurer i världen, trots att de modelleras som arbetsgrupper?
    Avgjord: ja, vid bemannade byggnader under dagen (D-85).

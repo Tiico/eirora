@@ -31,7 +31,7 @@ class HealthPrivacyActivity : Activity() {
 
 Det läses när du öppnar spelet, aldrig i bakgrunden, och Eirora skriver aldrig något till Health Connect.
 
-Allt stannar på din telefon. Spelet sparar bara summor per spelardygn, aldrig de enskilda posterna.
+Allt stannar på din telefon. Spelet sparar bara summor per dag, aldrig de enskilda posterna.
 
 Du kan när som helst ta bort behörigheten i Health Connect. Spelet fungerar lika bra om du skriver in själv."""
     }

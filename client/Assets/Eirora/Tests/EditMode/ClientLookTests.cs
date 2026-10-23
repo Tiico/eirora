@@ -39,9 +39,9 @@ namespace Eirora.Client.Tests
 
             Assert.That(Texts.Report(events), Is.EqualTo(new[]
             {
-                "Byn vaknade till spelardygn 2.", "Dimman lättade över 3 brickor.", "Kartläggningen lyfte dimman över nya brickor.",
+                "Byn vaknade till dag 2.", "Dimman lättade över 3 rutor.", "Kartläggningen lyfte dimman över nya rutor.",
             }));
-            Assert.That(Texts.Report(new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en bricka." }));
+            Assert.That(Texts.Report(new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en ruta." }));
         }
 
         // Only the prototype's map has Nyön in the east; a generated world's island has no name and any direction.
