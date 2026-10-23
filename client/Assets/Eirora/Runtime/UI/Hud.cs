@@ -675,13 +675,15 @@ namespace Eirora.Client.UI
             {
                 if (depot.CarrierCap <= depot.Carriers)
                 {
-                    AddAction("En bärare till", $"Höj taket · ingen kraft · {Texts.Gains(more)}", true, () => Run(new SetCarrierCap(depot.Tile, depot.CarrierCap + 1)));
+                    // A higher cap is taken up at dawn, and only by a free villager.
+                    string when = carriers.VillagerFree ? "vid gryningen" : "när en bybo blir ledig";
+                    AddAction("En bärare till", $"Höj taket · ingen kraft · {Texts.Gains(more)} {when}", true, () => Run(new SetCarrierCap(depot.Tile, depot.CarrierCap + 1)));
                 }
                 else
                 {
                     Text("sheet-text", _sheet, carriers.VillagerFree
-                        ? $"Förrådet tar en bärare till vid gryningen, som ger {Texts.Gains(more)}."
-                        : $"En bärare till ger {Texts.Gains(more)}, men ingen bybo är ledig. Förrådet tar en när en blir ledig.");
+                        ? $"{Texts.Definite(depot.Kind)} tar en bärare till vid gryningen, som ger {Texts.Gains(more)}."
+                        : $"En bärare till ger {Texts.Gains(more)}, men ingen bybo är ledig. {Texts.Definite(depot.Kind)} tar en när en blir ledig.");
                 }
             }
 

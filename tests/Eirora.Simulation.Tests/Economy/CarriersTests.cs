@@ -116,12 +116,36 @@ public sealed class CarriersTests
         Assert.False(world.BuildingAt(far[2])!.CarriedFirst);
     }
 
+    // Review of #166: the priority is an explicit mode the player sets by moving a building up (D-111), not its place.
+    [Fact]
+    public void ABuildingMovedUpStaysFirstWhenOthersAreMovedAboveItOrItIsLeftInItsPlace()
+    {
+        var (world, far) = PausedFarHuts(waiting: [8, 8, 2]);
+        Assert.True(Apply(world, new Prioritize(far[2], 1)).Accepted);
+        Assert.True(world.BuildingAt(far[2])!.CarriedFirst);
+
+        Assert.True(Apply(world, new Prioritize(far[0], 0)).Accepted);
+        var again = Apply(world, new Prioritize(far[2], world.StaffingOrder.ToList().IndexOf(world.BuildingAt(far[2])!)));
+
+        Assert.Equal(Rejection.AlreadyDone, again.Rejection);
+        Assert.Equal([true, false, true], far.Select(h => world.BuildingAt(h)!.CarriedFirst));
+    }
+
+    [Fact]
+    public void AStorehouseMovedUpIsNoBuildingTheCarriersServeFirst()
+    {
+        var world = Morning();
+        Assert.True(Apply(world, new Prioritize(S, world.StaffingOrder.Count - 1)).Accepted);
+        Assert.True(Apply(world, new Prioritize(S, 0)).Accepted);
+        Assert.False(world.BuildingAt(S)!.CarriedFirst);
+    }
+
     [Fact]
     public void TheCarriersBringRawMaterialsToTheProcessingAndKeepTheReserveInTheStore()
     {
         // 22 timber: two above the reserve of 20, which the carriers bring to the sawmill beside the storehouse first,
         // since it has least of its raw material left. The woodcutter rests, so no timber comes in.
-        var world = Edited(Morning(), "building Sawmill -1 0 1 1 0 0 0 0 0 0 0", stock: (Resource.Timber, 22));
+        var world = Edited(Morning(), "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0", stock: (Resource.Timber, 22));
         Assert.True(Apply(world, new PauseBuilding(F1)).Accepted);
 
         world.AdvanceTo(At("2026-10-15 09:15", 2));
@@ -184,7 +208,7 @@ public sealed class CarriersTests
         Assert.Equal(3, hired.BuildingAt(S)!.Carriers);
 
         // No villager is free, and a paused quarry is resumed: the carriers stay, and so does everyone at work.
-        var world = Edited(hired, "building Quarry -3 -1 1 0 0 0 1 0 0 0 0", villagers: hired.Villagers - hired.FreeVillagers);
+        var world = Edited(hired, "building Quarry -3 -1 1 0 0 0 1 0 0 0 0 0 0 0", villagers: hired.Villagers - hired.FreeVillagers);
         Assert.Equal(0, world.FreeVillagers);
         var staffed = world.Buildings.Where(b => b.Staffed).Select(b => b.Tile).ToList();
 
@@ -201,19 +225,91 @@ public sealed class CarriersTests
         Assert.True(world.BuildingAt(M3)!.Staffed);
     }
 
+    // Review of #166: a storehouse staffed in the middle of the day takes over no building before dawn, so its one carrier
+    // never lessens what reaches the store that day (D-39); at dawn it takes over the buildings it reaches fastest.
+    [Theory]
+    [InlineData(0, -1)]
+    [InlineData(2, -2)]
+    [InlineData(1, -2)]
+    public void ANewStorehouseTakesOverBuildingsOnlyAtDawnSoItNeverLessensWhatReachesTheStoreThatDay(int q, int r)
+    {
+        var hired = FarHuts(running: true);
+        hired.AdvanceTo(At("2026-10-16 07:15", 2));
+        Assert.Equal(3, hired.BuildingAt(S)!.Carriers);
+        var site = new Hex(q, r);
+        var with = Edited(hired, $"building Storehouse {q} {r} 1 1 0 0 0 1 4 0 0 0 0 0", villagers: hired.Villagers + 1);
+        var without = Edited(hired, null, villagers: hired.Villagers + 1);
+
+        with.AdvanceTo(At("2026-10-16 13:15", 2));
+        without.AdvanceTo(At("2026-10-16 13:15", 2));
+
+        Assert.InRange(with.Settlement.Stock(Resource.Fish), without.Settlement.Stock(Resource.Fish), long.MaxValue);
+        Assert.All(FarWaters(), h => Assert.Equal(S, with.TripFrom(h).Depot));
+
+        // At dawn the huts beside it move over, and the old storehouse's carriers go to it: nothing less reaches the store.
+        with.AdvanceTo(At("2026-10-17 07:15", 2));
+        without.AdvanceTo(At("2026-10-17 07:15", 2));
+        Assert.Contains(FarWaters(), h => with.TripFrom(h).Depot == site);
+        long dawnWith = with.Settlement.Stock(Resource.Fish);
+        long dawnWithout = without.Settlement.Stock(Resource.Fish);
+
+        with.AdvanceTo(At("2026-10-17 19:00", 2));
+        without.AdvanceTo(At("2026-10-17 19:00", 2));
+        Assert.InRange(with.Settlement.Stock(Resource.Fish) - dawnWith, without.Settlement.Stock(Resource.Fish) - dawnWithout, long.MaxValue);
+    }
+
+    [Fact]
+    public void ARoadFinishedInTheDayLeavesEveryBuildingWithItsDepotUntilDawn()
+    {
+        var hired = FarHuts(running: true);
+        hired.AdvanceTo(At("2026-10-16 07:15", 2));
+        var depots = Edited(hired, "building Storehouse 2 -2 1 1 0 0 0 1 4 0 0 0 0 0", villagers: hired.Villagers + 1);
+        depots.AdvanceTo(At("2026-10-17 07:15", 2));
+        var before = depots.Buildings.Where(b => b.Kind == BuildingKind.FishingHut).ToDictionary(b => b.Tile, b => depots.TripFrom(b.Tile).Depot);
+
+        // Roads on every free tile of the island, finished at once: the ways get faster, but no hut changes depot.
+        var paved = Edited(depots, null, roads: Hex.Origin.Within(6).Where(t => depots.CheckRoad(t) == Rejection.None));
+
+        Assert.All(before, hut => Assert.Equal(hut.Value, paved.TripFrom(hut.Key).Depot));
+    }
+
+    // Review of #166: the carriers a depot lets go at dawn staff the buildings that wait for villagers that same dawn.
+    [Fact]
+    public void TheCarriersLetGoAtDawnStaffTheBuildingsThatWaitForVillagers()
+    {
+        var hired = FarHuts(running: true);
+        hired.AdvanceTo(At("2026-10-16 07:15", 2));
+        Assert.Equal(3, hired.BuildingAt(S)!.Carriers);
+        foreach (var hut in FarWaters())
+        {
+            Assert.True(Apply(hired, new PauseBuilding(hut)).Accepted);
+        }
+
+        // The huts rest, so the storehouse needs one carrier tomorrow; a woodcutter waits for two villagers, and none is free.
+        var world = Edited(hired, "building Woodcutter 3 -2 1 0 0 0 0 0 0 0 0 0 0 0", villagers: hired.Villagers - hired.FreeVillagers);
+        Assert.Equal((0, 3, false), (world.FreeVillagers, world.BuildingAt(S)!.Carriers, world.BuildingAt(F2)!.Staffed));
+
+        world.AdvanceTo(At("2026-10-17 07:15", 2));
+
+        Assert.True(world.BuildingAt(F2)!.Staffed, $"{world.FreeVillagers} villagers are free and {world.BuildingAt(S)!.Carriers} carry.");
+        Assert.Equal(1, world.BuildingAt(S)!.Carriers);
+    }
+
     [Fact]
     public void ANewStorehouseWithoutCarriersTakesOverNoBuildings()
     {
         // Every villager is at work, so a storehouse beside the far huts has no one to carry for it (D-39).
         var (world, far) = PausedFarHuts(waiting: [8, 8, 8]);
         var site = Enumerable.Range(0, Hex.Directions).Select(far[0].Neighbour).First(h => world.CheckBuild(BuildingKind.Storehouse, h) == Rejection.None);
-        var crowded = Edited(world, $"building Storehouse {site.Q} {site.R} 1 0 0 0 0 0 4 0 0", villagers: world.Villagers - world.FreeVillagers);
+        var crowded = Edited(world, $"building Storehouse {site.Q} {site.R} 1 0 0 0 0 0 4 0 0 0 0 0", villagers: world.Villagers - world.FreeVillagers);
 
         Assert.Equal(S, crowded.TripFrom(far[0]).Depot);
         Assert.Equal(world.TripFrom(far[0]).Time, crowded.TripFrom(far[0]).Time);
 
-        // With a villager to carry it takes over the huts beside it.
-        var staffed = Edited(world, $"building Storehouse {site.Q} {site.R} 1 1 0 0 0 1 4 0 0");
+        // With a villager to carry it takes over the huts beside it at dawn.
+        var staffed = Edited(world, $"building Storehouse {site.Q} {site.R} 1 1 0 0 0 1 4 0 0 0 0 0");
+        Assert.Equal(S, staffed.TripFrom(far[0]).Depot);
+        staffed.AdvanceTo(At("2026-10-17 07:15", 2));
         Assert.Equal(site, staffed.TripFrom(far[0]).Depot);
     }
 
@@ -300,7 +396,7 @@ public sealed class CarriersTests
         Assert.True(Apply(world, new Prioritize(far[1], 0)).Accepted);
         Assert.True(Apply(world, new SetCarrierCap(S, 2)).Accepted);
         Assert.True(Apply(world, new LayRoad(L2)).Accepted);
-        var sawmilled = Edited(world, "building Sawmill -1 1 1 1 0 0 0 0 0 0 1500000\nheld Timber 2500000");
+        var sawmilled = Edited(world, "building Sawmill -1 1 1 1 0 0 0 0 0 0 1500000 0 0 0\nheld Timber 2500000");
 
         var copy = SimulationSnapshot.FromBytes(SimulationSnapshot.Take(sawmilled).ToBytes()).Restore(sawmilled.Map);
 
@@ -312,10 +408,10 @@ public sealed class CarriersTests
     }
 
     [Theory]
-    [InlineData("building FishingHut 1 0 1 1 0 0 0 0 0 0 9000000")] // More than the outbox holds.
-    [InlineData("building FishingHut 1 0 1 1 0 0 0 1 4 0 0")] // Carriers at a fishing hut.
-    [InlineData("building Storehouse 0 0 1 1 0 0 0 5 4 0 0")] // More carriers than four.
-    [InlineData("building Storehouse 0 0 1 0 0 0 0 1 4 0 0")] // Carriers at a storehouse nobody staffs.
+    [InlineData("building FishingHut 1 0 1 1 0 0 0 0 0 0 9000000 0 0 0")] // More than the outbox holds.
+    [InlineData("building FishingHut 1 0 1 1 0 0 0 1 4 0 0 0 0 0")] // Carriers at a fishing hut.
+    [InlineData("building Storehouse 0 0 1 1 0 0 0 5 4 0 0 0 0 0")] // More carriers than four.
+    [InlineData("building Storehouse 0 0 1 0 0 0 0 1 4 0 0 0 0 0")] // Carriers at a storehouse nobody staffs.
     [InlineData("held Wool 1000000")] // Wool at the storehouse.
     public void AStateThatBreaksTheCarriersRulesIsRefused(string line)
     {
@@ -341,7 +437,7 @@ public sealed class CarriersTests
     private static World FarHuts(bool running)
     {
         var far = FarWaters();
-        string Hut(Hex h) => $"building FishingHut {h.Q} {h.R} 1 {(running ? 1 : 0)} 0 0 {(running ? 0 : 1)} 0 0 0 0";
+        string Hut(Hex h) => $"building FishingHut {h.Q} {h.R} 1 {(running ? 1 : 0)} 0 0 {(running ? 0 : 1)} 0 0 0 0 0 0 0";
         var world = Edited(Morning(), string.Join('\n', far.Select(Hut)), villagers: 16);
         Assert.Equal(3, world.FreeVillagers);
         return world;
@@ -354,7 +450,7 @@ public sealed class CarriersTests
     private static (World World, Hex[] Far) PausedFarHuts(int[] waiting, IEnumerable<Hex>? roads = null)
     {
         var far = FarWaters();
-        var world = Edited(Morning(), string.Join('\n', far.Select((h, i) => $"building FishingHut {h.Q} {h.R} 1 0 0 0 1 0 0 0 {waiting[i] * Unit}")), roads: roads);
+        var world = Edited(Morning(), string.Join('\n', far.Select((h, i) => $"building FishingHut {h.Q} {h.R} 1 0 0 0 1 0 0 0 {waiting[i] * Unit} 0 0 0")), roads: roads);
         foreach (var start in world.Buildings.Where(b => world.Content.For(b.Kind).Produces && !b.Paused).Select(b => b.Tile).ToList())
         {
             Assert.True(Apply(world, new PauseBuilding(start)).Accepted);

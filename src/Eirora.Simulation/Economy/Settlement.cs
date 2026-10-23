@@ -384,12 +384,18 @@ namespace Eirora.Simulation.Economy
         /// <summary>
         /// Moves a building that needs staff to <paramref name="place"/> in the staffing order, counted from 0, and
         /// gives the villagers out again; the buildings that need no staff keep their places among the others. Moved up,
-        /// the carriers serve it first; moved down, they serve it where most waits again (D-111).
+        /// the carriers serve it first, however the others are moved later; moved down, they serve it where most waits
+        /// again; left in its place, it stays as it was (D-111). Storehouses and jetties are served by no one.
         /// </summary>
         public void MoveInStaffingOrder(Building building, int place)
         {
             var others = StaffingOrder;
-            building.CarriedFirst = place < others.IndexOf(building);
+            int was = others.IndexOf(building);
+            if (place != was && !IsDepot(building.Kind))
+            {
+                building.CarriedFirst = place < was;
+            }
+
             others.Remove(building);
             _buildings.Remove(building);
             int at = place < others.Count ? _buildings.IndexOf(others[place]) : _buildings.IndexOf(others[others.Count - 1]) + 1;
@@ -453,7 +459,7 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private int RecordState(ref long[] state)
         {
-            int needed = 9 + (_islands.Count * s_resourceCount) + ((10 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count);
+            int needed = 9 + (_islands.Count * s_resourceCount) + ((12 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count);
             if (state.Length < needed)
             {
                 state = new long[2 * needed];
@@ -485,6 +491,8 @@ namespace Eirora.Simulation.Economy
                 state[i++] = building.Carriers;
                 state[i++] = building.CarrierCap;
                 state[i++] = building.CarriedFirst ? 1 : 0;
+                state[i++] = building.Depot is Hex depot ? 1 + depot.Q : 0;
+                state[i++] = building.Depot?.R ?? 0;
                 state[i++] = building.Waiting;
                 if (building.Held is long[] held)
                 {
@@ -546,6 +554,10 @@ namespace Eirora.Simulation.Economy
                 building.WorkdayToday = false;
             }
 
+            // Every building to the depot its carriers reach fastest; the carriers its goods no longer need go first to the
+            // buildings that wait for villagers, and the depots take more only of those no building needs (D-109).
+            AssignDepots(all: true);
+            ReleaseCarriers(activeTicks);
             StaffBuildings();
             HireCarriers(activeTicks);
         }
@@ -567,7 +579,9 @@ namespace Eirora.Simulation.Economy
             foreach (var b in _buildings)
             {
                 writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.WorkdayToday).Long(b.Ripe).Bool(b.Paused)
-                    .Long(b.Carriers).Long(b.CarrierCap).Bool(b.CarriedFirst).Long(b.Waiting);
+                    .Long(b.Carriers).Long(b.CarrierCap).Bool(b.CarriedFirst).Long(b.Waiting)
+                    .Bool(b.Depot is not null).Long(b.Depot?.Q ?? 0).Long(b.Depot?.R ?? 0);
+
                 for (int resource = 0; b.Held is long[] held && resource < s_resourceCount; resource++)
                 {
                     if (held[resource] > 0)
@@ -673,6 +687,7 @@ namespace Eirora.Simulation.Economy
                     CarriedFirst = reader.Bool(),
                     Waiting = reader.Long(),
                 };
+                var depotTile = reader.Bool() ? settlement.TileOf(reader) : SkipTile(reader);
                 if (building.Paused && building.Staffed)
                 {
                     throw new FormatException($"The paused building on {tile} is staffed.");
@@ -687,12 +702,22 @@ namespace Eirora.Simulation.Economy
                     throw new FormatException($"{kind} on {tile} has {building.Carriers} carriers of at most {building.CarrierCap}.");
                 }
 
+                if (building.CarriedFirst && IsDepot(kind))
+                {
+                    throw new FormatException($"The {kind} on {tile} is carried for first, but carries itself.");
+                }
+
                 if (building.Waiting < 0 || building.Waiting > Quantity.Units(OutboxUnits) || (building.Waiting > 0 && content.For(kind).Recipe is null))
                 {
                     throw new FormatException($"{kind} on {tile} has {building.Waiting} in an outbox of {OutboxUnits}.");
                 }
 
                 var recipe = content.For(kind).Recipe;
+                if (depotTile is Hex depotAt)
+                {
+                    building.Depot = recipe is not null && !IsDepot(kind) ? depotAt : throw new FormatException($"{kind} on {tile} belongs to no depot.");
+                }
+
                 building.Held = recipe is not null && recipe.Inputs.Count > 0 ? new long[s_resourceCount] : null;
                 int last = -1;
                 while (reader.Next("held"))
@@ -748,6 +773,22 @@ namespace Eirora.Simulation.Economy
 
             reader.Expect("fog");
             settlement.Fog = Fog.Parse(map, reader.Text());
+            foreach (var building in settlement._buildings)
+            {
+                // Only what a building makes is carried, and the settlement gives a building another depot whenever its
+                // own loses its carriers.
+                if (building.Depot is Hex depot
+                    && (IsDepot(building.Kind) || content.For(building.Kind).Recipe is null
+                        || settlement.BuildingAt(depot) is not { Carriers: > 0 } at || !IsDepot(at.Kind) || at.Island != building.Island))
+                {
+                    throw new FormatException($"{building.Kind} on {building.Tile} belongs to no staffed depot at {depot}.");
+                }
+            }
+
+            // A building without a depot is one no staffed depot reached when it was given one, which the settlement keeps
+            // true whenever the staffing changes; one written without by hand gets the nearest, as the migration to
+            // rules 8 already gives it.
+            settlement.AssignDepots(all: false);
             return settlement;
         }
 
@@ -1114,6 +1155,10 @@ namespace Eirora.Simulation.Economy
             return null;
         }
 
+        /// <summary>Reads the two fields of a tile that is not there, which are 0.</summary>
+        private static Hex? SkipTile(StateReader reader) =>
+            reader.Long() == 0 && reader.Long() == 0 ? null : throw new FormatException("A missing tile is written as 0 0.");
+
         private Hex TileOf(StateReader reader)
         {
             var tile = new Hex(reader.Int(), reader.Int());
@@ -1206,6 +1251,8 @@ namespace Eirora.Simulation.Economy
             {
                 ForgetTrips();
             }
+
+            AssignDepots(all: false);
         }
 
         // Percent by percent, rounding down after each. One overload per arity rather than a params array, which would be

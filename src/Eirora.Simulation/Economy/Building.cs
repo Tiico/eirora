@@ -56,6 +56,12 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public bool CarriedFirst { get; internal set; }
 
+        /// <summary>
+        /// Where the storehouse or jetty stands whose carriers serve it: the staffed one they reached fastest at the last
+        /// dawn, or when it was built; null for a building no staffed depot reaches, and for one without a recipe.
+        /// </summary>
+        public Hex? Depot { get; internal set; }
+
         /// <summary>Whole units of its product waiting for the carriers in its outbox (economy-v2.md, section 7).</summary>
         public long WaitingUnits => Quantity.Whole(Waiting);
 
@@ -83,6 +89,7 @@ namespace Eirora.Simulation.Economy
             Carriers = Carriers,
             CarrierCap = CarrierCap,
             CarriedFirst = CarriedFirst,
+            Depot = Depot,
             Ripe = Ripe,
             Waiting = Waiting,
             Held = (long[]?)Held?.Clone(),

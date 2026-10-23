@@ -27,7 +27,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void ASawmillWithoutTimberAboveTheReserveSaysItWaitsForTimberAndHowMuchIsMissing()
         {
-            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -66,6 +66,19 @@ namespace Eirora.Client.Tests
             Assert.That(sheet.Stepper, Is.EqualTo("4 av 4"));
         }
 
+        // Review of #166: a higher cap is taken up at dawn, and only by a free villager, so the advice says when it gives.
+        [TestCase(3, "vid gryningen")]
+        [TestCase(0, "när en bybo blir ledig")]
+        public void AtItsCapTheStorehouseSaysWhenOneMoreCarrierWouldGiveMore(int free, string when)
+        {
+            var (world, _) = BehindTheCarriers(free);
+            Assert.That(world.Apply("cap-1", new Simulation.Commands.SetCarrierCap(Hex.Origin, 1)).Accepted, Is.True);
+
+            var sheet = SheetOf(world, Hex.Origin);
+
+            Assert.That(sheet.Actions, Has.Some.Match($"^En bärare till \\| Höj taket · ingen kraft · \\+[0-9,]+ fisk/h.* {when}$"));
+        }
+
         [Test]
         public void TheCapOnTheCarriersIsSetOnTheStorehousesSheet()
         {
@@ -86,7 +99,7 @@ namespace Eirora.Client.Tests
         public void ABuildingWithoutStaffIsMarkedOnTheIslandAndItsSheetSaysHowManyVillagersAreMissing()
         {
             // Eight villagers: seven run the start buildings, so one is free for a sawmill that takes two.
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -109,7 +122,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void AHouseSaysNothingOfVillagersItNeverNeeds()
         {
-            var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0 0 0 0 0");
+            var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0 0 0 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -120,7 +133,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void AStorehouseWithoutStaffStillStoresAndIsNotMarked()
         {
-            var world = Edited(Morning(), "settlement 7", "building Storehouse -1 0 1 0 0 0 0 0 4 0 0");
+            var world = Edited(Morning(), "settlement 7", "building Storehouse -1 0 1 0 0 0 0 0 4 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -133,7 +146,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void APausedBuildingIsMarkedAndItsSheetSaysItIsPaused()
         {
-            var world = Edited(Morning(), null, "building Sawmill -1 0 1 0 0 0 1 0 0 0 0");
+            var world = Edited(Morning(), null, "building Sawmill -1 0 1 0 0 0 1 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -146,7 +159,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void WhileTheVillageRestsTheSheetSaysSoAndMarksNothingAsTheIslandDoes()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             var sheet = SheetOf(world, s_beside);
@@ -160,7 +173,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void NoBuildingIsMarkedWhileTheVillageRests()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             WithIsland(world, island => Assert.That(island.MarkedStandingStill, Is.Empty));
@@ -169,7 +182,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void TheReportPointsToTheIslandsBottleneckAndWhereAWorkdayEasesIt()
         {
-            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0");
             var root = new VisualElement();
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
@@ -217,14 +230,14 @@ namespace Eirora.Client.Tests
         /// The start village with three fishing huts four steps out, more than its one carrier can keep up with, and sixteen
         /// villagers, three of them free.
         /// </summary>
-        private static (World World, Hex[] Far) BehindTheCarriers()
+        private static (World World, Hex[] Far) BehindTheCarriers(int free = 3)
         {
             var world = Morning();
             var far = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
                 .Where(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.TripFrom(h).Steps == 4)
                 .Take(3).ToArray();
-            world = Edited(world, "settlement 16", string.Join("\n", far.Select(h => $"building FishingHut {h.Q} {h.R} 1 1 0 0 0 0 0 0 0")));
-            Assert.That(world.FreeVillagers, Is.EqualTo(3));
+            world = Edited(world, $"settlement {13 + free}", string.Join("\n", far.Select(h => $"building FishingHut {h.Q} {h.R} 1 1 0 0 0 0 0 0 0 1 0 0")));
+            Assert.That(world.FreeVillagers, Is.EqualTo(free));
             return (world, far);
         }
 
@@ -274,7 +287,8 @@ namespace Eirora.Client.Tests
 
         /// <summary>
         /// The world with a line of its state replaced by one that begins the same way, such as a stock or the villagers,
-        /// and buildings added at the end of the line; read back from a snapshot, as a save is.
+        /// and buildings added at the end of the line; read back from a snapshot, as a save is. A snapshot restores only
+        /// the state it holds, so a building that makes something is written with its depot, the storehouse on 0 0.
         /// </summary>
         private static World Edited(World world, string? replace, string? buildings = null)
         {

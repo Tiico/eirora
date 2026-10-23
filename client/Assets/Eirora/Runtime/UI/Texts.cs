@@ -447,7 +447,7 @@ namespace Eirora.Client.UI
             int carriers = depot.Depot.Carriers;
             if (carriers == 0)
             {
-                return "Ingen bybo bär här ännu. Förrådet tar en bärare när en blir ledig.";
+                return $"Ingen bybo bär här ännu. {Definite(depot.Depot.Kind)} tar en bärare när en blir ledig.";
             }
 
             string who = carriers == 1 ? "En bärare" : $"{Capital(Count(carriers))} bärare";

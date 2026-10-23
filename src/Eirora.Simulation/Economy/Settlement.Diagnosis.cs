@@ -280,22 +280,34 @@ namespace Eirora.Simulation.Economy
         /// What reaches the store from each building on an island an active hour, as the depots plan their carriers:
         /// each depot's carriers, a workday counted, against the carrier-hours its buildings need, with
         /// <paramref name="roads"/>, a staffed <paramref name="depot"/> with one carrier, or one more carrier at
-        /// <paramref name="carrier"/> added.
+        /// <paramref name="carrier"/> added. Each building keeps its depot, with the roads too; a new depot takes over
+        /// the buildings it reaches fastest, as it would at the next dawn.
         /// </summary>
         private Reach ReachOn(string island, int activeTicks, ICollection<Hex>? roads, Hex? depot, Hex? carrier)
         {
-            var walk = roads is null && depot is null && _walks.TryGetValue(island, out var known) ? known : Walk(island, roads, depot);
-            if (roads is null && depot is null && !_walks.ContainsKey(island))
-            {
-                _walks.Add(island, walk);
-            }
-
+            var nearest = depot is not null ? Walk(island, roads, depot, null) : null;
+            var walks = new Dictionary<Hex, Dictionary<Hex, Trip>>();
             var reach = new Reach();
             foreach (var building in _buildings)
             {
                 if (!IsDepot(building.Kind) && MapIslandOf(building.Tile) == island)
                 {
-                    var trip = TripOn(walk, building.Tile, island, roads);
+                    var trip = TripFrom(building.Tile);
+                    if (nearest is not null)
+                    {
+                        trip = TripOn(nearest, building.Tile, island, roads);
+                    }
+                    else if (roads is not null && trip.Reaches)
+                    {
+                        if (!walks.TryGetValue(trip.Depot, out var walk))
+                        {
+                            walk = Walk(island, roads, null, trip.Depot);
+                            walks.Add(trip.Depot, walk);
+                        }
+
+                        trip = TripOn(walk, building.Tile, island, roads);
+                    }
+
                     reach.Trips[building.Tile] = trip;
                     if (trip.Reaches)
                     {

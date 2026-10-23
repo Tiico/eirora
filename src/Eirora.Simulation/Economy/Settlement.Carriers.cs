@@ -18,8 +18,10 @@ namespace Eirora.Simulation.Economy
         // Every road tile, in map order; roads are only ever added.
         private readonly SortedSet<Hex> _roads = new();
 
-        // Each island's trips by tile, as the carriers walk now; forgotten whenever a depot's staffing or a road changes.
+        // Each island's trips by tile to the nearest staffed depot, and each depot's own trips by tile; forgotten whenever a
+        // depot's staffing or a road changes.
         private readonly Dictionary<string, Dictionary<Hex, Trip>> _walks = new(System.StringComparer.Ordinal);
+        private readonly Dictionary<Hex, Dictionary<Hex, Trip>> _walksTo = new();
         // Each depot's buildings with a recipe and their trips, in the staffing order; forgotten with the trips and
         // whenever a building is added or moves in the order.
         private readonly Dictionary<Hex, List<(Building Building, Recipe Recipe, long Time)>> _served = new();
@@ -32,10 +34,22 @@ namespace Eirora.Simulation.Economy
         public bool HasRoad(Hex tile) => _roads.Contains(tile);
 
         /// <summary>
-        /// The way from a tile to the staffed storehouse or jetty on its island that the carriers reach fastest; a
-        /// depot without carriers takes over no buildings, so a new one never lessens what reaches the store (D-39).
+        /// The way the carriers walk from a tile: for a producing building to the depot it belongs to, and for any other
+        /// tile to the staffed storehouse or jetty on its island that they reach fastest. One that does not reach when
+        /// there is none.
         /// </summary>
         public Trip TripFrom(Hex tile)
+        {
+            if (BuildingAt(tile) is { } building && !IsDepot(building.Kind) && _content.For(building.Kind).Recipe is not null)
+            {
+                return building.Depot is Hex depot && BuildingAt(depot) is { Carriers: > 0 } ? TripTo(tile, depot) : default;
+            }
+
+            return Nearest(tile);
+        }
+
+        /// <summary>The way from a tile to the staffed depot on its island that the carriers reach fastest.</summary>
+        private Trip Nearest(Hex tile)
         {
             if (MapIslandOf(tile) is not string island)
             {
@@ -44,11 +58,56 @@ namespace Eirora.Simulation.Economy
 
             if (!_walks.TryGetValue(island, out var walk))
             {
-                walk = Walk(island, null, null);
+                walk = Walk(island, null, null, null);
                 _walks.Add(island, walk);
             }
 
             return TripOn(walk, tile, island);
+        }
+
+        /// <summary>The way from a tile to one depot, along the fastest way there.</summary>
+        private Trip TripTo(Hex tile, Hex depot)
+        {
+            if (MapIslandOf(tile) is not string island)
+            {
+                return default;
+            }
+
+            if (!_walksTo.TryGetValue(depot, out var walk))
+            {
+                walk = Walk(island, null, null, depot);
+                _walksTo.Add(depot, walk);
+            }
+
+            return TripOn(walk, tile, island);
+        }
+
+        /// <summary>
+        /// Gives each producing building the depot it belongs to (economy-v2.md, section 7): the staffed depot its carriers
+        /// reach fastest. At dawn every building is given one again; otherwise only a new building and one whose depot has
+        /// lost its carriers, so that a depot staffed in the day takes over no building before dawn and never lessens what
+        /// reaches the store (D-39). A building no staffed depot reaches belongs to none.
+        /// </summary>
+        private void AssignDepots(bool all)
+        {
+            foreach (var building in _buildings)
+            {
+                if (IsDepot(building.Kind) || _content.For(building.Kind).Recipe is null)
+                {
+                    continue;
+                }
+
+                if (all || building.Depot is not Hex depot || BuildingAt(depot) is not { Carriers: > 0 })
+                {
+                    var nearest = Nearest(building.Tile);
+                    var was = building.Depot;
+                    building.Depot = nearest.Reaches ? nearest.Depot : null;
+                    if (building.Depot != was)
+                    {
+                        ForgetServed();
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -59,10 +118,13 @@ namespace Eirora.Simulation.Economy
         {
             var way = new List<Hex>();
             var trip = TripFrom(tile);
-            if (!trip.Reaches || MapIslandOf(tile) is not string island || !_walks.TryGetValue(island, out var walk))
+            if (!trip.Reaches)
             {
                 return way;
             }
+
+            TripTo(tile, trip.Depot); // The depot's own walk, which the way follows.
+            var walk = _walksTo[trip.Depot];
 
             for (var (at, left) = (tile, trip.Time); at != trip.Depot && left > 0;)
             {
@@ -254,8 +316,23 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// At dawn each staffed depot, in the staffing order, takes as many carriers as its buildings' goods need, one to
-        /// its cap, from the villagers no building needs, and lets those go that it does not need (D-109).
+        /// At dawn every staffed depot lets go the carriers its buildings' goods no longer need, so that the buildings
+        /// waiting for villagers can take them first (D-109).
+        /// </summary>
+        private void ReleaseCarriers(int activeTicks)
+        {
+            foreach (var depot in _buildings)
+            {
+                if (IsDepot(depot.Kind) && depot.Staffed && Wanted(depot, activeTicks) < depot.Carriers)
+                {
+                    depot.Carriers = Wanted(depot, activeTicks);
+                }
+            }
+        }
+
+        /// <summary>
+        /// At dawn, once the buildings are staffed, each staffed depot in the staffing order takes as many more carriers as
+        /// its buildings' goods need, up to its cap, from the villagers no building needs (D-109).
         /// </summary>
         private void HireCarriers(int activeTicks)
         {
@@ -266,19 +343,18 @@ namespace Eirora.Simulation.Economy
                     continue;
                 }
 
-                long need = NeedAt(depot, activeTicks);
-                int want = (int)((need + Quantity.PerUnit - 1) / Quantity.PerUnit);
-                want = want < 1 ? 1 : want > depot.CarrierCap ? depot.CarrierCap : want;
-                if (want < depot.Carriers)
-                {
-                    depot.Carriers = want;
-                }
-                else if (want > depot.Carriers)
-                {
-                    int free = FreeVillagers;
-                    depot.Carriers += want - depot.Carriers < free ? want - depot.Carriers : free;
-                }
+                int more = Wanted(depot, activeTicks) - depot.Carriers;
+                int free = FreeVillagers;
+                depot.Carriers += more > 0 ? (more < free ? more : free) : 0;
             }
+        }
+
+        /// <summary>The carriers a depot's buildings' goods need, one to its cap.</summary>
+        private int Wanted(Building depot, int activeTicks)
+        {
+            long need = NeedAt(depot, activeTicks);
+            int want = (int)((need + Quantity.PerUnit - 1) / Quantity.PerUnit);
+            return want < 1 ? 1 : want > depot.CarrierCap ? depot.CarrierCap : want;
         }
 
         /// <summary>
@@ -382,6 +458,7 @@ namespace Eirora.Simulation.Economy
         private void ForgetTrips()
         {
             _walks.Clear();
+            _walksTo.Clear();
             ForgetServed();
         }
 
@@ -419,18 +496,18 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Every land tile's trip on an island, found backwards from the staffed depots: the time to step from a tile to
-        /// its neighbour is what entering that neighbour costs. Of two equally fast depots the first in map order wins.
-        /// <paramref name="roads"/> and <paramref name="depot"/> add roads and a staffed depot that are not there, for the
-        /// diagnosis.
+        /// Every land tile's trip on an island, found backwards from the staffed depots, or from <paramref name="only"/>
+        /// alone: the time to step from a tile to its neighbour is what entering that neighbour costs. Of two equally fast
+        /// depots the first in map order wins. <paramref name="roads"/> and <paramref name="depot"/> add roads and a
+        /// staffed depot that are not there, for the diagnosis.
         /// </summary>
-        private Dictionary<Hex, Trip> Walk(string island, ICollection<Hex>? roads, Hex? depot)
+        private Dictionary<Hex, Trip> Walk(string island, ICollection<Hex>? roads, Hex? depot, Hex? only)
         {
             var best = new Dictionary<Hex, Trip>();
             var open = new SortedSet<(long Time, Hex Depot, Hex Tile)>();
             foreach (var building in _buildings)
             {
-                if (IsDepot(building.Kind) && building.Carriers > 0 && MapIslandOf(building.Tile) == island)
+                if (IsDepot(building.Kind) && (only is Hex one ? building.Tile == one : building.Carriers > 0) && MapIslandOf(building.Tile) == island)
                 {
                     best[building.Tile] = new Trip(0, building.Tile, 0);
                     open.Add((0, building.Tile, building.Tile));
@@ -527,8 +604,12 @@ namespace Eirora.Simulation.Economy
             /// <summary>The trip one way, in millionths of an hour.</summary>
             public long Time { get; }
 
+            /// <summary>
+            /// The buildings the player has put first go first, among themselves in the staffing order the jobs come in;
+            /// the others go where most waits.
+            /// </summary>
             public bool GoesBefore(Job other) =>
-                Building.CarriedFirst != other.Building.CarriedFirst ? Building.CarriedFirst : Urgency > other.Urgency;
+                Building.CarriedFirst != other.Building.CarriedFirst ? Building.CarriedFirst : !Building.CarriedFirst && Urgency > other.Urgency;
         }
     }
 }

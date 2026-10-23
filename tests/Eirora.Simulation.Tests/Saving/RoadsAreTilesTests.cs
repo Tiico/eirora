@@ -45,13 +45,16 @@ public sealed class RoadsAreTilesTests
             Assert.Equal(StepsToDepot(world, road.Tile), trip.Steps);
         }
 
-        // No goods are lost: every store is as it was, and the home island has the 2 stone back for each road.
+        // No goods are lost: every store is as it was, and the home island has back the 2 stone paid for each step that
+        // got no road tile of its own: the last into the depot, and the tiles two roads share.
+        Assert.Contains(world.Roads, t => roads.Count(r => world.WayToDepot(r.Tile).Contains(t)) > 1);
+        long unused = 2 * Unit * (roads.Sum(r => StepsToDepot(world, r.Tile)) - world.Roads.Count);
         foreach (var island in world.Islands)
         {
             foreach (var resource in s_resources)
             {
                 long was = Stock(before, island, resource);
-                long back = island == world.HomeIsland && resource == Resource.Stone ? Math.Min(2 * Unit * roads.Count, Capacity(world, island) - was) : 0;
+                long back = island == world.HomeIsland && resource == Resource.Stone ? Math.Min(unused, Capacity(world, island) - was) : 0;
                 Assert.Equal(was + back, world.Settlement.Stock(island, resource));
             }
         }
@@ -88,6 +91,42 @@ public sealed class RoadsAreTilesTests
         read.AdvanceTo(TestClock.At("2026-10-15 12:00", 2));
         Assert.Equal(tiles.Order(), read.Roads);
         Assert.Equal((2 * Logistics.RoadStepTime) + Logistics.StepTime, read.TripFrom(vein).Time);
+    }
+
+    // Review of #166: a depot without its villager under rules 7 has no carriers under rules 8, so its buildings go to the
+    // nearest staffed depot, and a road leads there, where the carriers walk.
+    [Fact]
+    public void AnUnstaffedDepotIsPassedForTheNearestStaffedOneAndTheRoadLeadsThere()
+    {
+        var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
+        var lines = RulesSeven(world.Fingerprint().TrimEnd('\n')).Split('\n').ToList();
+        int last = lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal));
+        lines.Insert(last + 1, $"building Quarry {Tiles.M2.Q} {Tiles.M2.R} 1 1 1 0 0 0");
+        lines.Insert(last + 2, $"building Storehouse {Tiles.E2.Q} {Tiles.E2.R} 1 0 0 0 0 0");
+
+        var read = World.Read(new Serialization.StateReader(new RoadsAreTiles().Migrate(string.Join('\n', lines), PrototypeHome.Map) + "\n"), PrototypeHome.Map);
+
+        Assert.Equal(Tiles.S, read.TripFrom(Tiles.M2).Depot);
+        Assert.Equal(read.TripFrom(Tiles.M2).Steps - 1, read.Roads.Count);
+        Assert.All(read.WayToDepot(Tiles.M2).SkipLast(1), t => Assert.True(read.HasRoad(t) || read.BuildingAt(t) is not null, $"{t} has no road."));
+    }
+
+    // Two roads that share tiles paid twice for them; the second gives back the stone for every tile it gets no new road on.
+    [Fact]
+    public void RoadsThatShareTilesGiveBackTheStoneOfTheTilesTheyShare()
+    {
+        var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
+        var lines = RulesSeven(world.Fingerprint().TrimEnd('\n')).Split('\n').ToList();
+        int last = lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal));
+        lines.Insert(last + 1, $"building Quarry {Tiles.M2.Q} {Tiles.M2.R} 1 1 1 0 0 0");
+        lines.Insert(last + 2, $"building Woodcutter {Tiles.F2.Q} {Tiles.F2.R} 1 1 1 0 0 0");
+
+        var migrated = new RoadsAreTiles().Migrate(string.Join('\n', lines), PrototypeHome.Map).Split('\n');
+
+        // Each paid 2 stone a step to the storehouse; the tiles laid are paid once and the rest comes back.
+        int laid = migrated.Count(l => l.StartsWith("road ", StringComparison.Ordinal));
+        long paid = 2 * Unit * (Tiles.M2.DistanceTo(Tiles.S) + Tiles.F2.DistanceTo(Tiles.S));
+        Assert.Contains($"stock {PrototypeHome.Home} Stone {(20 * Unit) + paid - (2 * Unit * laid)}", migrated);
     }
 
     [Fact]

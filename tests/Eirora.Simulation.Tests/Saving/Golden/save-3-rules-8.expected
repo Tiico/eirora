@@ -16,9 +16,9 @@ force DawnPower 1680 9
 settlement 35 2 0
 stock home Fish 0
 stock home Grain 150000000
-stock home Timber 16625000
-stock home Planks 33875000
-stock home Stone 74184000
+stock home Timber 15687500
+stock home Planks 34187500
+stock home Stone 67581247
 stock home Wool 54750000
 stock home Wadmal 30575000
 stock first Fish 0
@@ -29,48 +29,48 @@ stock first Stone 0
 stock first Wool 0
 stock first Wadmal 0
 stock second Fish 0
-stock second Grain 8937500
+stock second Grain 8062500
 stock second Timber 0
 stock second Planks 0
 stock second Stone 0
 stock second Wool 0
 stock second Wadmal 0
-building Woodcutter 2 0 1 1 0 0 0 0 0 1 0
-building Weavery -1 5 1 1 0 0 0 0 0 1 0
+building Woodcutter 2 0 1 1 0 0 0 0 0 1 0 1 0 0
+building Weavery -1 5 1 1 0 0 0 0 0 1 0 1 0 0
 held Wool 4000000
-building Storehouse 0 0 1 1 0 0 0 2 2 0 0
-building FishingHut -2 -1 2 0 0 0 1 0 0 0 0
-building Jetty 2 -5 1 1 0 0 0 1 3 1 0
-building Woodcutter 0 -2 1 1 0 0 0 0 0 0 7812500
-building Longhouse 0 -1 1 0 0 0 0 0 0 0 0
-building Sawmill 2 -1 2 0 0 0 1 0 0 0 7281250
-held Timber 812500
-building Field 0 1 1 1 0 30500000 0 0 0 0 8000000
-building Field 1 -1 1 1 1 56906250 0 0 0 0 8000000
-building Quarry 3 2 2 1 0 0 0 0 0 0 7760417
-building Jetty -20 11 1 1 0 0 0 1 4 0 0
-building Jetty 17 -11 1 1 0 0 0 1 4 0 0
-building Weavery -17 7 1 1 0 0 0 0 0 0 0
-building Lookout -18 10 1 0 0 0 0 0 0 0 0
-building Lookout 18 -13 1 0 0 0 0 0 0 0 0
-building Lookout 2 1 1 0 0 0 0 0 0 0 0
-building Cottage -19 10 1 0 0 0 0 0 0 0 0
-building Longhouse 15 -11 1 0 0 0 0 0 0 0 0
-building SheepFarm 15 -12 2 1 0 0 0 0 0 0 0
-building Lookout -17 10 1 0 0 0 0 0 0 0 0
-building Cottage -18 7 1 0 0 0 0 0 0 0 0
-building Weavery 18 -12 1 1 0 0 0 0 0 0 0
-building Lookout -18 9 1 0 0 0 0 0 0 0 0
-building Cottage 16 -10 1 0 0 0 0 0 0 0 0
-building Quarry -1 2 1 1 0 0 0 0 0 0 7062500
-building Jetty -17 8 1 1 0 0 0 1 4 0 0
-building Field -19 9 1 1 0 0 0 0 0 0 0
-building Storehouse -18 8 1 1 0 0 0 1 4 0 0
-building Storehouse -19 8 1 1 0 0 0 1 4 0 0
-building Cottage 2 -6 1 0 0 0 0 0 0 0 0
-building Field 1 0 1 1 0 0 0 0 0 0 1250000
-road 2 2
+building Storehouse 0 0 1 1 0 0 0 2 2 0 0 0 0 0
+building FishingHut -2 -1 2 0 0 0 1 0 0 0 0 1 0 0
+building Jetty 2 -5 1 1 0 0 0 1 3 0 0 0 0 0
+building Woodcutter 0 -2 1 1 0 0 0 0 0 0 7250000 1 0 0
+building Longhouse 0 -1 1 0 0 0 0 0 0 0 0 0 0 0
+building Sawmill 2 -1 2 0 0 0 1 0 0 0 7125000 1 0 0
+building Field 0 1 1 1 0 30375000 0 0 0 0 8000000 1 0 0
+building Field 1 -1 1 1 1 57906250 0 0 0 0 8000000 1 0 0
+building Quarry 3 2 2 1 0 0 0 0 0 0 7675000 1 0 0
+building Jetty -20 11 1 1 0 0 0 1 4 0 0 0 0 0
+building Jetty 17 -11 1 1 0 0 0 1 4 0 0 0 0 0
+building Weavery -17 7 1 1 0 0 0 0 0 0 0 1 -18 8
+building Lookout -18 10 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 18 -13 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 2 1 1 0 0 0 0 0 0 0 0 0 0 0
+building Cottage -19 10 1 0 0 0 0 0 0 0 0 0 0 0
+building Longhouse 15 -11 1 0 0 0 0 0 0 0 0 0 0 0
+building SheepFarm 15 -12 2 1 0 0 0 0 0 0 0 1 17 -12
+building Lookout -17 10 1 0 0 0 0 0 0 0 0 0 0 0
+building Cottage -18 7 1 0 0 0 0 0 0 0 0 0 0 0
+building Weavery 18 -12 1 1 0 0 0 0 0 0 0 1 17 -12
+building Lookout -18 9 1 0 0 0 0 0 0 0 0 0 0 0
+building Cottage 16 -10 1 0 0 0 0 0 0 0 0 0 0 0
+building Quarry -1 2 1 1 0 0 0 0 0 0 7812500 1 0 0
+building Jetty -17 8 1 1 0 0 0 1 4 0 0 0 0 0
+building Field -19 9 1 1 0 0 0 0 0 0 0 1 -18 8
+building Storehouse -18 8 1 1 0 0 0 1 4 0 0 0 0 0
+building Storehouse 17 -12 1 1 0 0 0 1 4 0 0 0 0 0
+building Cottage 1 -5 1 0 0 0 0 0 0 0 0 0 0 0
+building Woodcutter 2 -2 1 1 0 0 0 0 0 0 1375000 1 0 0
+road 15 -11
 forest 1 -3 0
+forest 2 -3 39250000
 forest 3 -1 38625000
 forest 2 0 38625000
 forest 3 0 38687500
@@ -271,6 +271,7 @@ force-credited 1768422563 Exploration 110
 command out-1 1
 force-credited 1768422563 BuildPower 190
 command out-10 0
+command out-100 0
 command out-101 0
 command out-102 0
 command out-103 0
@@ -382,6 +383,5 @@ command out-92 0
 command out-93 1
 force-credited 1769455914 DawnPower 0
 command out-94 0
-command out-96 0
+command out-95 0
 command out-98 0
-command out-99 0
