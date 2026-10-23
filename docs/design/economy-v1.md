@@ -1,7 +1,7 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
+> **Ärende:** TASK-004, TASK-037, TASK-044 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
 
@@ -21,7 +21,7 @@ Den ekonomin tas fram i ekonomi v2 (TASK-058); ekonomi v1 beskriver det som spel
   Byggkraft för förädling, hamnar, långhus och uppgraderingar; Utforskning för att hitta nytt; Gryningskraft för att lösa dagens flaskhals.
 - **Byborna är arbetskraften.**
   Varje byggnad behöver bemanning, och lediga bybor bygger.
-  Den knappa resursen är ofta folk, inte material.
+  Den knappa resursen är ofta folk, inte material, så spelaren styr arbetet: pausar byggnader och ordnar bemanningen och byggkön (avsnitt 4.1).
 - **Platsen avgör värdet.**
   Varje landbricka är en möjlig byggplats (D-79).
   Avstånd till förråd, rika och fattiga brickor, skogen runt omkring och sjövägens kapacitet gör samma byggnad olika mycket värd.
@@ -137,6 +137,31 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Start: 12 bybor, bostad för 16, ett förråd, en fiskebod, en åker och en huggarkoja vid en skogsdunge med två skogsbrickor.
   På en genererad karta står samma fyra byggnader så nära startbrickan som deras byggplatser tillåter, se [grundandet](#grundandet-på-en-genererad-karta).
 
+### 4.1 Arbetsfördelning
+
+Spelaren bestämmer vad byborna arbetar med (CIV-02, TASK-044).
+
+- Byggnaderna som behöver bemanning står i en **bemanningsordning**, från början den ordning de byggdes i.
+  En ny byggnad hamnar sist.
+- Byborna fördelas uppifrån varje gång fördelningen kan ändras: vid grundandet, vid gryningen, när ett projekt blir klart och när spelaren pausar, återupptar eller ordnar om.
+  En byggnad som inte är pausad bemannas om tillräckligt många bybor är kvar till den; annars hoppas den över och nästa som ryms bemannas.
+  De som blir över är lediga och bygger.
+- Byggnaderna arbetar också i bemanningsordningen, så en byggnad högre upp får först plats i ett nästan fullt lager och fäller först i en skog som två huggarkojor delar.
+- **Pausa** en byggnad som producerar: den bemannas inte, och dess bybor blir lediga och bygger tills den återupptas.
+  Den tappar ingen nivå och inget lager (D-39), och det som redan mognat står kvar.
+  Förråd och bryggor producerar inget och kan inte pausas.
+- Bara en bemannad åker eller fårgård sköts och växer, så att en paus kostar det byggnaden ger.
+  Det gäller också en åker eller fårgård som står obemannad för att byborna inte räcker.
+- **Ändra bemanningsordningen:** flytta en byggnad till en annan plats i ordningen.
+  Byggnaderna bemannas i den nya ordningen från nästa kvart.
+- **Flytta ett projekt först i byggkön:** de lediga byborna arbetar alltid på det första projektet, och det arbete ett projekt redan fått följer med det.
+  Att avbryta ett projekt ingår inte.
+- Alla tre är planering och kostar ingen kraft (D-23), men de ändrar världen och nekas därför under vilan (INV-T3).
+- Arbetsfördelningen kom med regelversion 6.
+  Förut var en bemannad byggnad bemannad för alltid, åkern och fårgården växte även obemannade, och byggkön gick i den ordning projekten lades.
+  Migrationen dit låter alla byggnader vara igång i byggordning och ändrar inget annat; vem som är bemannad står kvar tills byborna fördelas nästa gång (ADR-0006).
+  Journaler från regelversion 5 spelas inte längre upp, eftersom de skulle ge en annan värld.
+
 ## 5. Logistik
 
 | Avstånd till närmaste förråd eller brygga | 0–1 steg | 2–3 steg | 4 eller fler |
@@ -222,6 +247,7 @@ Båda körningarna har samma måttliga egenvård från [forces.md](./forces.md):
 
 - **Närområdet:** kartlägger Hemön två gånger, bygger huggarkoja i urskogen, stenbrott på stenådern, ett andra förråd i klustret, sågverk, långhus, fiskebod vid det rika vattnet och en till åker.
   Gryningskraften går till dagsverken i stenbrottet och sågverket.
+- **Närområdet, ordnad:** samma, men med långhuset först i byggkön och stenbrottet pausat när 100 sten ligger i lager, så att dess bybor bygger i stället, tills sista dygnet (avsnitt 4.1).
 - **Havet:** bygger brygga, huggarkoja vid skogen öster om byn och sågverk, skickar en expedition, bygger brygga, fårgård och stenbrott på Nyön, väveri och långhus.
   Gryningskraften går till sågverket och fårgården.
 
@@ -229,7 +255,8 @@ Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg,
 
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 320 | 180/260/440 | 461/110/229 | 1,04 |
+| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 316 | 180/260/440 | 461/110/229 | 1,03 |
+| Närområdet, ordnad | måttlig | 19 | 13 | 1 | 150 | 213 | 1 254 | 180/260/440 | 461/110/244 | 0,96 |
 | Havet | måttlig | 20 | 12 | 2 | 36 | 230 | 1 207 | 250/270/360 | 426/100/260 | 0,91 |
 | Naiv | hög | 20 | 10 | 1 | 19 | 188 | 1 089 | 180/310/630 | 520/135/96 | 0,61 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 129 | 1 055 | 180/0/460 | 461/100/224 | 1,01 |
@@ -248,9 +275,15 @@ Havet bör dra ifrån andra veckan medan Närområdet har material för fler lå
 
 **Strategin hinner ikapp (D-34).**
 Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
-Den får ut 0,61 i värde per använd kraft mot 0,91–1,04, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+Den får ut 0,61 i värde per använd kraft mot 0,91–1,03, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
 Den bygger sitt stenbrott på det vanliga berget intill krönet, fyra steg från förrådet, medan de genomtänkta strategierna kartlägger och hittar stenådern.
 Utan det berget skulle stenådern vara Hemöns enda berg att bryta sten i, och då hittar även den naiva strategin dit och skillnaden blir bara 1,2 gånger (D-95).
+
+**Arbetsfördelningen är ett val, inte en genväg (TASK-044).**
+Med stenbrottet pausat medan stenen räcker och långhuset först i kön bygger Närområdet 13 byggnader i stället för 11, med samma dagsproduktion.
+Priset är 58 sten mindre i lager, så utvecklingsvärdet blir något lägre.
+Att flytta bybor från ett stenbrott till ett bygge byter alltså material mot byggen; ingen fördelning är bäst i alla lägen.
+Att bara en bemannad åker växer håller pausen ärlig: annars kunde åkern pausas större delen av dygnet och skördas ikapp utan förlust.
 
 **Utan träning (D-43).**
 En spelare som valt bort träning men går och sover måttligt bygger stugor i stället för långhus och använder ingen Byggkraft.
@@ -277,6 +310,7 @@ Utan spelare och utan egenvård (sista raderna i tabellen ovan):
    V1 behöver en löpande användning, till exempel att lyfta dimman bricka för bricka (MAP-04) och fler expeditionsmål.
 2. **Gryningskraften har för få användningar.**
    Två handlingar räcker inte för ett verkligt morgonbeslut varje dag; fler morgondrag behövs, till exempel att flytta bybor mellan arbetsgrupper eller prioritera transporter.
+   Att flytta bybor blev i stället planering utan kraft (D-23, avsnitt 4.1).
 3. **Ved är grundflaskhalsen.**
    Utan minimilager stannar allt bygge, därför är LOG-06 flyttat från P1 till P0 (D-44).
 4. **Tillväxttakten styr första veckan, inte bostäderna.**

@@ -224,6 +224,7 @@ SPECS = {
 UPGRADE = Spec({"plank": 10, "sten": 5}, 16, 50, 0, "")
 ROAD = Spec({"sten": 2}, 4, 0, 0, "")
 HOUSING = {"Långhus": 8, "Stuga": 4}
+PRODUCERS = {"Fiskebod", "Åker", "Huggarkoja", "Fårgård", "Stenbrott", "Sågverk", "Väveri"}
 START_HOUSING = 16
 
 # --- Krafter (docs/design/forces.md) ------------------------------------------
@@ -282,6 +283,7 @@ class Building:
     tile: tuple  # brickans axiala koordinater
     level: int = 1
     staffed: bool = False
+    paused: bool = False  # spelaren har pausat den: obemannad, men nivå och mognad står kvar (TASK-044)
     road: bool = False
     buffer: float = 0.0  # långsam process: mognad säd eller ull som väntar på skörd
 
@@ -378,10 +380,16 @@ class World:
         return self.villagers - sum(SPECS[b.kind].staff for b in self.buildings if b.staffed)
 
     def staff(self):
+        """Bemanningsordningen (TASK-044): byborna fördelas i byggnadslistans ordning varje gång den
+        kan ändras. En pausad byggnad, och en som inte ryms, hoppas över; de som blir över bygger."""
+        free = self.villagers
         for b in self.buildings:
             need = SPECS[b.kind].staff
-            if not b.staffed and need and self.free_villagers() >= need:
-                b.staffed = True
+            b.staffed = bool(need) and not b.paused and free >= need
+            free -= need if b.staffed else 0
+
+    def staffing_order(self):
+        return [b for b in self.buildings if SPECS[b.kind].staff]
 
     def occupied(self, tile):
         p = coord(tile)
@@ -484,6 +492,41 @@ class World:
         self.boosted.add((kind, p))
         return True
 
+    # Planering kostar ingen kraft (D-23).
+    def pause(self, kind, tile, paused=True):
+        """Pausa (eller återuppta) en byggnad som producerar; dess bybor blir lediga och bygger."""
+        p = coord(tile)
+        b = next((b for b in self.buildings if b.kind == kind and b.tile == p), None)
+        if b is None or kind not in PRODUCERS or b.paused == paused:
+            return False
+        b.paused = paused
+        self.staff()
+        return True
+
+    def prioritize(self, kind, tile, place):
+        """Flytta en byggnad till plats `place` (från 0) i bemanningsordningen."""
+        p = coord(tile)
+        order = self.staffing_order()
+        b = next((b for b in order if b.kind == kind and b.tile == p), None)
+        if b is None or not 0 <= place < len(order) or order[place] is b:
+            return False
+        order.remove(b)
+        self.buildings.remove(b)
+        at = (self.buildings.index(order[place]) if place < len(order)
+              else self.buildings.index(order[-1]) + 1)
+        self.buildings.insert(at, b)
+        self.staff()
+        return True
+
+    def first(self, label):
+        """Flytta ett projekt först i byggkön; det arbete det redan fått följer med."""
+        p = next((p for p in self.projects if p.label == label), None)
+        if p is None or self.projects[0] is p:
+            return False
+        self.projects.remove(p)
+        self.projects.insert(0, p)
+        return True
+
     def rush(self):
         if not self.projects or not self.spend("G", DAWN_RUSH_COST):
             return False
@@ -515,9 +558,12 @@ class World:
     def hour(self, active):
         # Långsamma processer fortgår dygnet runt (INV-T5). Avstånd, nivå 2 och dagsverke
         # skalar hur fort åkern och fårgården växer, som de skalar all annan produktion (TASK-038).
+        # Bara en bemannad åker eller fårgård sköts och växer (TASK-044).
         for p in self.forest:
             self.forest[p] = min(FOREST_PER_TILE, self.forest[p] + FOREST_REGROWTH)
         for b in self.buildings:
+            if not b.staffed:
+                continue
             if b.kind == "Åker":
                 b.buffer += 0.5 * TILES[b.tile].richness * self.boost(b)
             if b.kind == "Fårgård":
@@ -647,6 +693,14 @@ def strategy_land(w: World, day: int):
     w.rush()
 
 
+def strategy_land_ordered(w: World, day: int):
+    """Närområdet med ordnad byggkö och bemanning: långhuset först i kön, och stenbrottet pausat
+    när 100 sten ligger i lager, så att dess bybor bygger i stället, tills sista dygnet (TASK-044)."""
+    strategy_land(w, day)
+    w.first("Långhus@" + tag(coord("L1")))
+    w.pause("Stenbrott", "M2", paused=w.stock["sten"] >= 100 and day < 6)
+
+
 def strategy_sea(w: World, day: int):
     """Havet: brygga, expedition till Nyön, ull och vadmal för snabbare tillväxt."""
     w.build("Brygga", "H1")
@@ -723,6 +777,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     runs = [
         ("Närområdet", strategy_land, "måttlig"),
+        ("Närområdet, ordnad", strategy_land_ordered, "måttlig"),
         ("Havet", strategy_sea, "måttlig"),
         ("Naiv", strategy_naive, "hög"),
         ("Utan träning", strategy_no_training, "utan träning"),
