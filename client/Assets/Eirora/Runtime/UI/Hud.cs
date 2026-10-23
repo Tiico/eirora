@@ -327,6 +327,7 @@ namespace Eirora.Client.UI
             _confirmingDeletion = false;
             _showingRecoveryCode = false;
             _sendingKey = false;
+            _ticketToSend = null;
             if (sheet == Sheet.SelfCare && _world is not null)
             {
                 _selfCare.Reset(_world.GameDay);

@@ -410,7 +410,13 @@ namespace Eirora.Client.Tests
             Assert.That(fresh.Cloud.TransferTicket, Is.EqualTo(ticket), "the code stays on screen while the server is away");
             Assert.That(Wait(old.Cloud.SendKeyAsync(ticket)), Is.EqualTo(KeyDeliveryOutcome.Offline));
 
+            _now += KeyTransfer.Lifetime;
+            Assert.That(Wait(fresh.Cloud.PollKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Expired), "the phone's own clock takes the code down when the server cannot be asked");
+            Assert.That(fresh.Cloud.TransferTicket, Is.Null);
+            Assert.That(fresh.Cloud.TransferOutcome, Is.EqualTo(KeyTransferOutcome.Expired));
+
             _server.Online = true;
+            Assert.That(Wait(fresh.Cloud.BeginKeyTransferAsync()), Is.EqualTo(KeyTransferOutcome.Waiting));
             Wait(fresh.Account.SignOutAsync());
 
             Assert.That(fresh.Cloud.TransferTicket, Is.Null);

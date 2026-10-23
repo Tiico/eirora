@@ -134,6 +134,9 @@ namespace Eirora.Client.App
         /// <summary>When the server forgets the open transfer, or null when none is open.</summary>
         public DateTimeOffset? TransferExpiresAt => _receiver.ExpiresAt;
 
+        /// <summary>The open transfer's check code, shown under the QR code for the player to compare with the old phone's.</summary>
+        public string? TransferCheckCode => _receiver.Ticket?.CheckCode;
+
         /// <summary>How the open transfer stands after its last call, or null when none was begun since the last one ended.</summary>
         public KeyTransferOutcome? TransferOutcome { get; private set; }
 
@@ -236,6 +239,13 @@ namespace Eirora.Client.App
 
             var (accountId, outcome) = await AccountIdAsync();
             var polled = accountId is null ? TransferOutcomeOf(outcome) : await _receiver.PollAsync(accountId.Value);
+            if (polled == KeyTransferOutcome.Offline && _receiver.ExpiresAt is { } expiresAt && expiresAt <= _now())
+            {
+                // The server has forgotten the transfer by now, whether or not it can be asked: the code must come down.
+                await _receiver.CancelAsync();
+                polled = KeyTransferOutcome.Expired;
+            }
+
             TransferOutcome = polled == KeyTransferOutcome.Received ? null : polled;
             if (polled == KeyTransferOutcome.Received)
             {
@@ -266,13 +276,12 @@ namespace Eirora.Client.App
         /// Sends this phone's key to a new phone whose ticket was read from its QR code (TASK-023b). The key is sealed for
         /// that phone alone; the server relays what it cannot read.
         /// </summary>
-        public async Task<KeyDeliveryOutcome> SendKeyAsync(string ticketText)
-        {
-            if (KeyTransferTicket.TryParse(ticketText) is not { } ticket)
-            {
-                return KeyDeliveryOutcome.BadTicket;
-            }
+        public Task<KeyDeliveryOutcome> SendKeyAsync(string ticketText) =>
+            KeyTransferTicket.TryParse(ticketText) is { } ticket ? SendKeyAsync(ticket) : Task.FromResult(KeyDeliveryOutcome.BadTicket);
 
+        /// <summary>Sends this phone's key to the new phone that showed <paramref name="ticket"/>, once the player has confirmed it.</summary>
+        public async Task<KeyDeliveryOutcome> SendKeyAsync(KeyTransferTicket ticket)
+        {
             var (accountId, outcome) = await AccountIdAsync();
             if (accountId is null)
             {
