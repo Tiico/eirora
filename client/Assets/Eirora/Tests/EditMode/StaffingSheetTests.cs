@@ -44,7 +44,7 @@ namespace Eirora.Client.Tests
         {
             _hud.Select(FishingHut);
 
-            Assert.That(Labels().Any(l => l.EndsWith(" · i arbete")), Is.True);
+            Assert.That(Labels().Any(l => l.EndsWith(" · går för fullt · 1,25 fisk/h")), Is.True);
             Assert.That(Labels(), Does.Contain("Plats i bemanningen"));
             Assert.That(Labels(), Does.Contain("2 av 4"));
             Assert.That(Actions(), Does.Contain("Pausa"));

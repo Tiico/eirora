@@ -204,13 +204,14 @@ namespace Eirora.Client
             if (_session.World is { } world)
             {
                 bool newMap = _island.Map?.WorldMap.Hash != world.Map.Hash;
-                _island.Refresh(world);
+                var diagnostics = IslandView.DiagnoseWhileAwake(world);
+                _island.Refresh(world, diagnostics);
                 if (newMap)
                 {
                     _rig.Frame(_island.Map!, SettlementOf(world));
                 }
 
-                _hud.Show(world, _session.SinceDawn);
+                _hud.Show(world, _session.SinceDawn, diagnostics);
                 _atmosphere.Apply(world, _camera);
             }
         }

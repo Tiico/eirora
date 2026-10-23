@@ -46,6 +46,7 @@ namespace Eirora.Client.UI
         private Label? _toast;
         private VisualElement? _setup;
         private World? _world;
+        private Diagnostics? _diagnostics;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
         private Sheet _open;
         private Hex? _tile;
@@ -178,10 +179,14 @@ namespace Eirora.Client.UI
             Text("build", card, Texts.Build(Application.version));
         }
 
-        public void Show(World world, IReadOnlyList<GameEvent> sinceDawn)
+        /// <param name="diagnostics">
+        /// The world's diagnosis, shared with the island so that both read the same; diagnosed here when not given.
+        /// </param>
+        public void Show(World world, IReadOnlyList<GameEvent> sinceDawn, Diagnostics? diagnostics = null)
         {
             CloseSetup();
             _world = world;
+            _diagnostics = diagnostics ?? IslandView.DiagnoseWhileAwake(world);
             _sinceDawn = sinceDawn;
             _top.style.display = DisplayStyle.Flex;
             ApplySafeArea();
@@ -448,13 +453,24 @@ namespace Eirora.Client.UI
             if (building is not null)
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
-                Text("sheet-subtitle", _sheet, Texts.Staffing(building, world.Content.For(building.Kind)) is string staffing ? $"{ground} · {staffing}" : ground);
-                if (Texts.WhyIdle(building, world.Content.For(building.Kind)) is string idle)
+                // While the village rests nothing is diagnosed, as the island marks nothing then: the night is rest.
+                var spec = world.Content.For(building.Kind);
+                var diagnosis = _diagnostics?.At(tile);
+                var status = Container("sheet-status", _sheet);
+                if (diagnosis?.StandsStill == true)
                 {
-                    Text("sheet-text", _sheet, idle);
+                    // The same sign that marks it on the island, so the two are read together (UX-05).
+                    status.Add(new StandingStillIcon());
                 }
 
-                BuildingActions(world, building);
+                string? state = diagnosis is null ? Texts.Resting(building, spec) : Texts.Status(diagnosis, spec);
+                Text("sheet-subtitle", status, state is null ? ground : $"{ground} · {state}");
+                foreach (var hindrance in diagnosis?.Hindrances ?? Array.Empty<Hindrance>())
+                {
+                    Text("sheet-text", _sheet, Texts.Hindrance(hindrance, diagnosis!.Product));
+                }
+
+                BuildingActions(world, building, diagnosis);
                 StaffingActions(world, building);
                 return;
             }
@@ -511,7 +527,7 @@ namespace Eirora.Client.UI
             }
         }
 
-        private void BuildingActions(World world, Building building)
+        private void BuildingActions(World world, Building building, BuildingDiagnosis? diagnosis)
         {
             var spec = world.Content.For(building.Kind);
             if (building.Kind == BuildingKind.Jetty)
@@ -548,7 +564,11 @@ namespace Eirora.Client.UI
             if (!building.HasRoad && steps > 1 && steps < int.MaxValue
                 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Road))
             {
-                AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · mer når fram", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
+                // What the road gives, from the diagnosis, beside what it costs (TASK-043).
+                string gives = diagnosis?.Hindrances.OfType<LongWay>().FirstOrDefault() is { } way && diagnosis.Product is Resource product
+                    ? Texts.RoadGives(way, product)
+                    : "mer når fram";
+                AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · {gives}", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
             }
         }
 
@@ -644,6 +664,7 @@ namespace Eirora.Client.UI
                 Text("sheet-text", _sheet, Waiting(world, building.Island) is string goods
                     ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
                     : sailing ? "Inget väntar på skeppen just nu." : "Lagret är tomt.");
+                SeaRouteUse(building.Island);
                 return;
             }
 
@@ -683,6 +704,7 @@ namespace Eirora.Client.UI
                 Text("sheet-text", _sheet, Waiting(world, route.From) is string goods
                     ? $"{island}: {goods} väntar på skeppen."
                     : $"{island}: inget väntar på skeppen.");
+                SeaRouteUse(route.From);
             }
         }
 
@@ -694,6 +716,21 @@ namespace Eirora.Client.UI
                 .Select(r => $"{world.Stock(island, r)} {Texts.Name(r)}")
                 .ToList();
             return goods.Count == 0 ? null : Texts.List(goods);
+        }
+
+        /// <summary>
+        /// How much of the capacity of the sea route from an island the ships use, and what keeps goods from reaching home
+        /// (TASK-043); nothing while the village rests or when no route sails from it.
+        /// </summary>
+        private void SeaRouteUse(string island)
+        {
+            if (_diagnostics?.SeaRouteFrom(island) is { } route)
+            {
+                foreach (var line in Texts.SeaRoute(route))
+                {
+                    Text("sheet-text", _sheet, line);
+                }
+            }
         }
 
         /// <summary>The health store's part of the self-care sheet: connect it, or see what is read and change it there.</summary>
@@ -769,6 +806,16 @@ namespace Eirora.Client.UI
             foreach (var line in lines.TakeLast(9))
             {
                 Text("report-line", _sheet, line);
+            }
+
+            // Worth a look: what holds each island back most, which leads to the building (UX-02, TASK-043).
+            foreach (var island in _world!.Islands)
+            {
+                if (_diagnostics?.BottleneckOn(island) is { } bottleneck)
+                {
+                    string title = island == _world.HomeIsland ? "Flaskhals just nu" : $"Flaskhals på {Texts.IslandName(_world, island)}";
+                    AddAction(title, Texts.Bottleneck(bottleneck), true, () => Select(bottleneck.Building.Building.Tile));
+                }
             }
 
             Text("build", _sheet, Texts.Build(Application.version));
@@ -981,6 +1028,53 @@ namespace Eirora.Client.UI
                         run(new RecordSelfCare(_day, Habit.Sleep, ContributionSource.SelfReported, slept));
                     }
                 });
+            }
+        }
+
+        /// <summary>
+        /// The sign of a building that stands still, as the island shows it above the building: two bars on a light disc
+        /// with a dark rim, so its shape and not its colour says it (UX-05, TASK-043).
+        /// </summary>
+        private sealed class StandingStillIcon : VisualElement
+        {
+            public StandingStillIcon(float size = 34f)
+            {
+                AddToClassList("standing-still");
+                style.width = size;
+                style.height = size;
+                pickingMode = PickingMode.Ignore;
+                generateVisualContent += Draw;
+            }
+
+            private void Draw(MeshGenerationContext context)
+            {
+                var p = context.painter2D;
+                float w = contentRect.width, h = contentRect.height;
+                var centre = new Vector2(w / 2f, h / 2f);
+                float radius = Mathf.Min(w, h) / 2f;
+                Disc(p, centre, radius, Palette.Text);
+                Disc(p, centre, radius * StandingStill.Face, Palette.Birch);
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    float x = centre.x + (side * radius * StandingStill.BarGap);
+                    p.fillColor = Palette.Text;
+                    p.BeginPath();
+                    p.MoveTo(new Vector2(x - (radius * StandingStill.BarWidth), centre.y - (radius * StandingStill.BarHeight)));
+                    p.LineTo(new Vector2(x + (radius * StandingStill.BarWidth), centre.y - (radius * StandingStill.BarHeight)));
+                    p.LineTo(new Vector2(x + (radius * StandingStill.BarWidth), centre.y + (radius * StandingStill.BarHeight)));
+                    p.LineTo(new Vector2(x - (radius * StandingStill.BarWidth), centre.y + (radius * StandingStill.BarHeight)));
+                    p.ClosePath();
+                    p.Fill();
+                }
+            }
+
+            private static void Disc(Painter2D p, Vector2 centre, float radius, Color colour)
+            {
+                p.fillColor = colour;
+                p.BeginPath();
+                p.Arc(centre, radius, Angle.Degrees(0f), Angle.Degrees(360f));
+                p.ClosePath();
+                p.Fill();
             }
         }
 
