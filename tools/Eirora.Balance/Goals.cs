@@ -197,6 +197,61 @@ public sealed class RushFirst : DailyMove
     }
 }
 
+/// <summary>Moves the first queued building of a kind first in the building queue (economy-v1.md, section 4.1).</summary>
+public sealed class BuildFirst : DailyMove
+{
+    public BuildFirst(BuildingKind building) => Building = building;
+
+    public BuildingKind Building { get; }
+
+    public override string Name => $"{Names.Of(Building)} först i kön";
+
+    internal override void Make(Turn turn)
+    {
+        var projects = turn.World.Projects;
+        var project = projects.FirstOrDefault(p => p.Kind == ProjectKind.Build && p.Building == Building);
+        if (project is not null && projects[0] != project)
+        {
+            turn.Apply(new QueueFirst(ProjectKind.Build, project.Tile));
+        }
+    }
+}
+
+/// <summary>
+/// Pauses a kind's buildings while the store holds enough of what they make, so that their villagers build instead,
+/// and resumes them when it does not or on the last day (economy-v1.md, section 4.1).
+/// </summary>
+public sealed class PauseWhileStocked : DailyMove
+{
+    public PauseWhileStocked(BuildingKind building, Resource resource, int units, int lastDay)
+    {
+        Building = building;
+        Resource = resource;
+        Units = units;
+        LastDay = lastDay;
+    }
+
+    public BuildingKind Building { get; }
+
+    public Resource Resource { get; }
+
+    public int Units { get; }
+
+    /// <summary>The game day from which it works again whatever the store holds.</summary>
+    public int LastDay { get; }
+
+    public override string Name => $"pausa {Names.Of(Building)} vid {Units} {Resource}";
+
+    internal override void Make(Turn turn)
+    {
+        bool pause = turn.World.Stock(Resource) >= Units && turn.Day < LastDay;
+        foreach (var building in turn.World.Buildings.Where(b => b.Kind == Building && b.Paused != pause).ToList())
+        {
+            turn.Apply(pause ? new PauseBuilding(building.Tile) : new ResumeBuilding(building.Tile));
+        }
+    }
+}
+
 internal static class Moves
 {
     /// <summary>The building that delivers the most of what it makes now, the first in map order among equals.</summary>
