@@ -15,9 +15,10 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Simulation.Tests/` | Headless tester av simuleringen och kartgeneratorerna, inklusive arkitekturtestet som håller dem rena. |
 | `tests/Eirora.CloudSaving.Tests/` | Headless tester av krypteringen och avstämningen, med en minnesserver som följer serverns regler. |
 | `tests/Eirora.Server.Tests/` | Integrationstester av servern, inklusive två simulerade enheter som synkar genom den riktiga servern. |
+| `tests/Eirora.Balance.Tests/` | Balansbotarnas korta körningar: ekonomi v1:s sju dygn, determinismen och 20 genererade kartor i fyra veckor. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor (byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor och `Eirora.Balance` låter balansbotar spela simuleringen (båda byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
@@ -264,6 +265,46 @@ Ett kontaktark med kartor ritade ovanifrån i art directions palett, för att v�
 ```bash
 dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-archipelago --version 1 --sheet maps.svg --seeds 12
 ```
+
+### Balansbotar
+
+Balansbotarna i `tools/Eirora.Balance` (TASK-048) spelar den riktiga simuleringen med samma kommandon och tidsavläsningar som klienten, så att strategier och långa körningar prövar det spelaren faktiskt spelar.
+De är klienter till `World` och läser bara dess publika yta; ingenting om botar finns i simuleringen.
+
+- En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
+  Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
+- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning) och `idle` (Ingen spelare).
+  Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad brickan ger, avståndet till förrådet och vad som redan står där.
+  Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
+- Världen skapas en kvart före sin första gryning, så att spelardygn 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
+  Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta brickor aldrig minskar och att inga lager eller krafter blir negativa (INV-V1, INV-R1, INV-F1).
+- Måtten är ekonomi v1:s: bybor, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
+
+Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).
+Samma körningar ger alltid samma rapport, byte för byte.
+Utan argument spelar det ekonomi v1:s sju dygn på prototypens karta och Närområdet och Havet på 20 genererade kartor i fyra veckor:
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance -- --suite economy-v1
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance -- --suite generated --from 0 --seeds 20 --days 28
+```
+
+Alla kombinationer av strategier, profiler och kartor, till exempel åtta veckor på fem kartor:
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance -- --maps generated --from 100 --seeds 5 --strategies near,sea,naive --profiles normal,low --days 56
+```
+
+`--maps prototype` (standard) spelar prototypens karta.
+Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, determinismen och de 20 genererade kartorna, sammanlagt några sekunder; längre körningar görs lokalt.
+Ändras balansen med avsikt, kör `--suite economy-v1` och för in den nya tabellen i [avsnitt 7.1](./design/economy-v1.md#71-balansbotarna-i-simuleringen).
 
 ## Servern
 
