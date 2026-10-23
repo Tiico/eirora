@@ -301,6 +301,7 @@ Hur botarna körs står i [development.md](../development.md#balansbotar).
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 12 | 1 | 204 | 194 | 1 267 | 180/260/410 | 461/110/233 | 1,01 |
+| Närområdet, ordnad | måttlig | 19 | 12 | 1 | 148 | 218 | 1 281 | 180/260/410 | 461/110/259 | 1,03 |
 | Havet | måttlig | 20 | 12 | 2 | 37 | 246 | 1 221 | 250/330/380 | 426/40/240 | 0,85 |
 | Naiv | hög | 20 | 10 | 1 | 14 | 194 | 1 091 | 180/360/630 | 520/85/96 | 0,58 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 134 | 1 069 | 180/0/490 | 461/100/194 | 0,98 |
