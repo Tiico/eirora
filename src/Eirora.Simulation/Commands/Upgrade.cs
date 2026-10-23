@@ -18,17 +18,17 @@ namespace Eirora.Simulation.Commands
         {
             var settlement = world.Settlement;
             var building = settlement.BuildingAt(Tile);
-            if (building is null || !Produces(building.Kind))
+            if (building is null || !settlement.Content.For(building.Kind).Produces)
             {
                 return Rejection.NoBuildingThere;
             }
 
-            if (building.Level >= BuildingSpec.For(building.Kind).MaxLevel || settlement.IsQueued(Tile, ProjectKind.Upgrade))
+            if (building.Level >= settlement.Content.For(building.Kind).MaxLevel || settlement.IsQueued(Tile, ProjectKind.Upgrade))
             {
                 return Rejection.AlreadyDone;
             }
 
-            var spec = BuildingSpec.Upgrade;
+            var spec = settlement.Content.Upgrade;
             if (!settlement.CanAfford(spec.Cost))
             {
                 return Rejection.InsufficientResources;
@@ -42,8 +42,5 @@ namespace Eirora.Simulation.Commands
             settlement.Queue(ProjectKind.Upgrade, building.Kind, Tile, spec.Cost, spec.WorkHours);
             return Rejection.None;
         }
-
-        internal static bool Produces(BuildingKind kind) => kind is BuildingKind.FishingHut or BuildingKind.Field
-            or BuildingKind.Woodcutter or BuildingKind.SheepFarm or BuildingKind.Quarry or BuildingKind.Sawmill or BuildingKind.Weavery;
     }
 }

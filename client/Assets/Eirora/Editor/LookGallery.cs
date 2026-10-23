@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Eirora.Client.Look;
+using Eirora.Simulation;
 using Eirora.Simulation.Economy;
 using UnityEditor;
 using UnityEngine;
@@ -311,9 +312,9 @@ namespace Eirora.Editor
 
         private static IEnumerable<GalleryRow> Rows(Looks looks)
         {
-            foreach (BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
+            foreach (var kind in ContentCatalog.Current.Buildings)
             {
-                var spec = BuildingSpec.For(kind);
+                var spec = ContentCatalog.Current.For(kind);
                 var ground = IslandMap.GroundFor(spec.Requirement);
                 var nature = IslandView.NatureOf(ground) is NatureKind natureKind ? looks.For(natureKind) : null;
                 yield return new GalleryRow(

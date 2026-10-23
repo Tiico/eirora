@@ -190,6 +190,21 @@
     color: rgb(43, 42, 51);
 }
 
+.action-head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.action-effect {
+    flex-shrink: 1;
+    margin-left: 20px;
+    font-size: 27px;
+    color: rgb(43, 42, 51);
+    white-space: normal;
+    -unity-text-align: middle-right;
+}
+
 .action-cost {
     font-size: 27px;
     color: rgb(104, 101, 117);
