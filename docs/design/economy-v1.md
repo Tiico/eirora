@@ -150,7 +150,11 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Ett förråd rymmer 150 av varje resurs.
   Fullt lager stoppar produktionen; inget går förlorat.
 - Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen.
-- Sjövägen mellan Hemön och Nyön för 40 enheter per spelardygn, delat mellan alla varor.
+- Varje ö där spelaren har byggt har eget lager; öarna är kartans (TASK-045).
+  En brygga utanför Hemön rymmer också 150 av varje resurs, så att varorna har någonstans att vänta på skeppen.
+- Varje ö med brygga får en egen sjöväg till Hemön när Hemön har en brygga.
+  Varje sjöväg för 40 enheter per spelardygn, delat mellan alla varor, i varornas fasta ordning tills spelaren får importprioritet (TASK-046).
+  Sjövägarna lastar av i kartans ordning när Hemöns lager bara rymmer en del.
 
 ### Logistiska avvägningar
 

@@ -27,7 +27,7 @@ namespace Eirora.Simulation.Economy
 
         private const long WorkPerVillagerPerTick = 250; // Thousandths of a villager-hour.
         private const int StoragePerStorehouse = 150;
-        private const int StorageAtJetty = 150; // A jetty on an island without a storehouse stores goods for the ship.
+        private const int StorageAtJetty = 150; // A jetty off the home island stores goods for the ship.
         private const int ProcessingReserve = 20; // LOG-06 minimum stock left for building (D-44).
         private const int ComfortPerDawn = 2;
         private const int StartingHousing = 16;

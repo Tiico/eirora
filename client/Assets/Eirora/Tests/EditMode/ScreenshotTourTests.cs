@@ -29,7 +29,7 @@ namespace Eirora.Client.Tests
             var world = session.World!;
 
             Assert.That(world.BuildingAt(ScriptedWeek.Sawmill)!.Level, Is.EqualTo(2));
-            Assert.That(world.SeaRouteOpen, Is.True);
+            Assert.That(world.SeaRoutes.Select(r => r.From), Is.EqualTo(new[] { PrototypeHome.Nyon }));
             Assert.That(
                 world.Buildings.Select(b => $"{b.Kind}@{b.Tile}"),
                 Is.SupersetOf(new[] { "Longhouse@(-1, 0)", "Cottage@(0, -1)", "Lookout@(-1, 1)", "Jetty@(10, 0)", "SheepFarm@(10, 1)", "Quarry@(11, 0)" }));

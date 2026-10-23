@@ -100,6 +100,7 @@ När ett basbehov inte uppfylls kan tillväxt stanna, men antalet bybor, byggnad
 Hur länge spelaren än är borta utan egenvård och kommandon är världen efteråt minst lika utvecklad som före.
 *Test:* sammansatt test av INV-R1, INV-R3 och INV-V1 för `Δt` upp till ett år med noll bidrag (AC-02).
 Från TASK-049 också i utbyggda världar med byggkö, expedition till sjöss, sjöväg, fulla lager och långsamma processer, med och utan egenvård och med sena bidrag, tillsammans med INV-T5 och INV-D4.
+Från TASK-045 också i världar på en genererad karta med lager på tre öar och två sjövägar.
 
 Framspolningen hoppar över kvartar där bara långsamma processer rör sig: viloperioden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
 Det håller bara om inget tillstånd som kvartarna driver kan börja ändras utan att något av det som jämförs ändras först.
