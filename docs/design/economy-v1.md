@@ -64,6 +64,10 @@ Avståndet till förrådet (avsnitt 5), nivå 2 och dagsverke skalar all produkt
 En åker 2–3 steg från förrådet ger alltså 75 % av en åker intill, och en åker på nivå 2 eller med dagsverke 150 %.
 En skogsbricka rymmer 40 timmer och växer tillbaka med 0,25 timmer i timmen.
 
+Tabellens kostnader, krav, bostäder, nivåer och recept är innehåll i innehållskatalogen (`ContentCatalog`, TASK-042), som simuleringen och klientens byggvy läser.
+Katalogens kanoniska text är incheckad i `tests/Eirora.Simulation.Tests/Economy/Golden/content-catalog.txt`, så varje ändring syns i granskningen och hör till en ny innehålls- eller regelversion (ADR-0006).
+Skogen, lagret, förråden, sjövägen och utkiksvardens rabatt är regler och står kvar i koden.
+
 ### 3.1 Byggplatser
 
 Varje landbricka är en möjlig byggplats, och vad den duger till följer av terräng, höjd och grannar (D-79, D-88–D-93, [ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
@@ -325,3 +329,9 @@ Produktägarens svar på besluten om innehåll, bosättningar och transport i M4
   Flaskhalsdiagnostiken ska alltid visa varför en vara inte når fram och vad en väg, ett förråd eller fler bärare skulle ge.
 
 Nivåer, behov, byggnader, kedjor, upplåsning och bärarnas regler räknas fram i ekonomi v2 (TASK-058), som ersätter avsnitt 2–6 när den är godkänd.
+
+Produktägarens svar på vad rivning ger tillbaka (TASK-059):
+
+- **D-108:** en riven byggnad ger tillbaka hälften av materialet den kostade, avrundat nedåt per resurs, till öns lager; kraft återbetalas aldrig (INV-F5).
+  Återbetalningen måste rymmas i öns lager (INV-R1), och bekräftelsen visar exakt vad som kommer tillbaka.
+  Att flytta en byggnad genom att riva och bygga om kostar alltså halva materialet och hela kraften; balansbotarna och scenarierna prövar att det inte blir en dominerande strategi.

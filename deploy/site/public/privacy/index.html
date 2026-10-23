@@ -16,17 +16,19 @@
 
     <article id="sv" lang="sv">
       <h1>Integritetspolicy för Eirora</h1>
-      <p class="meta">Gäller från 20 oktober 2026. Ansvarig för appen: {{developer}}.</p>
+      <p class="meta">Gäller från 23 oktober 2026. Ansvarig för appen: {{developer}}.</p>
 
       <p>Eirora är ett spel där en lugn ö växer av att du tar hand om dig själv i verkligheten.
       Den här policyn beskriver vilka uppgifter appen använder, var de stannar och hur du tar bort dem.</p>
 
       <h2>I korthet</h2>
       <ul>
-        <li>Hälsodata lämnar aldrig din telefon.</li>
+        <li>Hälsodata lämnar aldrig din telefon i en form som vi kan läsa.</li>
         <li>Du behöver inget konto för att spela.
         Skapar du ett genom att logga in med Apple eller Google sparar vi bara ett konto-id och det id Apple eller Google ger dig för Eirora, aldrig namn eller e-post.</li>
-        <li>Du kan radera kontot när du vill, i appen eller på webben.</li>
+        <li>Med ett konto sparas din ö också på servern, så att den kan följa med till en ny telefon.
+        Det som visar din egenvård krypteras på telefonen innan det skickas, och bara du har nyckeln.</li>
+        <li>Du kan radera kontot och allt som sparats med det när du vill, i appen eller på webben.</li>
         <li>Eirora har ingen reklam, ingen analys och ingen spårning.</li>
         <li>Vi säljer, delar eller lånar aldrig ut några uppgifter om dig.</li>
       </ul>
@@ -36,15 +38,20 @@
       Eirora läser inget annat, till exempel ingen plats, ingen puls och ingen sömnkvalitet.</p>
       <p>Uppgifterna läses när du öppnar spelet, aldrig i bakgrunden, och används bara för att räkna ut spelets krafter.
       Spelet sparar summor per spelardygn på telefonen, aldrig de enskilda posterna, och skriver aldrig något till Health Connect.</p>
-      <p>Hälsodata skickas aldrig till oss eller någon annan, används aldrig för reklam och säljs aldrig.
+      <p>Hälsodata skickas aldrig till oss i en form som vi kan läsa.
+      Har du ett konto följer summorna per spelardygn med molnsparningen, men krypterade på telefonen med en nyckel som bara du har (se <a href="#sv-molnsparning">Molnsparning</a>).
+      Telefonens egen säkerhetskopia kan ta med summorna till ditt Google- eller iCloud-konto, se <a href="#sv-din-varld">Din värld</a>.
+      Hälsodata används aldrig för reklam och säljs aldrig.
       Eiroras användning följer <a href="https://support.google.com/googleplay/android-developer/answer/12991134">Google Plays regler för hälsobehörigheter</a>.</p>
       <p>Du kan när som helst ta bort behörigheten i Health Connect.
       Spelet fungerar lika bra om du i stället skriver in dina vanor själv.</p>
 
-      <h2>Din värld</h2>
+      <h2 id="sv-din-varld">Din värld</h2>
       <p>Din ö och dina summor per spelardygn sparas på telefonen, även om du har ett konto.
-      Android kan säkerhetskopiera appens data, sparningen med, till ditt eget Google-konto på samma sätt som för andra appar, så att världen kan följa med till en ny telefon.
-      Den säkerhetskopian hanteras av Google och syns inte för oss.</p>
+      Med ett konto finns också en kopia på servern, se <a href="#sv-molnsparning">Molnsparning</a>.
+      Telefonen kan säkerhetskopiera appens data, sparningen och summorna per spelardygn med, på samma sätt som för andra appar, så att världen kan följa med till en ny telefon: Android till ditt eget Google-konto och iPhone till din iCloud-säkerhetskopia.
+      Den säkerhetskopian hanteras av Google eller Apple och syns inte för oss.
+      Den är end-to-end-krypterad bara om telefonen har skärmlås på Android, och bara om Avancerat dataskydd för iCloud är påslaget på iPhone; annars kan Google eller Apple läsa den.</p>
 
       <h2>Konto och inloggning</h2>
       <p>Ett konto är frivilligt, och spelet fungerar likadant utan.
@@ -69,23 +76,77 @@
       Vi behandlar uppgifterna för att ge dig det konto du bett om (artikel 6.1 b i dataskyddsförordningen) och för att skydda kontot och servern mot missbruk (artikel 6.1 f).
       Kontot finns kvar tills du raderar det, och en inloggning på en enhet går ut efter 60 dagar utan användning.</p>
 
+      <h2 id="sv-molnsparning">Molnsparning</h2>
+      <p>Har du ett konto sparar appen en kopia av din ö på kontot, en molnsparning, så att ön kan följa med till en ny telefon, även mellan iPhone och Android.
+      Kontot får en molnsparning när du loggar in, och den uppdateras när ön ändras.
+      Loggar du ut slutar appen att spara, men molnsparningen ligger kvar på kontot tills du raderar det.</p>
+      <p>Molnsparningen har två delar:</p>
+      <ul>
+        <li><strong>Världsdelen</strong> är kartan och ön som den ser ut nu, med byggnader, krafternas saldon och spelets klocka.
+        Servern kan läsa den, men den innehåller inget per spelardygn som går att räkna tillbaka till din egenvård.
+        Saldona växer med din egenvård, och varje kraft kommer från en viss vana, så den som jämför två sparningar kan se ungefär hur mycket av varje vana som gett kraft däremellan.</li>
+        <li><strong>Bidragsdelen</strong> är det som visar din egenvård: summorna per spelardygn, vad varje spelardygn gav i spelet och spelets journal över det ön fått.
+        Den krypteras på telefonen med bidragsnyckeln innan den skickas, och servern lagrar bara krypterade byte som den aldrig kan läsa.</li>
+      </ul>
+      <p>Servern sparar också molnsparningens versionsnummer, vilken generation av bidragsnyckeln som används och när molnsparningen senast sparades.
+      Av det kan servern se när och hur ofta ön sparas och hur stor bidragsdelen är, men aldrig vad den innehåller.
+      Serverns loggar innehåller inget ur molnsparningen.</p>
+      <p>Saknar telefonen bidragsnyckeln, eller går kontots bidragsdel inte att öppna med den, kan du välja att fortsätta utan den gamla bidragsdelen.
+      Ön och allt du byggt finns kvar, men den gamla bidragsdelen blir en låst bidragsdel: servern sparar den krypterad i 90 dagar och raderar den sedan.
+      Appen kan inte låsa upp en låst bidragsdel igen, inte heller om nyckeln skulle hittas.
+      Förlorar du nyckeln förlorar du alltså bara historiken över din egenvård, aldrig ön.</p>
+
+      <h2>Bidragsnyckeln</h2>
+      <p>Bidragsnyckeln skapas slumpmässigt på telefonen, och varken vi eller någon annan kan återskapa den.
+      Den finns bara på de här ställena:</p>
+      <ul>
+        <li><strong>På telefonen</strong>, bredvid inloggningsnyckeln: i iOS nyckelring eller krypterad med en nyckel i Android Keystore.</li>
+        <li><strong>I nyckelbackupen</strong>, iCloud-nyckelringen på iPhone och Block Store på Android, så att en ny telefon på samma plattform hittar den utan att fråga.
+        Nyckeln går dit bara end-to-end-krypterad, så att Apple och Google inte kan läsa den, och det kräver att telefonen har skärmlås (på iPhone också att iCloud-nyckelringen är påslagen).
+        Utan skärmlås stannar nyckeln på telefonen; på Android följer den då bara med när du flyttar data direkt från telefon till telefon, och appen föreslår en återställningskod eller en nyckelöverföring.
+        I iCloud-nyckelringen finns nyckeln också på dina andra enheter med samma Apple-konto, till exempel iPad och Mac, och den följer med en krypterad säkerhetskopia av iPhonen.</li>
+        <li><strong>I en återställningskod</strong>, om du vill: appen visar koden när du ber om det under <em>Konto</em>, och du skriver ner den själv.
+        Den som har koden och kommer åt ditt konto kan läsa din egenvård, så förvara den som ett lösenord.
+        Koden lämnar aldrig telefonen genom spelet.</li>
+        <li><strong>Under en nyckelöverföring</strong>, när du byter telefon, till exempel mellan iPhone och Android: den nya telefonen visar en QR-kod, en biljett, som den gamla telefonen skannar med kameran och sedan skickar nyckeln förseglad för den nya telefonen.
+        Servern förmedlar bara förseglade byte som den inte kan öppna och lämnar ut dem en gång.
+        Den raderar överföringen när nyckeln hämtats eller när du avbryter; annars slutar överföringen gälla efter tio minuter och raderas inom en kvart därefter.
+        Servern ser att du gjort en överföring och när, alltså att du bytt telefon.</li>
+      </ul>
+      <p>Kameran används bara medan du skannar en biljett på den gamla telefonen.
+      Bilderna läses på telefonen och sparas eller skickas aldrig någonstans.
+      Telefonen frågar om lov första gången; säger du nej kan du i stället skriva in återställningskoden på den nya telefonen.</p>
+      <p>Molnsparningen, de låsta bidragsdelarna och nyckelöverföringarna lagras på samma server och med samma krypterade säkerhetskopior som kontot.
+      Vi behandlar dem för att ge dig den molnsparning och de överföringar du bett om (artikel 6.1 b i dataskyddsförordningen) och för att skydda kontot och servern mot missbruk (artikel 6.1 f).
+      Bidragsdelen räknas som uppgifter om hälsa även när den är krypterad, eftersom den hör till ditt konto.
+      Den behandlar vi bara med ditt uttryckliga samtycke (artikel 9.2 a), som appen ber om innan den laddar upp bidragsdelen första gången.
+      Du kan när som helst ta tillbaka samtycket genom att radera kontot, se <a href="#sv-ta-bort">Ta bort dina uppgifter</a>.
+      Att bidragsdelen krypteras på telefonen, så att bara du kan läsa den, är ett skydd utöver samtycket och ersätter det inte.</p>
+      <p>Molnsparningen finns kvar tills du raderar kontot.
+      En låst bidragsdel raderas ur databasen inom sex timmar efter att den sparats i 90 dagar.
+      En nyckelöverföring som inte hämtats eller avbrutits raderas ur databasen inom en kvart efter att den slutat gälla, alltså senast 25 minuter efter att den skapades.
+      Ur säkerhetskopiorna försvinner det som raderats ur databasen inom ytterligare 30 dagar.</p>
+
       <h2>Teknik från andra</h2>
       <p>Google Play hanterar nedladdning och uppdateringar av appen enligt <a href="https://policies.google.com/privacy?hl=sv">Googles integritetspolicy</a>.
       Spelmotorn Unity kan när spelet startar skicka anonym teknisk information om telefonen, som modell, Android-version och grafikkrets, till Unity Technologies enligt <a href="https://unity.com/legal/privacy-policy">Unitys integritetspolicy</a>.
       Den informationen innehåller aldrig hälsodata eller något från ditt spel.</p>
 
-      <h2>Ta bort dina uppgifter</h2>
+      <h2 id="sv-ta-bort">Ta bort dina uppgifter</h2>
       <p>Det som finns på telefonen försvinner när du avinstallerar appen eller rensar dess data i telefonens inställningar.
-      En säkerhetskopia i ditt Google-konto tar du bort under <em>Inställningar → Google → Säkerhetskopiering</em> på telefonen.</p>
+      En säkerhetskopia i ditt Google-konto tar du bort under <em>Inställningar → Google → Säkerhetskopiering</em> på telefonen, och en iCloud-säkerhetskopia under <em>Inställningar → ditt namn → iCloud</em> på iPhonen.</p>
       <p>Kontot raderar du i appen under <em>Konto → Radera kontot</em>, eller utan appen på <a href="{{deletion}}">{{deletion}}</a>.
       Du bekräftar genom att logga in en gång till; har kontot en Apple-inloggning bekräftar du med Apple.
-      Kontot, dess inloggningar och inloggningarna på dina enheter tas då bort från databasen direkt, och inom 30 dagar även ur säkerhetskopiorna.
+      Kontot, dess inloggningar, inloggningarna på dina enheter, molnsparningen, de låsta bidragsdelarna och en pågående nyckelöverföring tas då bort från databasen direkt, och inom 30 dagar även ur säkerhetskopiorna.
+      Raderar du kontot i appen tar appen samtidigt bort bidragsnyckeln från telefonen och försöker ta bort den ur iCloud-nyckelringen eller Block Store, som för borttagningen vidare till dina andra enheter.
+      Misslyckas det, eller raderar du kontot på webben, ligger nyckeln kvar där, liksom i krypterade säkerhetskopior av iPhonen som gjorts tidigare, men den öppnar ingenting längre, eftersom servern redan raderat allt den skulle öppna.
+      En återställningskod du skrivit ner slänger du själv.
       Att bara logga ut raderar inte kontot.</p>
       <p>Du har rätt att få veta vilka uppgifter vi har om dig och att få dem rättade, raderade eller utlämnade.
       Hör av dig till kontaktadressen nedan.</p>
 
       <h2>Ändringar</h2>
-      <p>Om Eirora börjar använda uppgifter på ett nytt sätt, till exempel med molnsparning, uppdateras den här policyn innan den versionen släpps och datumet ovan ändras.</p>
+      <p>Om Eirora börjar använda uppgifter på ett nytt sätt uppdateras den här policyn innan den versionen släpps och datumet ovan ändras.</p>
 
       <h2>Kontakt</h2>
       <p>Frågor om integritet skickar du till <a href="mailto:{{contact}}">{{contact}}</a>.
@@ -94,17 +155,19 @@
 
     <article id="en" lang="en">
       <h1>Eirora privacy policy</h1>
-      <p class="meta">Effective 20 October 2026. Developer: {{developer}}.</p>
+      <p class="meta">Effective 23 October 2026. Developer: {{developer}}.</p>
 
       <p>Eirora is a game in which a calm island grows as you take care of yourself in real life.
       This policy describes which information the app uses, where it stays and how you delete it.</p>
 
       <h2>In short</h2>
       <ul>
-        <li>Health data never leaves your phone.</li>
+        <li>Health data never leaves your phone in a form we can read.</li>
         <li>You do not need an account to play.
         If you create one by signing in with Apple or Google, we store only an account id and the id Apple or Google gives you for Eirora, never your name or email.</li>
-        <li>You can delete the account whenever you like, in the app or on the web.</li>
+        <li>With an account, your island is also saved on the server, so that it can move to a new phone.
+        What shows your self-care is encrypted on the phone before it is sent, and only you have the key.</li>
+        <li>You can delete the account and everything saved with it whenever you like, in the app or on the web.</li>
         <li>Eirora has no ads, no analytics and no tracking.</li>
         <li>We never sell, share or lend any information about you.</li>
       </ul>
@@ -114,15 +177,20 @@
       Eirora reads nothing else, for example no location, no heart rate and no sleep stages.</p>
       <p>The data is read when you open the game, never in the background, and is used only to work out the game's powers.
       The game stores totals per game day on the phone, never the individual records, and never writes anything to Health Connect.</p>
-      <p>Health data is never sent to us or anyone else, never used for advertising and never sold.
+      <p>Health data is never sent to us in a form we can read.
+      If you have an account, the totals per game day go along with the cloud save, but encrypted on the phone with a key that only you have (see <a href="#en-cloud-save">Cloud save</a>).
+      The phone's own backup may take the totals to your Google or iCloud account, see <a href="#en-your-world">Your world</a>.
+      Health data is never used for advertising and never sold.
       Eirora's use follows <a href="https://support.google.com/googleplay/android-developer/answer/12991134">Google Play's rules for health permissions</a>.</p>
       <p>You can remove the permission in Health Connect at any time.
       The game works just as well if you enter your habits yourself instead.</p>
 
-      <h2>Your world</h2>
+      <h2 id="en-your-world">Your world</h2>
       <p>Your island and your totals per game day are stored on the phone, also when you have an account.
-      Android may back up the app's data, including the save, to your own Google account as it does for other apps, so that your world can move to a new phone.
-      That backup is handled by Google and is not visible to us.</p>
+      With an account there is also a copy on the server, see <a href="#en-cloud-save">Cloud save</a>.
+      The phone may back up the app's data, including the save and the totals per game day, as it does for other apps, so that your world can move to a new phone: Android to your own Google account and iPhone to your iCloud backup.
+      That backup is handled by Google or Apple and is not visible to us.
+      It is end-to-end encrypted only if the phone has a screen lock on Android, and only if Advanced Data Protection for iCloud is turned on on iPhone; otherwise Google or Apple can read it.</p>
 
       <h2>Account and sign-in</h2>
       <p>An account is optional, and the game works the same without one.
@@ -147,23 +215,77 @@
       We process the data to provide the account you asked for (Article 6(1)(b) GDPR) and to protect the account and the server against abuse (Article 6(1)(f)).
       The account is kept until you delete it, and a sign-in on a device expires after 60 days without use.</p>
 
+      <h2 id="en-cloud-save">Cloud save</h2>
+      <p>If you have an account, the app saves a copy of your island on the account, a cloud save, so that the island can move to a new phone, also between iPhone and Android.
+      The account gets a cloud save when you sign in, and it is updated when the island changes.
+      If you sign out, the app stops saving, but the cloud save stays on the account until you delete it.</p>
+      <p>The cloud save has two parts:</p>
+      <ul>
+        <li><strong>The world part</strong> is the map and the island as it is now, with its buildings, the balances of the powers and the game's clock.
+        The server can read it, but it contains nothing per game day that could be traced back to your self-care.
+        The balances grow with your self-care, and each power comes from a particular habit, so anyone who compares two saves can see roughly how much of each habit gave power in between.</li>
+        <li><strong>The contribution part</strong> is what shows your self-care: the totals per game day, what each game day gave in the game and the game's journal of what the island has received.
+        It is encrypted on the phone with the contribution key before it is sent, and the server stores only encrypted bytes that it can never read.</li>
+      </ul>
+      <p>The server also stores the cloud save's version number, which generation of the contribution key is in use and when the cloud save was last saved.
+      From that the server can see when and how often the island is saved and how large the contribution part is, but never what it contains.
+      The server's logs contain nothing from the cloud save.</p>
+      <p>If the phone lacks the contribution key, or the account's contribution part does not open with it, you can choose to continue without the old contribution part.
+      The island and everything you have built stay, but the old contribution part becomes a locked contribution part: the server keeps it encrypted for 90 days and then deletes it.
+      The app cannot unlock a locked contribution part again, not even if the key is found.
+      So if you lose the key, you lose only the history of your self-care, never the island.</p>
+
+      <h2>The contribution key</h2>
+      <p>The contribution key is created at random on the phone, and neither we nor anyone else can recreate it.
+      It exists only in these places:</p>
+      <ul>
+        <li><strong>On the phone</strong>, next to the sign-in key: in the iOS keychain or encrypted with a key in the Android Keystore.</li>
+        <li><strong>In the key backup</strong>, iCloud Keychain on iPhone and Block Store on Android, so that a new phone on the same platform finds it without asking.
+        The key goes there only end-to-end encrypted, so that Apple and Google cannot read it, which requires the phone to have a screen lock (on iPhone also that iCloud Keychain is turned on).
+        Without a screen lock the key stays on the phone; on Android it then moves only when you transfer data directly from phone to phone, and the app suggests a recovery code or a key transfer.
+        In iCloud Keychain the key is also on your other devices with the same Apple account, for example iPad and Mac, and it is included in an encrypted backup of the iPhone.</li>
+        <li><strong>In a recovery code</strong>, if you want one: the app shows the code when you ask for it under <em>Konto</em> (Account), and you write it down yourself.
+        Anyone who has the code and can get into your account can read your self-care, so keep it like a password.
+        The code never leaves the phone through the game.</li>
+        <li><strong>During a key transfer</strong>, when you change phones, for example between iPhone and Android: the new phone shows a QR code, a ticket, which the old phone scans with its camera before sending the key sealed for the new phone.
+        The server only relays sealed bytes that it cannot open and hands them out once.
+        It deletes the transfer when the key has been collected or when you cancel; otherwise the transfer stops being valid after ten minutes and is deleted within a quarter of an hour after that.
+        The server sees that you made a transfer and when, that is, that you changed phones.</li>
+      </ul>
+      <p>The camera is used only while you scan a ticket on the old phone.
+      The images are read on the phone and are never stored or sent anywhere.
+      The phone asks for permission the first time; if you say no, you can type the recovery code on the new phone instead.</p>
+      <p>The cloud save, the locked contribution parts and the key transfers are stored on the same server and with the same encrypted backups as the account.
+      We process them to provide the cloud save and the transfers you asked for (Article 6(1)(b) GDPR) and to protect the account and the server against abuse (Article 6(1)(f)).
+      The contribution part counts as data concerning health even when it is encrypted, because it belongs to your account.
+      We process it only with your explicit consent (Article 9(2)(a)), which the app asks for before it uploads the contribution part for the first time.
+      You can withdraw your consent at any time by deleting the account, see <a href="#en-deleting">Deleting your data</a>.
+      That the contribution part is encrypted on the phone, so that only you can read it, is a safeguard on top of the consent and does not replace it.</p>
+      <p>The cloud save is kept until you delete the account.
+      A locked contribution part is deleted from the database within six hours after it has been kept for 90 days.
+      A key transfer that has been neither collected nor cancelled is deleted from the database within a quarter of an hour after it stops being valid, that is, at most 25 minutes after it was created.
+      What has been deleted from the database is gone from the backups within another 30 days.</p>
+
       <h2>Third-party technology</h2>
       <p>Google Play handles downloads and updates of the app under <a href="https://policies.google.com/privacy?hl=en">Google's privacy policy</a>.
       The Unity game engine may send anonymous technical information about the phone, such as model, Android version and graphics chip, to Unity Technologies when the game starts, under <a href="https://unity.com/legal/privacy-policy">Unity's privacy policy</a>.
       That information never contains health data or anything from your game.</p>
 
-      <h2>Deleting your data</h2>
+      <h2 id="en-deleting">Deleting your data</h2>
       <p>What is on the phone is removed when you uninstall the app or clear its data in the phone's settings.
-      You delete a backup in your Google account under <em>Settings → Google → Backup</em> on the phone.</p>
+      You delete a backup in your Google account under <em>Settings → Google → Backup</em> on the phone, and an iCloud backup under <em>Settings → your name → iCloud</em> on the iPhone.</p>
       <p>You delete the account in the app under <em>Konto → Radera kontot</em> (Account → Delete account), or without the app at <a href="{{deletion}}">{{deletion}}</a>.
       You confirm by signing in once more; if the account has an Apple login, you confirm with Apple.
-      The account, its logins and the sign-ins on your devices are then removed from the database at once, and from the backups within 30 days.
+      The account, its logins, the sign-ins on your devices, the cloud save, the locked contribution parts and any pending key transfer are then removed from the database at once, and from the backups within 30 days.
+      If you delete the account in the app, the app also removes the contribution key from the phone and tries to remove it from iCloud Keychain or Block Store, which pass the removal on to your other devices.
+      If that fails, or if you delete the account on the web, the key stays there, as it does in encrypted iPhone backups made earlier, but it no longer opens anything, because the server has already deleted everything it would open.
+      A recovery code you have written down is yours to throw away.
       Signing out alone does not delete the account.</p>
       <p>You have the right to know which information we hold about you and to have it corrected, deleted or handed over.
       Get in touch at the contact address below.</p>
 
       <h2>Changes</h2>
-      <p>If Eirora starts using information in a new way, for example with cloud saves, this policy is updated before that version is released and the date above changes.</p>
+      <p>If Eirora starts using information in a new way, this policy is updated before that version is released and the date above changes.</p>
 
       <h2>Contact</h2>
       <p>Send privacy questions to <a href="mailto:{{contact}}">{{contact}}</a>.

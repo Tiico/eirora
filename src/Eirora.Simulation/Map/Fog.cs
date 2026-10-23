@@ -23,6 +23,12 @@ namespace Eirora.Simulation.Map
             _known = known;
         }
 
+        /// <summary>
+        /// How many times tiles have been lifted since this fog was made or read; it only tells whether the fog has
+        /// changed, without a pass over the map, and is not part of the state.
+        /// </summary>
+        public int Lifts { get; private set; }
+
         /// <summary>The tiles lifted so far.</summary>
         public int KnownCount
         {
@@ -101,12 +107,14 @@ namespace Eirora.Simulation.Map
             }
 
             _known[index] = true;
+            Lifts++;
             return true;
         }
 
         /// <summary>Lifts the fog from an island's land and the sea along its coast, as an expedition finds it.</summary>
         public void LiftIsland(string island)
         {
+            Lifts++;
             for (int index = 0; index < _map.Disc.Count; index++)
             {
                 var hex = _map.Disc[index];

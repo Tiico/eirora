@@ -4,6 +4,9 @@
 #   measure.sh active [--apk PATH] [--light day|night] [--seconds N] [--starts N] [--out DIR]
 #       Installs the APK if given, measures cold start N times, then holds the measurement scene for N seconds
 #       while sampling frames, memory, temperature and the app's share of the battery.
+#   measure.sh cold-start [--apk PATH] [--light day|night|year] [--starts N] [--out DIR]
+#       Only the cold starts, to Android's first frame and to the client's first frame with the world, which for
+#       --light year includes catching up a year away (TASK-049).
 #   measure.sh background-start [--out DIR]
 #   measure.sh background-end   [--out DIR]
 #       Resets the battery statistics, and a day later reads the app's share of the battery and the total drain.
@@ -15,9 +18,13 @@
 #       script) and fails when any is over; a metric that was not measured is reported and does not fail.
 #
 # Set ADB to the adb binary if it is not on PATH, and ANDROID_SERIAL to pick a device when several are attached.
+# MEASURE_PAUSE_SECONDS sets the pause between cold starts (default 3), FIRST_FRAME_WAIT_SECONDS how long to wait for
+# the client's first frame with the world (default 120).
 set -euo pipefail
 
 PACKAGE="se.eirora.app"
+PAUSE_SECONDS="${MEASURE_PAUSE_SECONDS:-3}"
+FIRST_FRAME_WAIT_SECONDS="${FIRST_FRAME_WAIT_SECONDS:-120}"
 ADB="${ADB:-adb}"
 if ! command -v "$ADB" >/dev/null 2>&1 && [ -x "${LOCALAPPDATA:-}/Android/Sdk/platform-tools/adb.exe" ]; then
     ADB="$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"
@@ -42,7 +49,7 @@ parse_options() {
             *) POSITIONAL+=("$1"); shift ;;
         esac
     done
-    case "$LIGHT" in day | night) ;; *) die "--light must be day or night" ;; esac
+    case "$LIGHT" in day | night | year) ;; *) die "--light must be day, night or year" ;; esac
 }
 
 require_device() {
@@ -102,17 +109,47 @@ app_layer() {
 # splits again, so the extra is quoted for that shell to arrive as one string.
 scene_argument() { printf "'-eirora-measure %s'" "$LIGHT"; }
 
+median() { sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }'; }
+
+# The milliseconds from the activity's start to the client's first frame with the world, and how long catching up with
+# the clock took before it, from the log's timestamps. Android's first frame comes before Unity has loaded the scene,
+# so only this one includes the catch-up. Waits for the client to log the frame (MeasurementScene).
+first_frame() {
+    local i log
+    for i in $(seq 1 "$FIRST_FRAME_WAIT_SECONDS"); do
+        log="$("$ADB" logcat -d -v epoch -s ActivityTaskManager:I ActivityManager:I Unity:I | tr -d '\r')"
+        if printf '%s\n' "$log" | grep -q 'Eirora measure: first frame'; then
+            printf '%s\n' "$log" | awk '
+                / START u0 / && start == "" { start = $1 }
+                /Eirora measure: first frame/ {
+                    match($0, /caught up in [0-9]+ ms/); catch_up = substr($0, RSTART + 13, RLENGTH - 16); end = $1; exit
+                }
+                END { if (start == "") exit 1; printf "%.0f %s\n", (end - start) * 1000, catch_up }'
+            return
+        fi
+        sleep 1
+    done
+    die "the client logged no first frame of the world; is the build older than TASK-049?"
+}
+
 measure_cold_start() {
-    local activity="$1" i total times=()
+    local activity="$1" i total frame times=() frames=() catch_ups=()
     echo "Cold start ($STARTS times):"
     for i in $(seq 1 "$STARTS"); do
+        "$ADB" logcat -c
         total="$(shell am start -W -S -n "$activity" -e unity "$(scene_argument)" | awk '/TotalTime:/ { print $2 }')"
         [ -n "$total" ] || die "am start reported no TotalTime"
+        frame="$(first_frame)" || die "the log has no start of the activity before the first frame of the world"
         times+=("$total")
-        sleep 3
+        frames+=("${frame%% *}")
+        catch_ups+=("${frame##* }")
+        sleep "$PAUSE_SECONDS"
     done
     printf '%s\n' "${times[@]}" >"$OUT/cold-start-ms.txt"
-    record cold_start_median_ms "$(printf '%s\n' "${times[@]}" | sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }')"
+    printf '%s\n' "${frames[@]}" >"$OUT/first-frame-ms.txt"
+    record cold_start_median_ms "$(printf '%s\n' "${times[@]}" | median)"
+    record first_frame_median_ms "$(printf '%s\n' "${frames[@]}" | median)"
+    record catch_up_median_ms "$(printf '%s\n' "${catch_ups[@]}" | median)"
 }
 
 measure_session() {
@@ -173,6 +210,19 @@ active() {
     local activity; activity="$(unity_activity)"
     measure_cold_start "$activity"
     measure_session "$activity"
+    shell am force-stop "$PACKAGE"
+    echo "Results in $OUT/results.tsv"
+}
+
+cold_start() {
+    require_device
+    if [ -n "$APK" ]; then
+        "$ADB" install -r "$APK" >/dev/null
+    fi
+    shell pm path "$PACKAGE" >/dev/null 2>&1 || die "$PACKAGE is not installed; pass --apk"
+    describe_device
+    record light "$LIGHT"
+    measure_cold_start "$(unity_activity)"
     shell am force-stop "$PACKAGE"
     echo "Results in $OUT/results.tsv"
 }
@@ -253,12 +303,13 @@ budget() {
         }' "$BUDGETS" "${POSITIONAL[@]}"
 }
 
-[ $# -gt 0 ] || die "usage: measure.sh active|background-start|background-end|compare|budget [options]"
+[ $# -gt 0 ] || die "usage: measure.sh active|cold-start|background-start|background-end|compare|budget [options]"
 COMMAND="$1"; shift
 POSITIONAL=()
 parse_options "$@"
 case "$COMMAND" in
     active) active ;;
+    cold-start) cold_start ;;
     background-start) background_start ;;
     background-end) background_end ;;
     compare) compare ;;

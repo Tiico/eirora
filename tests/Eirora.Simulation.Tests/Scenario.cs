@@ -164,7 +164,7 @@ internal sealed class Scenario
                 var building = s_buildings[random.Next(s_buildings.Length)];
                 return world => suited && FreeSite(world, pick) is { } free ? new Build(free.Kind, free.Site) : new Build(building, site);
             case 5:
-                return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < BuildingSpec.For(b.Kind).MaxLevel && world.Settlement.CanAfford(BuildingSpec.Upgrade.Cost)) ?? site : site);
+                return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.Settlement.CanAfford(world.Content.Upgrade.Cost)) ?? site : site);
             case 6:
                 return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue && !world.Settlement.IsQueued(b.Tile, ProjectKind.Road)) ?? site : site);
             case 7:
@@ -192,7 +192,7 @@ internal sealed class Scenario
     {
         var free = s_sites
             .SelectMany(tile => s_buildings.Select(k => (Kind: k, Site: tile)))
-            .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(BuildingSpec.For(c.Kind).Cost))
+            .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(world.Content.For(c.Kind).Cost))
             .ToList();
         return free.Count > 0 ? free[pick % free.Count] : null;
     }
@@ -207,7 +207,7 @@ internal sealed class Scenario
     /// <summary>The tile of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>
     private static Hex? BuiltSite(World world, int pick, Func<Building, bool> can)
     {
-        var built = world.Buildings.Where(b => Upgrade.Produces(b.Kind) && can(b)).ToList();
+        var built = world.Buildings.Where(b => world.Content.For(b.Kind).Produces && can(b)).ToList();
         return built.Count > 0 ? built[pick % built.Count].Tile : null;
     }
 

@@ -30,6 +30,10 @@ namespace Eirora.Simulation
         private readonly SortedSet<(int Day, Habit Habit)> _unreconciled = new();
         private List<GameEvent> _events = new();
 
+        // While time advances: ticks of the slow processes not yet grown, and whether work changes nothing until dawn.
+        private int _growing;
+        private bool _idleUntilDawn;
+
         private World(WorldMap map, DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
         {
             Map = map;
@@ -67,6 +71,9 @@ namespace Eirora.Simulation
         /// <summary>The building queue, first in line first.</summary>
         public IReadOnlyList<Project> Projects => _settlement.Projects;
 
+        /// <summary>The buildings this world knows and what they cost and produce (ADR-0006).</summary>
+        public ContentCatalog Content => _settlement.Content;
+
         internal DayCycle Cycle { get; }
 
         internal Settlement Settlement => _settlement;
@@ -78,7 +85,11 @@ namespace Eirora.Simulation
         /// Creates a world on a map at the end of the guided tour, founded as the map gives (<see cref="Founding"/>). The
         /// rest schedule applies at once, even inside the rest window (D-50), and game day 0 began at local midnight (D-51).
         /// </summary>
-        public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule)
+        public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule) =>
+            Create(map, install, restSchedule, ContentCatalog.Current);
+
+        /// <summary>Creates a world whose buildings are those of <paramref name="content"/>, as tests add content.</summary>
+        internal static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule, ContentCatalog content)
         {
             if (map is null)
             {
@@ -90,7 +101,7 @@ namespace Eirora.Simulation
                 throw new ArgumentException("The rest schedule must be 6–10 hours and start within the day.", nameof(restSchedule));
             }
 
-            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found(map));
+            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found(map, content));
 
             // The guided tour's Dawn Power stands in for the first game day's baseline (D-45).
             world._selfCare.MarkCredited(0, Habit.Sleep, ForceRules.DawnPowerBaseline);
@@ -202,14 +213,36 @@ namespace Eirora.Simulation
             }
 
             // Economy ticks fall on fixed UTC quarter hours, so the same span gives the same ticks however it is split.
+            // Where only the slow processes move, the ticks are counted and grown at once (TASK-049): while the
+            // villagers rest, and once a tick of their work has changed nothing, until the next dawn.
             long tick = NextTickAfter(Now.UtcSeconds);
+            _idleUntilDawn = false;
             while (tick <= reading.UtcSeconds)
             {
                 Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, OnDawn);
-                _settlement.Tick(Phase == Phase.Active, tick, _events);
+                if (Phase == Phase.Resting)
+                {
+                    long dawn = Cycle.RestEndUtc(reading);
+                    long last = dawn <= reading.UtcSeconds ? dawn - 1 : reading.UtcSeconds;
+                    long ticks = 1 + ((last - tick) / Settlement.TickSeconds);
+                    tick += (ticks - 1) * Settlement.TickSeconds;
+                    Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, OnDawn);
+                    _growing += (int)ticks;
+                }
+                else if (_idleUntilDawn)
+                {
+                    _growing++;
+                }
+                else
+                {
+                    Grow();
+                    _idleUntilDawn = !_settlement.Tick(tick, _events);
+                }
+
                 tick += Settlement.TickSeconds;
             }
 
+            Grow();
             Cycle.AdvanceTo(reading, _events, OnDawn);
             return _events;
         }
@@ -263,7 +296,7 @@ namespace Eirora.Simulation
 
             var cycle = DayCycle.Read(reader);
             var forces = ForceBalances.Read(reader);
-            var settlement = Settlement.Read(reader, map);
+            var settlement = Settlement.Read(reader, map, ContentCatalog.Current);
             if (!withContributions)
             {
                 // What each day was credited went with the part, so recording those days again could credit them twice.
@@ -362,8 +395,21 @@ namespace Eirora.Simulation
             return utcSeconds - remainder + Settlement.TickSeconds;
         }
 
+        /// <summary>Grows the slow processes over the ticks counted since they last grew.</summary>
+        private void Grow()
+        {
+            if (_growing > 0)
+            {
+                _settlement.GrowSlowProcesses(_growing);
+                _growing = 0;
+            }
+        }
+
         private void OnDawn(long utcSeconds)
         {
+            // The ticks before the dawn grow with the workdays that end now; after it, work can change things again.
+            Grow();
+            _idleUntilDawn = false;
             _settlement.Dawn(utcSeconds, _events);
 
             // The new day's Dawn Power starts at the baseline and is topped up when its sleep is recorded.

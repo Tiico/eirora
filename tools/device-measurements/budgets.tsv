@@ -7,6 +7,9 @@ apk_mb	reference	max	100
 cold_start_median_ms	floor	max	5000
 cold_start_median_ms	base	max	3000
 cold_start_median_ms	reference	max	2000
+first_frame_median_ms	floor	max	5000
+first_frame_median_ms	base	max	3000
+first_frame_median_ms	reference	max	2000
 fps	floor	min	29
 fps	base	min	29
 fps	reference	min	29
