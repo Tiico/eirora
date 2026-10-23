@@ -17,7 +17,7 @@ public sealed class GoldenSaveTests
 {
     private const string Prototype = "prototype-journal-rules-1";
 
-    private static readonly string s_folder = Path.Combine(RepositoryRoot(), "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
+    private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
     public static TheoryData<string> Saves =>
         Directory.Exists(s_folder)
@@ -67,7 +67,7 @@ public sealed class GoldenSaveTests
         Assert.True(File.Exists(path), $"The golden prototype journal {Prototype} is missing.");
         Assert.True(RulesVersion.ReplaysJournalsFrom > 1);
 
-        var refused = Assert.Throws<FormatException>(() => Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8)));
+        var refused = Assert.Throws<JournalFromOlderRulesException>(() => Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8)));
 
         Assert.Contains("rules version 1", refused.Message, StringComparison.Ordinal);
     }
@@ -110,15 +110,4 @@ public sealed class GoldenSaveTests
     private static string Expected(string name) => File.ReadAllText(Path.Combine(s_folder, name + ".expected"), Encoding.UTF8);
 
     private static string Name(int format, int rules) => $"save-{format}-rules-{rules}";
-
-    private static string RepositoryRoot()
-    {
-        var folder = new DirectoryInfo(AppContext.BaseDirectory);
-        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "Eirora.slnx")))
-        {
-            folder = folder.Parent;
-        }
-
-        return folder?.FullName ?? throw new InvalidOperationException("The tests run outside the repository.");
-    }
 }

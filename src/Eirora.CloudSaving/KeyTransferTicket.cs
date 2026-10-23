@@ -1,5 +1,7 @@
 using System;
+using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Eirora.CloudSaving
 {
@@ -14,13 +16,16 @@ namespace Eirora.CloudSaving
     {
         public const int SecretLength = 16;
 
+        /// <summary>The longest id a ticket carries; the server's are 22 characters of base64url.</summary>
+        public const int MaxIdLength = 64;
+
         private const string Header = "eirora-key-transfer 1";
 
         public KeyTransferTicket(string id, byte[] receiverPublicKey, byte[] secret)
         {
-            if (string.IsNullOrEmpty(id) || id.Contains(' '))
+            if (!IsId(id))
             {
-                throw new ArgumentException("A transfer id is non-empty and has no spaces.", nameof(id));
+                throw new ArgumentException($"A transfer id is 1 to {MaxIdLength} letters, digits, '-' or '_'.", nameof(id));
             }
 
             if (receiverPublicKey is null || receiverPublicKey.Length != TransferKeys.PublicKeyLength)
@@ -45,6 +50,48 @@ namespace Eirora.CloudSaving
         /// <summary>The 128-bit secret that only the two phones hold; it travels in the QR code and never to the server.</summary>
         public byte[] Secret { get; }
 
+        /// <summary>
+        /// Six digits from the ticket, shown on both phones so that the player can see that the code the old phone read
+        /// is the one the new phone shows, before the key is sent. Anyone who can create a transfer for the account could
+        /// otherwise collect the key by getting a code of their own in front of the camera.
+        /// </summary>
+        public string CheckCode
+        {
+            get
+            {
+                byte[] label = Encoding.ASCII.GetBytes("eirora-key-transfer-check " + Id + " ");
+                var material = new byte[label.Length + ReceiverPublicKey.Length + Secret.Length];
+                label.CopyTo(material, 0);
+                ReceiverPublicKey.CopyTo(material, label.Length);
+                Secret.CopyTo(material, label.Length + ReceiverPublicKey.Length);
+                using var sha = SHA256.Create();
+                byte[] hash = sha.ComputeHash(material);
+                uint value = ((uint)hash[0] << 24) | ((uint)hash[1] << 16) | ((uint)hash[2] << 8) | hash[3];
+                string digits = (value % 1_000_000).ToString("000000", CultureInfo.InvariantCulture);
+                return digits.Substring(0, 3) + " " + digits.Substring(3);
+            }
+        }
+
+        /// <summary>Whether <paramref name="id"/> can be a transfer id: it goes into a request path, so only plain characters.</summary>
+        public static bool IsId(string? id)
+        {
+            if (string.IsNullOrEmpty(id) || id!.Length > MaxIdLength)
+            {
+                return false;
+            }
+
+            foreach (char c in id)
+            {
+                bool plain = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
+                if (!plain)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>A new secret, from the platform's cryptographic randomness.</summary>
         public static byte[] NewSecret()
         {
@@ -60,7 +107,10 @@ namespace Eirora.CloudSaving
         /// <summary>The ticket as one line of text, for the QR code.</summary>
         public string ToText() => Header + " " + Id + " " + Convert.ToBase64String(ReceiverPublicKey) + " " + Convert.ToBase64String(Secret);
 
-        /// <summary>The ticket <see cref="ToText"/> wrote, or null when the text is not one.</summary>
+        /// <summary>
+        /// The ticket <see cref="ToText"/> wrote, or null when the text is not one. The text comes from a camera, so
+        /// nothing in it is trusted: this never throws.
+        /// </summary>
         public static KeyTransferTicket? TryParse(string? text)
         {
             if (text is null)
@@ -69,7 +119,7 @@ namespace Eirora.CloudSaving
             }
 
             string[] fields = text.Trim().Split(' ');
-            if (fields.Length != 5 || fields[0] + " " + fields[1] != Header)
+            if (fields.Length != 5 || fields[0] + " " + fields[1] != Header || !IsId(fields[2]))
             {
                 return null;
             }
