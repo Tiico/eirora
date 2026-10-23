@@ -357,9 +357,9 @@ namespace Eirora.CloudSaving
         /// <summary>
         /// The cloud save holds no contribution part this device takes: the account keeps none without consent
         /// (TASK-060), or has none yet since consent was given. Its world goes on from the world part alone, with its game
-        /// days so far closed, as on a phone without the key (D-101). A device that uploaded the cloud's version itself
-        /// goes on from its own world, which is the cloud's or ahead of it; any other device with a world asks the player,
-        /// since there are no journals to merge.
+        /// days so far closed, as on a phone without the key (D-101). A device that holds the cloud's world, or uploaded
+        /// the cloud's version itself, goes on from its own world; any other device with a world asks the player, since
+        /// there are no journals to merge.
         /// </summary>
         private async Task<SyncResult> FromTheWorldPartAsync(Guid accountId, CloudSave remote, Save? local, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
         {
@@ -377,10 +377,12 @@ namespace Eirora.CloudSaving
                 return new SyncResult(SyncOutcome.Failed, changes);
             }
 
-            if (local is not null && _storage.State(accountId) is { } state && state.Version == remote.Version)
+            // The phone holds the cloud's world, or goes on from the version it uploaded itself.
+            bool sameWorld = local is not null && local.ToParts().World.SequenceEqual(remote.World);
+            if (local is not null && (sameWorld || (_storage.State(accountId) is { } state && state.Version == remote.Version)))
             {
                 var key = withContributions ? SealingKey(accountId, remote) : null;
-                if (key is null && local.ToParts().World.SequenceEqual(remote.World))
+                if (key is null && sameWorld)
                 {
                     _storage.KeepState(new CloudSyncState(accountId, remote.Version, 0));
                     return new SyncResult(SyncOutcome.Synced, changes, remote.Version);

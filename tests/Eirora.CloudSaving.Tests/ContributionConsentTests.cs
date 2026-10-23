@@ -221,6 +221,23 @@ public sealed class ContributionConsentTests
         Assert.Equal(a.Save.ToParts().World, store.Current!.World);
     }
 
+    // The state beside the save can be lost, as with a backup that restores the save alone: the same world is not a choice.
+    [Fact]
+    public async Task WithoutConsentAPhoneThatLostItsStateButHoldsTheCloudsWorldIsNotAsked()
+    {
+        var store = new FakeCloudSaveStore { Consent = Declined() };
+        var phone = new Device(store, PlayedSave());
+        await phone.Sync.ReconcileAsync(s_account);
+        int uploads = store.Uploads;
+
+        var restored = new Device(store, phone.Save);
+        var result = await restored.Sync.ReconcileAsync(s_account);
+
+        Assert.Equal(SyncOutcome.Synced, result.Outcome);
+        Assert.Equal(uploads, store.Uploads);
+        Assert.Equal((1L, 0), (restored.Storage.State(s_account)!.Version, restored.Storage.State(s_account)!.KeyEpoch));
+    }
+
     // A key of an epoch the account has since gone past cannot seal the first part after a decline: a new one goes above it.
     [Fact]
     public async Task AConsentAfterADeclineSealsUnderAnEpochNotBelowTheCloudSaves()
