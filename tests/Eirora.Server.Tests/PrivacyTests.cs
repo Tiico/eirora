@@ -13,7 +13,7 @@ public sealed class PrivacyTests(ServerFixture fixture)
     {
         using var api = _server.CreateApi();
         var apple = _server.Providers.SignIn(LoginProviders.Apple);
-        var tokens = await api.SignInAsync(apple);
+        var tokens = await api.SignInWithConsentAsync(apple);
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id.ToString();
         var google = _server.Providers.SignIn(LoginProviders.Google);
         var linkConfirmation = _server.Providers.Again(apple);
@@ -24,6 +24,7 @@ public sealed class PrivacyTests(ServerFixture fixture)
         var upload = TestSaves.Upload(baseVersion: 0, keyEpoch: 1);
         await api.UploadCloudSaveAsync(tokens.Access, upload);
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 1, keyEpoch: 2));
+        await api.AnswerConsentAsync(tokens.Access, new ContributionConsentAnswer(false, ContributionConsent.CurrentVersion));
         var code = AppleStub.UnreachablePrefix + Guid.NewGuid().ToString("N");
         var confirmation = _server.Providers.Again(apple, code);
         await api.DeleteAccountAsync(tokens.Access, confirmation);

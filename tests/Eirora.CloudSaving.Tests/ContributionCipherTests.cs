@@ -122,7 +122,8 @@ public sealed class ContributionCipherTests
 
         Assert.Equal("eirora-cloud 1\n019a0a4e-6b5c-7d2e-9f10-2a3b4c5d6e7f 12 2\n", state.ToText());
         Assert.Equal((s_account, 12L, 2), (read!.AccountId, read.Version, read.KeyEpoch));
-        Assert.Null(CloudSyncState.TryParse("eirora-cloud 1\n019a0a4e-6b5c-7d2e-9f10-2a3b4c5d6e7f 12 0\n"));
+        Assert.Equal(0, CloudSyncState.TryParse("eirora-cloud 1\n019a0a4e-6b5c-7d2e-9f10-2a3b4c5d6e7f 12 0\n")!.KeyEpoch); // Without a contribution part (TASK-060).
+        Assert.Null(CloudSyncState.TryParse("eirora-cloud 1\n019a0a4e-6b5c-7d2e-9f10-2a3b4c5d6e7f 12 -1\n"));
         Assert.Null(CloudSyncState.TryParse("something else"));
         Assert.Null(CloudSyncState.TryParse(null));
     }

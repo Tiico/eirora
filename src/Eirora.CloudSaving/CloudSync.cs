@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Eirora.Contracts;
 using Eirora.Simulation.Saving;
@@ -15,6 +16,12 @@ namespace Eirora.CloudSaving
     /// the device, and an unreachable server only means the next change or launch tries again. The contribution part is
     /// sealed with the account's contribution key before it leaves the device, and a part that does not open with the
     /// device's key is never merged (threat model). One reconciliation or upload runs at a time; the caller sees to that.
+    /// <para>
+    /// The contribution part leaves the device only while the player consents to it (TASK-060): before the first answer
+    /// nothing goes up and the player is asked (<see cref="SyncOutcome.ConsentNeeded"/>), and without consent the cloud
+    /// save is the world part alone. Two devices whose cloud save has no contribution part cannot merge their journals,
+    /// so a device that did not upload the cloud's version itself asks the player, as between different worlds.
+    /// </para>
     /// </remarks>
     public sealed class CloudSync
     {
@@ -24,6 +31,8 @@ namespace Eirora.CloudSaving
         private readonly ICloudSaveStore _store;
         private readonly ICloudSyncStorage _storage;
         private readonly ILocalWorld _world;
+        private Guid _consentAccount;
+        private ContributionConsent? _consent;
 
         public CloudSync(ICloudSaveStore store, ICloudSyncStorage storage, ILocalWorld world)
         {
@@ -53,11 +62,21 @@ namespace Eirora.CloudSaving
                 return new SyncResult(SyncOutcome.NoWorld, new SyncChanges());
             }
 
+            // The consent is the one the last reconciliation heard; when it changed since, the server answers 409.
             var state = _storage.State(accountId);
-            var key = _storage.Key(accountId);
-            if (state is null || key is null || key.Epoch != state.KeyEpoch)
+            if (state is null || Consent(accountId) is not { NeedsAnswer: false } consent)
             {
                 return await ReconcileAsync(accountId);
+            }
+
+            ContributionKey? key = null;
+            if (consent.Answer == ConsentAnswer.Given)
+            {
+                key = _storage.Key(accountId);
+                if (key is null || key.Epoch != state.KeyEpoch)
+                {
+                    return await ReconcileAsync(accountId);
+                }
             }
 
             var changes = new SyncChanges();
@@ -66,10 +85,39 @@ namespace Eirora.CloudSaving
         }
 
         /// <summary>
+        /// The player's answer about the contribution part as this device last heard it from the server, or null before
+        /// it asked (TASK-060).
+        /// </summary>
+        public ContributionConsent? Consent(Guid accountId) => _consentAccount == accountId ? _consent : null;
+
+        /// <summary>
+        /// Gives the server the player's answer about the contribution part (TASK-060). A decline, or a withdrawal,
+        /// deletes the contribution part and the locked ones on the server; the device keeps its key and its world. The
+        /// caller reconciles next, which uploads by the answer.
+        /// </summary>
+        public async Task<StoreStatus> AnswerConsentAsync(Guid accountId, bool given)
+        {
+            var reply = await _store.AnswerConsentAsync(new ContributionConsentAnswer(given, ContributionConsent.CurrentVersion));
+            if (reply.Status != StoreStatus.Ok)
+            {
+                return reply.Status;
+            }
+
+            if (reply.Value is not { } consent)
+            {
+                return StoreStatus.Failed;
+            }
+
+            Remember(accountId, consent);
+            return StoreStatus.Ok;
+        }
+
+        /// <summary>
         /// Keeps a contribution key that came from outside, a recovery code or a key transfer (TASK-023b), once the
         /// cloud save confirms it: its epoch must be the cloud save's, and the contribution part must open with it. A
         /// key of an older epoch, or one that does not open the part, is not kept, so a stale code cannot replace a key
-        /// the device still needs. Without a cloud save, there is nothing to check against and the key is kept.
+        /// the device still needs. Without a cloud save or a contribution part, there is nothing to check against and a
+        /// key that is not of an older epoch is kept.
         /// </summary>
         public async Task<KeyAcceptance> AcceptKeyAsync(Guid accountId, ContributionKey key)
         {
@@ -87,7 +135,13 @@ namespace Eirora.CloudSaving
                         return KeyAcceptance.OlderEpoch;
                     }
 
-                    if (key.Epoch > remote.KeyEpoch || ContributionCipher.Open(key, accountId, remote.Version, remote.Contributions) is null)
+                    if (remote.Contributions is not { } sealedPart)
+                    {
+                        _storage.KeepKey(accountId, key);
+                        return KeyAcceptance.Accepted;
+                    }
+
+                    if (key.Epoch > remote.KeyEpoch || ContributionCipher.Open(key, accountId, remote.Version, sealedPart) is null)
                     {
                         return KeyAcceptance.DoesNotOpen;
                     }
@@ -115,6 +169,13 @@ namespace Eirora.CloudSaving
 
         private async Task<SyncResult> ReconcileAsync(Guid accountId, WorldChoice? choice, SyncChanges changes, int attempt)
         {
+            var asked = await _store.GetConsentAsync();
+            if (asked.Status != StoreStatus.Ok || asked.Value is not { } consent)
+            {
+                return new SyncResult(asked.Status == StoreStatus.Ok ? SyncOutcome.Failed : Outcome(asked.Status), changes);
+            }
+
+            Remember(accountId, consent);
             var got = await _store.GetAsync();
             CloudSave? remote;
             switch (got.Status)
@@ -129,6 +190,13 @@ namespace Eirora.CloudSaving
                     return new SyncResult(Outcome(got.Status), changes);
             }
 
+            // Nothing goes up before the player has answered; a part the account already has stays until then.
+            if (consent.NeedsAnswer)
+            {
+                return new SyncResult(SyncOutcome.ConsentNeeded, changes, contributionsOnAccount: remote?.Contributions is not null);
+            }
+
+            bool withContributions = consent.Answer == ConsentAnswer.Given;
             var local = _world.Current;
             var key = _storage.Key(accountId);
             if (remote is null)
@@ -138,16 +206,20 @@ namespace Eirora.CloudSaving
                     return new SyncResult(SyncOutcome.NoWorld, changes);
                 }
 
-                // The account's first cloud save: the device's key, or a new one for epoch 1.
-                key ??= NewKey(accountId, 1);
-                return await SendOrStartOverAsync(accountId, local, 0, key, changes, choice, attempt);
+                // The account's first cloud save: the device's key, or a new one for epoch 1, or the world part alone.
+                return await SendOrStartOverAsync(accountId, local, 0, withContributions ? key ?? NewKey(accountId, 1) : null, changes, choice, attempt);
+            }
+
+            if (!withContributions || remote.Contributions is not { } sealedPart)
+            {
+                return await FromTheWorldPartAsync(accountId, remote, local, withContributions, changes, choice, attempt);
             }
 
             // The contribution part opens only with the key of its epoch; what does not open is never merged.
             Save? cloud = null;
             if (key is not null && key.Epoch == remote.KeyEpoch)
             {
-                byte[]? contributions = ContributionCipher.Open(key, accountId, remote.Version, remote.Contributions);
+                byte[]? contributions = ContributionCipher.Open(key, accountId, remote.Version, sealedPart);
                 if (contributions is null)
                 {
                     changes.CloudSaveUnreadable = true;
@@ -283,6 +355,78 @@ namespace Eirora.CloudSaving
         }
 
         /// <summary>
+        /// The cloud save holds no contribution part this device takes: the account keeps none without consent
+        /// (TASK-060), or has none yet since consent was given. Its world goes on from the world part alone, with its game
+        /// days so far closed, as on a phone without the key (D-101). A device that uploaded the cloud's version itself
+        /// goes on from its own world, which is the cloud's or ahead of it; any other device with a world asks the player,
+        /// since there are no journals to merge.
+        /// </summary>
+        private async Task<SyncResult> FromTheWorldPartAsync(Guid accountId, CloudSave remote, Save? local, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
+        {
+            Save alone;
+            try
+            {
+                alone = Save.FromParts(remote.World, null);
+            }
+            catch (SavedByNewerVersionException)
+            {
+                return new SyncResult(SyncOutcome.AppOutdated, changes);
+            }
+            catch (FormatException)
+            {
+                return new SyncResult(SyncOutcome.Failed, changes);
+            }
+
+            if (local is not null && _storage.State(accountId) is { } state && state.Version == remote.Version)
+            {
+                var key = withContributions ? SealingKey(accountId, remote) : null;
+                if (key is null && local.ToParts().World.SequenceEqual(remote.World))
+                {
+                    _storage.KeepState(new CloudSyncState(accountId, remote.Version, 0));
+                    return new SyncResult(SyncOutcome.Synced, changes, remote.Version);
+                }
+
+                return await SendOrStartOverAsync(accountId, local, remote.Version, key, changes, choice, attempt);
+            }
+
+            if (local is not null && choice is null)
+            {
+                return new SyncResult(SyncOutcome.ChoiceNeeded, changes, null, alone.World.GameDay, remote.SavedAt, cloudWithoutContributions: true);
+            }
+
+            if (local is not null && choice == WorldChoice.KeepPhone)
+            {
+                _world.KeepAside(alone);
+                return await GoOnFromAsync(accountId, local, remote, withContributions, changes, choice, attempt);
+            }
+
+            // The world part alone closed the game days so far, so it goes up again as the device's world.
+            _world.Replace(alone, local is null ? ReplaceReason.Downloaded : ReplaceReason.CloudChosen);
+            changes.Downloaded = local is null;
+            changes.WorldPartOnly = true;
+            return await GoOnFromAsync(accountId, alone, remote, withContributions, changes, choice, attempt);
+        }
+
+        /// <summary>
+        /// Uploads the device's world in place of a cloud save without a contribution part. The device's world is based on
+        /// the cloud's version before the upload runs, so that an upload which does not get through is tried again rather
+        /// than asked about.
+        /// </summary>
+        private Task<SyncResult> GoOnFromAsync(Guid accountId, Save save, CloudSave remote, bool withContributions, SyncChanges changes, WorldChoice? choice, int attempt)
+        {
+            var key = withContributions ? SealingKey(accountId, remote) : null;
+            _storage.KeepState(new CloudSyncState(accountId, remote.Version, key?.Epoch ?? 0));
+            return SendOrStartOverAsync(accountId, save, remote.Version, key, changes, choice, attempt);
+        }
+
+        /// <summary>
+        /// The key for the first contribution part of a cloud save that has none: the device's key, unless it is of an
+        /// older epoch than the cloud save's last part, when a new key gets the epoch after it.
+        /// </summary>
+        private ContributionKey SealingKey(Guid accountId, CloudSave remote) =>
+            _storage.Key(accountId) is { } key && key.Epoch >= remote.KeyEpoch ? key : NewKey(accountId, remote.KeyEpoch + 1);
+
+        /// <summary>
         /// Uploads the device's world under a new key epoch. The device's world is based on <paramref name="baseVersion"/>
         /// before the upload runs, so that an upload which does not get through is tried again rather than asked about.
         /// </summary>
@@ -304,7 +448,7 @@ namespace Eirora.CloudSaving
             return new SyncResult(SyncOutcome.Synced, changes, remote.Version);
         }
 
-        private async Task<SyncResult> SendOrStartOverAsync(Guid accountId, Save save, long baseVersion, ContributionKey key, SyncChanges changes, WorldChoice? choice, int attempt)
+        private async Task<SyncResult> SendOrStartOverAsync(Guid accountId, Save save, long baseVersion, ContributionKey? key, SyncChanges changes, WorldChoice? choice, int attempt)
         {
             var (status, result) = await SendAsync(accountId, save, baseVersion, key, changes);
             if (status != StoreStatus.Conflict)
@@ -318,19 +462,30 @@ namespace Eirora.CloudSaving
                 : new SyncResult(SyncOutcome.Failed, changes);
         }
 
-        /// <summary>Seals and uploads the save as the next version after <paramref name="baseVersion"/>.</summary>
-        private async Task<(StoreStatus Status, SyncResult Result)> SendAsync(Guid accountId, Save save, long baseVersion, ContributionKey key, SyncChanges changes)
+        /// <summary>
+        /// Seals and uploads the save as the next version after <paramref name="baseVersion"/>; without a key, the world
+        /// part alone, as without consent.
+        /// </summary>
+        private async Task<(StoreStatus Status, SyncResult Result)> SendAsync(Guid accountId, Save save, long baseVersion, ContributionKey? key, SyncChanges changes)
         {
             var (world, contributions) = save.ToParts();
-            byte[] sealedContributions = ContributionCipher.Seal(key, accountId, baseVersion + 1, contributions);
-            var reply = await _store.UploadAsync(new CloudSaveUpload(baseVersion, key.Epoch, world, sealedContributions));
+            var upload = key is null
+                ? new CloudSaveUpload(baseVersion, 0, world, null)
+                : new CloudSaveUpload(baseVersion, key.Epoch, world, ContributionCipher.Seal(key, accountId, baseVersion + 1, contributions));
+            var reply = await _store.UploadAsync(upload);
             if (reply.Status == StoreStatus.Ok && reply.Value is { } version)
             {
-                _storage.KeepState(new CloudSyncState(accountId, version.Version, key.Epoch));
+                _storage.KeepState(new CloudSyncState(accountId, version.Version, upload.KeyEpoch));
                 return (StoreStatus.Ok, new SyncResult(SyncOutcome.Synced, changes, version.Version));
             }
 
             return (reply.Status, new SyncResult(Outcome(reply.Status), changes));
+        }
+
+        private void Remember(Guid accountId, ContributionConsent consent)
+        {
+            _consentAccount = accountId;
+            _consent = consent;
         }
 
         private ContributionKey NewKey(Guid accountId, int epoch)

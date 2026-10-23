@@ -6,7 +6,9 @@ namespace Eirora.CloudSaving.Tests;
 /// <summary>
 /// The server's cloud save in memory, with the rules of <c>CloudSaveEndpoints</c> and <c>CloudSaveService</c>: the
 /// world part must load as one, an upload names the version it is based on and gets the next, an older key epoch
-/// conflicts, and a new one locks the contribution part it replaces.
+/// conflicts, and a new one locks the contribution part it replaces. An upload carries a contribution part exactly while
+/// the player consents, and none goes through before they answered; the player here has consented unless a test says
+/// otherwise (TASK-060).
 /// </summary>
 internal sealed class FakeCloudSaveStore : ICloudSaveStore
 {
@@ -22,6 +24,38 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
     public bool SignedIn { get; set; } = true;
 
     public int Uploads { get; private set; }
+
+    public ContributionConsent Consent { get; set; } = new(ConsentAnswer.Given, ContributionConsent.CurrentVersion, DateTimeOffset.UtcNow);
+
+    public Task<StoreReply<ContributionConsent>> GetConsentAsync() =>
+        Task.FromResult(!Online ? new StoreReply<ContributionConsent>(StoreStatus.Offline)
+            : !SignedIn ? new StoreReply<ContributionConsent>(StoreStatus.SignedOut)
+            : new StoreReply<ContributionConsent>(StoreStatus.Ok, Consent));
+
+    public Task<StoreReply<ContributionConsent>> AnswerConsentAsync(ContributionConsentAnswer answer)
+    {
+        if (!Online)
+        {
+            return Task.FromResult(new StoreReply<ContributionConsent>(StoreStatus.Offline));
+        }
+
+        if (!SignedIn)
+        {
+            return Task.FromResult(new StoreReply<ContributionConsent>(StoreStatus.SignedOut));
+        }
+
+        Consent = new ContributionConsent(answer.Given ? ConsentAnswer.Given : ConsentAnswer.Declined, answer.Version, DateTimeOffset.UtcNow);
+        if (!answer.Given)
+        {
+            Locked.Clear();
+            if (Current is { } current)
+            {
+                Current = new CloudSave(current.Version, current.KeyEpoch, current.World, null, current.SavedAt);
+            }
+        }
+
+        return Task.FromResult(new StoreReply<ContributionConsent>(StoreStatus.Ok, Consent));
+    }
 
     public Task<StoreReply<CloudSave>> GetAsync()
     {
@@ -51,7 +85,7 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
         }
 
         Uploads++;
-        if (upload.World is not { Length: > 0 } || upload.Contributions is not { Length: > 0 } || upload.BaseVersion < 0 || upload.KeyEpoch < 1)
+        if (upload.World is not { Length: > 0 } || upload.BaseVersion < 0 || (upload.HasContributions ? upload.KeyEpoch < 1 : upload.KeyEpoch != 0))
         {
             return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Rejected));
         }
@@ -67,18 +101,21 @@ internal sealed class FakeCloudSaveStore : ICloudSaveStore
 
         long version = Current?.Version ?? 0;
         int epoch = Current?.KeyEpoch ?? 0;
-        if (upload.BaseVersion != version || upload.KeyEpoch < epoch)
+        bool given = Consent.Answer == ConsentAnswer.Given;
+        if (Consent.Answer == ConsentAnswer.Unanswered || given != upload.HasContributions
+            || upload.BaseVersion != version || (upload.HasContributions && upload.KeyEpoch < epoch))
         {
             return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Conflict, new CloudSaveVersion(version, epoch)));
         }
 
-        if (Current is { } replaced && upload.KeyEpoch > replaced.KeyEpoch)
+        if (Current is { Contributions: { } replaced } current && upload.HasContributions && upload.KeyEpoch > current.KeyEpoch)
         {
-            Locked.Add((replaced.KeyEpoch, replaced.Contributions));
+            Locked.Add((current.KeyEpoch, replaced));
         }
 
-        Current = new CloudSave(version + 1, upload.KeyEpoch, upload.World, upload.Contributions, DateTimeOffset.UtcNow);
-        return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Ok, new CloudSaveVersion(version + 1, upload.KeyEpoch)));
+        int keyEpoch = Math.Max(epoch, upload.KeyEpoch);
+        Current = new CloudSave(version + 1, keyEpoch, upload.World, upload.HasContributions ? upload.Contributions : null, DateTimeOffset.UtcNow);
+        return Task.FromResult(new StoreReply<CloudSaveVersion>(StoreStatus.Ok, new CloudSaveVersion(version + 1, keyEpoch)));
     }
 }
 

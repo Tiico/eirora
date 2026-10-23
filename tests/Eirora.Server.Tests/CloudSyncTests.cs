@@ -1,4 +1,5 @@
 using Eirora.CloudSaving;
+using Eirora.Contracts;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
@@ -26,7 +27,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
     [Fact]
     public async Task TheWorldOnPhoneAGoesOnWithTheSameFingerprintOnPhoneB()
     {
-        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var login = _server.Providers.SignIn(LoginProviders.Google);
         var a = await DeviceAsync(login, PlayedSave());
         var b = await DeviceAsync(login);
 
@@ -43,7 +44,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
     [Fact]
     public async Task TwoPhonesThatPlayedOfflineMergeWithoutDoubleContributionsOrBuildings()
     {
-        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var login = _server.Providers.SignIn(LoginProviders.Google);
         var a = await DeviceAsync(login, PlayedSave());
         var b = await DeviceAsync(login);
         await a.Sync.ReconcileAsync(a.AccountId);
@@ -72,7 +73,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
     [Fact]
     public async Task APhoneWithoutTheKeyBeginsANewKeyEpochAndTheServerLocksTheOldPart()
     {
-        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var login = _server.Providers.SignIn(LoginProviders.Google);
         var old = await DeviceAsync(login, PlayedSave());
         await old.Sync.ReconcileAsync(old.AccountId);
         var fresh = await DeviceAsync(login);
@@ -94,7 +95,7 @@ public sealed class CloudSyncTests(ServerFixture fixture)
     [Fact]
     public async Task TheOldPhoneSendsTheKeyToTheNewPhoneThroughTheServerAndNoEpochBegins()
     {
-        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var login = _server.Providers.SignIn(LoginProviders.Google);
         var old = await DeviceAsync(login, PlayedSave());
         await old.Sync.ReconcileAsync(old.AccountId);
         var fresh = await DeviceAsync(login);
@@ -122,13 +123,13 @@ public sealed class CloudSyncTests(ServerFixture fixture)
     [Fact]
     public async Task AContributionPartChangedInTheDatabaseIsNeverMerged()
     {
-        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var login = _server.Providers.SignIn(LoginProviders.Google);
         var phone = await DeviceAsync(login, PlayedSave());
         await phone.Sync.ReconcileAsync(phone.AccountId);
         await using (var db = _fixture.CreateDbContext())
         {
             var row = await db.CloudSaves.SingleAsync(s => s.AccountId == phone.AccountId, Cancel);
-            row.Contributions[^1] ^= 0x01;
+            row.Contributions![^1] ^= 0x01;
             db.Entry(row).Property(r => r.Contributions).IsModified = true;
             await db.SaveChangesAsync(Cancel);
         }
@@ -139,19 +140,72 @@ public sealed class CloudSyncTests(ServerFixture fixture)
         Assert.True(result.CloudSaveUnreadable);
     }
 
+    // Without consent (TASK-060), the world goes to the account and on to a new phone, but the self-care stays behind.
+    [Fact]
+    public async Task WithoutConsentTheWorldPartAloneReachesTheNewPhone()
+    {
+        var login = _server.Providers.SignIn(LoginProviders.Google);
+        var old = await DeviceAsync(login, PlayedSave(), consent: null);
+        var asked = await old.Sync.ReconcileAsync(old.AccountId);
+        await old.Sync.AnswerConsentAsync(old.AccountId, given: false);
+        var uploaded = await old.Sync.ReconcileAsync(old.AccountId);
+        var fresh = await DeviceAsync(login);
+
+        var downloaded = await fresh.Sync.ReconcileAsync(fresh.AccountId);
+        var (_, save) = await fresh.Api.GetCloudSaveAsync(fresh.Token);
+
+        Assert.Equal(SyncOutcome.ConsentNeeded, asked.Outcome);
+        Assert.Equal(SyncOutcome.Synced, uploaded.Outcome);
+        Assert.Equal((SyncOutcome.Synced, true, true), (downloaded.Outcome, downloaded.Downloaded, downloaded.WorldPartOnly));
+        Assert.Equal(old.Save.ToParts().World, fresh.Save.ToParts().World);
+        Assert.Equal(old.Save.World.GameDay, fresh.Save.World.LastClosedGameDay);
+        Assert.Null(save!.Contributions);
+        Assert.Null(fresh.Storage.Key(fresh.AccountId));
+    }
+
+    [Fact]
+    public async Task AWithdrawalOnOnePhoneDeletesThePartAndTheOtherPhoneGoesOnWithTheWorldPartAlone()
+    {
+        var login = _server.Providers.SignIn(LoginProviders.Google);
+        var a = await DeviceAsync(login, PlayedSave());
+        await a.Sync.ReconcileAsync(a.AccountId);
+        var b = await DeviceAsync(login);
+        a.Storage.CopyKeyTo(b.Storage, a.AccountId);
+        await b.Sync.ReconcileAsync(b.AccountId);
+
+        var withdrawn = await a.Sync.AnswerConsentAsync(a.AccountId, given: false);
+        var (_, afterWithdrawal) = await a.Api.GetCloudSaveAsync(a.Token);
+        Advance(b.Save, Hour);
+        b.Save.Apply("b-steps", new RecordSelfCare(b.Save.World.GameDay, Habit.Steps, ContributionSource.Verified, 2_000));
+        var fromB = await b.Sync.UploadAsync(b.AccountId);
+        var (_, save) = await a.Api.GetCloudSaveAsync(a.Token);
+
+        Assert.Equal(StoreStatus.Ok, withdrawn);
+        Assert.Null(afterWithdrawal!.Contributions);
+        Assert.Equal(SyncOutcome.Synced, fromB.Outcome);
+        Assert.Null(save!.Contributions);
+        Assert.Equal(b.Save.ToParts().World, save.World);
+    }
+
     [Fact]
     public async Task ASignedOutPhoneChangesNothing()
     {
-        var login = _server.Providers.SignIn(Contracts.LoginProviders.Google);
+        var login = _server.Providers.SignIn(LoginProviders.Google);
         var phone = await DeviceAsync(login, PlayedSave(), token: "not-a-token");
 
         Assert.Equal(SyncOutcome.SignedOut, (await phone.Sync.ReconcileAsync(phone.AccountId)).Outcome);
     }
 
-    private async Task<HeadlessDevice> DeviceAsync(PlayerLogin login, Save? save = null, string? token = null)
+    /// <summary>A device signed in with <paramref name="login"/>; the first to sign in answers the question about the contribution part with <paramref name="consent"/>, or leaves it unanswered with null.</summary>
+    private async Task<HeadlessDevice> DeviceAsync(PlayerLogin login, Save? save = null, string? token = null, bool? consent = true)
     {
         var api = _server.CreateApi();
         var tokens = await api.SignInAsync(_server.Providers.SignIn(login.Provider, login.Subject));
+        if (consent is { } given && (await api.GetConsentAsync(tokens.Access)).Consent!.NeedsAnswer)
+        {
+            await api.AnswerConsentAsync(tokens.Access, new ContributionConsentAnswer(given, ContributionConsent.CurrentVersion));
+        }
+
         var (_, account) = await api.GetAccountAsync(tokens.Access);
         var http = _server.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         return new HeadlessDevice(api, http, account!.Id, token ?? tokens.Access, save);

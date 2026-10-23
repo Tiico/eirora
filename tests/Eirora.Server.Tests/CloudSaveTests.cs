@@ -9,7 +9,8 @@ namespace Eirora.Server.Tests;
 
 /// <summary>
 /// The account's cloud save (ADR-0008, TASK-023): stored as uploaded, versioned so that two devices merge instead of
-/// overwriting each other (D-99), checked for format and size but never read, and reached only by its own account.
+/// overwriting each other (D-99), checked for format and size but never read, and reached only by its own account. The
+/// players here have consented to the contribution part; <see cref="ContributionConsentTests"/> is about the consent.
 /// </summary>
 public sealed class CloudSaveTests(ServerFixture fixture)
 {
@@ -33,7 +34,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task TheFirstUploadBecomesVersionOneAndDownloadsAsItWasUploaded()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var upload = TestSaves.Upload(baseVersion: 0);
         var before = DateTimeOffset.UtcNow;
 
@@ -52,7 +53,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task EachUploadBasedOnTheCurrentVersionReplacesItWithTheNext()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 0));
         var second = TestSaves.Upload(baseVersion: 1);
 
@@ -71,7 +72,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AnUploadBasedOnAnotherVersionConflictsAndSaysWhichIsCurrent(long baseVersion)
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 0));
         var current = TestSaves.Upload(baseVersion: 1);
         await api.UploadCloudSaveAsync(tokens.Access, current);
@@ -87,7 +88,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task OfUploadsAtOnceFromTheSameVersionOnlyOneIsStored()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var uploads = Enumerable.Range(0, 6).Select(_ => TestSaves.Upload(baseVersion: 0)).ToList();
 
         var results = await Task.WhenAll(uploads.Select(u => api.UploadCloudSaveAsync(tokens.Access, u)));
@@ -104,8 +105,8 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AnotherPlayersTokenOnlyEverReachesThatPlayersOwnCloudSave()
     {
         using var api = _server.CreateApi();
-        var mine = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Apple));
-        var theirs = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Apple));
+        var mine = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Apple));
+        var theirs = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Apple));
         var myUpload = TestSaves.Upload(baseVersion: 0);
         await api.UploadCloudSaveAsync(mine.Access, myUpload);
 
@@ -136,7 +137,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task TheContributionPartIsStoredAsTheBytesThatWereUploaded()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
         var upload = TestSaves.Upload(baseVersion: 0);
 
@@ -170,7 +171,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AnUploadWhoseWorldPartDoesNotLoadIsRejectedAndNothingIsStored(string malformation)
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
 
         var (status, _) = await api.UploadCloudSaveAsync(tokens.Access, Malformed(malformation));
 
@@ -182,7 +183,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AResealedButUnchangedWorldPartIsAccepted()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var world = TestSaves.World();
         var resealed = TestSaves.Resealed(world, (_, text) => text);
 
@@ -197,7 +198,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task ACraftedWorldPartIsRejectedOrAcceptedButNeverBreaksTheServer()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var world = TestSaves.World();
         var random = new Random(38);
         long version = 0;
@@ -218,7 +219,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AnUploadOverItsLimitsIsRejectedAsTooLarge(int worldBytes, int contributionBytes)
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
 
         var (status, _) = await api.UploadCloudSaveAsync(tokens.Access, new CloudSaveUpload(0, 1, new byte[worldBytes], new byte[contributionBytes]));
 
@@ -230,7 +231,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AContributionPartAtItsLimitIsStored()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var upload = TestSaves.Upload(baseVersion: 0, contributions: TestSaves.Contributions(CloudSaveUpload.MaxContributionBytes));
 
         var (status, _) = await api.UploadCloudSaveAsync(tokens.Access, upload);
@@ -244,7 +245,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task ANewKeyEpochLocksTheContributionPartItReplaces()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var first = TestSaves.Upload(baseVersion: 0, keyEpoch: 1);
         await api.UploadCloudSaveAsync(tokens.Access, first);
         var newEpoch = TestSaves.Upload(baseVersion: 1, keyEpoch: 2);
@@ -264,7 +265,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task AnUploadOfAnOlderKeyEpochConflicts()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 0, keyEpoch: 1));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 1, keyEpoch: 2));
 
@@ -278,7 +279,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task TheSameKeyEpochLocksNothing()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 0, keyEpoch: 3));
 
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 1, keyEpoch: 3));
@@ -290,8 +291,8 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task APlayerCanDeleteALockedContributionPartEarly()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
-        var someoneElse = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var someoneElse = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 0, keyEpoch: 1));
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 1, keyEpoch: 2));
 
@@ -310,7 +311,7 @@ public sealed class CloudSaveTests(ServerFixture fixture)
     public async Task ALockedContributionPartIsDeletedAfterNinetyDays()
     {
         using var api = _server.CreateApi();
-        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
         var now = DateTimeOffset.UtcNow;
         await using (var db = fixture.CreateDbContext())

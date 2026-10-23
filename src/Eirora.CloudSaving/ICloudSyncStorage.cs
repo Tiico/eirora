@@ -27,7 +27,8 @@ namespace Eirora.CloudSaving
 
     /// <summary>
     /// The cloud save version the device's world is based on, which the next upload names as its base, and the key
-    /// epoch it was sealed with. Lost or stale, the device reconciles with the server's copy: a merge is idempotent.
+    /// epoch it was sealed with, or 0 for a cloud save without a contribution part (TASK-060). Lost or stale, the device
+    /// reconciles with the server's copy: a merge is idempotent.
     /// </summary>
     public sealed class CloudSyncState
     {
@@ -69,7 +70,7 @@ namespace Eirora.CloudSaving
                 && Guid.TryParseExact(fields[0], "D", out var accountId)
                 && long.TryParse(fields[1], NumberStyles.None, CultureInfo.InvariantCulture, out long version)
                 && int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out int keyEpoch)
-                && keyEpoch >= 1
+                && keyEpoch >= 0
                 ? new CloudSyncState(accountId, version, keyEpoch)
                 : null;
         }
