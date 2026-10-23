@@ -58,23 +58,33 @@ namespace Eirora.Client.Accounts
             return value.Length == 0 ? null : value;
         }
 
-        public async Task<KeyBackupReach> KeepAsync(string name, string value) =>
-            await CallAsync("keep", name, value) == "end-to-end" ? KeyBackupReach.EndToEnd : KeyBackupReach.ThisPhone;
+        public async Task<KeyBackupReach?> KeepAsync(string name, string value) => await CallAsync("keep", name, value) switch
+        {
+            "end-to-end" => KeyBackupReach.EndToEnd,
+            "this-phone" => KeyBackupReach.ThisPhone,
+            _ => null, // Block Store could not say whether it encrypts end to end.
+        };
 
         public Task ForgetAsync(string name) => CallAsync("forget", name);
 
+        /// <summary>Every failure, including one in JNI itself, is a <see cref="KeyBackupException"/>, which never stops the sync.</summary>
         private static async Task<string> CallAsync(string method, params object[] arguments)
         {
-            var withContext = new object[arguments.Length + 1];
-            withContext[0] = AndroidSignInBridge.Activity;
-            arguments.CopyTo(withContext, 1);
             try
             {
+                var withContext = new object[arguments.Length + 1];
+                withContext[0] = AndroidSignInBridge.Activity;
+                arguments.CopyTo(withContext, 1);
                 return await AndroidSignInBridge.CallOn(BackupClass, method, withContext);
             }
             catch (LoginProviderException e)
             {
                 throw new KeyBackupException(e.Message);
+            }
+            catch (AndroidJavaException)
+            {
+                // The message is Java's and not ours to pass on; the call's name is enough.
+                throw new KeyBackupException($"Block Store's {method} could not be called");
             }
         }
     }
@@ -103,8 +113,17 @@ namespace Eirora.Client.Accounts
             var withCallback = new object[arguments.Length + 1];
             arguments.CopyTo(withCallback, 0);
             withCallback[arguments.Length] = callback;
-            using var bridge = new AndroidJavaClass(javaClass);
-            bridge.CallStatic(method, withCallback);
+            try
+            {
+                using var bridge = new AndroidJavaClass(javaClass);
+                bridge.CallStatic(method, withCallback);
+            }
+            catch
+            {
+                callback.Release(); // Java never got it, so it will never answer.
+                throw;
+            }
+
             return callback.Result;
         }
 
@@ -148,7 +167,7 @@ namespace Eirora.Client.Accounts
                 }
             }
 
-            private void Release()
+            public void Release()
             {
                 lock (s_pending)
                 {

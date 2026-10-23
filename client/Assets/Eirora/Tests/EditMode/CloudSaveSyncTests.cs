@@ -528,6 +528,26 @@ namespace Eirora.Client.Tests
             Assert.That(launched.Cloud.KeyReach, Is.EqualTo(KeyBackupReach.EndToEnd));
         }
 
+        // The backup kept the key but cannot say how far it reaches, as when Block Store cannot tell whether it encrypts end
+        // to end: the key is kept, and nothing is claimed about the screen lock.
+        [Test]
+        public void AKeyKeptWithoutAKnownReachClaimsNothing()
+        {
+            var backup = new MemoryKeyBackup { Reach = KeyBackupReach.ThisPhone };
+            var phone = Phone("a", withWorld: true, backup: backup);
+            phone.SignIn();
+            Wait(phone.Cloud.ReconcileAsync());
+            var account = phone.Account.Account!.Id;
+            Assert.That(phone.Cloud.KeyReach, Is.EqualTo(KeyBackupReach.ThisPhone));
+
+            backup.Reach = null;
+            Wait(phone.Cloud.ReconcileAsync());
+
+            Assert.That(backup[KeyBackups.Name(account)], Is.EqualTo(phone.Storage.Key(account)!.ToText()));
+            Assert.That(phone.Cloud.KeyReach, Is.Null);
+            Assert.That(phone.Cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
         // The backup holds a key the cloud save no longer opens with, or does not answer: the player is asked, and
         // nothing from the backup replaces a key.
         [Test]

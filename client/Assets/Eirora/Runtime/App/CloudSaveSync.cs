@@ -146,7 +146,7 @@ namespace Eirora.Client.App
 
         /// <summary>
         /// How far the account's key reaches beyond this phone, once it was kept in the platform's backup; null before
-        /// that, or when the backup did not answer. Without a screen lock (<see cref="KeyBackupReach.ThisPhone"/>) the
+        /// that, when the backup did not answer, or when it could not say. Without a screen lock (<see cref="KeyBackupReach.ThisPhone"/>) the
         /// account sheet suggests the recovery code or a key transfer for a new phone (ADR-0008).
         /// </summary>
         public KeyBackupReach? KeyReach { get; private set; }
@@ -426,7 +426,12 @@ namespace Eirora.Client.App
             }
         }
 
-        /// <summary>Removes the deleted account's key from the platform's backup, which syncs the removal to the player's other phones.</summary>
+        /// <summary>
+        /// Removes the deleted account's key from this platform's backup, and iCloud Keychain passes the removal on to the
+        /// player's other devices. Copies stay where Block Store already gave the key to another Android phone, in the
+        /// other platform's backup, and everywhere when the account is deleted on the web page; they open nothing the
+        /// server still keeps (threat model).
+        /// </summary>
         private async Task ForgetBackedUpKeyAsync(Guid accountId)
         {
             _backedUpKey = null;

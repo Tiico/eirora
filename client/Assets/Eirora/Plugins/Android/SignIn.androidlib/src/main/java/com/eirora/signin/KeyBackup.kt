@@ -23,6 +23,9 @@ object KeyBackup {
     /** What [keep] answers with: the key stays on this phone. */
     const val THIS_PHONE = "this-phone"
 
+    /** What [keep] answers with: the key stays on this phone, since Block Store could not say whether it encrypts end to end. */
+    const val UNKNOWN = "unknown"
+
     /** Answers with the value kept under [name], or an empty string when there is none. */
     @JvmStatic
     fun read(context: Context, name: String, callback: SignInCallback) {
@@ -32,23 +35,34 @@ object KeyBackup {
         }
     }
 
-    /** Keeps [value] under [name] and answers with [END_TO_END] or [THIS_PHONE]. */
+    /**
+     * Keeps [value] under [name] and answers with [END_TO_END], [THIS_PHONE] or [UNKNOWN]. When Block Store cannot say
+     * whether it encrypts end to end, for example with outdated Play services, the key stays on this phone and the
+     * answer is [UNKNOWN], so that the account sheet does not claim the phone has no screen lock.
+     */
     @JvmStatic
     fun keep(context: Context, name: String, value: String, callback: SignInCallback) {
         val client = Blockstore.getClient(context.applicationContext)
         val kept = client.isEndToEndEncryptionAvailable.continueWithTask { available ->
-            val endToEnd = available.isSuccessful && available.result == true
+            val reach = when {
+                !available.isSuccessful -> UNKNOWN
+                available.result == true -> END_TO_END
+                else -> THIS_PHONE
+            }
             val data = StoreBytesData.Builder()
                 .setKey(name)
                 .setBytes(value.toByteArray(Charsets.UTF_8))
-                .setShouldBackupToCloud(endToEnd)
+                .setShouldBackupToCloud(reach == END_TO_END)
                 .build()
-            client.storeBytes(data).onSuccessTask { Tasks.forResult(endToEnd) }
+            client.storeBytes(data).onSuccessTask { Tasks.forResult(reach) }
         }
-        answer(kept, callback) { endToEnd -> if (endToEnd) END_TO_END else THIS_PHONE }
+        answer(kept, callback) { it }
     }
 
-    /** Removes what is kept under [name], on this phone and in the cloud backup, and answers with an empty string. */
+    /**
+     * Removes what is kept under [name] on this phone, and from the cloud backup at the next device backup, and answers
+     * with an empty string. A phone already set up from this one keeps the copy it was given (ADR-0008).
+     */
     @JvmStatic
     fun forget(context: Context, name: String, callback: SignInCallback) {
         val request = DeleteBytesRequest.Builder().setKeys(listOf(name)).build()

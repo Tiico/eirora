@@ -177,6 +177,15 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels(), Does.Not.Contain(Suggestion));
             Assert.That(Labels(), Does.Contain("Visa återställningskod"));
+
+            backup.Reach = KeyBackupReach.ThisPhone;
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+            Assert.That(Labels(), Does.Contain(Suggestion));
+            backup.Reach = null; // The platform could not say: the sheet claims no missing screen lock.
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+
+            Assert.That(Labels(), Does.Not.Contain(Suggestion));
+            Assert.That(Labels(), Does.Contain("Visa återställningskod"));
         }
 
         [Test]

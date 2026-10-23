@@ -30,11 +30,18 @@ namespace Eirora.Client.Accounts
         /// <exception cref="KeyBackupException">The platform's backup did not answer.</exception>
         Task<string?> ReadAsync(string name);
 
-        /// <summary>Keeps <paramref name="value"/> under <paramref name="name"/>, replacing what was there, and says how far it reaches.</summary>
+        /// <summary>
+        /// Keeps <paramref name="value"/> under <paramref name="name"/>, replacing what was there, and says how far it
+        /// reaches; null when it was kept but the platform could not say, so that the account sheet claims nothing.
+        /// </summary>
         /// <exception cref="KeyBackupException">The platform's backup did not keep it.</exception>
-        Task<KeyBackupReach> KeepAsync(string name, string value);
+        Task<KeyBackupReach?> KeepAsync(string name, string value);
 
-        /// <summary>Removes what is kept under <paramref name="name"/>, on this phone and in the backup.</summary>
+        /// <summary>
+        /// Removes what is kept under <paramref name="name"/> on this phone and in its cloud backup. iCloud Keychain
+        /// passes the removal on to the player's other devices; Block Store does not, so a phone set up from this one
+        /// keeps its copy (ADR-0008).
+        /// </summary>
         /// <exception cref="KeyBackupException">The platform's backup did not answer.</exception>
         Task ForgetAsync(string name);
     }
@@ -65,7 +72,8 @@ namespace Eirora.Client.Accounts
     {
         private readonly Dictionary<string, string> _values = new();
 
-        public KeyBackupReach Reach { get; set; } = KeyBackupReach.EndToEnd;
+        /// <summary>What <see cref="KeepAsync"/> answers; null when the platform cannot say.</summary>
+        public KeyBackupReach? Reach { get; set; } = KeyBackupReach.EndToEnd;
 
         /// <summary>Makes every call fail, as when Google Play services or the keychain does not answer.</summary>
         public bool Failing { get; set; }
@@ -78,7 +86,7 @@ namespace Eirora.Client.Accounts
             return Task.FromResult(this[name]);
         }
 
-        public Task<KeyBackupReach> KeepAsync(string name, string value)
+        public Task<KeyBackupReach?> KeepAsync(string name, string value)
         {
             Fail();
             _values[name] = value;

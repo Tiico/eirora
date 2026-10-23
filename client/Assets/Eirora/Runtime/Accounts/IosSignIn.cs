@@ -41,32 +41,59 @@ namespace Eirora.Client.Accounts
         public void Delete(string key) => IosSignIn.EiroraKeychainDelete(key);
     }
 
-    /// <summary>The contribution key in iCloud Keychain (EiroraKeyBackup.mm); the keychain answers at once.</summary>
+    /// <summary>
+    /// The contribution key in iCloud Keychain (EiroraKeyBackup.mm); the keychain answers at once. A failure carries the
+    /// keychain's OSStatus, which holds nothing of the key, so that it can be told apart on a device.
+    /// </summary>
     public sealed class IosKeyBackup : IKeyBackup
     {
-        public Task<string?> ReadAsync(string name) => Task.FromResult(EiroraKeyBackupRead(name));
+        private const int ErrSecSuccess = 0;
+        private const int ErrSecItemNotFound = -25300;
 
-        public Task<KeyBackupReach> KeepAsync(string name, string value) => EiroraKeyBackupKeep(name, value) switch
+        public Task<string?> ReadAsync(string name)
         {
-            1 => Task.FromResult(KeyBackupReach.EndToEnd),
-            0 => Task.FromResult(KeyBackupReach.ThisPhone),
-            _ => Task.FromException<KeyBackupReach>(new KeyBackupException("The keychain did not keep the key")),
-        };
+            string? value = EiroraKeyBackupRead(name, out int status);
+            return status switch
+            {
+                ErrSecSuccess => Task.FromResult(value),
+                ErrSecItemNotFound => Task.FromResult<string?>(null),
+                _ => Task.FromException<string?>(Failed(status)),
+            };
+        }
+
+        public Task<KeyBackupReach?> KeepAsync(string name, string value)
+        {
+            int status = EiroraKeyBackupKeep(name, value, out int reach);
+            if (status != ErrSecSuccess)
+            {
+                return Task.FromException<KeyBackupReach?>(Failed(status));
+            }
+
+            KeyBackupReach? known = reach switch
+            {
+                1 => KeyBackupReach.EndToEnd,
+                0 => KeyBackupReach.ThisPhone,
+                _ => null,
+            };
+            return Task.FromResult(known);
+        }
 
         public Task ForgetAsync(string name)
         {
-            EiroraKeyBackupForget(name);
-            return Task.CompletedTask;
+            int status = EiroraKeyBackupForget(name);
+            return status is ErrSecSuccess or ErrSecItemNotFound ? Task.CompletedTask : Task.FromException(Failed(status));
         }
 
-        [DllImport("__Internal")]
-        private static extern string? EiroraKeyBackupRead(string name);
+        private static KeyBackupException Failed(int status) => new($"Keychain error {status}");
 
         [DllImport("__Internal")]
-        private static extern int EiroraKeyBackupKeep(string name, string value);
+        private static extern string? EiroraKeyBackupRead(string name, out int status);
 
         [DllImport("__Internal")]
-        private static extern void EiroraKeyBackupForget(string name);
+        private static extern int EiroraKeyBackupKeep(string name, string value, out int reach);
+
+        [DllImport("__Internal")]
+        private static extern int EiroraKeyBackupForget(string name);
     }
 
     /// <summary>The native calls and their answers, which arrive on the main thread.</summary>
