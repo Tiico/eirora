@@ -88,7 +88,7 @@ En byggnad som lagrar resurser och vars bärare hämtar det byggnaderna närmast
 _Avoid_: lager (om byggnaden), magasin
 
 **Bärare** (`Carrier`):
-Det som flyttar varor på land mellan produktion, förråd och mottagare, en begränsad mängd per timme; vägar gör bärarna snabbare (D-107).
+Bybor som ett förråd eller en brygga anställer själv vid gryningen, en till fyra, för att flytta varor på land mellan byggnaderna och förrådet; avståndet kostar bärartid, och vägar gör bärarna snabbare (D-107, D-109, D-110).
 _Avoid_: transportör, kärra (som term)
 
 **Minimilager** (`Reserve`):
@@ -108,15 +108,31 @@ Byggnaden där forskningen ristas och där världens historik bevaras.
 _Avoid_: forskningscenter, bibliotek
 
 **Befolkningsnivå** (`PopulationTier`):
-Det steg en bybo har nått, i epok 1 torpare, bönder eller hantverkare, med egna bostäder, behov och byggnader att arbeta i; en bybo stiger när nivåns behov uppfylls och går aldrig tillbaka (D-105, D-39).
+Det steg en bybo har nått, i epok 1 torpare, bönder eller hantverkare, med egna bostäder, behov och byggnader att arbeta i; en bybo stiger när nivåns behov uppfylls och går aldrig tillbaka (D-105, D-39, D-115).
 _Avoid_: klass, rang, stånd
+
+**Torpare** (`Crofters`):
+Den första befolkningsnivån: alla bybor börjar som torpare, bor i stugor och långhus och behöver bara mat.
+_Avoid_: trälar, arbetare
+
+**Bönder** (`Farmers`):
+Den andra befolkningsnivån, som torpare stiger till när de får kläder; bor i bondgårdar och kan också bemanna bryggeri, mjöderi och tjärdal.
+_Avoid_: odlare, jordbrukare (som nivå)
+
+**Hantverkare** (`Craftsmen`):
+Den tredje befolkningsnivån i epok 1, som bönder stiger till när de också får dryck; bor i hantverkargårdar, bygger dubbelt så fort och bemannar varvet (D-116).
+_Avoid_: mästare, borgare
+
+**Nybyggare** (`Pioneers`):
+De lediga torpare, högst två, som följer med från hemön när en ny bosättning anläggs och bor i bostäderna i dess förråd eller brygga (D-113).
+_Avoid_: kolonister
 
 **Behov** (`Need`):
 Det en befolkningsnivå förbrukar varje spelardygn, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
 _Avoid_: krav, efterfrågan, hunger
 
 **Upplåsning** (`Unlock`):
-Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga i hela världen när någon bosättning uppfyller stegets villkor, till exempel en viss storlek; ett steg som nåtts låses aldrig igen (D-105).
+Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga i hela världen när någon bosättning uppfyller stegets villkor, till exempel en viss storlek; ett steg som nåtts låses aldrig igen (D-105, D-114).
 _Avoid_: nivå (om steget), teknikträd
 
 **Utlager** (`OutputBuffer`):
@@ -124,7 +140,7 @@ Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret ä
 _Avoid_: buffert, kö (om varorna)
 
 **Väg** (`Road`):
-En bricka där bärarna går dubbelt så fort; vägar läggs bricka för bricka och hjälper alla bärare som går över dem.
+En bricka där bärarna går dubbelt så fort; vägar läggs bricka för bricka och hjälper alla bärare som går över dem (D-112).
 _Avoid_: stig, gata
 
 **Knarr** (`Knarr`):

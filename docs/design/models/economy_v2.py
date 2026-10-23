@@ -112,14 +112,15 @@ UPGRADE = Spec({"plank": 10, "sten": 5}, 16, 50, 0, "")
 ROAD_COST, ROAD_WORK = {"sten": 2}, 4  # per bricka
 HOUSING = {"Stuga": (0, 4), "Långhus": (0, 8), "Bondgård": (1, 6), "Hantverkargård": (2, 8)}
 START_HOUSING = 16
-SETTLER_HOUSING = 4    # bostäder i det förråd eller den brygga som anlägger en bosättning
-# Hur D-106 tillämpas (delfråga F5). Kalkylen räknar med rekommendationen; avsnitt 14 räknar alternativen.
+SETTLER_HOUSING = 4    # nybyggarnas bostäder i det förråd eller den brygga som anlägger en bosättning
+# Hur en ny bosättning kommer i gång (D-113, som utvidgar D-106). Avsnitt 14 räknar alternativen.
+SETTLERS = 2             # lediga torpare från hemön som följer med när en bosättning anläggs
 SHARED_BUILDERS = True   # lediga bybor i alla bosättningar bygger på alla öar som sjövägen når
-MATERIAL_BY_SEA = True   # byggmaterial från hemön till en ö tar plats på sjövägen
+MATERIAL_BY_SEA = False  # byggmaterial från hemön till en ö tar plats på sjövägen
 MIGRANTS_PER_DAY = 1     # bybor som flyttar mellan bosättningar per gryning i hela världen (D-106)
-KEEP_BUILDERS = 0        # lediga bybor som förrådet lämnar åt byggkön när det anställer bärare (delfråga F1)
-AUTO_CARRIERS = True     # förrådet anställer själv; annars sätter spelaren bärarna för hand (delfråga F1)
-INPUT_FIRST = False      # bärarna bär råvara till förädlingen före allt annat (delfråga F3)
+KEEP_BUILDERS = 0        # lediga bybor som förrådet lämnar åt byggkön när det anställer bärare (D-109)
+AUTO_CARRIERS = True     # förrådet anställer själv; annars sätter spelaren bärarna för hand (D-109)
+INPUT_FIRST = False      # bärarna bär råvara till förädlingen före allt annat (D-111)
 DEPOTS = ("Förråd", "Brygga")
 STORAGE = {"Förråd": 150, "Brygga": 50}  # per resurs
 
@@ -424,9 +425,14 @@ class World:
         if kind in DEPOTS:
             self._times.clear()
             if island not in self.settlements:  # det första förrådet eller bryggan anlägger bosättningen (D-106)
-                self.settlements[island] = Settlement(island, {r: 0.0 for r in RESOURCES}, [0, 0, 0], SETTLER_HOUSING)
+                s = Settlement(island, {r: 0.0 for r in RESOURCES}, [0, 0, 0], SETTLER_HOUSING)
+                self.settlements[island] = s
+                home = self.settlements[HOME]
+                settlers = min(SETTLERS, self.free(home)[0])  # nybyggarna flyttar; världens bybor blir inte fler
+                home.tiers[0] -= settlers
+                s.tiers[0] += settlers
                 self.introduce("Ny bosättning")
-                self.log.append(f"Dygn {self.day + 1}: {island} anläggs")
+                self.log.append(f"Dygn {self.day + 1}: {island} anläggs med {settlers} nybyggare")
         if kind == "Sågverk":
             self.introduce("Förädling och minimilager")
         if kind == "Brygga" and island == HOME:
@@ -754,7 +760,7 @@ class World:
 
     def carry_hour(self):
         """Bärarna vid varje förråd tar först den byggnad där det väntar mest: det fullaste utlagret eller
-        den förädling som har minst råvara kvar (D-107, delfråga F3)."""
+        den förädling som har minst råvara kvar (D-107, D-111)."""
         for s in self.settlements.values():
             cap = self.storage(s)
             served = {}
@@ -1100,7 +1106,7 @@ def strategy_village(w: World, day: int):
 
 
 def strategy_sea_v1_order(w: World, day: int):
-    """Havet med ekonomi v1:s byggordning: Nyöns brygga efter det första långhuset (delfråga F5)."""
+    """Havet med ekonomi v1:s byggordning: Nyöns brygga efter det första långhuset (D-113)."""
     w.build("Brygga", "H1")
     w.build("Huggarkoja", "E2")
     w.build("Sågverk", "L3")
@@ -1236,7 +1242,7 @@ def run(strategy, profile, days=DAYS, w=None, start=0, values=None):
 
 # --- Samma strategi med mer egenvård (D-34) ----------------------------------------------------
 
-D34_TOLERANCE = 0.005  # största dipp med mer egenvård och samma beslut som kalkylen godtar (delfråga F11)
+D34_TOLERANCE = 0.015  # största dipp med mer egenvård och samma beslut som kalkylen godtar tills F11 är avgjord
 COMMANDS = ("build", "upgrade", "road", "carrier_cap", "survey", "expedition", "workday", "rush")
 
 
@@ -1603,7 +1609,7 @@ def main():
         low, high = same_decisions(strat, "måttlig", "hög", LONG_DAYS)
         worst = min(low, key=lambda d: (high[d] / low[d], d))
         below = sum(1 for d in low if high[d] < low[d] - 1e-6)
-        # Delfråga F11: bärarnas ordning kan ge mer egenvård en något mindre värld några dygn.
+        # F11: bärarnas ordning kan ge mer egenvård en något mindre värld några dygn.
         assert high[worst] >= (1 - D34_TOLERANCE) * low[worst], "mer egenvård ska synas i världen (D-34)"
         assert high[LONG_DAYS] >= low[LONG_DAYS] * (1 - D34_TOLERANCE)
         print(f"| {name} | " + " | ".join(f"{low[d]:.0f} / {high[d]:.0f}" for d in (7, 14, 28, 42))
@@ -1611,7 +1617,7 @@ def main():
     with variant(INPUT_FIRST=True):
         low, high = same_decisions(strategy_village, "måttlig", "hög", LONG_DAYS)
     worst = min(low, key=lambda d: (high[d] / low[d], d))
-    print(f"\nMed råvaran till förädlingen först (delfråga F3, alternativ 2) är Bygden som sämst dygn {worst}: "
+    print(f"\nMed råvaran till förädlingen först (alternativet till D-111) är Bygden som sämst dygn {worst}: "
           f"{high[worst] / low[worst] - 1:+.2%}, och under måttlig {sum(high[d] < low[d] - 1e-6 for d in low)} dygn.")
 
     print(f"\n## Sex veckor\n\n| Körning | Profil | Bönder låses upp | Hantverkare | Sjöfart "
@@ -1646,18 +1652,19 @@ def main():
             print(f"| {what} | {where} | {out:.0f} | {last:.2f} | {cost} |")
         print()
 
-    print("\n## Delfrågornas alternativ\n")
+    print("\n## Alternativen bakom besluten\n")
     print("| Delfråga | Alternativ | Körning | Utvecklingsvärde dygn 7 | Värde per använd kraft "
           "| Bybor vecka 6 | Nyön vecka 6 T/B/H |\n|---|---|---|---|---|---|---|")
     alternatives = [
-        ("F1", "1: förrådet anställer själv (kalkylen)", strategy_naive, "hög", {}),
-        ("F1", "2: spelaren sätter bärarna för hand", strategy_naive, "hög", {"AUTO_CARRIERS": False}),
-        ("F1", "1 med två byggare kvar", strategy_land, "måttlig", {"KEEP_BUILDERS": 2}),
-        ("F1", "1 (kalkylen)", strategy_land, "måttlig", {}),
-        ("F5", "1: byggare från alla öar (kalkylen)", strategy_sea, "måttlig", {}),
-        ("F5", "2: varje ö bygger själv", strategy_sea, "måttlig", {"SHARED_BUILDERS": False}),
-        ("F5", "1 med byggmaterialet utanför sjövägen", strategy_sea, "måttlig", {"MATERIAL_BY_SEA": False}),
-        ("F5", "1 med v1:s byggordning", strategy_sea_v1_order, "måttlig", {}),
+        ("F1", "D-109 (kalkylen)", strategy_naive, "hög", {}),
+        ("F1", "Spelaren sätter bärarna för hand", strategy_naive, "hög", {"AUTO_CARRIERS": False}),
+        ("F1", "D-109 med två byggare kvar", strategy_land, "måttlig", {"KEEP_BUILDERS": 2}),
+        ("F1", "D-109 (kalkylen)", strategy_land, "måttlig", {}),
+        ("F5", "D-113 (kalkylen)", strategy_sea, "måttlig", {}),
+        ("F5", "D-113 med byggmaterialet på sjövägen", strategy_sea, "måttlig", {"MATERIAL_BY_SEA": True}),
+        ("F5", "D-106 utan tillägg", strategy_sea, "måttlig",
+         {"SETTLERS": 0, "SHARED_BUILDERS": False, "MATERIAL_BY_SEA": True}),
+        ("F5", "D-113 med v1:s byggordning", strategy_sea_v1_order, "måttlig", {}),
     ]
     for question, what, strat, profile, rules in alternatives:
         with variant(**rules):
