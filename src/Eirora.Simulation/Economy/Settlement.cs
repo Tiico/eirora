@@ -81,7 +81,26 @@ namespace Eirora.Simulation.Economy
 
         public int SurveysDone { get; private set; }
 
+        /// <summary>The buildings in the staffing order (economy-v1.md, section 4), which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _buildings;
+
+        /// <summary>The buildings that need staff, in the order villagers are given to them when they do not suffice for all.</summary>
+        public List<Building> StaffingOrder
+        {
+            get
+            {
+                var order = new List<Building>();
+                foreach (var building in _buildings)
+                {
+                    if (_content.For(building.Kind).Staff > 0)
+                    {
+                        order.Add(building);
+                    }
+                }
+
+                return order;
+            }
+        }
 
         public IReadOnlyList<Project> Projects => _projects;
 
@@ -272,17 +291,20 @@ namespace Eirora.Simulation.Economy
             return true;
         }
 
-        public bool IsQueued(Hex tile, ProjectKind kind)
+        public bool IsQueued(Hex tile, ProjectKind kind) => Queued(tile, kind) is not null;
+
+        /// <summary>The project of <paramref name="kind"/> for <paramref name="tile"/> in the queue, or null.</summary>
+        public Project? Queued(Hex tile, ProjectKind kind)
         {
             foreach (var project in _projects)
             {
                 if (project.Tile == tile && project.Kind == kind)
                 {
-                    return true;
+                    return project;
                 }
             }
 
-            return false;
+            return null;
         }
 
         /// <summary>Pays from the home island's store and queues the work; the caller has checked tile, cost and forces.</summary>
@@ -351,6 +373,34 @@ namespace Eirora.Simulation.Economy
 
         public void SendExpedition() => _expeditionLeft = PrototypeIsland.ExpeditionHours * 1000L;
 
+        /// <summary>Pauses or resumes a building and gives the villagers out again (economy-v1.md, section 4).</summary>
+        public void SetPaused(Building building, bool paused)
+        {
+            building.Paused = paused;
+            StaffBuildings();
+        }
+
+        /// <summary>
+        /// Moves a building that needs staff to <paramref name="place"/> in the staffing order, counted from 0, and
+        /// gives the villagers out again; the buildings that need no staff keep their places among the others.
+        /// </summary>
+        public void MoveInStaffingOrder(Building building, int place)
+        {
+            var others = StaffingOrder;
+            others.Remove(building);
+            _buildings.Remove(building);
+            int at = place < others.Count ? _buildings.IndexOf(others[place]) : _buildings.IndexOf(others[others.Count - 1]) + 1;
+            _buildings.Insert(at, building);
+            StaffBuildings();
+        }
+
+        /// <summary>Moves a project first in the queue, where the free villagers' work goes; its work so far stays with it.</summary>
+        public void MoveFirst(Project project)
+        {
+            _projects.Remove(project);
+            _projects.Insert(0, project);
+        }
+
         /// <summary>Shortens the first project in the queue by up to <paramref name="hours"/> hours of work.</summary>
         public void Rush(int hours)
         {
@@ -389,7 +439,7 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private int RecordState(ref long[] state)
         {
-            int needed = 7 + (2 * s_resourceCount) + (5 * _buildings.Count) + _projects.Count + (3 * _felled.Count);
+            int needed = 7 + (2 * s_resourceCount) + (6 * _buildings.Count) + _projects.Count + (3 * _felled.Count);
             if (state.Length < needed)
             {
                 state = new long[2 * needed];
@@ -414,6 +464,7 @@ namespace Eirora.Simulation.Economy
             {
                 state[i++] = building.Level;
                 state[i++] = building.Staffed ? 1 : 0;
+                state[i++] = building.Paused ? 1 : 0;
                 state[i++] = building.HasRoad ? 1 : 0;
                 state[i++] = building.WorkdayToday ? 1 : 0;
                 state[i++] = building.Ripe;
@@ -480,10 +531,10 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            // Buildings and projects keep their order: staffing and the queue follow it.
+            // Buildings and projects keep their order: the staffing order and the queue.
             foreach (var b in _buildings)
             {
-                writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.HasRoad).Bool(b.WorkdayToday).Long(b.Ripe);
+                writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.HasRoad).Bool(b.WorkdayToday).Long(b.Ripe).Bool(b.Paused);
             }
 
             foreach (var p in _projects)
@@ -544,7 +595,13 @@ namespace Eirora.Simulation.Economy
                     HasRoad = reader.Bool(),
                     WorkdayToday = reader.Bool(),
                     Ripe = reader.Long(),
+                    Paused = reader.Bool(),
                 };
+                if (building.Paused && building.Staffed)
+                {
+                    throw new FormatException($"The paused building on {tile} is staffed.");
+                }
+
                 settlement._buildings.Add(building);
                 settlement._buildingAt.Add(tile, building);
             }
@@ -597,10 +654,11 @@ namespace Eirora.Simulation.Economy
             }
 
             // Distance, level and a workday scale how fast a field or a sheep farm grows, as they scale every other
-            // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown.
+            // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown. Only a
+            // staffed one is tended and grows, so that pausing it costs what it makes (section 4; TASK-044).
             foreach (var building in _buildings)
             {
-                if (_content.For(building.Kind).Recipe is Recipe recipe && recipe.IsSlowProcess)
+                if (building.Staffed && _content.For(building.Kind).Recipe is Recipe recipe && recipe.IsSlowProcess)
                 {
                     long grows = recipe.Richness ? Scale(recipe.GrowsPerTick, _map.RichnessAt(building.Tile)) : recipe.GrowsPerTick;
                     building.Ripe += ticks * Scale(grows, DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
@@ -969,15 +1027,19 @@ namespace Eirora.Simulation.Economy
             }
         }
 
+        /// <summary>
+        /// Gives the villagers to the buildings in the staffing order (economy-v1.md, section 4): each building that is
+        /// not paused is staffed if enough villagers are left for it, and is otherwise passed over for the next one.
+        /// The villagers left over build.
+        /// </summary>
         private void StaffBuildings()
         {
+            int free = Villagers;
             foreach (var building in _buildings)
             {
                 int staff = _content.For(building.Kind).Staff;
-                if (!building.Staffed && staff > 0 && FreeVillagers >= staff)
-                {
-                    building.Staffed = true;
-                }
+                building.Staffed = staff > 0 && !building.Paused && free >= staff;
+                free -= building.Staffed ? staff : 0;
             }
         }
 

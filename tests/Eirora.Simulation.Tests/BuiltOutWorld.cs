@@ -9,9 +9,9 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests;
 
 /// <summary>
-/// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue,
-/// an expedition at sea or the sea route open, workdays, felled forest, ripening fields and sheep, and now and then
-/// stores filled to the brim (TASK-049).
+/// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
+/// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
+/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
@@ -119,6 +119,22 @@ internal static class BuiltOutWorld
             save.Apply($"out-{key++}", new Workday(worked));
         }
 
+        // Before leaving, the player may pause a building, give another villagers first or put a project first.
+        if (random.Next(2) == 0 && BuiltSite(world, random.Next(int.MaxValue), b => !b.Paused) is Hex paused)
+        {
+            save.Apply($"out-{key++}", new PauseBuilding(paused));
+        }
+
+        if (random.Next(2) == 0 && StaffingMove(world, random.Next(int.MaxValue), random.Next(int.MaxValue)) is { } prioritize)
+        {
+            save.Apply($"out-{key++}", prioritize);
+        }
+
+        if (random.Next(2) == 0 && QueueMove(world, random.Next(int.MaxValue)) is { } first)
+        {
+            save.Apply($"out-{key++}", first);
+        }
+
         // The player may leave at any moment of the day, also just before or during the rest.
         save.AdvanceTo(Shift(world.Now, random.Next((int)(20 * Hour))));
         return save;
@@ -178,16 +194,33 @@ internal static class BuiltOutWorld
             return new Build(nyon.Kind, nyon.Site);
         }
 
-        return random.Next(10) switch
+        return random.Next(12) switch
         {
             < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
             4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
             6 => BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue) is Hex road ? new BuildRoad(road) : null,
             7 => BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday) is Hex worked ? new Workday(worked) : null,
             8 => new Survey(),
+            9 => BuiltSite(world, pick, _ => true) is Hex tile ? (world.BuildingAt(tile)!.Paused ? new ResumeBuilding(tile) : new PauseBuilding(tile)) : null,
+            10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),
             _ => new Rush(),
         };
     }
+
+    /// <summary>A building that needs staff moved to another place in the staffing order, or none.</summary>
+    private static Prioritize? StaffingMove(World world, int pick, int place)
+    {
+        var order = world.StaffingOrder;
+        return order.Count > 1 && order[pick % order.Count] is var moved && order[place % order.Count] != moved
+            ? new Prioritize(moved.Tile, place % order.Count)
+            : null;
+    }
+
+    /// <summary>A project that is not first in the queue moved first, or none.</summary>
+    private static QueueFirst? QueueMove(World world, int pick) =>
+        world.Projects.Count > 1 && world.Projects[1 + (pick % (world.Projects.Count - 1))] is var project
+            ? new QueueFirst(project.Kind, project.Tile)
+            : null;
 
     /// <summary>
     /// One of the affordable buildings that the settlement would take on a tile and that is <paramref name="wanted"/>,
