@@ -107,6 +107,34 @@ _Avoid_: gratisbygge, långsamt läge
 Byggnaden där forskningen ristas och där världens historik bevaras.
 _Avoid_: forskningscenter, bibliotek
 
+**Befolkningsnivå** (`PopulationTier`):
+Det steg en bybo har nått, i epok 1 torpare, bönder eller hantverkare, med egna bostäder, behov och byggnader att arbeta i; en bybo stiger när nivåns behov uppfylls och går aldrig tillbaka (D-105, D-39).
+_Avoid_: klass, rang, stånd
+
+**Behov** (`Need`):
+Det en befolkningsnivå förbrukar varje spelardygn, till exempel mat, kläder eller dryck, och som kan uppfyllas med minst två varor ur oberoende kedjor; basbehovet mat har alla nivåer (INV-R4).
+_Avoid_: krav, efterfrågan, hunger
+
+**Upplåsning** (`Unlock`):
+Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga när en bosättning når en viss storlek; ett steg som nåtts låses aldrig igen (D-105).
+_Avoid_: nivå (om steget), teknikträd
+
+**Nybyggare** (`Settlers`):
+Lediga bybor som följer med när en ny bosättning grundas och bor i det grundande förrådets eller bryggans bostäder (D-106).
+_Avoid_: kolonister
+
+**Utlager** (`OutputBuffer`):
+Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret är fullt stannar byggnaden, och inget går förlorat (D-107).
+_Avoid_: buffert, kö (om varorna)
+
+**Väg** (`Road`):
+En bricka där bärarna går dubbelt så fort; vägar läggs bricka för bricka och hjälper alla bärare som går över dem.
+_Avoid_: stig, gata
+
+**Knarr** (`Knarr`):
+Ett lastskepp som varvet bygger och som ökar sjövägarnas kapacitet till och från varvets ö.
+_Avoid_: skepp (när knarren som kapacitet avses), båt
+
 ## Egenvård och krafter
 
 **Egenvård** (`SelfCare`):
