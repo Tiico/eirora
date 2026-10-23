@@ -72,19 +72,19 @@ _Avoid_: fog of war, mörker
 ## Civilisation och ekonomi
 
 **Bosättning** (`Settlement`):
-En ös byggnader, bybor, bostäder och lager, grundad av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
-_Avoid_: by, stad (som generella termer)
+En ös byggnader, bybor, bostäder och lager, anlagd av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
+_Avoid_: by, stad (som generella termer), grundande (som är det en ny värld börjar med)
 
 **Bybor** (`Villagers`):
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
 _Avoid_: invånare, befolkning, NPC:er
 
 **Basbehov** (`BasicNeed`):
-Det byborna förbrukar varje spelardygn, i v1 mat; brist stoppar bara tillväxt, aldrig något som redan finns.
+Det behov som alla befolkningsnivåer har, mat, en per bybo och spelardygn; brist stoppar bara tillväxt, aldrig något som redan finns.
 _Avoid_: hunger, underhåll
 
 **Förråd** (`Depot`):
-En byggnad som lagrar resurser och som produktionens avstånd räknas till; en brygga räknas också som förråd för avstånd.
+En byggnad som lagrar resurser och vars bärare hämtar det byggnaderna närmast gör; en brygga är också ett förråd, med ett mindre lager (D-107).
 _Avoid_: lager (om byggnaden), magasin
 
 **Bärare** (`Carrier`):
@@ -112,16 +112,12 @@ Det steg en bybo har nått, i epok 1 torpare, bönder eller hantverkare, med egn
 _Avoid_: klass, rang, stånd
 
 **Behov** (`Need`):
-Det en befolkningsnivå förbrukar varje spelardygn, till exempel mat, kläder eller dryck, och som kan uppfyllas med minst två varor ur oberoende kedjor; basbehovet mat har alla nivåer (INV-R4).
+Det en befolkningsnivå förbrukar varje spelardygn, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
 _Avoid_: krav, efterfrågan, hunger
 
 **Upplåsning** (`Unlock`):
-Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga när en bosättning når en viss storlek; ett steg som nåtts låses aldrig igen (D-105).
+Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga i hela världen när någon bosättning uppfyller stegets villkor, till exempel en viss storlek; ett steg som nåtts låses aldrig igen (D-105).
 _Avoid_: nivå (om steget), teknikträd
-
-**Nybyggare** (`Settlers`):
-Lediga bybor som följer med när en ny bosättning grundas och bor i det grundande förrådets eller bryggans bostäder (D-106).
-_Avoid_: kolonister
 
 **Utlager** (`OutputBuffer`):
 Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret är fullt stannar byggnaden, och inget går förlorat (D-107).
