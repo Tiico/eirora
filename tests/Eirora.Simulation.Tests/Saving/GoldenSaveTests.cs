@@ -90,13 +90,15 @@ public sealed class GoldenSaveTests
     }
 
     /// <summary>
-    /// Makes the golden save of the current version from a fixed scenario: from rules 6 on, a world built out on the
-    /// archipelago with a store on each of three islands and two sea routes home (TASK-045).
+    /// Makes the golden save of the current version from a fixed scenario: from rules 7 on, a world built out on the
+    /// archipelago with a store on each of three islands, two sea routes home with goods waiting, and paused buildings
+    /// (TASK-044, TASK-045).
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(43);
+        var save = BuiltOutWorld.GenerateSave(7);
         Assert.Equal(2, save.World.SeaRoutes.Count);
+        Assert.Contains(save.World.Buildings, b => b.Paused);
 
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());

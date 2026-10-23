@@ -1,3 +1,4 @@
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 
 namespace Eirora.Simulation.Tests.Saving;
@@ -36,8 +37,8 @@ public sealed class StaffingIsOrderedTests
     {
         string current = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night).Fingerprint();
 
-        Assert.Equal(current, new StaffingIsOrdered().Migrate(RulesFive(current)));
-        Assert.Throws<FormatException>(() => new StaffingIsOrdered().Migrate(current));
+        Assert.Equal(current, new StaffingIsOrdered().Migrate(RulesFive(current), PrototypeHome.Map));
+        Assert.Throws<FormatException>(() => new StaffingIsOrdered().Migrate(current, PrototypeHome.Map));
     }
 
     /// <summary>The same world as rules 5 wrote it, without whether each building is paused.</summary>

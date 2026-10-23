@@ -8,23 +8,23 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests.Saving;
 
 /// <summary>
-/// Rules 5 → 6 (TASK-045): the islands come from the map, so the stores on Home and Nyon become the stores of the map's
-/// islands, and a world with Nyön goes on as it did under rules 5 apart from the islands' ids (ADR-0006).
+/// Rules 6 → 7 (TASK-045): the islands come from the map, so the stores on Home and Nyon become the stores of the map's
+/// islands, and a world with Nyön goes on as it did under rules 6 apart from the islands' ids (ADR-0006).
 /// </summary>
 public sealed class IslandsFromTheMapTests
 {
-    private const string SeaRoute = "sea-route-3-rules-5";
+    private const string SeaRoute = "sea-route-3-rules-6";
 
     private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
     /// <summary>
-    /// The golden save <c>sea-route-3-rules-5</c> is a built-out world with the sea route from Nyön, written by the rules 5
+    /// The golden save <c>sea-route-3-rules-6</c> is a built-out world with the sea route from Nyön, written by the rules 6
     /// code; its <c>.week</c> file is that code's world a week later, with the stores named by this migration. A later
     /// rules version that changes the week writes the file again in the change that bumps the rules, so the review sees
     /// what changed (ADR-0006).
     /// </summary>
     [Fact]
-    public void AWorldWithNyonGivesTheSameWeekAsUnderRulesFiveApartFromTheIslandIds()
+    public void AWorldWithNyonGivesTheSameWeekAsUnderRulesSixApartFromTheIslandIds()
     {
         var save = Save.Load(GoldenSaveTests.Bytes(SeaRoute));
         Assert.True(save.ChangedOnLoad);
@@ -47,21 +47,21 @@ public sealed class IslandsFromTheMapTests
         Assert.Equal(File.ReadAllText(week, Encoding.UTF8), save.World.Fingerprint());
     }
 
-    // A world built under rules 6 on the prototype's map, written as rules 5 wrote it, migrates back to itself.
+    // A world built under rules 7 on the prototype's map, written as rules 6 wrote it, migrates back to itself.
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(4)]
     [InlineData(8)]
-    public void ARulesFiveStateOnThePrototypesMapGetsTheStoresOfHemonAndNyon(int seed)
+    public void ARulesSixStateOnThePrototypesMapGetsTheStoresOfHemonAndNyon(int seed)
     {
         var world = BuiltOutWorld.GenerateSave(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
         string state = world.Fingerprint();
 
-        Assert.Equal(state, new IslandsFromTheMap().Migrate(AsRulesFive(state, world), PrototypeHome.Map));
+        Assert.Equal(state, new IslandsFromTheMap().Migrate(AsRulesSix(state, world), PrototypeHome.Map));
     }
 
-    // Under rules 5 every island but the home island shared Nyon's store; it goes to the island of the first building off
+    // Under rules 6 every island but the home island shared Nyon's store; it goes to the island of the first building off
     // the home island, which was the island the expedition found, and every other island built on gets an empty store.
     [Fact]
     public void NyonsStoreGoesToTheIslandOfTheFirstBuildingOffTheHomeIsland()
@@ -74,9 +74,9 @@ public sealed class IslandsFromTheMapTests
             [Jetty(Archipelago.Second), Jetty(Archipelago.First)]);
         string state = string.Join('\n', lines);
         string nyon = string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
-        string rulesFive = AsRulesFive(state, world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
+        string rulesSix = AsRulesSix(state, world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
 
-        string migrated = new IslandsFromTheMap().Migrate(rulesFive, map);
+        string migrated = new IslandsFromTheMap().Migrate(rulesSix, map);
 
         var stores = migrated.Split('\n').Where(l => l.StartsWith("stock ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
         Assert.Equal(map.Islands.Select(i => i.Id).Where(i => i is Archipelago.Home or Archipelago.First or Archipelago.Second), stores.Select(s => s[1]).Distinct());
@@ -98,31 +98,31 @@ public sealed class IslandsFromTheMapTests
     public void GoodsOnNyonWithNothingBuiltOffTheHomeIslandAreRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesFive = AsRulesFive(world.Fingerprint(), world);
-        Assert.DoesNotContain("stock nyon", new IslandsFromTheMap().Migrate(rulesFive, PrototypeHome.Map), StringComparison.Ordinal);
+        string rulesSix = AsRulesSix(world.Fingerprint(), world);
+        Assert.DoesNotContain("stock nyon", new IslandsFromTheMap().Migrate(rulesSix, PrototypeHome.Map), StringComparison.Ordinal);
 
-        Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesFive.Replace("stock Nyon Stone 0", "stock Nyon Stone 1", StringComparison.Ordinal), PrototypeHome.Map));
+        Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix.Replace("stock Nyon Stone 0", "stock Nyon Stone 1", StringComparison.Ordinal), PrototypeHome.Map));
     }
 
     [Fact]
-    public void AStateOfAnotherMapOrWithoutRulesFivesStoresIsRefused()
+    public void AStateOfAnotherMapOrWithoutTheStoresOfRulesSixIsRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesFive = AsRulesFive(world.Fingerprint(), world);
+        string rulesSix = AsRulesSix(world.Fingerprint(), world);
 
-        Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesFive, Archipelago.Map));
+        Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix, Archipelago.Map));
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(world.Fingerprint(), PrototypeHome.Map));
-        Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesFive.Replace("stock Nyon Stone", "stock Nyon Wool", StringComparison.Ordinal), PrototypeHome.Map));
+        Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix.Replace("stock Nyon Stone", "stock Nyon Wool", StringComparison.Ordinal), PrototypeHome.Map));
     }
 
     /// <summary>
-    /// A state of rules 6 as rules 5 wrote it: every resource on Home, then on Nyon, which holds the store of the one
+    /// A state of rules 7 as rules 6 wrote it: every resource on Home, then on Nyon, which holds the store of the one
     /// island off the home island built on, if any.
     /// </summary>
-    private static string AsRulesFive(string state, World world)
+    private static string AsRulesSix(string state, World world)
     {
         var off = world.Islands.Where(i => i != world.HomeIsland).ToList();
-        Assert.True(off.Count <= 1, "Rules 5 had one store for every island off the home island.");
+        Assert.True(off.Count <= 1, "Rules 6 had one store for every island off the home island.");
         var lines = state.Split('\n').ToList();
         int at = lines.FindIndex(l => l.StartsWith("stock ", StringComparison.Ordinal));
         string Store(string name, string? island) =>
