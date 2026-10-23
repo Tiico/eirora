@@ -52,7 +52,14 @@ namespace Eirora.Client.Look
         /// <summary>The buildings marked as standing still, by tile (TASK-043).</summary>
         public IReadOnlyList<Hex> MarkedStandingStill => _markedStandingStill;
 
-        public void Refresh(World world)
+        /// <summary>
+        /// The world's diagnosis while the villagers are awake, and null while they rest, when the village marks nothing
+        /// as standing still (art-direction.md, section 2, principle 3). The island and the sheets read it alike.
+        /// </summary>
+        public static Diagnostics? DiagnoseWhileAwake(World world) => world.Phase == Phase.Active ? world.Diagnose() : null;
+
+        /// <param name="diagnostics">The diagnosis to mark from, shared with the sheets; taken here when not given.</param>
+        public void Refresh(World world, Diagnostics? diagnostics = null)
         {
             if (Map?.WorldMap.Hash != world.Map.Hash)
             {
@@ -109,7 +116,7 @@ namespace Eirora.Client.Look
 
             // Buildings that stand still are marked while the villagers are awake; at night the whole village rests.
             var signs = new MeshBuilder();
-            var diagnostics = world.Phase == Phase.Active ? world.Diagnose() : null;
+            diagnostics ??= DiagnoseWhileAwake(world);
             _markedStandingStill.Clear();
             int villager = 0;
             foreach (var building in world.Buildings)

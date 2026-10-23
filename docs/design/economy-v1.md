@@ -1,9 +1,9 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037 · **Milstolpe:** M0, M3 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
+> **Ärende:** TASK-004, TASK-037, TASK-044 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
-> **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`)
+> **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`) · **Balansbotar:** [tools/Eirora.Balance](../../tools/Eirora.Balance) (TASK-048, avsnitt 7.1)
 
 Den första ekonomin för prototypen: 12 byggnader, 7 resurser, recept, logistik och vad krafterna kostar.
 Siffrorna är räknade timme för timme över sju spelardygn i kalkylen ovan, inte uppskattade.
@@ -21,7 +21,7 @@ Den ekonomin tas fram i ekonomi v2 (TASK-058); ekonomi v1 beskriver det som spel
   Byggkraft för förädling, hamnar, långhus och uppgraderingar; Utforskning för att hitta nytt; Gryningskraft för att lösa dagens flaskhals.
 - **Byborna är arbetskraften.**
   Varje byggnad behöver bemanning, och lediga bybor bygger.
-  Den knappa resursen är ofta folk, inte material.
+  Den knappa resursen är ofta folk, inte material, så spelaren styr arbetet: pausar byggnader och ordnar bemanningen och byggkön (avsnitt 4.1).
 - **Platsen avgör värdet.**
   Varje landbricka är en möjlig byggplats (D-79).
   Avstånd till förråd, rika och fattiga brickor, skogen runt omkring och sjövägens kapacitet gör samma byggnad olika mycket värd.
@@ -137,6 +137,31 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Start: 12 bybor, bostad för 16, ett förråd, en fiskebod, en åker och en huggarkoja vid en skogsdunge med två skogsbrickor.
   På en genererad karta står samma fyra byggnader så nära startbrickan som deras byggplatser tillåter, se [grundandet](#grundandet-på-en-genererad-karta).
 
+### 4.1 Arbetsfördelning
+
+Spelaren bestämmer vad byborna arbetar med (CIV-02, TASK-044).
+
+- Byggnaderna som behöver bemanning står i en **bemanningsordning**, från början den ordning de byggdes i.
+  En ny byggnad hamnar sist.
+- Byborna fördelas uppifrån varje gång fördelningen kan ändras: vid grundandet, vid gryningen, när ett projekt blir klart och när spelaren pausar, återupptar eller ordnar om.
+  En byggnad som inte är pausad bemannas om tillräckligt många bybor är kvar till den; annars hoppas den över och nästa som ryms bemannas.
+  De som blir över är lediga och bygger.
+- Byggnaderna arbetar också i bemanningsordningen, så en byggnad högre upp får först plats i ett nästan fullt lager och fäller först i en skog som två huggarkojor delar.
+- **Pausa** en byggnad som producerar: den bemannas inte, och dess bybor blir lediga och bygger tills den återupptas.
+  Den tappar ingen nivå och inget lager (D-39), och det som redan mognat står kvar.
+  Förråd och bryggor producerar inget och kan inte pausas.
+- Bara en bemannad åker eller fårgård sköts och växer, så att en paus kostar det byggnaden ger.
+  Det gäller också en åker eller fårgård som står obemannad för att byborna inte räcker.
+- **Ändra bemanningsordningen:** flytta en byggnad till en annan plats i ordningen.
+  Byggnaderna bemannas i den nya ordningen från nästa kvart.
+- **Flytta ett projekt först i byggkön:** de lediga byborna arbetar alltid på det första projektet, och det arbete ett projekt redan fått följer med det.
+  Att avbryta ett projekt ingår inte.
+- Alla tre är planering och kostar ingen kraft (D-23), men de ändrar världen och nekas därför under vilan (INV-T3).
+- Arbetsfördelningen kom med regelversion 6.
+  Förut var en bemannad byggnad bemannad för alltid, åkern och fårgården växte även obemannade, och byggkön gick i den ordning projekten lades.
+  Migrationen dit låter alla byggnader vara igång i byggordning och ändrar inget annat; vem som är bemannad står kvar tills byborna fördelas nästa gång (ADR-0006).
+  Journaler från regelversion 5 spelas inte längre upp, eftersom de skulle ge en annan värld.
+
 ## 5. Logistik
 
 | Avstånd till närmaste förråd eller brygga | 0–1 steg | 2–3 steg | 4 eller fler |
@@ -155,21 +180,30 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 ### Flaskhalsdiagnostik
 
 Spelaren ser alltid varför en vara inte når fram (CIV-05, LOG-03, TASK-043).
-Diagnostiken läser nästa aktiva kvart ur världen utan att ändra den (INV-D2) och ger varje byggnad ett läge: går för fullt, går långsammare eller står still.
+Diagnostiken läser nästa aktiva kvart ur världen utan att ändra den (INV-D2) och ger varje producerande byggnad ett tillstånd: går för fullt, går långsammare eller står still.
 Skälen är de som reglerna ovan ger, i den ordning de verkar:
 
-| Skäl | Läget | Vad bladet säger |
+| Skäl | Tillståndet | Vad bladet säger |
 |---|---|---|
-| Bemanning saknas | Står still | Hur många bybor som saknas |
-| Råvaran är under minimilagret | Står still eller går långsammare | Vilken råvara och hur mycket som saknas för en timmes arbete |
-| Inget har vuxit än | Står still | Att åkern eller fårgården väntar på att något ska växa |
+| Pausad av spelaren | Står still | Att den är pausad och vad pausen kostar |
+| Bemanning saknas | Står still | Hur många bybor som saknas efter byggnaderna före den i bemanningen |
+| Råvaran är under minimilagret | Står still eller går långsammare | Vilken råvara och hur mycket som saknas för en timmes arbete i full takt |
 | Skogen är fälld | Går långsammare eller står still | Hur många av skogsbrickorna som är fällda |
 | Lagret är fullt | Står still eller går långsammare | Vilken vara och hur mycket lagret rymmer |
 | Lång väg till förrådet | Går långsammare | Hur stor andel som når fram och vad en väg eller ett förråd intill skulle ge |
 
+Bemanningen spelar bara roll för det en byggnad producerar.
+Ett förråd eller en brygga utan sina bybor lagrar ändå och räknas ändå som förråd för avståndet, så de står aldrig still av det.
+
+Vad en väg, ett förråd intill eller byggnadens bybor skulle ge räknas genom samma kvart som produktionen, med råvarorna, skogen och lagrets plats som de är.
+Ett sågverk som ändå saknar timmer får alltså ingen vinst av en väg, och då är det timret som är skälet.
+
+Byggkön ingår inte: en kvart då ett bygge blir klart kan ge en byggnad bybor, en nivå eller en väg innan den arbetar, och diagnostiken visar då vad byggnaderna gör som de står nu.
+
 Sjövägen visar hur stor del av sin kapacitet den använder och vad som väntar på andra sidan.
 Varje ö får sin största flaskhals, skälet som kostar mest just nu, och när det är en råvara som saknas också var ett dagsverke gör mest nytta (avsnitt 6, beslut 3).
-Kartan markerar byggnader som står still med en skylt med två staplar, så att formen och inte färgen bär det (UX-05).
+En paus är spelarens eget val och blir aldrig öns flaskhals.
+Kartan markerar byggnader som står still med en skylt med två staplar medan byborna är vakna, så att formen och inte färgen bär det (UX-05).
 Senare regler, som bärarna i D-107, lägger till sina skäl utan att ändra hur diagnostiken läses.
 
 ### Logistiska avvägningar
@@ -242,6 +276,7 @@ Båda körningarna har samma måttliga egenvård från [forces.md](./forces.md):
 
 - **Närområdet:** kartlägger Hemön två gånger, bygger huggarkoja i urskogen, stenbrott på stenådern, ett andra förråd i klustret, sågverk, långhus, fiskebod vid det rika vattnet och en till åker.
   Gryningskraften går till dagsverken i stenbrottet och sågverket.
+- **Närområdet, ordnad:** samma, men med långhuset först i byggkön och stenbrottet pausat när 100 sten ligger i lager, så att dess bybor bygger i stället, tills sista dygnet (avsnitt 4.1).
 - **Havet:** bygger brygga, huggarkoja vid skogen öster om byn och sågverk, skickar en expedition, bygger brygga, fårgård och stenbrott på Nyön, väveri och långhus.
   Gryningskraften går till sågverket och fårgården.
 
@@ -249,7 +284,8 @@ Som jämförelse körs en **naiv** strategi med **hög** egenvård (15 000 steg,
 
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 320 | 180/260/440 | 461/110/229 | 1,04 |
+| Närområdet | måttlig | 19 | 11 | 1 | 208 | 213 | 1 316 | 180/260/440 | 461/110/229 | 1,03 |
+| Närområdet, ordnad | måttlig | 19 | 13 | 1 | 150 | 213 | 1 254 | 180/260/440 | 461/110/244 | 0,96 |
 | Havet | måttlig | 20 | 12 | 2 | 36 | 230 | 1 207 | 250/270/360 | 426/100/260 | 0,91 |
 | Naiv | hög | 20 | 10 | 1 | 19 | 188 | 1 089 | 180/310/630 | 520/135/96 | 0,61 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 129 | 1 055 | 180/0/460 | 461/100/224 | 1,01 |
@@ -268,15 +304,70 @@ Havet bör dra ifrån andra veckan medan Närområdet har material för fler lå
 
 **Strategin hinner ikapp (D-34).**
 Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
-Den får ut 0,61 i värde per använd kraft mot 0,91–1,04, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+Den får ut 0,61 i värde per använd kraft mot 0,91–1,03, alltså 1,5 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
 Den bygger sitt stenbrott på det vanliga berget intill krönet, fyra steg från förrådet, medan de genomtänkta strategierna kartlägger och hittar stenådern.
 Utan det berget skulle stenådern vara Hemöns enda berg att bryta sten i, och då hittar även den naiva strategin dit och skillnaden blir bara 1,2 gånger (D-95).
+
+**Arbetsfördelningen är ett val, inte en genväg (TASK-044).**
+Med stenbrottet pausat medan stenen räcker och långhuset först i kön bygger Närområdet 13 byggnader i stället för 11, med samma dagsproduktion.
+Priset är 58 sten mindre i lager, så utvecklingsvärdet blir något lägre.
+Att flytta bybor från ett stenbrott till ett bygge byter alltså material mot byggen; ingen fördelning är bäst i alla lägen.
+Att bara en bemannad åker växer håller pausen ärlig: annars kunde åkern pausas större delen av dygnet och skördas ikapp utan förlust.
 
 **Utan träning (D-43).**
 En spelare som valt bort träning men går och sover måttligt bygger stugor i stället för långhus och använder ingen Byggkraft.
 Världen växer till lika många bybor, 19, men dagsproduktionen blir 129 mot 213–230 med träning, eftersom sågverk, brygga och väveri kräver Byggkraft.
 Träning syns alltså i världen, men befolkningen står aldrig still på grund av en vana som spelaren valt bort.
 Värdet per använd kraft blir högre, 1,01, eftersom stugorna inte räknas som kraftanvändning; måttet jämför bara strategier som använder alla krafter.
+
+### 7.1 Balansbotarna i simuleringen
+
+Balansbotarna (TASK-048) spelar samma sju dygn i spelets riktiga simulering, med samma kommandon och tidsavläsningar som klienten.
+Egenvården registreras som dagliga summor vid varje gryning enligt profilerna i [epok 1](./epoch-1.md#profilerna), där *måttlig* heter *normal*.
+Strategierna har inga fasta koordinater: de läser kartan och väljer byggplats efter vad brickan ger, avståndet till förrådet och vad som redan står där, så att samma strategier spelar genererade kartor.
+Hur botarna körs står i [development.md](../development.md#balansbotar).
+
+| Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Närområdet | måttlig | 19 | 12 | 1 | 204 | 194 | 1 267 | 180/260/410 | 461/110/233 | 1,01 |
+| Havet | måttlig | 20 | 12 | 2 | 37 | 246 | 1 221 | 250/330/380 | 426/40/240 | 0,85 |
+| Naiv | hög | 20 | 10 | 1 | 14 | 194 | 1 091 | 180/360/630 | 520/85/96 | 0,58 |
+| Utan träning | utan träning | 19 | 11 | 1 | 150 | 134 | 1 069 | 180/0/490 | 461/100/194 | 0,98 |
+| Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
+| Ingen spelare | måttlig | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 551/370/492 | – |
+
+Botarnas vecka ska stämma med kalkylens tabell ovan inom ungefär ett besluts skillnad, och testerna underkänner annars bygget:
+
+| Mått | Tolerans |
+|---|---|
+| Bybor och byggnader | ±1 |
+| Öar | exakt |
+| Sten i lager | ±10 |
+| Dagsproduktion | ±10 % |
+| Utvecklingsvärde | ±5 % |
+| Använd och sparad kraft | ±60 per kraft, ett långhus Byggkraft |
+| Värde per använd kraft | ±0,07 |
+
+Testerna kräver också att botarna spelar exakt tabellen här, så att en ändring av balansen syns i dokumentet.
+Byborna och öarna blir desamma som i kalkylen, och skillnaderna i övrigt har tre orsaker:
+
+- **Kartläggningarna.**
+  Botarna kartlägger båda områdena den första morgonen, så snart Utforskningen räcker, medan kalkylen kartlägger ett om dagen.
+  Det andra området, med det rika fiskevattnet och åkern, kan därför bebyggas ett dygn tidigare.
+- **Byggplatserna.**
+  Närområdet och Utan träning ställer huggarkojan där mest timmer når förrådet: vid urskogens kant intill förrådet, där den når den rika skogsbrickan och en vanlig, i stället för på urskogen två steg bort (avvägning 2 i avsnitt 5).
+  Havets brygga på Nyön står på stranden intill både betet och berget, så stenbrottet får fram allt i stället för 75 %.
+- **Ordningen i kön.**
+  Med en annan takt i timmer, plank och sten hinner ett annat mål först.
+  Närområdet betalar det andra långhuset före sågverkets uppgradering, som därför inte är färdig när veckan slutar och saknas med 24 i dagsproduktion.
+  Naiv uppgraderar också åkern, och Havet hinner betala ett andra långhus, så båda använder mer Byggkraft och får lägre värde per använd kraft.
+
+Slutsatserna ovan håller.
+De genomtänkta strategierna får 1,5–1,7 gånger den naiva strategins värde per använd kraft, och Närområdet och Havet skiljer sig med 4 % i utvecklingsvärde.
+
+På 20 genererade kartor (`procedural-archipelago` version 1, seed 0–19) genomför båda strategierna sina planer med måttlig egenvård, Närområdet på 9–10 dygn och Havet på 7–15.
+Där expeditionens ö saknar bete eller berg bygger Havet fårgården eller stenbrottet på hemön.
+Efter fyra veckor har Havet högre utvecklingsvärde än Närområdet på 17 av kartorna, 2 154 mot 2 033 i snitt, men båda byarna står då sedan länge vid bostadstaket, eftersom planerna inte bygger fler bostäder än de tre respektive två långhusen.
 
 ## 8. Sju dygn utan egenvård
 
@@ -297,6 +388,7 @@ Utan spelare och utan egenvård (sista raderna i tabellen ovan):
    V1 behöver en löpande användning, till exempel att lyfta dimman bricka för bricka (MAP-04) och fler expeditionsmål.
 2. **Gryningskraften har för få användningar.**
    Två handlingar räcker inte för ett verkligt morgonbeslut varje dag; fler morgondrag behövs, till exempel att flytta bybor mellan arbetsgrupper eller prioritera transporter.
+   Att flytta bybor blev i stället planering utan kraft (D-23, avsnitt 4.1).
 3. **Ved är grundflaskhalsen.**
    Utan minimilager stannar allt bygge, därför är LOG-06 flyttat från P1 till P0 (D-44).
 4. **Tillväxttakten styr första veckan, inte bostäderna.**
@@ -349,3 +441,9 @@ Produktägarens svar på besluten om innehåll, bosättningar och transport i M4
   Flaskhalsdiagnostiken ska alltid visa varför en vara inte når fram och vad en väg, ett förråd eller fler bärare skulle ge.
 
 Nivåer, behov, byggnader, kedjor, upplåsning och bärarnas regler räknas fram i ekonomi v2 (TASK-058), som ersätter avsnitt 2–6 när den är godkänd.
+
+Produktägarens svar på vad rivning ger tillbaka (TASK-059):
+
+- **D-108:** en riven byggnad ger tillbaka hälften av materialet den kostade, avrundat nedåt per resurs, till öns lager; kraft återbetalas aldrig (INV-F5).
+  Återbetalningen måste rymmas i öns lager (INV-R1), och bekräftelsen visar exakt vad som kommer tillbaka.
+  Att flytta en byggnad genom att riva och bygga om kostar alltså halva materialet och hela kraften; balansbotarna och scenarierna prövar att det inte blir en dominerande strategi.

@@ -42,15 +42,19 @@
     margin-top: 10px;
 }
 
+/* One label per resource, spread over the card with at least a small gap. The row's negative right margin takes back
+   the last label's gap, its left margin lines it up with the status below, whose label keeps its padding, and it
+   wraps only when the stock no longer fits on one line. */
 .resources {
     flex-direction: row;
     flex-wrap: wrap;
-    margin-top: 18px;
+    justify-content: space-between;
+    margin: 18px -12px 0 2px;
 }
 
 .resource {
     font-size: 30px;
-    margin: 0 18px 0 0;
+    margin: 0 12px 0 0;
     padding: 0;
     color: rgb(68, 66, 80);
 }
@@ -118,6 +122,14 @@
     font-size: 27px;
     color: rgb(104, 101, 117);
     margin-left: 6px;
+}
+
+/* A bar button's second line that is not a cost, such as how long the building queue is. */
+.button-detail {
+    font-size: 27px;
+    color: rgb(104, 101, 117);
+    margin-top: 4px;
+    -unity-text-align: middle-center;
 }
 
 /* The account button at the end of the bar: a square with a person (ADR-0008). */
@@ -233,6 +245,47 @@
 
 .action-unavailable {
     opacity: 0.5;
+}
+
+/* A project in the building queue: what it makes and its work left, and a button to move it first (TASK-044). */
+.queue-item {
+    flex-direction: row;
+    align-items: center;
+    margin: 8px 0;
+    padding: 16px 18px 16px 26px;
+    border-radius: 26px;
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.10);
+    background-color: rgb(255, 252, 245);
+}
+
+.queue-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.queue-title {
+    font-size: 36px;
+    -unity-font-style: bold;
+    color: rgb(43, 42, 51);
+}
+
+.queue-detail {
+    font-size: 27px;
+    color: rgb(104, 101, 117);
+}
+
+.queue-button {
+    flex-shrink: 0;
+    height: 84px;
+    margin: 0 0 0 20px;
+    padding: 0 34px;
+    border-radius: 42px;
+    border-width: 0;
+    background-color: rgba(43, 42, 51, 0.06);
+    color: rgb(43, 42, 51);
+    font-size: 31px;
+    -unity-font-style: bold;
 }
 
 .close {

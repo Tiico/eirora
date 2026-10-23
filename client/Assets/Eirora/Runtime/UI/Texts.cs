@@ -140,6 +140,27 @@ namespace Eirora.Client.UI
             };
         }
 
+        /// <summary>Whether a building that needs staff works, is paused or waits for villagers; null for one that needs none.</summary>
+        public static string? Staffing(Building building, BuildingSpec spec) =>
+            spec.Staff == 0 ? null : building.Paused ? "pausad" : building.Staffed ? "i arbete" : "väntar på bybor";
+
+        /// <summary>What a project in the queue makes: a building, a level or a road.</summary>
+        public static string Project(Project project) => project.Kind switch
+        {
+            ProjectKind.Upgrade => $"{Name(project.Building)} till nivå 2",
+            ProjectKind.Road => $"Väg till {Name(project.Building).ToLowerInvariant()}",
+            _ => Name(project.Building),
+        };
+
+        /// <summary>The work hours a project has left, rounded up.</summary>
+        public static string WorkLeft(Project project) => $"{(project.WorkLeft + 999) / 1000} h arbete kvar";
+
+        /// <summary>A number of villagers: "en bybo", "två bybor".</summary>
+        public static string Villagers(int count) => count == 1 ? "en bybo" : $"{Count(count)} bybor";
+
+        /// <summary>A number of free villagers: "en ledig bybo", "tre lediga bybor".</summary>
+        public static string FreeVillagers(int count) => count == 1 ? "en ledig bybo" : $"{Count(count)} lediga bybor";
+
         /// <summary>
         /// What a finished building that produces nothing does, in a sentence for its sheet: the housing the content
         /// catalog gives it, or what the rules let the storehouse and the lookout do. Null for a building that does none.
@@ -314,6 +335,8 @@ namespace Eirora.Client.UI
             Rejection.NoBuildingThere => "Det behövs en byggnad för det här först.",
             Rejection.GameDayOutOfRange => "Det går att fylla i de senaste sju dygnen.",
             Rejection.AmountOutOfRange => "Värdet verkar inte stämma.",
+            Rejection.NoSuchPlace => "Längre än så går den inte att flytta.",
+            Rejection.NotQueued => "Det bygget ligger inte i kön längre.",
             _ => "Det gick inte just nu.",
         };
 
@@ -346,30 +369,32 @@ namespace Eirora.Client.UI
         /// </summary>
         public static string? Status(BuildingDiagnosis building, BuildingSpec spec)
         {
-            if (building.Product is Resource product)
+            if (building.Product is not Resource product)
             {
-                return building.Production switch
-                {
-                    Production.Full => $"går för fullt · {Rate(building.PerHour)} {Name(product)}/h",
-                    Production.Reduced => $"går långsammare · {Rate(building.PerHour)} {Name(product)}/h",
-                    _ => "står still",
-                };
+                return Staffing(building.Building, spec);
             }
 
-            return spec.Staff == 0 ? null : building.StandsStill ? "väntar på bybor" : "i arbete";
+            return building.Building.Paused ? "pausad" : building.Production switch
+            {
+                Production.Full => $"går för fullt · {Rate(building.PerHour)} {Name(product)}/h",
+                Production.Reduced => $"går långsammare · {Rate(building.PerHour)} {Name(product)}/h",
+                _ => "står still",
+            };
         }
+
+        /// <summary>How a building is while the village rests, when nothing is made and nothing is diagnosed.</summary>
+        public static string? Resting(Building building, BuildingSpec spec) =>
+            !spec.Produces ? Staffing(building, spec) : building.Paused ? "pausad" : "vilar";
 
         /// <summary>What holds a building back, in a sentence for its sheet (TASK-043, LOG-03).</summary>
         public static string Hindrance(Hindrance hindrance, Resource? product) => hindrance switch
         {
-            MissingStaff { Villagers: 0 } => "Byborna börjar arbeta här vid nästa gryning.",
-            MissingStaff { Villagers: 1 } => "Det saknas en bybo för att arbeta här.",
-            MissingStaff staff => $"Det saknas {Count(staff.Villagers)} bybor för att arbeta här.",
+            MissingStaff staff => $"Det saknas {Villagers(staff.Villagers)} här. Flytta upp den i bemanningen eller pausa en byggnad före den.",
+            Paused => "Pausad: byborna bygger i stället. Nivån och lagret står kvar.",
             WaitingForInput input =>
                 $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. Minimilagret på {input.Reserve} sparas till byggen.",
             StoreFull { Capacity: 0 } full => $"Ön har inget förråd för {Name(full.Resource)}.",
             StoreFull full => $"Lagret är fullt: {full.Capacity} {Name(full.Resource)}. Inget går förlorat.",
-            NothingRipe => "Inget har vuxit än.",
             ForestFelled { InReach: 0 } => "Här finns ingen skog kvar att fälla.",
             ForestFelled forest when forest.Felled == forest.InReach => "Skogen är fälld och växer tillbaka dag och natt.",
             ForestFelled forest => $"{forest.Felled} av {forest.InReach} skogsbrickor är fällda. Skogen växer tillbaka dag och natt.",
@@ -404,9 +429,9 @@ namespace Eirora.Client.UI
             string held = bottleneck.Hindrance switch
             {
                 WaitingForInput input => $"{building} väntar på {Name(input.Resource)}.",
-                MissingStaff { Villagers: > 1 } staff => $"{building} saknar {Count(staff.Villagers)} bybor.",
-                MissingStaff => $"{building} saknar en bybo.",
-                StoreFull full => $"Lagret är fullt av {Name(full.Resource)}, så {building.ToLowerInvariant()} står still.",
+                MissingStaff staff => $"{building} saknar {Villagers(staff.Villagers)}.",
+                StoreFull full => $"Lagret är fullt av {Name(full.Resource)}, så {building.ToLowerInvariant()} "
+                    + (bottleneck.Building.Production == Production.Stopped ? "står still." : "går långsammare."),
                 ForestFelled => $"Skogen kring {building.ToLowerInvariant()} är fälld.",
                 LongWay way when bottleneck.Building.Product is Resource product =>
                     $"{Share(way.Percent)} av {building.ToLowerInvariant()}s {Name(product)} når fram.",

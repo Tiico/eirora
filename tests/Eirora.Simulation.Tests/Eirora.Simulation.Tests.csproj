@@ -4,6 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Every method compiled optimized at once, as IL2CPP does on the phone: the timed fast-forward (FastForwardTests)
+         measures optimized code from the start, and the long-running properties are faster. -->
+    <TieredCompilation>false</TieredCompilation>
   </PropertyGroup>
 
   <ItemGroup>

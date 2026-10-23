@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Eirora.Client.Look;
@@ -26,7 +27,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void ASawmillWithoutTimberAboveTheReserveSaysItWaitsForTimberAndHowMuchIsMissing()
         {
-            var world = Edited(Morning(), "stock Home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0");
+            var world = Edited(Morning(), "stock Home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -41,7 +42,7 @@ namespace Eirora.Client.Tests
             var world = Morning();
             var far = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
                 .First(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.DepotDistance(h) == 4);
-            world = Edited(world, null, $"building FishingHut {far.Q} {far.R} 1 1 0 0 0");
+            world = Edited(world, null, $"building FishingHut {far.Q} {far.R} 1 1 0 0 0 0");
 
             var sheet = SheetOf(world, far);
 
@@ -58,11 +59,11 @@ namespace Eirora.Client.Tests
         public void ABuildingWithoutStaffIsMarkedOnTheIslandAndItsSheetSaysHowManyVillagersAreMissing()
         {
             // Eight villagers: seven run the start buildings, so one is free for a sawmill that takes two.
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
-            Assert.That(sheet.Texts, Is.EqualTo(new[] { "Det saknas en bybo för att arbeta här." }));
+            Assert.That(sheet.Texts, Is.EqualTo(new[] { "Det saknas en bybo här. Flytta upp den i bemanningen eller pausa en byggnad före den." }));
             Assert.That(sheet.Marked, Is.True);
             Assert.That(sheet.Icon, Is.True, "The sheet shows the island's sign beside the status.");
         }
@@ -81,7 +82,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void AHouseSaysNothingOfVillagersItNeverNeeds()
         {
-            var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0");
+            var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -90,9 +91,49 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void AStorehouseWithoutStaffStillStoresAndIsNotMarked()
+        {
+            var world = Edited(Morning(), "settlement 7", "building Storehouse -1 0 1 0 0 0 0 0");
+
+            var sheet = SheetOf(world, s_beside);
+
+            Assert.That(sheet.Subtitle, Is.EqualTo("Äng · väntar på bybor"));
+            Assert.That(sheet.Texts, Is.EqualTo(new[] { "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer." }));
+            Assert.That(sheet.Marked, Is.False);
+            Assert.That(sheet.Icon, Is.False);
+        }
+
+        [Test]
+        public void APausedBuildingIsMarkedAndItsSheetSaysItIsPaused()
+        {
+            var world = Edited(Morning(), null, "building Sawmill -1 0 1 0 0 0 0 1");
+
+            var sheet = SheetOf(world, s_beside);
+
+            Assert.That(sheet.Subtitle, Is.EqualTo("Äng · pausad"));
+            Assert.That(sheet.Texts, Is.EqualTo(new[] { "Pausad: byborna bygger i stället. Nivån och lagret står kvar." }));
+            Assert.That(sheet.Marked, Is.True);
+            Assert.That(sheet.Icon, Is.True);
+        }
+
+        [Test]
+        public void WhileTheVillageRestsTheSheetSaysSoAndMarksNothingAsTheIslandDoes()
+        {
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0");
+            world.AdvanceTo(At("2026-10-16 01:00"));
+
+            var sheet = SheetOf(world, s_beside);
+
+            Assert.That(sheet.Subtitle, Is.EqualTo("Äng · vilar"));
+            Assert.That(sheet.Texts, Is.Empty);
+            Assert.That(sheet.Icon, Is.False);
+            Assert.That(sheet.Marked, Is.False);
+        }
+
+        [Test]
         public void NoBuildingIsMarkedWhileTheVillageRests()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             WithIsland(world, island => Assert.That(island.MarkedStandingStill, Is.Empty));
@@ -101,7 +142,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void TheReportPointsToTheIslandsBottleneckAndWhereAWorkdayEasesIt()
         {
-            var world = Edited(Morning(), "stock Home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0");
+            var world = Edited(Morning(), "stock Home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
             var root = new VisualElement();
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
@@ -111,6 +152,26 @@ namespace Eirora.Client.Tests
 
             Assert.That(Label(bottleneck, "action-title"), Is.EqualTo("Flaskhals just nu"));
             Assert.That(Label(bottleneck, "action-cost"), Is.EqualTo("Sågverket väntar på timmer. Ett dagsverke på huggarkojan ger mer timmer."));
+
+            Hex? selected = null;
+            hud.SelectionChanged += tile => selected = tile;
+            Press(bottleneck);
+            Assert.That(selected, Is.EqualTo(s_beside), "The bottleneck leads to the building.");
+            Assert.That(root.Q<Label>(className: "sheet-title").text, Is.EqualTo("Sågverk"));
+        }
+
+        [Test]
+        public void ABottleneckOfAFullStoreSaysWhetherTheBuildingStandsStillOrGoesSlower()
+        {
+            // The fishing hut's quarter hour of fish fits only in part, so it goes slower rather than standing still.
+            var world = Edited(Morning(), "stock Home Fish 149800000");
+            var root = new VisualElement();
+            var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
+            hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
+
+            hud.OpenReport();
+
+            Assert.That(Label(root.Query<Button>(className: "action").ToList().Single(), "action-cost"), Is.EqualTo("Lagret är fullt av fisk, så fiskeboden går långsammare."));
         }
 
         [Test]
@@ -202,6 +263,14 @@ namespace Eirora.Client.Tests
         {
             using var sha = SHA256.Create();
             return string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(text)).Select(b => b.ToString("x2")));
+        }
+
+        private static void Press(Button button)
+        {
+            var invoke = typeof(Clickable).GetMethod("Invoke", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(EventBase) }, null);
+            Assert.That(invoke, Is.Not.Null, "Clickable.Invoke is gone; find another way to press a button.");
+            using var tap = NavigationSubmitEvent.GetPooled();
+            invoke!.Invoke(button.clickable, new object[] { tap });
         }
 
         private static string Label(VisualElement action, string className) => action.Q<Label>(className: className)?.text ?? "–";

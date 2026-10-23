@@ -16,17 +16,26 @@ namespace Eirora.Simulation.Economy
         public long LostPerHour { get; }
     }
 
-    /// <summary>Too few villagers are free to run the building, so it stands still.</summary>
+    /// <summary>
+    /// Too few villagers are left for a producing building after those before it in the staffing order, so it stands
+    /// still (economy-v1.md, section 4.1).
+    /// </summary>
     public sealed class MissingStaff : Hindrance
     {
         internal MissingStaff(int villagers, long lostPerHour)
             : base(lostPerHour) => Villagers = villagers;
 
-        /// <summary>
-        /// How many more free villagers it takes, after the buildings before it in line have been staffed; 0 when there
-        /// are enough and the villagers take it on at the next dawn.
-        /// </summary>
+        /// <summary>How many more villagers it takes, at least one: the staffing gives a building all it needs or none.</summary>
         public int Villagers { get; }
+    }
+
+    /// <summary>The player has paused the building, so its villagers build instead (economy-v1.md, section 4.1).</summary>
+    public sealed class Paused : Hindrance
+    {
+        internal Paused(long lostPerHour)
+            : base(lostPerHour)
+        {
+        }
     }
 
     /// <summary>
@@ -72,15 +81,6 @@ namespace Eirora.Simulation.Economy
         public int Capacity { get; }
     }
 
-    /// <summary>A slow process has nothing grown to harvest yet.</summary>
-    public sealed class NothingRipe : Hindrance
-    {
-        internal NothingRipe(Resource resource)
-            : base(0) => Resource = resource;
-
-        public Resource Resource { get; }
-    }
-
     /// <summary>The forest a woodcutter reaches is felled, or there is none left that it can fell.</summary>
     public sealed class ForestFelled : Hindrance
     {
@@ -103,7 +103,8 @@ namespace Eirora.Simulation.Economy
 
     /// <summary>
     /// The way to the nearest storehouse or jetty is long, so only part of the production reaches the store
-    /// (economy-v1.md, section 5); with what a road or a storehouse beside it would give.
+    /// (economy-v1.md, section 5); with what a road or a storehouse beside it would give, as far as the raw materials, the
+    /// forest and the room in the store let it. Only there when a storehouse beside it would give more.
     /// </summary>
     public sealed class LongWay : Hindrance
     {
@@ -127,7 +128,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>The share with a road to the storehouse, or null when the building has one or none can be built.</summary>
         public int? RoadPercent { get; }
 
-        /// <summary>Millionths of a unit an active hour that reach the store when it runs fully.</summary>
+        /// <summary>Millionths of a unit an active hour that reach the store now.</summary>
         public long PerHour { get; }
 
         /// <summary>What would reach the store with a road; the same as <see cref="PerHour"/> when no road can be built.</summary>

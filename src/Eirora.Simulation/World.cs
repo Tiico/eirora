@@ -30,6 +30,10 @@ namespace Eirora.Simulation
         private readonly SortedSet<(int Day, Habit Habit)> _unreconciled = new();
         private List<GameEvent> _events = new();
 
+        // While time advances: ticks of the slow processes not yet grown, and whether work changes nothing until dawn.
+        private int _growing;
+        private bool _idleUntilDawn;
+
         private World(WorldMap map, DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
         {
             Map = map;
@@ -62,7 +66,11 @@ namespace Eirora.Simulation
         /// <summary>Villagers not working in a building; they build.</summary>
         public int FreeVillagers => _settlement.FreeVillagers;
 
+        /// <summary>The buildings in the staffing order, which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _settlement.Buildings;
+
+        /// <summary>The buildings that need staff, in the order villagers are given to them (economy-v1.md, section 4.1).</summary>
+        public IReadOnlyList<Building> StaffingOrder => _settlement.StaffingOrder;
 
         /// <summary>The building queue, first in line first.</summary>
         public IReadOnlyList<Project> Projects => _settlement.Projects;
@@ -215,14 +223,36 @@ namespace Eirora.Simulation
             }
 
             // Economy ticks fall on fixed UTC quarter hours, so the same span gives the same ticks however it is split.
+            // Where only the slow processes move, the ticks are counted and grown at once (TASK-049): while the
+            // villagers rest, and once a tick of their work has changed nothing, until the next dawn.
             long tick = NextTickAfter(Now.UtcSeconds);
+            _idleUntilDawn = false;
             while (tick <= reading.UtcSeconds)
             {
                 Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, OnDawn);
-                _settlement.Tick(Phase == Phase.Active, tick, _events);
+                if (Phase == Phase.Resting)
+                {
+                    long dawn = Cycle.RestEndUtc(reading);
+                    long last = dawn <= reading.UtcSeconds ? dawn - 1 : reading.UtcSeconds;
+                    long ticks = 1 + ((last - tick) / Settlement.TickSeconds);
+                    tick += (ticks - 1) * Settlement.TickSeconds;
+                    Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, OnDawn);
+                    _growing += (int)ticks;
+                }
+                else if (_idleUntilDawn)
+                {
+                    _growing++;
+                }
+                else
+                {
+                    Grow();
+                    _idleUntilDawn = !_settlement.Tick(tick, _events);
+                }
+
                 tick += Settlement.TickSeconds;
             }
 
+            Grow();
             Cycle.AdvanceTo(reading, _events, OnDawn);
             return _events;
         }
@@ -375,8 +405,21 @@ namespace Eirora.Simulation
             return utcSeconds - remainder + Settlement.TickSeconds;
         }
 
+        /// <summary>Grows the slow processes over the ticks counted since they last grew.</summary>
+        private void Grow()
+        {
+            if (_growing > 0)
+            {
+                _settlement.GrowSlowProcesses(_growing);
+                _growing = 0;
+            }
+        }
+
         private void OnDawn(long utcSeconds)
         {
+            // The ticks before the dawn grow with the workdays that end now; after it, work can change things again.
+            Grow();
+            _idleUntilDawn = false;
             _settlement.Dawn(utcSeconds, _events);
 
             // The new day's Dawn Power starts at the baseline and is topped up when its sleep is recorded.

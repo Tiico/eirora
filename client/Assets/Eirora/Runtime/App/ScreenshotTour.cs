@@ -20,6 +20,10 @@ namespace Eirora.Client.App
     /// <remarks>Run a player with: -eirora-screenshots &lt;folder&gt;. It quits when done.</remarks>
     internal static class ScreenshotTour
     {
+        // A building's sheet with its staffing and actions reaches half up the screen; looking this much further south keeps
+        // the building it tells of in view above it.
+        private static readonly Vector3 AboveTheSheet = new(0f, 0f, -1.6f);
+
         public static IEnumerator Run(ClientBootstrap client, string folder)
         {
             // A macOS player pauses when its window loses focus, which another app in front takes; the tour plays on.
@@ -129,7 +133,7 @@ namespace Eirora.Client.App
             var diagnosis = session.World!.Diagnose();
             if (diagnosis.BottleneckOn(Simulation.Economy.IslandId.Home) is { } bottleneck)
             {
-                client.Focus(bottleneck.Building.Building.Tile.Center());
+                client.Focus(bottleneck.Building.Building.Tile.Center() + AboveTheSheet);
                 client.Hud.Select(bottleneck.Building.Building.Tile);
                 yield return Capture(client, folder, "13-bottleneck");
                 client.Hud.Select(null);
@@ -137,7 +141,7 @@ namespace Eirora.Client.App
 
             if (diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is Simulation.Economy.LongWay)) is { } far)
             {
-                client.Focus(far.Building.Tile.Center());
+                client.Focus(far.Building.Tile.Center() + AboveTheSheet);
                 client.Hud.Select(far.Building.Tile);
                 yield return Capture(client, folder, "13-long-way");
                 client.Hud.Select(null);
@@ -159,6 +163,20 @@ namespace Eirora.Client.App
             client.Focus(edge.Center());
             client.Hud.SelectFog(edge);
             yield return Capture(client, folder, "14-fog");
+            client.Hud.Select(null);
+
+            // The player's say over the work (TASK-044): the queue with the cottage moved first, and the paused fishing hut.
+            foreach (string refusal in ScriptedWeek.OrderTheWork(session))
+            {
+                Debug.LogError(refusal);
+            }
+
+            client.Focus(Hex.Origin.Center());
+            client.Hud.OpenQueue();
+            yield return Capture(client, folder, "19-queue");
+            client.Hud.Select(ScriptedWeek.FishingHut);
+            yield return Capture(client, folder, "20-paused");
+            client.Hud.Select(null);
 
             // A new world on a generated map (TASK-033): the village at dawn, then the whole archipelago from afar.
             var generatedClock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));

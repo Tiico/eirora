@@ -79,6 +79,18 @@ _Avoid_: by, stad (som generella termer)
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
 _Avoid_: invånare, befolkning, NPC:er
 
+**Bemanningsordning** (`StaffingOrder`):
+Den ordning som byggnaderna får bybor i när byborna inte räcker till alla, från början byggordningen; spelaren kan ändra den utan kraft (TASK-044).
+_Avoid_: prioritetslista, kö (om bemanningen)
+
+**Pausad byggnad** (`Paused`):
+En byggnad som spelaren har pausat: den bemannas inte och dess bybor bygger, men nivå och lager står kvar tills den återupptas (D-39).
+_Avoid_: avstängd, riven
+
+**Byggkö** (`Projects`):
+Byggen, uppgraderingar och vägar som väntar på de lediga bybornas arbete, i den ordning de får det; spelaren kan flytta ett projekt först (TASK-044).
+_Avoid_: bygglista, order
+
 **Basbehov** (`BasicNeed`):
 Det byborna förbrukar varje spelardygn, i v1 mat; brist stoppar bara tillväxt, aldrig något som redan finns.
 _Avoid_: hunger, underhåll
@@ -96,7 +108,7 @@ En gratis planeringsinställning som anger hur mycket av en råvara förädlinge
 _Avoid_: buffert, spärr
 
 **Flaskhals** (`Bottleneck`):
-Det som just nu håller tillbaka en byggnad eller en ö mest: bemanning som saknas, råvara under minimilagret, fullt lager, inget vuxet, fälld skog eller lång väg till förrådet; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
+Det som just nu håller tillbaka en byggnad eller en ö mest: en paus, bemanning som saknas, råvara under minimilagret, fälld skog, fullt lager eller lång väg till förrådet; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
 _Avoid_: blockering, stopp (som term)
 
 **Långsam process** (`SlowProcess`):
@@ -203,6 +215,11 @@ _Avoid_: påminnelse, push
 **Spelardygn** (`GameDay`):
 Tiden från en gryning till nästa; enheten som krafter räknas per.
 _Avoid_: dag, kalenderdygn (när spelardygnet avses)
+
+**Frånvaro** (`Absence`):
+Tiden då spelaren inte öppnar spelet; världen spolas fram till klockan när spelaren kommer tillbaka och är minst lika utvecklad som förut, hur länge frånvaron än varade (INV-V4).
+Kvartar där bara långsamma processer rör sig, under viloperioden eller när byborna inte har något att göra, räknas i ett steg.
+_Avoid_: offlinetid, paus, inaktivitet
 
 ## Simulering
 

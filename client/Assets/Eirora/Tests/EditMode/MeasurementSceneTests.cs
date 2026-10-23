@@ -1,8 +1,10 @@
 using System;
 using Eirora.Client.App;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Eirora.Client.Tests
 {
@@ -23,6 +25,22 @@ namespace Eirora.Client.Tests
 
         [Test]
         public void AnUnknownLightStartsNoScene() => Assert.That(MeasurementScene.MomentOf("dusk"), Is.Null);
+
+        // The year scene catches up the built-out world the .NET tests time a year away in (TASK-049).
+        [Test]
+        public void TheYearSceneCatchesUpABuiltOutWorldAYearAfterItWasLeft()
+        {
+            var save = Save.Load(Resources.Load<TextAsset>(MeasurementScene.YearAwaySave).bytes);
+            var left = save.World.Now;
+            var clock = new FixedClock(left);
+            var session = new GameSession(clock, null, () => PrototypeHome.Map);
+
+            MeasurementScene.PlayAYearAway(session, clock, save);
+
+            Assert.That(session.World!.Now.UtcSeconds - left.UtcSeconds, Is.EqualTo(365L * 24 * 60 * 60));
+            Assert.That(session.World.Phase, Is.EqualTo(Phase.Active));
+            Assert.That(session.World.Buildings.Count, Is.GreaterThanOrEqualTo(30));
+        }
 
         // The session gives each command a fresh idempotency key, so the used keys differ while the world does not.
         // The fingerprint writes the used commands last, one "command" line each.

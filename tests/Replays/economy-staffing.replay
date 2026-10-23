@@ -1,0 +1,11 @@
+create 1791964800 Europe/Stockholm 7200 1380 480
+cmd quarry-m3 build Quarry -3 -1
+cmd cottage-l1 build Cottage -1 0
+cmd cottage-l2 build Cottage 0 -1
+time 1791982800 Europe/Stockholm 7200
+cmd quarry-first prioritize -3 -1 0
+cmd pause-k1 pause 1 0
+cmd l2-first first Build 0 -1
+time 1792045800 Europe/Stockholm 7200
+cmd resume-k1 resume 1 0
+cmd k1-first prioritize 1 0 0
