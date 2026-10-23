@@ -34,6 +34,7 @@ public sealed class ReplayCorpusTests
         ("ux-evening-with-rest-lock", EveningWithRestLock),
         ("economy-near", () => Week(Near)),
         ("economy-sea", () => Week(Sea)),
+        ("economy-staffing", Staffing),
         ("time-daylight-saving-and-travel", DaylightSavingAndTravel),
         ("epoch-fog-towards-nyon", FogTowardsNyon),
     ];
@@ -217,6 +218,25 @@ public sealed class ReplayCorpusTests
         {
             journal.Apply($"{key}-{day}", command);
         }
+    }
+
+    // Economy v1, section 4 (TASK-044): the quarry staffed first, the fishing hut paused overnight and a cottage moved
+    // first in the queue.
+    private static Journal Staffing()
+    {
+        var journal = Journal.Start(At("2026-10-14 10:00", 2), s_night);
+        journal.Apply("quarry-m3", new Build(BuildingKind.Quarry, Tiles.M3));
+        journal.Apply("cottage-l1", new Build(BuildingKind.Cottage, Tiles.L1));
+        journal.Apply("cottage-l2", new Build(BuildingKind.Cottage, Tiles.L2));
+        journal.AdvanceTo(At("2026-10-14 15:00", 2));
+        journal.Apply("quarry-first", new Prioritize(Tiles.M3, 0));
+        journal.Apply("pause-k1", new PauseBuilding(Tiles.K1));
+        journal.Apply("l2-first", new QueueFirst(ProjectKind.Build, Tiles.L2));
+        journal.AdvanceTo(At("2026-10-15 08:30", 2));
+        journal.Apply("resume-k1", new ResumeBuilding(Tiles.K1));
+        journal.Apply("k1-first", new Prioritize(Tiles.K1, 0));
+        journal.AdvanceTo(At("2026-10-15 12:00", 2));
+        return journal;
     }
 
     /// <summary>Seven days with the forces.md moderate self-care: 7 500 steps, 6.5 h of sleep and three workouts.</summary>

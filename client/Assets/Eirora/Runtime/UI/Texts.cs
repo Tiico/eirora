@@ -140,6 +140,33 @@ namespace Eirora.Client.UI
             };
         }
 
+        /// <summary>Whether a building that needs staff works, is paused or waits for villagers; null for one that needs none.</summary>
+        public static string? Staffing(Building building, BuildingSpec spec) =>
+            spec.Staff == 0 ? null : building.Paused ? "pausad" : building.Staffed ? "i arbete" : "väntar på bybor";
+
+        /// <summary>Why a building that needs staff stands still, or null when it works or needs none (TASK-044).</summary>
+        public static string? WhyIdle(Building building, BuildingSpec spec) =>
+            spec.Staff == 0 || building.Staffed ? null
+            : building.Paused ? "Pausad: byborna bygger i stället. Nivån och lagret står kvar."
+            : "Byborna räcker inte hit. Flytta upp den i bemanningen eller pausa en byggnad före den.";
+
+        /// <summary>What a project in the queue makes: a building, a level or a road.</summary>
+        public static string Project(Project project) => project.Kind switch
+        {
+            ProjectKind.Upgrade => $"{Name(project.Building)} till nivå 2",
+            ProjectKind.Road => $"Väg till {Name(project.Building).ToLowerInvariant()}",
+            _ => Name(project.Building),
+        };
+
+        /// <summary>The work hours a project has left, rounded up.</summary>
+        public static string WorkLeft(Project project) => $"{(project.WorkLeft + 999) / 1000} h arbete kvar";
+
+        /// <summary>A number of villagers: "en bybo", "två bybor".</summary>
+        public static string Villagers(int count) => count == 1 ? "en bybo" : $"{Count(count)} bybor";
+
+        /// <summary>A number of free villagers: "en ledig bybo", "tre lediga bybor".</summary>
+        public static string FreeVillagers(int count) => count == 1 ? "en ledig bybo" : $"{Count(count)} lediga bybor";
+
         /// <summary>
         /// What a finished building that produces nothing does, in a sentence for its sheet: the housing the content
         /// catalog gives it, or what the rules let the storehouse and the lookout do. Null for a building that does none.
@@ -314,6 +341,8 @@ namespace Eirora.Client.UI
             Rejection.NoBuildingThere => "Det behövs en byggnad för det här först.",
             Rejection.GameDayOutOfRange => "Det går att fylla i de senaste sju dygnen.",
             Rejection.AmountOutOfRange => "Värdet verkar inte stämma.",
+            Rejection.NoSuchPlace => "Längre än så går den inte att flytta.",
+            Rejection.NotQueued => "Det bygget ligger inte i kön längre.",
             _ => "Det gick inte just nu.",
         };
 

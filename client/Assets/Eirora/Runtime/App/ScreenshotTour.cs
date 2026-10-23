@@ -124,6 +124,20 @@ namespace Eirora.Client.App
             client.Focus(edge.Center());
             client.Hud.SelectFog(edge);
             yield return Capture(client, folder, "14-fog");
+            client.Hud.Select(null);
+
+            // The player's say over the work (TASK-044): the queue with the cottage moved first, and the paused fishing hut.
+            foreach (string refusal in ScriptedWeek.OrderTheWork(session))
+            {
+                Debug.LogError(refusal);
+            }
+
+            client.Focus(Hex.Origin.Center());
+            client.Hud.OpenQueue();
+            yield return Capture(client, folder, "19-queue");
+            client.Hud.Select(ScriptedWeek.FishingHut);
+            yield return Capture(client, folder, "20-paused");
+            client.Hud.Select(null);
 
             // A new world on a generated map (TASK-033): the village at dawn, then the whole archipelago from afar.
             var generatedClock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));

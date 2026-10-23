@@ -428,7 +428,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 | Läsa daglig rapport och historik | Ja | |
 | Bygga, placera, uppgradera, riva | Nej | INV-T3 |
 | Använda krafter: dagsverke, kartläggning, expedition | Nej | INV-T3 |
-| Planera: prioriteringar, bemanning, minimilager, vägar | Nej; planering är gratis men ändrar världen | RST-02 |
+| Planera: pausa byggnader, bemanningsordning, byggkö, minimilager, vägar | Nej; planering är gratis men ändrar världen | RST-02, TASK-044 |
 | Handel, hälsningar och andra gruppåtgärder | Nej; servern nekar | RST-02 |
 | Ta emot gruppens interaktioner | Köas till gryningen | RST-11 |
 | Läsa egenvård från hälsokällan när appen öppnas | Ja; krafter vid gryningen | RST-05, D-70, INV-T9 |
