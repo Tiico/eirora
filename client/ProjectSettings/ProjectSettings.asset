@@ -526,7 +526,8 @@ PlayerSettings:
   enableInternalProfiler: 0
   logObjCUncaughtExceptions: 1
   enableCrashReportAPI: 0
-  cameraUsageDescription: "Eirora l\xE4ser QR-koden p\xE5 din nya telefon f\xF6r att skicka nyckeln till din egenv\xE5rd dit. Bilden stannar i telefonen."
+  cameraUsageDescription: "Eirora l\xE4ser QR-koden p\xE5 din nya telefon f\xF6r
+    att skicka nyckeln till din egenv\xE5rd dit. Bilden stannar i telefonen."
   locationUsageDescription: 
   microphoneUsageDescription: 
   bluetoothUsageDescription: 

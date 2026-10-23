@@ -76,5 +76,20 @@ namespace Eirora.Client.Accounts
 #endif
             return providers.Count == 0 ? null : new AccountSession(config.server, http, store, providers);
         }
+
+        /// <summary>
+        /// The platform's end-to-end encrypted backup of the contribution key (TASK-023b): iCloud Keychain on iOS, Block
+        /// Store on Android, and none in the editor and desktop players.
+        /// </summary>
+        public static IKeyBackup? KeyBackup()
+        {
+#if UNITY_IOS && !UNITY_EDITOR
+            return new IosKeyBackup();
+#elif UNITY_ANDROID && !UNITY_EDITOR
+            return new AndroidKeyBackup();
+#else
+            return null;
+#endif
+        }
     }
 }

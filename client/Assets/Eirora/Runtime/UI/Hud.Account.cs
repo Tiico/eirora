@@ -156,6 +156,12 @@ namespace Eirora.Client.UI
 
             if (_cloud?.RecoveryCode is not null)
             {
+                if (_cloud.KeyReach == KeyBackupReach.ThisPhone)
+                {
+                    // Without a screen lock neither iCloud Keychain nor Block Store carries the key on (ADR-0008).
+                    Text("sheet-text", _sheet, "Telefonen har inget skärmlås, så nyckeln till din egenvård följer inte med till en ny telefon av sig själv. Skriv ner återställningskoden, eller skicka nyckeln med QR-koden när du byter telefon.");
+                }
+
                 AddAction("Skicka nyckeln till en ny telefon", _scanner is null ? "Den här telefonen kan inte skanna koden" : "Skanna QR-koden som den nya telefonen visar", _scanner is not null, OpenKeySending);
                 AddAction("Visa återställningskod", "Nyckeln som låser upp din egenvård på en ny telefon", true, OpenRecoveryCode);
             }
