@@ -1,3 +1,5 @@
+using Eirora.Simulation.Map;
+
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
@@ -14,6 +16,8 @@ namespace Eirora.Simulation.Saving
         /// <summary>The rules version the state comes from.</summary>
         public abstract int FromRules { get; }
 
-        public abstract string Migrate(string state);
+        /// <param name="state">The canonical state text of version <see cref="FromRules"/>.</param>
+        /// <param name="map">The world's map, which the state names by its hash; it never changes (ADR-0010).</param>
+        public abstract string Migrate(string state, WorldMap map);
     }
 }

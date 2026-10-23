@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 6;
+        public const int Current = 7;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -16,8 +16,10 @@ namespace Eirora.Simulation
         /// another world and is refused instead (ADR-0006). Rules 5 let distance, level 2 and a workday scale how fast
         /// fields and sheep farms grow (TASK-038), so a journal from rules 4 would replay to another world too. Rules 6
         /// give villagers out again in the staffing order whenever it can change (TASK-044), where a staffed building
-        /// stayed staffed before, so a journal from rules 5 would replay to another world as well.
+        /// stayed staffed before, so a journal from rules 5 would replay to another world as well. Rules 7 gave every
+        /// island its own store and sea route (TASK-045): a journal from rules 6 that built beside a second island off
+        /// the home island, which shared Nyön's store and jetty then, would replay to another world.
         /// </summary>
-        public const int ReplaysJournalsFrom = 6;
+        public const int ReplaysJournalsFrom = 7;
     }
 }

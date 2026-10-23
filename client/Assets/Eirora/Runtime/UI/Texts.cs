@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Eirora.Client.Look;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
@@ -16,6 +18,9 @@ namespace Eirora.Client.UI
     /// </summary>
     public static class Texts
     {
+        // The eight points of the compass, counter-clockwise from east as the map lies on the screen, north up.
+        private static readonly string[] s_compass = { "öster", "nordost", "norr", "nordväst", "väster", "sydväst", "söder", "sydost" };
+
         public static string Name(BuildingKind kind) => kind switch
         {
             BuildingKind.Longhouse => "Långhus",
@@ -347,10 +352,32 @@ namespace Eirora.Client.UI
         };
 
         /// <summary>
-        /// What the island across the sea is called: Nyön on the prototype's map, "den nya ön" on a generated one, whose
-        /// islands have no names yet and can lie in any direction.
+        /// What an island is called: Hemön where the settlement began, Nyön on the prototype's map, "den nya ön" for the
+        /// island the first expedition finds on a generated map, whose islands have no names yet, and any other island
+        /// by where it lies from the start, such as "ön i väster".
         /// </summary>
-        public static string IslandName(string? island) => island == PrototypeHome.Nyon ? "Nyön" : "den nya ön";
+        public static string IslandName(World world, string? island)
+        {
+            if (island == world.HomeIsland)
+            {
+                return "Hemön";
+            }
+
+            if (island == PrototypeHome.Nyon && world.Map.Hash == PrototypeHome.Map.Hash)
+            {
+                return "Nyön";
+            }
+
+            if (world.ExpeditionFinds is Hex finds && world.Map.IslandAt(finds) == island)
+            {
+                return "den nya ön";
+            }
+
+            var anchor = world.Map.Islands.FirstOrDefault(i => i.Id == island)?.Anchor ?? world.Map.Start;
+            var way = anchor.Center() - world.Map.Start.Center();
+            int point = (int)Math.Round(Math.Atan2(way.z, way.x) / (Math.PI / 4), MidpointRounding.AwayFromZero);
+            return "ön i " + s_compass[(point + 8) % 8];
+        }
 
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
         public static string? Describe(GameEvent gameEvent) => gameEvent switch

@@ -11,6 +11,7 @@ _Avoid_: rike, sparfil, karta (när hela världen avses)
 
 **Ö** (`Island`):
 En sammanhängande landmassa i en värld, omgiven av hav.
+Öarna och deras id kommer från kartan, och varje ö där spelaren har byggt har eget lager (TASK-045).
 _Avoid_: region (när en ö avses)
 
 **Arkipelag** (`Archipelago`):
@@ -19,6 +20,7 @@ _Avoid_: delad värld, server, lobby
 
 **Sjöväg** (`SeaRoute`):
 En förbindelse över havet mellan två hamnar, inom en värld eller mellan två världar i en arkipelag.
+Inom en värld har varje ö med brygga en egen sjöväg till hemön, med egen kapacitet (TASK-045).
 _Avoid_: handelsrutt (när förbindelsen i sig avses)
 
 **Karta** (`WorldMap`):

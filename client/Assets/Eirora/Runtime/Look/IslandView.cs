@@ -120,7 +120,7 @@ namespace Eirora.Client.Look
                 }
             }
 
-            SeaRoute(mesh, world);
+            SeaRoutes(mesh, world);
             mesh.WriteTo(_settlement.sharedMesh);
             lights.WriteTo(_lights.sharedMesh);
         }
@@ -210,31 +210,25 @@ namespace Eirora.Client.Look
         }
 
         /// <summary>
-        /// The fairway between the jetties once ships sail, and the expedition's boat while it is out: along the shortest
-        /// way by sea, from shore to shore, wherever the jetties stand (D-89).
+        /// The fairway of each sea route between its jetty and the home island's, with a ship on it, and the expedition's
+        /// boat while it is out: along the shortest way by sea, from shore to shore, wherever the jetties stand (D-89).
         /// </summary>
-        private static void SeaRoute(MeshBuilder mesh, World world)
+        private static void SeaRoutes(MeshBuilder mesh, World world)
         {
-            var home = JettyOn(world, IslandId.Home);
+            var home = JettyOn(world, world.HomeIsland);
             if (home is null)
             {
                 return;
             }
 
-            var destination = world.SeaRouteOpen ? JettyOn(world, IslandId.Nyon) : world.ExpeditionFinds;
-            if (destination is null)
+            foreach (var route in world.SeaRoutes)
             {
-                return;
-            }
+                var way = Way(world, home.Value, JettyOn(world, route.From)!.Value);
+                if (way.Count < 2)
+                {
+                    continue;
+                }
 
-            var way = Fairway(world.Map.Features.SeaRoute(new[] { home.Value }, new[] { destination.Value }));
-            if (way.Count < 2)
-            {
-                return;
-            }
-
-            if (world.SeaRouteOpen)
-            {
                 float length = Length(way);
                 int dashes = Mathf.Max(3, Mathf.RoundToInt(length / 0.6f) | 1); // Odd, so the line starts and ends with a dash.
                 for (int i = 0; i < dashes; i += 2)
@@ -247,14 +241,17 @@ namespace Eirora.Client.Look
 
                 Models.Boat(mesh, Along(way, length * 0.55f), 0f);
             }
-            else if (world.ExpeditionHoursLeft > 0)
+
+            if (world.ExpeditionHoursLeft > 0 && world.ExpeditionFinds is Hex finds && Way(world, home.Value, finds) is { Count: >= 2 } voyage)
             {
                 float sailed = 1f - (world.ExpeditionHoursLeft / (float)PrototypeIsland.ExpeditionHours);
-                Models.Boat(mesh, Along(way, Length(way) * Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
+                Models.Boat(mesh, Along(voyage, Length(voyage) * Mathf.Lerp(0.05f, 0.9f, sailed)), 0f);
             }
         }
 
-        private static Hex? JettyOn(World world, IslandId island) =>
+        private static List<Vector3> Way(World world, Hex from, Hex to) => Fairway(world.Map.Features.SeaRoute(new[] { from }, new[] { to }));
+
+        private static Hex? JettyOn(World world, string island) =>
             world.Buildings.Where(b => b.Kind == BuildingKind.Jetty && b.Island == island).Select(b => (Hex?)b.Tile).FirstOrDefault();
 
         /// <summary>The way through the sea tiles' centres, from where it leaves one shore to where it meets the other.</summary>

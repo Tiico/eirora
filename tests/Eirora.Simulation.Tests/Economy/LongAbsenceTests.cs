@@ -14,7 +14,8 @@ namespace Eirora.Simulation.Tests.Economy;
 /// a year, with and without self-care and with contributions that arrive late, keep INV-R1, INV-R3, INV-V1 and INV-T5,
 /// and an absence read in parts gives the same world as one read at once (INV-D4). The player's say over the work holds
 /// while they are away (TASK-044): paused buildings stay paused, the staffing order and the queue keep their order, and
-/// never fewer villagers are at work (INV-V2).
+/// never fewer villagers are at work (INV-V2). Some worlds have a store on each of three islands and two sea routes
+/// home (TASK-045), whose shipping only moves goods between the stores.
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -34,7 +35,6 @@ public sealed class LongAbsenceTests
     private const int TicksReadOneByOne = 2 * 96;
 
     private static readonly Resource[] s_resources = Enum.GetValues<Resource>();
-    private static readonly IslandId[] s_islands = [IslandId.Home, IslandId.Nyon];
 
     [Property(MaxTest = 16)]
     public void AnAbsenceOfAnyLengthBreaksNothing(int seed)
@@ -110,8 +110,13 @@ public sealed class LongAbsenceTests
 
             See("queue", world.Projects.Count >= 3);
             See("expedition at sea", world.ExpeditionHoursLeft > 0);
-            See("sea route", world.SeaRouteOpen);
-            See("full store", s_islands.Any(i => s_resources.Any(r => Capacity(world, i) > 0 && world.Settlement.Stock(i, r) == Capacity(world, i))));
+            See("sea route", world.SeaRoutes.Count > 0);
+            See("two sea routes", world.SeaRoutes.Count >= 2);
+            See("three stores", world.Islands.Count >= 3);
+            See("goods waiting for the ships", world.SeaRoutes.Any(r => s_resources.Any(res => world.Settlement.Stock(r.From, res) > 0)));
+            See("paused", world.Buildings.Any(b => b.Paused));
+            See("paused off the home island", world.Buildings.Any(b => b.Paused && b.Island != world.HomeIsland));
+            See("full store", world.Islands.Any(i => s_resources.Any(r => Capacity(world, i) > 0 && world.Settlement.Stock(i, r) == Capacity(world, i))));
             See("felled forest", world.Fingerprint().Contains("\nforest ", StringComparison.Ordinal));
             See("ripening", world.Buildings.Any(b => b.Kind == BuildingKind.SheepFarm && b.Ripe > 0) && world.Buildings.Any(b => b.Kind == BuildingKind.Field && b.Ripe > 0));
             See("workday", world.Buildings.Any(b => b.WorkdayToday));
@@ -125,7 +130,8 @@ public sealed class LongAbsenceTests
         Assert.Superset(
             new HashSet<string>(StringComparer.Ordinal)
             {
-                "queue", "expedition at sea", "sea route", "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
+                "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "goods waiting for the ships", "paused", "paused off the home island",
+                "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
             },
             seen);
     }
@@ -177,7 +183,7 @@ public sealed class LongAbsenceTests
 
     private static void AssertBounds(World world)
     {
-        foreach (var island in s_islands)
+        foreach (var island in world.Islands)
         {
             long capacity = Capacity(world, island);
             Assert.All(s_resources, r => Assert.InRange(world.Settlement.Stock(island, r), 0, capacity));
@@ -185,11 +191,11 @@ public sealed class LongAbsenceTests
     }
 
     /// <summary>What an island's stores hold of each resource, in millionths (economy-v1.md, sections 2 and 5).</summary>
-    private static long Capacity(World world, IslandId island) => Quantity.Units(
+    private static long Capacity(World world, string island) => Quantity.Units(
         world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
         {
             BuildingKind.Storehouse => StoragePerStorehouse,
-            BuildingKind.Jetty when island != IslandId.Home => StorageAtJetty,
+            BuildingKind.Jetty when island != world.HomeIsland => StorageAtJetty,
             _ => 0,
         }));
 
@@ -252,7 +258,7 @@ public sealed class LongAbsenceTests
         }
     }
 
-    /// <summary>The stock of each resource on both islands together, in millionths.</summary>
+    /// <summary>The stock of each resource on every island together, in millionths.</summary>
     private sealed class Stocks
     {
         private readonly long[] _total;
@@ -260,7 +266,7 @@ public sealed class LongAbsenceTests
         private Stocks(long[] total) => _total = total;
 
         public static Stocks Of(World world) =>
-            new([.. s_resources.Select(r => s_islands.Sum(i => world.Settlement.Stock(i, r)))]);
+            new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r)))]);
 
         /// <summary>
         /// A store shrinks with time only by what recipes and basic needs consume (INV-R3): the sawmill takes two timber
@@ -344,7 +350,7 @@ public sealed class LongAbsenceTests
         private static (long Crops, long Forest, long ForestGrowth, int GameDay) Read(World w, WorldMap map)
         {
             var forestTiles = Enumerable.Range(0, map.Disc.Count).Select(i => map.Disc[i]).Where(h => map.TerrainAt(h) == Terrain.Forest).ToList();
-            long Total(Resource r) => s_islands.Sum(i => w.Settlement.Stock(i, r));
+            long Total(Resource r) => w.Islands.Sum(i => w.Settlement.Stock(i, r));
 
             long crops = w.Buildings.Where(b => b.Kind is BuildingKind.Field or BuildingKind.SheepFarm).Sum(b => b.Ripe)
                 + Total(Resource.Grain) + Total(Resource.Wool) + (2 * Total(Resource.Wadmal));

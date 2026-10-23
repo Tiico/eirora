@@ -185,8 +185,8 @@ public sealed class BuildingSiteTests
         var world = Morning();
 
         Assert.Equal(int.MaxValue, world.DepotDistance(N1)); // No depot on Nyön yet.
-        Assert.Equal(IslandId.Nyon, world.Settlement.IslandOf(N1));
-        Assert.Equal(IslandId.Home, world.Settlement.IslandOf(K1));
+        Assert.Equal(PrototypeHome.Nyon, world.Settlement.IslandOf(N1));
+        Assert.Equal(PrototypeHome.Home, world.Settlement.IslandOf(K1));
     }
 
     private static IEnumerable<Hex> Neighbours(Hex hex) => Enumerable.Range(0, Hex.Directions).Select(hex.Neighbour).Where(s_map.Contains);
