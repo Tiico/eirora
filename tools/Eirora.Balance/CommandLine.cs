@@ -131,6 +131,16 @@ public sealed class CommandLine
         : int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value) && value > 0 ? value
         : throw new ArgumentException($"--{name} takes a positive whole number, not '{text}'.");
 
-    private static string[] List(Dictionary<string, string> options, string name, string fallback) =>
-        options.GetValueOrDefault(name, fallback).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private static string[] List(Dictionary<string, string> options, string name, string fallback)
+    {
+        string text = options.GetValueOrDefault(name, fallback);
+        string[] items = text.Split(',', StringSplitOptions.TrimEntries);
+        if (items.Any(item => item.Length == 0))
+        {
+            throw new ArgumentException($"--{name} takes a list such as a,b without empty items, not '{text}'.");
+        }
+
+        string? twice = items.GroupBy(item => item, StringComparer.Ordinal).FirstOrDefault(group => group.Count() > 1)?.Key;
+        return twice is null ? items : throw new ArgumentException($"--{name} names {twice} twice.");
+    }
 }

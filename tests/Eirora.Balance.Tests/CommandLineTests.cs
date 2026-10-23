@@ -35,6 +35,11 @@ public sealed class CommandLineTests
     [InlineData("--days", "-1")]
     [InlineData("--strategies", "nearby")]
     [InlineData("--profiles", "medium")]
+    [InlineData("--strategies", ",")]
+    [InlineData("--strategies", "")]
+    [InlineData("--strategies", "near,,sea")]
+    [InlineData("--strategies", "near,near")]
+    [InlineData("--profiles", "normal, normal")]
     [InlineData("suite", "all")]
     public void ItRefusesWhatItWouldOtherwiseIgnoreOrGuessAt(params string[] args) =>
         Assert.Throws<ArgumentException>(() => CommandLine.Parse(args));

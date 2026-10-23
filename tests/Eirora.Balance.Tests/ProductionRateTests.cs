@@ -15,12 +15,14 @@ namespace Eirora.Balance.Tests;
 /// </summary>
 /// <remarks>
 /// A day runs from just before one dawn to just before the next, so it holds every waking quarter hour once; what the
-/// villagers eat and use for comfort at the dawn inside it is added back. Grain and wool are measured once the
+/// villagers eat and use for comfort at the dawn inside it is added back. Stock is read in millionths, so that a rate
+/// a fraction of a percent off fails. Grain and wool are measured once the
 /// building has stood a whole day and night, when what is harvested in a day is what grew in it.
 /// </remarks>
 public sealed class ProductionRateTests
 {
     private const long Day = 24 * 3600;
+    private const long TicksADay = 24 * 4;
 
     private static readonly Hex s_village = new(0, 0);
     private static readonly Hex s_startFishingHut = new(1, 0);
@@ -142,31 +144,35 @@ public sealed class ProductionRateTests
             Assert.Equal(buildings, producers.Count);
             long expected = producers.Sum(b => Measures.Delivered(_world, sites, b.Kind, b.Tile)) / Sites.Weights[(int)resource];
 
-            long before = _world.Stock(resource);
+            long before = Stock(resource);
             long used = UsedAtDawn(resource);
             _world.AdvanceTo(At(DawnOf(day + 1) - 1));
-            long gained = _world.Stock(resource) - before + used;
+            long gained = Stock(resource) - before + used;
 
-            // Stock is read in whole units, so a day's gain is within one unit of what is delivered.
+            // The simulation rounds down each quarter hour and the bots once a day, so they may part by a millionth a tick.
             Assert.True(
-                Math.Abs(Quantity.Units(gained) - expected) <= Quantity.PerUnit,
-                $"{resource}: the world gained {gained} in a day, the bots count {expected / (double)Quantity.PerUnit:0.###}.");
+                Math.Abs(gained - expected) <= TicksADay,
+                $"{resource}: the world gained {gained} millionths in a day, the bots count {expected}.");
         }
 
         /// <summary>What the villagers will eat, and use for comfort, of a resource at the coming dawn (economy-v1.md, section 4).</summary>
         private long UsedAtDawn(Resource resource)
         {
-            long fish = Math.Min(_world.Villagers, _world.Stock(Resource.Fish));
-            long grain = Math.Min(_world.Villagers - fish, _world.Stock(Resource.Grain));
-            bool fed = fish + grain == _world.Villagers;
+            long need = Quantity.Units(_world.Villagers);
+            long fish = Math.Min(need, Stock(Resource.Fish));
+            long grain = Math.Min(need - fish, Stock(Resource.Grain));
+            bool fed = fish + grain == need;
             return resource switch
             {
                 Resource.Fish => fish,
                 Resource.Grain => grain,
-                Resource.Wadmal => fed && _world.Stock(Resource.Wadmal) >= 2 ? 2 : 0,
+                Resource.Wadmal => fed && Stock(Resource.Wadmal) >= Quantity.Units(2) ? Quantity.Units(2) : 0,
                 _ => 0,
             };
         }
+
+        /// <summary>Stock at home in millionths, finer than the whole units the world shows.</summary>
+        private long Stock(Resource resource) => _world.Settlement.Stock(resource);
 
         private static long DawnOf(int day) => FirstDawn + ((day - 1) * Day);
 
