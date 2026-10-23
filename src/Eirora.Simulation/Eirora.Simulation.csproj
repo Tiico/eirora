@@ -15,5 +15,7 @@
   <ItemGroup>
     <!-- Tests define gameplay commands of their own to check the rest lock for every kind of command. -->
     <InternalsVisibleTo Include="Eirora.Simulation.Tests" />
+    <!-- The balance bots' rate test reads stock in millionths, which the world shows only in whole units. -->
+    <InternalsVisibleTo Include="Eirora.Balance.Tests" />
   </ItemGroup>
 </Project>
