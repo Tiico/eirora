@@ -23,7 +23,8 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 
 Simuleringen, kartgeneratorerna, kontrakten och molnsparningen byggs från samma källkod av både .NET och Unity.
 Därför gäller C# 9 och netstandard2.1 där, och inga Unity-API:er; `dotnet build` och arkitekturtestet underkänner det som inte håller.
-Molnsparningen är det enda paketet med ett beroende utanför netstandard: BouncyCastle.Cryptography, som .NET hämtar från NuGet och Unity läser från `client/Assets/Plugins/BouncyCastle/` (samma version, se dess `README.md` och `scripts/update-bouncycastle.sh`).
+Molnsparningen är det enda paketet med beroenden utanför netstandard: BouncyCastle.Cryptography för krypteringen och ZXing.Net för QR-koderna i nyckelöverföringen.
+.NET hämtar dem från NuGet och Unity läser dem från `client/Assets/Plugins/BouncyCastle/` och `client/Assets/Plugins/ZXing/` (samma versioner, se deras `README.md`, `scripts/update-bouncycastle.sh` och `scripts/update-zxing.sh`).
 
 ## Förutsättningar
 

@@ -323,7 +323,7 @@ Bidragsnyckelns väg från en av spelarens telefoner till en annan via servern, 
 _Avoid_: nyckelsynk (som är plattformens nyckelring), nyckeldelning
 
 **Biljett** (`KeyTransferTicket`):
-Det den nya telefonen visar den gamla, i en QR-kod: överföringens id och den nya telefonens publika engångsnyckel; inget i den är hemligt.
+Det den nya telefonen visar den gamla, i en QR-kod: överföringens id, den nya telefonens publika engångsnyckel och en hemlighet som aldrig går till servern; den är hemlig tills nyckeln levererats eller överföringen gått ut.
 _Avoid_: QR-nyckel, kod
 
 **Återställningskod** (`RecoveryCode`):

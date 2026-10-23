@@ -152,6 +152,45 @@ namespace Eirora.Client.UI
             _ => "Det gick inte just nu. Försök igen om en stund.",
         };
 
+        /// <summary>How a key transfer stands on the new phone, under the QR code (TASK-023b).</summary>
+        public static string KeyTransfer(CloudSaving.KeyTransferOutcome outcome, System.DateTimeOffset? expiresAt) => outcome switch
+        {
+            CloudSaving.KeyTransferOutcome.Waiting => expiresAt is { } at
+                ? $"Väntar på din gamla telefon. Koden gäller till {at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}."
+                : "Väntar på din gamla telefon.",
+            CloudSaving.KeyTransferOutcome.Received => "Nyckeln kom fram.",
+            CloudSaving.KeyTransferOutcome.Expired => "Koden gäller inte längre.",
+            CloudSaving.KeyTransferOutcome.Unreadable => "Det som kom gick inte att läsa här. Försök med en ny kod.",
+            CloudSaving.KeyTransferOutcome.Rejected => "Nyckeln som kom hör inte till kontots ö. Försök med en ny kod från telefonen som har ön.",
+            CloudSaving.KeyTransferOutcome.Offline => expiresAt is { } until
+                ? $"Servern går inte att nå just nu. Koden gäller ändå till {until.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}, och försöket fortsätter."
+                : "Servern går inte att nå just nu. Försök igen om en stund.",
+            CloudSaving.KeyTransferOutcome.SignedOut => "Logga in igen för att hämta nyckeln.",
+            _ => "Det gick inte just nu. Försök igen om en stund.",
+        };
+
+        /// <summary>What to tell the old phone's player after a scanned code was acted on (TASK-023b).</summary>
+        public static string KeyDelivery(CloudSaving.KeyDeliveryOutcome outcome) => outcome switch
+        {
+            CloudSaving.KeyDeliveryOutcome.Delivered => "Nyckeln är skickad. Den nya telefonen hämtar din ö nu.",
+            CloudSaving.KeyDeliveryOutcome.NoKey => "Den här telefonen har ingen nyckel till kontots egenvård.",
+            CloudSaving.KeyDeliveryOutcome.BadTicket => "Det är inte en kod från Eirora. Sök koden på den nya telefonen.",
+            CloudSaving.KeyDeliveryOutcome.AlreadyDelivered => "En nyckel är redan skickad till den telefonen.",
+            CloudSaving.KeyDeliveryOutcome.Expired => "Koden gäller inte längre. Visa en ny på den nya telefonen.",
+            CloudSaving.KeyDeliveryOutcome.Offline => "Servern går inte att nå just nu. Försök igen om en stund.",
+            CloudSaving.KeyDeliveryOutcome.SignedOut => "Logga in igen för att skicka nyckeln.",
+            _ => "Nyckeln kunde inte skickas. Försök igen om en stund.",
+        };
+
+        /// <summary>What the old phone's player sees over the camera's picture (TASK-023b).</summary>
+        public static string Scanner(ScannerStatus status) => status switch
+        {
+            ScannerStatus.Starting => "Startar kameran …",
+            ScannerStatus.Scanning => "Söker koden …",
+            ScannerStatus.Denied => "Eirora får inte använda kameran. Tillåt det i telefonens inställningar, eller skriv in återställningskoden på den nya telefonen.",
+            _ => "Den här telefonen har ingen kamera som går att använda. Skriv in återställningskoden på den nya telefonen i stället.",
+        };
+
         /// <summary>How the cloud save stands, for the account sheet, or null when there is no sign-in.</summary>
         public static string? CloudSync(App.CloudSyncStatus status, System.DateTimeOffset? syncedAt) => status switch
         {

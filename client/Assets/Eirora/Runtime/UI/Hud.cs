@@ -341,6 +341,8 @@ namespace Eirora.Client.UI
             _explainingHealth = false;
             _confirmingDeletion = false;
             _showingRecoveryCode = false;
+            _sendingKey = false;
+            _ticketToSend = null;
             if (sheet == Sheet.SelfCare && _world is not null)
             {
                 _selfCare.Reset(_world.GameDay);
@@ -359,6 +361,11 @@ namespace Eirora.Client.UI
         private void ShowSheet()
         {
             _sheet.Clear();
+            if (_open != Sheet.Account || !_sendingKey)
+            {
+                StopKeySending();
+            }
+
             if (_world is null || _open == Sheet.None)
             {
                 _sheet.style.display = DisplayStyle.None;

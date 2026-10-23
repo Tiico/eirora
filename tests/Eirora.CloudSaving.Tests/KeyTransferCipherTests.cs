@@ -150,6 +150,46 @@ public sealed class KeyTransferCipherTests
         Assert.Null(KeyTransferTicket.TryParse(null));
     }
 
+    // The text comes from a camera, so a crafted code must give null, never an exception that leaves the scanner stuck.
+    [Theory]
+    [InlineData("eirora-key-transfer 1  PUB SECRET", "an empty id")]
+    [InlineData("eirora-key-transfer 1 a/b PUB SECRET", "a slash in the id")]
+    [InlineData("eirora-key-transfer 1 a.b PUB SECRET", "a dot in the id")]
+    [InlineData("eirora-key-transfer 1 LONG PUB SECRET", "an id longer than the longest")]
+    [InlineData("eirora-key-transfer 1 abc123 PUB SECRET extra", "an extra field")]
+    [InlineData("eirora-key-transfer 1 abc123 PUB SHORT", "a secret of the wrong length")]
+    [InlineData("eirora-key-transfer 1 abc123 PUB ****", "a secret that is not base64")]
+    [InlineData("eirora-key-transfer 1 abc123 LONGPUB SECRET", "a public key of the wrong length")]
+    [InlineData("eirora-key-transfer\t1 abc123 PUB SECRET", "a tab for a space")]
+    public void ACraftedTicketIsNotOneAndNeverThrows(string pattern, string why)
+    {
+        var (_, ticket) = NewPhone("abc123");
+        string text = pattern
+            .Replace("LONGPUB", Convert.ToBase64String(new byte[33]))
+            .Replace("PUB", Convert.ToBase64String(ticket.ReceiverPublicKey))
+            .Replace("SECRET", Convert.ToBase64String(ticket.Secret))
+            .Replace("SHORT", Convert.ToBase64String(new byte[15]))
+            .Replace("LONG", new string('a', KeyTransferTicket.MaxIdLength + 1));
+
+        Assert.True(KeyTransferTicket.TryParse(text) is null, why);
+    }
+
+    [Fact]
+    public void TheCheckCodeIsSixDigitsFromTheWholeTicketAndTheSameOnBothPhones()
+    {
+        var (_, ticket) = NewPhone("abc123");
+        var read = KeyTransferTicket.TryParse(ticket.ToText())!;
+        var otherSecret = new KeyTransferTicket("abc123", ticket.ReceiverPublicKey, KeyTransferTicket.NewSecret());
+        var otherId = new KeyTransferTicket("abc124", ticket.ReceiverPublicKey, ticket.Secret);
+
+        Assert.Matches("^[0-9]{3} [0-9]{3}$", ticket.CheckCode);
+        Assert.Equal(ticket.CheckCode, read.CheckCode);
+        Assert.NotEqual(ticket.CheckCode, otherSecret.CheckCode);
+        Assert.NotEqual(ticket.CheckCode, otherId.CheckCode);
+        Assert.Throws<ArgumentException>(() => new KeyTransferTicket("a b", ticket.ReceiverPublicKey, ticket.Secret));
+        Assert.Throws<ArgumentException>(() => new KeyTransferTicket(string.Empty, ticket.ReceiverPublicKey, ticket.Secret));
+    }
+
     private static (TransferKeys Keys, KeyTransferTicket Ticket) NewPhone(string transferId)
     {
         var keys = TransferKeys.Generate();
