@@ -113,6 +113,9 @@ public sealed class LongAbsenceTests
             See("sea route", world.SeaRoutes.Count > 0);
             See("two sea routes", world.SeaRoutes.Count >= 2);
             See("three stores", world.Islands.Count >= 3);
+            See("goods waiting for the ships", world.SeaRoutes.Any(r => s_resources.Any(res => world.Settlement.Stock(r.From, res) > 0)));
+            See("paused", world.Buildings.Any(b => b.Paused));
+            See("paused off the home island", world.Buildings.Any(b => b.Paused && b.Island != world.HomeIsland));
             See("full store", world.Islands.Any(i => s_resources.Any(r => Capacity(world, i) > 0 && world.Settlement.Stock(i, r) == Capacity(world, i))));
             See("felled forest", world.Fingerprint().Contains("\nforest ", StringComparison.Ordinal));
             See("ripening", world.Buildings.Any(b => b.Kind == BuildingKind.SheepFarm && b.Ripe > 0) && world.Buildings.Any(b => b.Kind == BuildingKind.Field && b.Ripe > 0));
@@ -127,7 +130,8 @@ public sealed class LongAbsenceTests
         Assert.Superset(
             new HashSet<string>(StringComparer.Ordinal)
             {
-                "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
+                "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "goods waiting for the ships", "paused", "paused off the home island",
+                "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
             },
             seen);
     }

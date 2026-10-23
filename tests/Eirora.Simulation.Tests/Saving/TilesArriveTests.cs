@@ -47,7 +47,7 @@ public sealed class TilesArriveTests
     {
         // Under rules 3 the western mountain was a quarry site; under rules 4 it is the crest, which takes only the
         // Vårdkase (D-92). What was built stays where it stands (INV-V1).
-        string state = RulesThree(StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint()), FullForests)
+        string state = RulesThree(StaffingIsOrderedTests.RulesFive(RulesSix(NewWorld())), FullForests)
             .Replace("\nforest F1", "\nbuilding Quarry M1 1 1 0 0 0\nforest F1", StringComparison.Ordinal);
 
         var world = World.Read(new StateReader(Migrations.ToCurrent(state, 3, Migrations.All, PrototypeHome.Map)), PrototypeHome.Map);
@@ -62,7 +62,7 @@ public sealed class TilesArriveTests
     [Fact]
     public void AStateFromAnotherMapOrWithAnUnknownSiteIsRefused()
     {
-        string state = RulesThree(StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint()), FullForests);
+        string state = RulesThree(StaffingIsOrderedTests.RulesFive(RulesSix(NewWorld())), FullForests);
 
         Assert.Throws<FormatException>(() => new TilesArrive().Migrate("map 00" + state[state.IndexOf('\n')..], PrototypeHome.Map));
         Assert.Throws<FormatException>(() => new TilesArrive().Migrate(state.Replace("building Storehouse S ", "building Storehouse X9 ", StringComparison.Ordinal), PrototypeHome.Map));
@@ -93,6 +93,9 @@ public sealed class TilesArriveTests
     }
 
     private static World NewWorld() => World.Create(At("2026-10-14 14:00", 2), Night);
+
+    /// <summary>A new world's state as rules 6 wrote it, with its stores on Home and Nyon (IslandsFromTheMapTests).</summary>
+    private static string RulesSix(World world) => IslandsFromTheMapTests.RulesSix(world.Fingerprint(), world);
 
     // Acceptance, on a world a player could have saved: the golden save from rules 3 keeps every building, road and
     // lifted tile, and every balance.

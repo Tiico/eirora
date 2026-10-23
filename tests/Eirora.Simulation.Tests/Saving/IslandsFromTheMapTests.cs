@@ -58,7 +58,7 @@ public sealed class IslandsFromTheMapTests
         var world = BuiltOutWorld.GenerateSave(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
         string state = world.Fingerprint();
 
-        Assert.Equal(state, new IslandsFromTheMap().Migrate(AsRulesSix(state, world), PrototypeHome.Map));
+        Assert.Equal(state, new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
     }
 
     // Under rules 6 every island but the home island shared Nyon's store; it goes to the island of the first building off
@@ -74,7 +74,7 @@ public sealed class IslandsFromTheMapTests
             [Jetty(Archipelago.Second), Jetty(Archipelago.First)]);
         string state = string.Join('\n', lines);
         string nyon = string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
-        string rulesSix = AsRulesSix(state, world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
+        string rulesSix = RulesSix(state, world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
 
         string migrated = new IslandsFromTheMap().Migrate(rulesSix, map);
 
@@ -90,7 +90,7 @@ public sealed class IslandsFromTheMapTests
         string Jetty(string island)
         {
             var landing = map.Features.LandOf(island).First(map.Features.IsHarborSpot);
-            return $"building Jetty {landing.Q} {landing.R} 1 0 0 0 0";
+            return $"building Jetty {landing.Q} {landing.R} 1 0 0 0 0 0";
         }
     }
 
@@ -98,7 +98,7 @@ public sealed class IslandsFromTheMapTests
     public void GoodsOnNyonWithNothingBuiltOffTheHomeIslandAreRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesSix = AsRulesSix(world.Fingerprint(), world);
+        string rulesSix = RulesSix(world.Fingerprint(), world);
         Assert.DoesNotContain("stock nyon", new IslandsFromTheMap().Migrate(rulesSix, PrototypeHome.Map), StringComparison.Ordinal);
 
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix.Replace("stock Nyon Stone 0", "stock Nyon Stone 1", StringComparison.Ordinal), PrototypeHome.Map));
@@ -108,7 +108,7 @@ public sealed class IslandsFromTheMapTests
     public void AStateOfAnotherMapOrWithoutTheStoresOfRulesSixIsRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesSix = AsRulesSix(world.Fingerprint(), world);
+        string rulesSix = RulesSix(world.Fingerprint(), world);
 
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix, Archipelago.Map));
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(world.Fingerprint(), PrototypeHome.Map));
@@ -119,7 +119,7 @@ public sealed class IslandsFromTheMapTests
     /// A state of rules 7 as rules 6 wrote it: every resource on Home, then on Nyon, which holds the store of the one
     /// island off the home island built on, if any.
     /// </summary>
-    private static string AsRulesSix(string state, World world)
+    internal static string RulesSix(string state, World world)
     {
         var off = world.Islands.Where(i => i != world.HomeIsland).ToList();
         Assert.True(off.Count <= 1, "Rules 6 had one store for every island off the home island.");

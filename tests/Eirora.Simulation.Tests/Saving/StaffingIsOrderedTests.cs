@@ -22,8 +22,12 @@ public sealed class StaffingIsOrderedTests
         var after = world.Fingerprint().Split('\n');
 
         // The save keeps the contributions in a part of their own (D-101), which follows the world in the fingerprint.
-        var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l)).ToList();
-        Assert.Equal(kept, after.Where(l => !IsBuilding(l)).Take(kept.Count));
+        // Rules 7 named the stores by the map's islands (IslandsFromTheMapTests), which keeps every amount.
+        var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l) && !IsStock(l)).ToList();
+        Assert.Equal(kept, after.Where(l => !IsBuilding(l) && !IsStock(l)).Take(kept.Count));
+        Assert.Equal(
+            before.Where(l => l.StartsWith("stock Home ", StringComparison.Ordinal)).Select(l => l["stock Home".Length..]),
+            after.Where(IsStock).Select(l => l["stock home".Length..]));
         Assert.Equal(builtBefore.Select(line => line + " 0"), after.Where(IsBuilding));
         Assert.NotEmpty(builtBefore);
         Assert.DoesNotContain(world.Buildings, b => b.Paused);
@@ -46,4 +50,6 @@ public sealed class StaffingIsOrderedTests
         string.Join("\n", state.Split('\n').Select(line => IsBuilding(line) ? line[..line.LastIndexOf(' ')] : line));
 
     private static bool IsBuilding(string line) => line.StartsWith("building ", StringComparison.Ordinal);
+
+    private static bool IsStock(string line) => line.StartsWith("stock ", StringComparison.Ordinal);
 }
