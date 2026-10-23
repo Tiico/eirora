@@ -74,8 +74,8 @@ _Avoid_: fog of war, mörker
 ## Civilisation och ekonomi
 
 **Bosättning** (`Settlement`):
-En ös byggnader, bybor, bostäder och lager, grundad av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
-_Avoid_: by, stad (som generella termer)
+En ös byggnader, bybor, bostäder och lager, anlagd av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
+_Avoid_: by, stad (som generella termer), grundande (som är det en ny värld börjar med)
 
 **Bybor** (`Villagers`):
 Bosättningens invånare, modellerade som arbetsgrupper med gemensam dygnsrytm, inte som individer.
@@ -94,15 +94,15 @@ Byggen, uppgraderingar och vägar som väntar på de lediga bybornas arbete, i d
 _Avoid_: bygglista, order
 
 **Basbehov** (`BasicNeed`):
-Det byborna förbrukar varje spelardygn, i v1 mat; brist stoppar bara tillväxt, aldrig något som redan finns.
+Det behov som alla befolkningsnivåer har, mat, en per bybo och spelardygn; brist stoppar bara tillväxt, aldrig något som redan finns.
 _Avoid_: hunger, underhåll
 
 **Förråd** (`Depot`):
-En byggnad som lagrar resurser och som produktionens avstånd räknas till; en brygga räknas också som förråd för avstånd.
+En byggnad som lagrar resurser och vars bärare hämtar det byggnaderna närmast gör; en brygga är också ett förråd, med ett mindre lager (D-107).
 _Avoid_: lager (om byggnaden), magasin
 
 **Bärare** (`Carrier`):
-Det som flyttar varor på land mellan produktion, förråd och mottagare, en begränsad mängd per timme; vägar gör bärarna snabbare (D-107).
+Bybor som ett förråd eller en brygga anställer själv vid gryningen, en till fyra, för att flytta varor på land mellan byggnaderna och förrådet; avståndet kostar bärartid, och vägar gör bärarna snabbare (D-107, D-109, D-110).
 _Avoid_: transportör, kärra (som term)
 
 **Minimilager** (`Reserve`):
@@ -120,6 +120,42 @@ _Avoid_: gratisbygge, långsamt läge
 **Runsten** (`RuneStone`):
 Byggnaden där forskningen ristas och där världens historik bevaras.
 _Avoid_: forskningscenter, bibliotek
+
+**Befolkningsnivå** (`PopulationTier`):
+Det steg en bybo har nått, i epok 1 torpare, bönder eller hantverkare, med egna bostäder, behov och byggnader att arbeta i; en bybo stiger när nivåns behov uppfylls och går aldrig tillbaka (D-105, D-39, D-115).
+_Avoid_: klass, rang, stånd
+
+**Torpare** (`Crofters`):
+Den första befolkningsnivån: alla bybor börjar som torpare, bor i stugor och långhus och behöver bara mat.
+_Avoid_: trälar, arbetare
+
+**Bönder** (`Farmers`):
+Den andra befolkningsnivån, som torpare stiger till när de får kläder; bor i bondgårdar och kan också bemanna bryggeri, mjöderi och tjärdal.
+_Avoid_: odlare, jordbrukare (som nivå)
+
+**Hantverkare** (`Craftsmen`):
+Den tredje befolkningsnivån i epok 1, som bönder stiger till när de också får dryck; bor i hantverkargårdar, bygger dubbelt så fort och bemannar varvet (D-116).
+_Avoid_: mästare, borgare
+
+**Behov** (`Need`):
+Det en befolkningsnivå förbrukar varje spelardygn, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
+_Avoid_: krav, efterfrågan, hunger
+
+**Upplåsning** (`Unlock`):
+Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga i hela världen när någon bosättning uppfyller stegets villkor, till exempel en viss storlek; ett steg som nåtts låses aldrig igen (D-105, D-114).
+_Avoid_: nivå (om steget), teknikträd
+
+**Utlager** (`OutputBuffer`):
+Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret är fullt stannar byggnaden, och inget går förlorat (D-107).
+_Avoid_: buffert, kö (om varorna)
+
+**Väg** (`Road`):
+En bricka där bärarna går dubbelt så fort; vägar läggs bricka för bricka och hjälper alla bärare som går över dem (D-112).
+_Avoid_: stig, gata
+
+**Knarr** (`Knarr`):
+Ett lastskepp som varvet bygger och som ökar sjövägarnas kapacitet till och från varvets ö.
+_Avoid_: skepp (när knarren som kapacitet avses), båt
 
 ## Egenvård och krafter
 
