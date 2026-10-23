@@ -84,6 +84,14 @@ namespace Eirora.Client.UI
                 return;
             }
 
+            if (_sendingKey && account.IsSignedIn && _cloud is { RecoveryCode: not null } sending && _scanner is { } scanner)
+            {
+                KeySendingSheet(sending, scanner);
+                return;
+            }
+
+            _sendingKey = false;
+
             Text("sheet-title", _sheet, "Konto");
             if (!account.IsSignedIn)
             {
@@ -148,6 +156,7 @@ namespace Eirora.Client.UI
 
             if (_cloud?.RecoveryCode is not null)
             {
+                AddAction("Skicka nyckeln till en ny telefon", _scanner is null ? "Den här telefonen kan inte skanna koden" : "Skanna QR-koden som den nya telefonen visar", _scanner is not null, OpenKeySending);
                 AddAction("Visa återställningskod", "Nyckeln som låser upp din egenvård på en ny telefon", true, OpenRecoveryCode);
             }
 

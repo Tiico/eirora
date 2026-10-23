@@ -67,7 +67,7 @@ public sealed class GoldenSaveTests
         Assert.True(File.Exists(path), $"The golden prototype journal {Prototype} is missing.");
         Assert.True(RulesVersion.ReplaysJournalsFrom > 1);
 
-        var refused = Assert.Throws<FormatException>(() => Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8)));
+        var refused = Assert.Throws<JournalFromOlderRulesException>(() => Save.FromPrototypeJournal(File.ReadAllText(path, Encoding.UTF8)));
 
         Assert.Contains("rules version 1", refused.Message, StringComparison.Ordinal);
     }

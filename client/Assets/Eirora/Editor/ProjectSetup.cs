@@ -27,6 +27,9 @@ namespace Eirora.Editor
             Debug.Log("Eirora project setup applied.");
         }
 
+        /// <summary>Why Eirora wants the camera: only to read the new phone's QR code when a key is sent (TASK-023b).</summary>
+        internal const string CameraUsageDescription = "Eirora läser QR-koden på din nya telefon för att skicka nyckeln till din egenvård dit. Bilden stannar i telefonen.";
+
         private static void ApplyPlayerSettings()
         {
             // Lighting is authored for linear colour (art-direction.md); the game is held in one hand (UX-01).
@@ -37,6 +40,9 @@ namespace Eirora.Editor
             // Assets/Plugins/Android/gradleTemplate.properties, which turns Kotlin on, by its presence alone;
             // AndroidHealthCheck fails any build where the Kotlin adapter is missing from the APK.
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+
+            // iOS asks for the camera with this text the first time the old phone scans the new phone's QR code (TASK-023b).
+            PlayerSettings.iOS.cameraUsageDescription = CameraUsageDescription;
 
             var settings = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset").Single());
             settings.FindProperty("activeInputHandler").intValue = 1; // Input System only.

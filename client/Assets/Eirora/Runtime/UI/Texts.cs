@@ -67,6 +67,18 @@ namespace Eirora.Client.UI
             return map.RichnessAt(tile) > 100 ? $"{ground}, rik" : ground;
         }
 
+        /// <summary>The timber left on a forest tile, which woodcutters fell and which grows back.</summary>
+        public static string Timber(long left) => left >= World.TimberPerForest
+            ? $"{World.TimberPerForest} timmer att fälla."
+            : $"{left} av {World.TimberPerForest} timmer kvar att fälla. Skogen växer tillbaka.";
+
+        /// <summary>Items joined as Swedish lists them: "a, b och c".</summary>
+        public static string List(IEnumerable<string> items)
+        {
+            var all = items.ToList();
+            return all.Count <= 1 ? string.Concat(all) : string.Join(", ", all.Take(all.Count - 1)) + " och " + all[all.Count - 1];
+        }
+
         /// <summary>What a tile is good for, as a building site (D-79, economy-v1.md, section 3.1).</summary>
         public static string Uses(TileUse uses)
         {
@@ -87,11 +99,8 @@ namespace Eirora.Client.UI
             Add(TileUse.FishingWater, "fiskevatten");
             Add(TileUse.HarborSpot, "hamnläge");
             Add(TileUse.Crest, "Vårdkasens plats");
-            return parts.Count == 0 ? "Här kan inget byggas." : "Duger till " + Join(parts) + ".";
+            return parts.Count == 0 ? "Här kan inget byggas." : "Duger till " + List(parts) + ".";
         }
-
-        private static string Join(List<string> parts) =>
-            parts.Count == 1 ? parts[0] : string.Join(", ", parts.Take(parts.Count - 1)) + " och " + parts[parts.Count - 1];
 
         public static string Cost(BuildingSpec spec)
         {
@@ -230,6 +239,45 @@ namespace Eirora.Client.UI
             App.RecoveryCodeOutcome.NotThisAccountsCode => "Koden hör inte till det här kontots ö.",
             App.RecoveryCodeOutcome.Offline => "Servern går inte att nå just nu. Försök igen om en stund.",
             _ => "Det gick inte just nu. Försök igen om en stund.",
+        };
+
+        /// <summary>How a key transfer stands on the new phone, under the QR code (TASK-023b).</summary>
+        public static string KeyTransfer(CloudSaving.KeyTransferOutcome outcome, System.DateTimeOffset? expiresAt) => outcome switch
+        {
+            CloudSaving.KeyTransferOutcome.Waiting => expiresAt is { } at
+                ? $"Väntar på din gamla telefon. Koden gäller till {at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}."
+                : "Väntar på din gamla telefon.",
+            CloudSaving.KeyTransferOutcome.Received => "Nyckeln kom fram.",
+            CloudSaving.KeyTransferOutcome.Expired => "Koden gäller inte längre.",
+            CloudSaving.KeyTransferOutcome.Unreadable => "Det som kom gick inte att läsa här. Försök med en ny kod.",
+            CloudSaving.KeyTransferOutcome.Rejected => "Nyckeln som kom hör inte till kontots ö. Försök med en ny kod från telefonen som har ön.",
+            CloudSaving.KeyTransferOutcome.Offline => expiresAt is { } until
+                ? $"Servern går inte att nå just nu. Koden gäller ändå till {until.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}, och försöket fortsätter."
+                : "Servern går inte att nå just nu. Försök igen om en stund.",
+            CloudSaving.KeyTransferOutcome.SignedOut => "Logga in igen för att hämta nyckeln.",
+            _ => "Det gick inte just nu. Försök igen om en stund.",
+        };
+
+        /// <summary>What to tell the old phone's player after a scanned code was acted on (TASK-023b).</summary>
+        public static string KeyDelivery(CloudSaving.KeyDeliveryOutcome outcome) => outcome switch
+        {
+            CloudSaving.KeyDeliveryOutcome.Delivered => "Nyckeln är skickad. Den nya telefonen hämtar din ö nu.",
+            CloudSaving.KeyDeliveryOutcome.NoKey => "Den här telefonen har ingen nyckel till kontots egenvård.",
+            CloudSaving.KeyDeliveryOutcome.BadTicket => "Det är inte en kod från Eirora. Sök koden på den nya telefonen.",
+            CloudSaving.KeyDeliveryOutcome.AlreadyDelivered => "En nyckel är redan skickad till den telefonen.",
+            CloudSaving.KeyDeliveryOutcome.Expired => "Koden gäller inte längre. Visa en ny på den nya telefonen.",
+            CloudSaving.KeyDeliveryOutcome.Offline => "Servern går inte att nå just nu. Försök igen om en stund.",
+            CloudSaving.KeyDeliveryOutcome.SignedOut => "Logga in igen för att skicka nyckeln.",
+            _ => "Nyckeln kunde inte skickas. Försök igen om en stund.",
+        };
+
+        /// <summary>What the old phone's player sees over the camera's picture (TASK-023b).</summary>
+        public static string Scanner(ScannerStatus status) => status switch
+        {
+            ScannerStatus.Starting => "Startar kameran …",
+            ScannerStatus.Scanning => "Söker koden …",
+            ScannerStatus.Denied => "Eirora får inte använda kameran. Tillåt det i telefonens inställningar, eller skriv in återställningskoden på den nya telefonen.",
+            _ => "Den här telefonen har ingen kamera som går att använda. Skriv in återställningskoden på den nya telefonen i stället.",
         };
 
         /// <summary>How the cloud save stands, for the account sheet, or null when there is no sign-in.</summary>

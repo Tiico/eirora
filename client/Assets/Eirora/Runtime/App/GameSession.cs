@@ -23,6 +23,12 @@ namespace Eirora.Client.App
 
         /// <summary>A newer version of the app wrote the save; updating the app will read it.</summary>
         FromNewerVersion,
+
+        /// <summary>
+        /// The world is a prototype journal from rules this version no longer replays (ADR-0006, D-104): since rules 4
+        /// builds on tiles (TASK-037), a journal from M1 would become another world. It is kept, never taken over.
+        /// </summary>
+        FromOlderPrototype,
     }
 
     /// <summary>
@@ -341,6 +347,12 @@ namespace Eirora.Client.App
             try
             {
                 return Simulation.Saving.Save.FromPrototypeJournal(File.ReadAllText(path));
+            }
+            catch (JournalFromOlderRulesException)
+            {
+                _unreadable.Add(path);
+                LoadProblem = SaveProblem.FromOlderPrototype;
+                return null;
             }
             catch (FormatException)
             {

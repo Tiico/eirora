@@ -27,6 +27,7 @@ namespace Eirora.Client.Tests
             hud.Show(game.World!, game.SinceDawn);
 
             hud.Select(new Hex(-1, 0));
+            hud.ShowMoreBuildings();
 
             var actions = root.Query<Button>(className: "action").ToList()
                 .Select(a => $"{Label(a, "action-title")} | {Label(a, "action-effect")} | {Label(a, "action-cost")}");

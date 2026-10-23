@@ -31,7 +31,7 @@ namespace Eirora.Simulation.Economy
         private const int ProcessingReserve = 20; // LOG-06 minimum stock left for building (D-44).
         private const int ComfortPerDawn = 2;
         private const int StartingHousing = 16;
-        private const long ForestPerTile = 40 * Quantity.PerUnit;
+        private const long ForestPerTile = World.TimberPerForest * Quantity.PerUnit;
         private const long ForestRegrowthPerTick = 62_500; // 0.25 timber an hour on each forest tile.
         private const long SeaRoutePerTick = 625_000; // 40 units a game day over 16 waking hours (economy-v1.md, section 5).
 

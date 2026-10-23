@@ -17,6 +17,9 @@ namespace Eirora.Simulation
     /// </summary>
     public sealed class World
     {
+        /// <summary>The timber a forest tile holds when it is full: woodcutters fell it and it grows back to this (economy-v1.md, section 3).</summary>
+        public const int TimberPerForest = 40;
+
         private readonly ForceBalances _forces;
         private readonly SelfCareLedger _selfCare;
         private readonly Settlement _settlement;
@@ -142,6 +145,9 @@ namespace Eirora.Simulation
 
         /// <summary>Why a building cannot be built on a tile right now, or <see cref="Rejection.None"/>; costs aside.</summary>
         public Rejection CheckBuild(BuildingKind building, Hex tile) => _settlement.CheckBuild(building, tile);
+
+        /// <summary>Whole units of timber left on a forest tile, at most <see cref="TimberPerForest"/>.</summary>
+        public long TimberLeft(Hex tile) => Quantity.Whole(_settlement.ForestLeft(tile));
 
         /// <summary>Steps over land from a tile to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
         public int DepotDistance(Hex tile) => _settlement.DepotDistance(tile);

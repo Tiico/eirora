@@ -1,5 +1,7 @@
+using System.Globalization;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using static Eirora.Simulation.Tests.TestClock;
@@ -57,15 +59,37 @@ public sealed class JournalTests
         Assert.Equal(journal.World.Fingerprint(), loaded.World.Fingerprint());
     }
 
+    // {rules} is the current rules version, so the cases stay malformed journals of today's rules when the rules move on.
     [Theory]
     [InlineData("")]
     [InlineData("something else\ncreate 0 Europe/Stockholm 0 1380 480\n")]
     [InlineData("eirora-journal 1 rules 999\ncreate 0 Europe/Stockholm 0 1380 480\n")]
-    [InlineData("eirora-journal 1 rules 1\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 teleport\n")]
-    [InlineData("eirora-journal 1 rules 1\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Castle S\n")]
-    [InlineData("eirora-journal 1 rules 1\ncreate zero Europe/Stockholm 0 1380 480\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 teleport\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Castle 0 0\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate 0 Europe/Stockholm 0 1380 480\ncmd k1 build Cottage L1\n")]
+    [InlineData("eirora-journal 1 rules {rules}\ncreate zero Europe/Stockholm 0 1380 480\n")]
     public void TextThatIsNotAJournalIsRejected(string text) =>
-        Assert.Throws<FormatException>(() => Journal.Load(text));
+        Assert.Throws<FormatException>(() => Journal.Load(text.Replace("{rules}", RulesVersion.Current.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)));
+
+    // Every rules version before RulesVersion.ReplaysJournalsFrom would replay to another world (ADR-0006, D-104), so the
+    // cases move with it when the rules move on.
+    public static TheoryData<int> RulesNoLongerReplayed => new(Enumerable.Range(1, RulesVersion.ReplaysJournalsFrom - 1));
+
+    [Theory]
+    [MemberData(nameof(RulesNoLongerReplayed))]
+    public void AJournalUnderRulesThatAreNoLongerReplayedIsRefused(int rules) =>
+        Assert.Throws<JournalFromOlderRulesException>(() => Journal.Load(JournalUnderRules(rules)));
+
+    // No rules version 0 ever existed, and a version after today's is from a newer build, so neither is kept as older rules.
+    [Fact]
+    public void AJournalUnderRulesThatNeverExistedIsNotAJournal()
+    {
+        Assert.Throws<FormatException>(() => Journal.Load(JournalUnderRules(0)));
+        Assert.Throws<FormatException>(() => Journal.Load(JournalUnderRules(RulesVersion.Current + 1)));
+    }
+
+    private static string JournalUnderRules(int rules) =>
+        $"eirora-journal 1 rules {rules.ToString(CultureInfo.InvariantCulture)}\ncreate 0 Europe/Stockholm 0 1380 480\n";
 
     private static Journal PlayedWeek()
     {
