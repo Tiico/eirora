@@ -1090,6 +1090,9 @@ def strategy_sea(w: World, day: int):
     """Havet: brygga, expedition till Nyön, ull och vadmal för snabbare tillväxt.
 
     Nyöns brygga går före bostaden, så att Nyön tidigt har bostäder dit lediga bybor kan flytta (D-106).
+    Hemöns väveri och långhus väntar tills bryggan ligger i kön, och Gryningskraften går till två
+    rustningar om dagen i stället för ett dagsverke på fårgården: de få lediga byborna och rustningen
+    går då till bryggan, så att Nyön anläggs ett dygn tidigare och byborna börjar flytta dit (D-121).
     """
     w.build("Brygga", "H1")
     w.build("Huggarkoja", "E2")
@@ -1099,10 +1102,11 @@ def strategy_sea(w: World, day: int):
     w.build("Fårgård", "N1")
     w.build("Stenbrott", "N2")
     w.build("Stuga", "L1")
-    w.build("Väveri", "L2")
-    w.build("Långhus", "E1")
+    if w.has("Brygga", "Nyön") or any(p.island == "Nyön" for p in w.projects):
+        w.build("Väveri", "L2")
+        w.build("Långhus", "E1")
     w.workday("Sågverk", "L3")
-    w.workday("Fårgård", "N1")
+    w.rush()
     w.rush()
     keep_growing(w, day)
 
