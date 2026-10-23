@@ -190,6 +190,13 @@
     color: rgb(43, 42, 51);
 }
 
+.action-effect {
+    font-size: 27px;
+    color: rgb(43, 42, 51);
+    white-space: normal;
+    margin-top: 2px;
+}
+
 .action-cost {
     font-size: 27px;
     color: rgb(104, 101, 117);

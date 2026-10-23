@@ -23,7 +23,7 @@ public sealed class ReplayCorpusTests
     private const int RandomReplays = 20;
 
     private static readonly RestSchedule s_night = new(23 * 60, 8 * 60);
-    private static readonly string s_root = RepositoryRoot();
+    private static readonly string s_root = Repository.Root;
     private static readonly string s_folder = Path.Combine(s_root, "tests", "Replays");
     private static readonly string s_goldenSaves = Path.Combine(s_root, "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
     private static readonly string s_goldenMaps = Path.Combine(s_root, "tests", "Eirora.Simulation.Tests", "WorldGeneration", "Golden", "maps.txt");
@@ -321,16 +321,5 @@ public sealed class ReplayCorpusTests
         {
             (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (current, currentUi);
         }
-    }
-
-    private static string RepositoryRoot()
-    {
-        var folder = new DirectoryInfo(AppContext.BaseDirectory);
-        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "Eirora.slnx")))
-        {
-            folder = folder.Parent;
-        }
-
-        return folder?.FullName ?? throw new InvalidOperationException("The tests run outside the repository.");
     }
 }

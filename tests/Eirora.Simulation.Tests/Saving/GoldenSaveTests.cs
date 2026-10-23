@@ -17,7 +17,7 @@ public sealed class GoldenSaveTests
 {
     private const string Prototype = "prototype-journal-rules-1";
 
-    private static readonly string s_folder = Path.Combine(RepositoryRoot(), "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
+    private static readonly string s_folder = Path.Combine(Repository.Root, "tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
     public static TheoryData<string> Saves =>
         Directory.Exists(s_folder)
@@ -110,15 +110,4 @@ public sealed class GoldenSaveTests
     private static string Expected(string name) => File.ReadAllText(Path.Combine(s_folder, name + ".expected"), Encoding.UTF8);
 
     private static string Name(int format, int rules) => $"save-{format}-rules-{rules}";
-
-    private static string RepositoryRoot()
-    {
-        var folder = new DirectoryInfo(AppContext.BaseDirectory);
-        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "Eirora.slnx")))
-        {
-            folder = folder.Parent;
-        }
-
-        return folder?.FullName ?? throw new InvalidOperationException("The tests run outside the repository.");
-    }
 }

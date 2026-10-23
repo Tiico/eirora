@@ -24,7 +24,7 @@ namespace Eirora.Simulation.Commands
         {
             var settlement = world.Settlement;
             var building = settlement.BuildingAt(Tile);
-            if (building is null || !Upgrade.Produces(building.Kind))
+            if (building is null || !world.Content.For(building.Kind).Produces)
             {
                 return Rejection.NoBuildingThere;
             }

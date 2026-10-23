@@ -64,6 +64,9 @@ namespace Eirora.Simulation
         /// <summary>The building queue, first in line first.</summary>
         public IReadOnlyList<Project> Projects => _settlement.Projects;
 
+        /// <summary>The buildings this world knows and what they cost and produce (ADR-0006).</summary>
+        public ContentCatalog Content => _settlement.Content;
+
         internal DayCycle Cycle { get; }
 
         internal Settlement Settlement => _settlement;
@@ -75,7 +78,11 @@ namespace Eirora.Simulation
         /// Creates a world on a map at the end of the guided tour, founded as the map gives (<see cref="Founding"/>). The
         /// rest schedule applies at once, even inside the rest window (D-50), and game day 0 began at local midnight (D-51).
         /// </summary>
-        public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule)
+        public static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule) =>
+            Create(map, install, restSchedule, ContentCatalog.Current);
+
+        /// <summary>Creates a world whose buildings are those of <paramref name="content"/>, as tests add content.</summary>
+        internal static World Create(WorldMap map, TimeReading install, RestSchedule restSchedule, ContentCatalog content)
         {
             if (map is null)
             {
@@ -87,7 +94,7 @@ namespace Eirora.Simulation
                 throw new ArgumentException("The rest schedule must be 6–10 hours and start within the day.", nameof(restSchedule));
             }
 
-            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found(map));
+            var world = new World(map, DayCycle.Create(install, restSchedule), ForceBalances.GuidedTourStart(), new SelfCareLedger(), Settlement.Found(map, content));
 
             // The guided tour's Dawn Power stands in for the first game day's baseline (D-45).
             world._selfCare.MarkCredited(0, Habit.Sleep, ForceRules.DawnPowerBaseline);
@@ -257,7 +264,7 @@ namespace Eirora.Simulation
 
             var cycle = DayCycle.Read(reader);
             var forces = ForceBalances.Read(reader);
-            var settlement = Settlement.Read(reader, map);
+            var settlement = Settlement.Read(reader, map, ContentCatalog.Current);
             if (!withContributions)
             {
                 // What each day was credited went with the part, so recording those days again could credit them twice.

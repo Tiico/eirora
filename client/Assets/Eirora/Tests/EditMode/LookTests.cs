@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Eirora.Client.Look;
+using Eirora.Simulation;
 using Eirora.Simulation.Economy;
 using NUnit.Framework;
 using UnityEngine;
@@ -29,11 +30,11 @@ namespace Eirora.Client.Tests
         {
             var looks = Looks.Load();
 
-            foreach (BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
+            foreach (var kind in ContentCatalog.Current.Buildings)
             {
                 var look = looks.For(kind);
                 Assert.That(look, Is.Not.Null, kind.ToString());
-                Assert.That(look!.levels.Count, Is.EqualTo(BuildingSpec.For(kind).MaxLevel), kind.ToString());
+                Assert.That(look!.levels.Count, Is.EqualTo(ContentCatalog.Current.For(kind).MaxLevel), kind.ToString());
             }
         }
 

@@ -33,8 +33,6 @@ namespace Eirora.Simulation.Economy
         private const int StartingHousing = 16;
         private const long ForestPerTile = 40 * Quantity.PerUnit;
         private const long ForestRegrowthPerTick = 62_500; // 0.25 timber an hour on each forest tile.
-        private const long FellingPerTick = 125_000; // 0.5 timber an hour from each forest tile a woodcutter fells.
-        private const int TilesFelledAtOnce = 2;
         private const long SeaRoutePerTick = 625_000; // 40 units a game day over 16 waking hours (economy-v1.md, section 5).
 
         private static readonly int s_resourceCount = Enum.GetValues(typeof(Resource)).Length;
@@ -54,18 +52,23 @@ namespace Eirora.Simulation.Economy
         private readonly WorldMap _map;
         private readonly string? _homeIsland;
         private readonly Founding _founding;
+        private readonly ContentCatalog _content;
         private readonly Dictionary<Hex, int> _depotDistances = new(); // Forgotten whenever a depot is added.
         private readonly List<Hex> _woods = new();
         private readonly List<Hex> _regrowing = new();
         private long _expeditionLeft;
 
-        private Settlement(WorldMap map, Fog fog, Founding founding)
+        private Settlement(WorldMap map, Fog fog, Founding founding, ContentCatalog content)
         {
             _map = map;
             _homeIsland = map.IslandAt(map.Start);
             _founding = founding;
+            _content = content;
             Fog = fog;
         }
+
+        /// <summary>The buildings it knows and what they cost and produce.</summary>
+        public ContentCatalog Content => _content;
 
         /// <summary>What of the map is known (TASK-032); only a known tile can be built on.</summary>
         public Fog Fog { get; private set; }
@@ -88,7 +91,7 @@ namespace Eirora.Simulation.Economy
                 int housing = StartingHousing;
                 foreach (var building in _buildings)
                 {
-                    housing += BuildingSpec.For(building.Kind).Housing;
+                    housing += _content.For(building.Kind).Housing;
                 }
 
                 return housing;
@@ -104,7 +107,7 @@ namespace Eirora.Simulation.Economy
                 {
                     if (building.Staffed)
                     {
-                        free -= BuildingSpec.For(building.Kind).Staff;
+                        free -= _content.For(building.Kind).Staff;
                     }
                 }
 
@@ -122,7 +125,7 @@ namespace Eirora.Simulation.Economy
         private string? ExpeditionTarget => _founding.ExpeditionIsland;
 
         /// <summary>The settlement a new world starts with on the home island; the surveys' tiles wait under the fog.</summary>
-        public static Settlement Found(WorldMap map)
+        public static Settlement Found(WorldMap map, ContentCatalog content)
         {
             var founding = Founding.For(map);
             var hidden = new List<Hex>();
@@ -131,7 +134,7 @@ namespace Eirora.Simulation.Economy
                 hidden.AddRange(survey.Reveals);
             }
 
-            var settlement = new Settlement(map, Fog.AtStart(map, hidden), founding);
+            var settlement = new Settlement(map, Fog.AtStart(map, hidden), founding, content);
             var home = settlement._stores[IslandId.Home];
             home[(int)Resource.Fish] = Quantity.Units(30);
             home[(int)Resource.Timber] = Quantity.Units(40);
@@ -237,7 +240,7 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public Rejection CheckBuild(BuildingKind kind, Hex tile)
         {
-            if ((UsesOf(tile) & BuildingSpec.For(kind).Requirement) == 0 || BuildingAt(tile) is not null || IsQueued(tile, ProjectKind.Build))
+            if ((UsesOf(tile) & _content.For(kind).Requirement) == 0 || BuildingAt(tile) is not null || IsQueued(tile, ProjectKind.Build))
             {
                 return Rejection.SiteUnavailable;
             }
@@ -440,9 +443,9 @@ namespace Eirora.Simulation.Economy
             writer.Line("fog").Text(Fog.ToText());
         }
 
-        public static Settlement Read(StateReader reader, WorldMap map)
+        public static Settlement Read(StateReader reader, WorldMap map, ContentCatalog content)
         {
-            var settlement = new Settlement(map, Fog.Unknown(map), Founding.For(map));
+            var settlement = new Settlement(map, Fog.Unknown(map), Founding.For(map), content);
             reader.Expect("settlement");
             settlement.Villagers = reader.Int();
             settlement.SurveysDone = reader.Int();
@@ -536,13 +539,10 @@ namespace Eirora.Simulation.Economy
             // building's production (economy-v1.md, section 3; TASK-038); the harvest only empties what has grown.
             foreach (var building in _buildings)
             {
-                if (building.Kind == BuildingKind.Field)
+                if (_content.For(building.Kind).Recipe is Recipe recipe && recipe.IsSlowProcess)
                 {
-                    building.Ripe += Scale(125_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
-                }
-                else if (building.Kind == BuildingKind.SheepFarm)
-                {
-                    building.Ripe += Scale(100_000, _map.RichnessAt(building.Tile), DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
+                    long grows = recipe.Richness ? Scale(recipe.GrowsPerTick, _map.RichnessAt(building.Tile)) : recipe.GrowsPerTick;
+                    building.Ripe += Scale(grows, DistancePercent(building), LevelPercent(building), WorkdayPercent(building));
                 }
             }
         }
@@ -584,11 +584,12 @@ namespace Eirora.Simulation.Economy
             }
         }
 
+        /// <summary>Every staffed building makes what its recipe says, scaled by distance, level and a workday.</summary>
         private void Produce()
         {
             foreach (var b in _buildings)
             {
-                if (!b.Staffed)
+                if (!b.Staffed || _content.For(b.Kind).Recipe is not Recipe recipe)
                 {
                     continue;
                 }
@@ -598,40 +599,28 @@ namespace Eirora.Simulation.Economy
                 int distance = DistancePercent(b);
                 int level = LevelPercent(b);
                 int workday = WorkdayPercent(b);
-                int richness = _map.RichnessAt(b.Tile);
-
-                switch (b.Kind)
+                if (recipe.ForestTiles > 0)
                 {
-                    case BuildingKind.FishingHut:
-                        Add(store, Resource.Fish, Scale(312_500, richness, distance, level, workday), capacity);
-                        break;
-                    case BuildingKind.Field:
-                        b.Ripe -= Add(store, Resource.Grain, Min(b.Ripe, Scale(500_000, distance, level, workday)), capacity);
-                        break;
-                    case BuildingKind.SheepFarm:
-                        b.Ripe -= Add(store, Resource.Wool, Min(b.Ripe, Scale(500_000, distance, level, workday)), capacity);
-                        break;
-                    case BuildingKind.Woodcutter:
-                        Fell(b, store, capacity, distance, level, workday);
-                        break;
-                    case BuildingKind.Quarry:
-                        Add(store, Resource.Stone, Scale(187_500, richness, distance, level, workday), capacity);
-                        break;
-                    case BuildingKind.Sawmill:
-                        Process(store, Resource.Timber, Resource.Planks, Scale(250_000, distance, level, workday), capacity);
-                        break;
-                    case BuildingKind.Weavery:
-                        Process(store, Resource.Wool, Resource.Wadmal, Scale(125_000, distance, level, workday), capacity);
-                        break;
+                    Fell(b, recipe, store, capacity, distance, level, workday);
+                }
+                else if (recipe.IsSlowProcess)
+                {
+                    // Richness scales how fast it grows; the harvest only empties what has grown.
+                    b.Ripe -= Add(store, recipe.Product, Min(b.Ripe, Scale(recipe.PerTick, distance, level, workday)), capacity);
+                }
+                else
+                {
+                    long rate = recipe.Richness ? Scale(recipe.PerTick, _map.RichnessAt(b.Tile)) : recipe.PerTick;
+                    Process(store, recipe, Scale(rate, distance, level, workday), capacity);
                 }
             }
         }
 
         /// <summary>
-        /// Fells the two richest forest tiles with timber left that the woodcutter reaches, 0.5 timber an hour from each
-        /// times the tile's richness (economy-v1.md, section 3.1); the forest grows back on every tile.
+        /// Fells the richest forest tiles with timber left that the woodcutter reaches, as many as its recipe says, at
+        /// its rate from each times the tile's richness (economy-v1.md, section 3.1); the forest grows back on every tile.
         /// </summary>
-        private void Fell(Building woodcutter, long[] store, long capacity, int distance, int level, int workday)
+        private void Fell(Building woodcutter, Recipe recipe, long[] store, long capacity, int distance, int level, int workday)
         {
             int felled = 0;
             foreach (var tile in Woods(woodcutter.Tile))
@@ -642,14 +631,14 @@ namespace Eirora.Simulation.Economy
                     continue;
                 }
 
-                long rate = Scale(FellingPerTick, _map.RichnessAt(tile), distance, level, workday);
-                long timber = Add(store, Resource.Timber, Min(rate, left), capacity);
+                long rate = recipe.Richness ? Scale(recipe.PerTick, _map.RichnessAt(tile)) : recipe.PerTick;
+                long timber = Add(store, recipe.Product, Min(Scale(rate, distance, level, workday), left), capacity);
                 if (timber > 0)
                 {
                     _felled[tile] = left - timber;
                 }
 
-                if (++felled == TilesFelledAtOnce)
+                if (++felled == recipe.ForestTiles)
                 {
                     break;
                 }
@@ -753,12 +742,24 @@ namespace Eirora.Simulation.Economy
             return false;
         }
 
-        /// <summary>Turns two of <paramref name="input"/> into one of <paramref name="output"/>, keeping the reserve.</summary>
-        private static void Process(long[] store, Resource input, Resource output, long rate, long capacity)
+        /// <summary>
+        /// Makes up to <paramref name="rate"/> of the recipe's product from its raw materials, keeping the reserve of each;
+        /// a recipe without raw materials gathers the whole rate.
+        /// </summary>
+        private static void Process(long[] store, Recipe recipe, long rate, long capacity)
         {
-            long available = store[(int)input] - Quantity.Units(ProcessingReserve);
-            long made = Add(store, output, Min(rate, available > 0 ? available / 2 : 0), capacity);
-            store[(int)input] -= 2 * made;
+            long most = rate;
+            foreach (var input in recipe.Inputs)
+            {
+                long available = store[(int)input.Resource] - Quantity.Units(ProcessingReserve);
+                most = Min(most, available > 0 ? available / input.PerProduct : 0);
+            }
+
+            long made = Add(store, recipe.Product, most, capacity);
+            foreach (var input in recipe.Inputs)
+            {
+                store[(int)input.Resource] -= input.PerProduct * made;
+            }
         }
 
         /// <summary>Adds up to the store's capacity and returns what fitted; the rest is simply not produced.</summary>
@@ -896,7 +897,7 @@ namespace Eirora.Simulation.Economy
         {
             foreach (var building in _buildings)
             {
-                int staff = BuildingSpec.For(building.Kind).Staff;
+                int staff = _content.For(building.Kind).Staff;
                 if (!building.Staffed && staff > 0 && FreeVillagers >= staff)
                 {
                     building.Staffed = true;

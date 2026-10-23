@@ -226,6 +226,14 @@ _Avoid_: spelversion, appversion
 Versionen av spelets innehåll (byggnader, recept, resurser, fynd, epoker), som bara ökar när innehåll läggs till.
 _Avoid_: datapaket, innehållsuppdatering (när versionen avses)
 
+**Innehållskatalog** (`ContentCatalog`):
+Innehållet vid en innehållsversion: vad varje byggnad kostar, kräver och producerar, som simuleringen och klienten läser i stället för egna siffror.
+_Avoid_: regeldata (om byggnaderna), konfiguration
+
+**Recept** (`Recipe`):
+Vad en byggnad producerar och av vad: råvaror, produkt, takt och om rikedomen påverkar den, eller att den är en långsam process eller fäller skog.
+_Avoid_: formel, produktionsregel
+
 **Journal** (`Journal`):
 Den ordnade följden av kommandon och avläsningar som en värld har fått sedan den fick sin regelversion.
 _Avoid_: logg, historik (som är världens berättelse för spelaren)

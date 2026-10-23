@@ -105,6 +105,81 @@ namespace Eirora.Client.UI
             return string.Join(" · ", parts);
         }
 
+        /// <summary>
+        /// What a building does, from its recipe or housing in the content catalog (economy-v1.md, section 3); the
+        /// storehouse, the jetty and the lookout do what the rules say.
+        /// </summary>
+        public static string Effect(BuildingKind kind, BuildingSpec spec)
+        {
+            if (spec.Recipe is Recipe recipe)
+            {
+                return Effect(recipe);
+            }
+
+            if (spec.Housing > 0)
+            {
+                return spec.Housing == 1 ? "Ger plats åt en bybo." : $"Ger plats åt {Count(spec.Housing)} bybor.";
+            }
+
+            return kind switch
+            {
+                BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
+                BuildingKind.Jetty => "Härifrån kan sjövägar och expeditioner utgå.",
+                _ => "Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning.",
+            };
+        }
+
+        private static string Effect(Recipe recipe)
+        {
+            string product = Name(recipe.Product);
+            if (recipe.Inputs.Count > 0)
+            {
+                string inputs = Join(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource)}").ToList());
+                return recipe.PerHour == Quantity.PerUnit ? $"Gör 1 {product} av {inputs} i timmen."
+                    : recipe.PerHour * 2 == Quantity.PerUnit ? $"Gör 1 {product} av {inputs} varannan timme."
+                    : $"Gör {Amount(recipe.PerHour)} {product} i timmen, av {inputs} för var och en.";
+            }
+
+            if (recipe.ForestTiles > 0)
+            {
+                string tiles = recipe.ForestTiles == 1 ? "den rikaste skogsbrickan" : $"var och en av de {Count(recipe.ForestTiles)} rikaste skogsbrickorna";
+                return $"Fäller {Amount(recipe.PerHour)} {product} i timmen från {tiles} den når.";
+            }
+
+            if (recipe.IsSlowProcess)
+            {
+                string harvested = recipe.Product == Resource.Wool ? "klipps" : "skördas";
+                return $"Ger {Amount(recipe.GrowsPerHour)} {product} i timmen. Den växer dygnet runt och {harvested} när byborna är vakna.";
+            }
+
+            return $"Ger {Amount(recipe.PerHour)} {product} i timmen.";
+        }
+
+        /// <summary>Millionths of a unit as a Swedish decimal, such as 1,25.</summary>
+        private static string Amount(long millionths)
+        {
+            string whole = (millionths / Quantity.PerUnit).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            long fraction = millionths % Quantity.PerUnit;
+            return fraction == 0 ? whole : $"{whole},{fraction.ToString("000000", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0')}";
+        }
+
+        /// <summary>A small count in words, as the texts say it; larger counts in digits.</summary>
+        private static string Count(int count) => count switch
+        {
+            2 => "två",
+            3 => "tre",
+            4 => "fyra",
+            5 => "fem",
+            6 => "sex",
+            7 => "sju",
+            8 => "åtta",
+            9 => "nio",
+            10 => "tio",
+            11 => "elva",
+            12 => "tolv",
+            _ => count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+
         /// <summary>Which build this is, so the prototype diary can refer to it (TASK-014).</summary>
         public static string Build(string appVersion) => $"Version {appVersion} · regelversion {RulesVersion.Current}";
 

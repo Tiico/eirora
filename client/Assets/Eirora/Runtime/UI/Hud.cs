@@ -424,14 +424,14 @@ namespace Eirora.Client.UI
             Text("sheet-title", _sheet, ground);
             Text("sheet-subtitle", _sheet, Texts.Uses(uses));
             // What only this kind of tile allows comes first, then what any land allows.
-            var buildable = Enum.GetValues(typeof(BuildingKind)).Cast<BuildingKind>()
+            var buildable = world.Content.Buildings
                 .Where(kind => world.CheckBuild(kind, tile) == Rejection.None)
-                .OrderBy(kind => BuildingSpec.For(kind).Requirement == TileUse.Land)
+                .OrderBy(kind => world.Content.For(kind).Requirement == TileUse.Land)
                 .ToList();
             foreach (var kind in buildable)
             {
-                var spec = BuildingSpec.For(kind);
-                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)));
+                var spec = world.Content.For(kind);
+                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
             }
 
             if (buildable.Count == 0 && (uses & TileUse.Crest) != 0)
@@ -446,24 +446,16 @@ namespace Eirora.Client.UI
 
         private void BuildingActions(World world, Building building)
         {
-            bool produces = building.Kind is not (BuildingKind.Longhouse or BuildingKind.Cottage or BuildingKind.Storehouse
-                or BuildingKind.Jetty or BuildingKind.Lookout);
+            var spec = world.Content.For(building.Kind);
             if (building.Kind == BuildingKind.Jetty)
             {
                 JettyActions(world, building);
                 return;
             }
 
-            if (!produces)
+            if (!spec.Produces)
             {
-                Text("sheet-text", _sheet, building.Kind switch
-                {
-                    BuildingKind.Longhouse => "Ger plats åt åtta bybor.",
-                    BuildingKind.Cottage => "Ger plats åt fyra bybor.",
-                    BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
-                    BuildingKind.Jetty => "Härifrån kan sjövägar och expeditioner utgå.",
-                    _ => "Kartläggning kostar en fjärdedel mindre Utforskning.",
-                });
+                Text("sheet-text", _sheet, Texts.Effect(building.Kind, spec));
                 return;
             }
 
@@ -478,7 +470,7 @@ namespace Eirora.Client.UI
 
             if (building.Level == 1 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Upgrade))
             {
-                AddAction("Uppgradera till nivå 2", Texts.Cost(BuildingSpec.Upgrade), Affordable(world, BuildingSpec.Upgrade), () => Run(new Upgrade(building.Tile)));
+                AddAction("Uppgradera till nivå 2", Texts.Cost(world.Content.Upgrade), Affordable(world, world.Content.Upgrade), () => Run(new Upgrade(building.Tile)));
             }
 
             int steps = world.DepotDistance(building.Tile);
@@ -618,7 +610,7 @@ namespace Eirora.Client.UI
             }
         }
 
-        private void AddAction(string title, string cost, bool available, System.Action onClick)
+        private void AddAction(string title, string cost, bool available, System.Action onClick, string? effect = null)
         {
             var button = new Button(onClick);
             button.AddToClassList("action");
@@ -628,6 +620,11 @@ namespace Eirora.Client.UI
             }
 
             Text("action-title", button, title);
+            if (effect is not null)
+            {
+                Text("action-effect", button, effect);
+            }
+
             Text("action-cost", button, cost);
             _sheet.Add(button);
         }

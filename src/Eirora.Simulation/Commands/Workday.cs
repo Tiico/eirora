@@ -18,7 +18,7 @@ namespace Eirora.Simulation.Commands
         internal override Rejection Execute(World world)
         {
             var building = world.Settlement.BuildingAt(Tile);
-            if (building is null || !building.Staffed || !Upgrade.Produces(building.Kind))
+            if (building is null || !building.Staffed || !world.Content.For(building.Kind).Produces)
             {
                 return Rejection.NoBuildingThere;
             }
