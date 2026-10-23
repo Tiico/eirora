@@ -26,6 +26,12 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whether enough villagers work here for it to run.</summary>
         public bool Staffed { get; internal set; }
 
+        /// <summary>
+        /// Whether the player has paused it: it is not staffed and its villagers build instead, but it keeps its level
+        /// and its place in the staffing order (D-39).
+        /// </summary>
+        public bool Paused { get; internal set; }
+
         /// <summary>A road to the nearest storehouse raises the distance class one step.</summary>
         public bool HasRoad { get; internal set; }
 

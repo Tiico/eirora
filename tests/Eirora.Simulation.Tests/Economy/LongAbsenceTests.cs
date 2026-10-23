@@ -12,8 +12,10 @@ namespace Eirora.Simulation.Tests.Economy;
 /// <summary>
 /// Absence is harmless for any length and any world (INV-V4, AC-02; TASK-049): built-out worlds left for an hour up to
 /// a year, with and without self-care and with contributions that arrive late, keep INV-R1, INV-R3, INV-V1 and INV-T5,
-/// and an absence read in parts gives the same world as one read at once (INV-D4). Some worlds have a store on each of
-/// three islands and two sea routes home (TASK-045), whose shipping only moves goods between the stores.
+/// and an absence read in parts gives the same world as one read at once (INV-D4). The player's say over the work holds
+/// while they are away (TASK-044): paused buildings stay paused, the staffing order and the queue keep their order, and
+/// never fewer villagers are at work (INV-V2). Some worlds have a store on each of three islands and two sea routes
+/// home (TASK-045), whose shipping only moves goods between the stores.
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -204,7 +206,9 @@ public sealed class LongAbsenceTests
     private static int Ticks(long fromUtc, long toUtc) => (int)((toUtc / Settlement.TickSeconds) - (fromUtc / Settlement.TickSeconds));
 
     /// <summary>Everything that never decreases while the player is away (INV-V1, INV-F6), and the work left.</summary>
-    private sealed record Measures(int Villagers, int Housing, int Buildings, int Levels, int Roads, int Revealed, int Surveys, int GameDay, int[] Forces, int Projects, long WorkLeft, int ExpeditionHoursLeft)
+    private sealed record Measures(
+        int Villagers, int Housing, int Buildings, int Levels, int Roads, int Revealed, int Surveys, int GameDay, int[] Forces, int Projects, long WorkLeft, int ExpeditionHoursLeft,
+        int AtWork, string[] StaffingOrder, string[] Paused, string[] Queue)
     {
         public static Measures Of(World world) => new(
             world.Villagers,
@@ -218,7 +222,11 @@ public sealed class LongAbsenceTests
             [.. Enum.GetValues<Force>().Select(world.Available)],
             world.Projects.Count,
             world.Projects.Sum(p => p.WorkLeft),
-            world.ExpeditionHoursLeft);
+            world.ExpeditionHoursLeft,
+            world.Villagers - world.FreeVillagers,
+            [.. world.StaffingOrder.Select(b => $"{b.Kind}@{b.Tile}")],
+            [.. world.Buildings.Where(b => b.Paused).Select(b => $"{b.Kind}@{b.Tile}")],
+            [.. world.Projects.Select(p => $"{p.Kind} {p.Building}@{p.Tile}")]);
 
         public void AssertNotLowerThan(Measures earlier)
         {
@@ -236,6 +244,13 @@ public sealed class LongAbsenceTests
             Assert.True(Projects <= earlier.Projects, $"projects {earlier.Projects} → {Projects}");
             Assert.True(WorkLeft <= earlier.WorkLeft, $"work left {earlier.WorkLeft} → {WorkLeft}");
             Assert.True(ExpeditionHoursLeft <= earlier.ExpeditionHoursLeft, $"expedition {earlier.ExpeditionHoursLeft} → {ExpeditionHoursLeft}");
+
+            // The player's say holds: a completed building comes last in the staffing order, a completed project leaves
+            // the front of the queue, nothing is paused or resumed, and villagers only ever go to work (INV-V2).
+            Assert.True(AtWork >= earlier.AtWork && AtWork <= Villagers, $"villagers at work {earlier.AtWork} → {AtWork} of {Villagers}");
+            Assert.Equal(earlier.StaffingOrder, StaffingOrder.Take(earlier.StaffingOrder.Length));
+            Assert.Equal(earlier.Paused, Paused);
+            Assert.Equal(earlier.Queue.Skip(earlier.Queue.Length - Queue.Length), Queue);
         }
     }
 

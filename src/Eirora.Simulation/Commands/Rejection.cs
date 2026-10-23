@@ -47,5 +47,11 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>This island is found by an expedition; its fog is not lifted tile by tile.</summary>
         FoundByExpedition,
+
+        /// <summary>The staffing order has no such place.</summary>
+        NoSuchPlace,
+
+        /// <summary>The building queue holds no such project.</summary>
+        NotQueued,
     }
 }

@@ -206,8 +206,10 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        Assert.Equal(10, accepted.Count); // Every kind of command.
-        Assert.Superset(new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown }, rejections);
+        Assert.Equal(14, accepted.Count); // Every kind of command.
+        Assert.Superset(
+            new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued },
+            rejections);
         Assert.Superset(
             new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second" },
             records);

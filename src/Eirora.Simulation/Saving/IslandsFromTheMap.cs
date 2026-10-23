@@ -7,8 +7,8 @@ using Eirora.Simulation.Map;
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
-    /// Rules 5 → 6 (TASK-045): the islands come from the map, each island built on keeps its own store, and each island
-    /// with a jetty gets its own sea route home. Under rules 5 the economy knew two islands, Home and Nyon, and every
+    /// Rules 6 → 7 (TASK-045): the islands come from the map, each island built on keeps its own store, and each island
+    /// with a jetty gets its own sea route home. Under rules 6 the economy knew two islands, Home and Nyon, and every
     /// island but the home island shared Nyon's store, for example <c>stock Nyon Stone 5000000</c> →
     /// <c>stock nyon Stone 5000000</c> on the prototype's map. Home's store becomes the map's start island's, and Nyon's
     /// becomes the store of the island of the first building off the home island, which is the island the expedition
@@ -17,7 +17,9 @@ namespace Eirora.Simulation.Saving
     /// </summary>
     internal sealed class IslandsFromTheMap : StateMigration
     {
-        public override int FromRules => 5;
+        private const int BuildingFields = 10;
+
+        public override int FromRules => 6;
 
         public override string Migrate(string state, WorldMap map)
         {
@@ -32,10 +34,10 @@ namespace Eirora.Simulation.Saving
             int stocks = lines.Count(l => l.StartsWith("stock ", StringComparison.Ordinal));
             if (first < 0 || stocks % 2 != 0)
             {
-                throw new FormatException("A world under rules 5 has a store on Home and one on Nyon.");
+                throw new FormatException("A world under rules 6 has a store on Home and one on Nyon.");
             }
 
-            // Each line's resource and amount, as rules 5 wrote them: every resource on Home, then on Nyon.
+            // Each line's resource and amount, as rules 6 wrote them: every resource on Home, then on Nyon.
             int resources = stocks / 2;
             var stored = new Dictionary<string, List<(string Resource, string Amount)>>(StringComparer.Ordinal);
             for (int i = 0; i < stocks; i++)
@@ -44,7 +46,7 @@ namespace Eirora.Simulation.Saving
                 string from = i < resources ? "Home" : "Nyon";
                 if (fields.Length != 4 || fields[0] != "stock" || fields[1] != from || (i >= resources && fields[2] != stored["Home"][i - resources].Resource))
                 {
-                    throw new FormatException($"'{lines[first + i]}' is not a store of rules 5.");
+                    throw new FormatException($"'{lines[first + i]}' is not a store of rules 6.");
                 }
 
                 if (!stored.TryGetValue(from, out var store))
@@ -63,10 +65,10 @@ namespace Eirora.Simulation.Saving
                 string[] fields = line.Split(' ');
                 if (fields[0] == "building")
                 {
-                    var tile = fields.Length == 9 && int.TryParse(fields[2], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int q)
+                    var tile = fields.Length == BuildingFields && int.TryParse(fields[2], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int q)
                         && int.TryParse(fields[3], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int r)
                         ? new Hex(q, r)
-                        : throw new FormatException($"'{line}' is not a building of rules 5.");
+                        : throw new FormatException($"'{line}' is not a building of rules 6.");
                     builtOn.Add(IslandOf(map, tile) ?? home);
                 }
             }
@@ -78,7 +80,7 @@ namespace Eirora.Simulation.Saving
             }
             else if (stored["Nyon"].Any(s => s.Amount != "0"))
             {
-                throw new FormatException("A world under rules 5 has goods on Nyon but nothing built off the home island.");
+                throw new FormatException("A world under rules 6 has goods on Nyon but nothing built off the home island.");
             }
 
             foreach (string island in builtOn)
@@ -96,7 +98,7 @@ namespace Eirora.Simulation.Saving
             return string.Join("\n", lines);
         }
 
-        /// <summary>The island of a tile as rules 5 told it: its own for land, or the first land next to it, counter-clockwise from east.</summary>
+        /// <summary>The island of a tile as rules 6 told it: its own for land, or the first land next to it, counter-clockwise from east.</summary>
         private static string? IslandOf(WorldMap map, Hex tile)
         {
             if (!map.Contains(tile))

@@ -118,7 +118,7 @@ public sealed class FastForwardTests
             ],
             [typeof(Building)] =
             [
-                "<Level>k__BackingField", "<Staffed>k__BackingField", "<HasRoad>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
+                "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<HasRoad>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
                 "<Kind>k__BackingField", "<Tile>k__BackingField", "<Island>k__BackingField",
             ],
             [typeof(Project)] = ["<WorkLeft>k__BackingField", "<Kind>k__BackingField", "<Building>k__BackingField", "<Tile>k__BackingField"],
