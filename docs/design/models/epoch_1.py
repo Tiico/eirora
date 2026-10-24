@@ -3,7 +3,7 @@
 Timsimulerar en värld från den guidade turen fram till epokens milstolpe, att Vårdkasen
 tänds, med samma motor som ekonomi v1 (economy_v1.py) och samma genomtänkta strategi
 för alla egenvårdsprofiler. Krafterna räknas från vanorna med kurvorna i
-docs/design/forces.md, spelardygn för spelardygn. Siffrorna motsvarar
+docs/design/forces.md, dag för dag. Siffrorna motsvarar
 docs/design/epoch-1.md.
 
 Detta är ett räkneark i kodform, inte spelets simulering. Kör: python -I epoch_1.py
@@ -23,16 +23,16 @@ MAX_WEEKS = 20
 WEEK = 7
 
 # --- Nytt innehåll i epok 1 [FÖRSLAG] -------------------------------------------
-# Fler brickor att bygga på, rikt fiskevatten vid Nyön och Ytterön som andra
+# Fler rutor att bygga på, rikt fiskevatten vid Nyön och Ytterön som andra
 # expeditionens mål. Var Ytterön ligger avgör kartgeneratorn (TASK-031); kalkylen
 # lägger en handgjord ö söder om Hemön.
 
 NAMES.update({
-    # Öppen mark för bostäder och runstenen; skogen lämnas åt huggarkojorna.
+    # Öppen mark för bostäder och runstenen; skogen lämnas åt skogshuggarna.
     "L4": (-2, 1), "L5": (0, 2), "L6": (-3, 0), "L7": (-1, -2), "L8": (0, -3), "L9": (0, 3),
     "L10": (2, 1), "L11": (-3, 2), "L12": (2, -3), "L13": (3, -3),
     "K3": (2, 0), "K4": (-2, 3),  # fiskevatten intill förråden
-    "V1": ev1.CREST,  # Vårdkasen står på krönet, startöns enda högsta bricka (D-92)
+    "V1": ev1.CREST,  # Vårdkasen står på toppen, startöns enda högsta ruta (D-92)
     "N3": (10, 0), "N4": (9, 2),
     "Y0": (4, 8), "Y1": (5, 8), "Y2": (4, 9), "Y3": (3, 9), "Y4": (4, 7),
 })
@@ -43,35 +43,35 @@ add_island("Ytterön", {(4, 8): BEACH, (4, 7): GRASS, (3, 8): GRASS, (3, 9): FAR
 ev1.EXPEDITIONS.append(("Ytterön", 400, 48))
 
 # Runstenen: här ristas forskningen, och den bär världens historik (PRG-04).
-# En bybo bemannar den; dagsverke på den snabbar på forskningen som på annan produktion.
+# En bybo bemannar den; extraarbete på den snabbar på forskningen som på annan produktion.
 SPECS["Runsten"] = Spec({"sten": 20}, 16, 0, 1, "land")
 
 # Forskning kostar ingen kraft, bara varor och tid (beslut i epoch-1.md).
-RESEARCH_COSTS = [{"plank": 20, "sten": 10}, {"plank": 20, "sten": 10},
-                  {"plank": 20, "vadmal": 10}, {"plank": 20, "vadmal": 10},
-                  {"plank": 30, "vadmal": 15}, {"plank": 30, "vadmal": 15}]
-RESEARCH_HOURS = 48     # aktiva timmar per steg, tre spelardygn, ett steg åt gången
-FOG_COST = 10           # Utforskning per bricka när dimman lyfts bricka för bricka (MAP-04)
-FOG_TILES = 300         # dimbrickor kring ögruppen i kalkylen
-FOG_INNER = 150         # brickor över innerhavet som Vårdkasen ska synas över
+RESEARCH_COSTS = [{"plankor": 20, "sten": 10}, {"plankor": 20, "sten": 10},
+                  {"plankor": 20, "tyg": 10}, {"plankor": 20, "tyg": 10},
+                  {"plankor": 30, "tyg": 15}, {"plankor": 30, "tyg": 15}]
+RESEARCH_HOURS = 48     # aktiva timmar per steg, tre dagar, ett steg åt gången
+FOG_COST = 10           # Utforskning per ruta när dimman lyfts ruta för ruta (MAP-04)
+FOG_TILES = 300         # dimrutor kring ögruppen i kalkylen
+FOG_INNER = 150         # rutor över innerhavet som Vårdkasen ska synas över
 
-# Vårdkasen byggs i tre etapper på krönet. Varje etapp har egna förutsättningar.
+# Vårdkasen byggs i tre etapper på toppen. Varje etapp har egna förutsättningar.
 BEACON_VILLAGERS = 50
-BEACON_POWER = 500      # Byggkraft per etapp; går att spara ihop under det fulla taket 600
+BEACON_POWER = 500      # Styrka per etapp; går att spara ihop under det fulla taket 600
 BEACON = [
-    ("Grunden", Spec({"sten": 80}, 160, BEACON_POWER, 0, "krön"),
+    ("Grunden", Spec({"sten": 80}, 160, BEACON_POWER, 0, "topp"),
      lambda w: w.linked("Nyön")),
-    ("Stommen", Spec({"plank": 80, "sten": 60}, 160, BEACON_POWER, 0, "krön"),
+    ("Stommen", Spec({"plankor": 80, "sten": 60}, 160, BEACON_POWER, 0, "topp"),
      lambda w: w.linked("Ytterön") and w.research_done >= 2),
-    ("Elden", Spec({"vadmal": 60, "plank": 40}, 160, BEACON_POWER, 0, "krön"),
+    ("Elden", Spec({"tyg": 60, "plankor": 40}, 160, BEACON_POWER, 0, "topp"),
      lambda w: w.research_done >= 4 and w.fog_lifted >= FOG_INNER
      and w.villagers >= BEACON_VILLAGERS),
 ]
 
-SPECS["Vårdkase"] = Spec({}, 0, 0, 0, "krön")  # byggnaden på kartan; etapperna betalas var för sig
+SPECS["Vårdkase"] = Spec({}, 0, 0, 0, "topp")  # byggnaden på kartan; etapperna betalas var för sig
 
-# Handkraft: det som milstolpen kräver kan byggas utan Byggkraft. Byborna bygger då sten för
-# sten på sin fritid: bygget tar ett fast antal spelardygn och tar ingen arbetskraft från kön.
+# Handkraft: det som milstolpen kräver kan byggas utan Styrka. Byborna bygger då sten för
+# sten på sin fritid: bygget tar ett fast antal dagar och tar ingen arbetskraft från kön.
 HAND_DAYS = {"Brygga": 7, "Väveri": 7, "Vårdkasen": 21}
 
 # --- Egenvård → krafter (docs/design/forces.md) ----------------------------------
@@ -99,10 +99,10 @@ def build_cumulative(n: int) -> int:
 
 
 def build_power(passes: list, credits: list, day: int, rule: str) -> int:
-    """Byggkraft för ett spelardygn.
+    """Styrka för en dag.
 
-    'nu': G(n + m) − G(n) med n = pass under de sex föregående spelardygnen (forces.md v0.1).
-    'teleskop': G(pass under sju spelardygn) minus det som redan krediterats de sex
+    'nu': G(n + m) − G(n) med n = pass under de sex föregående dagarna (forces.md v0.1).
+    'teleskop': G(pass under sju dagar) minus det som redan krediterats de sex
     föregående, bara på dygn med pass; varje rullande vecka ger då högst G(antal pass).
     """
     m = passes[day]
@@ -130,10 +130,10 @@ PROFILES = {
 # --- Epokens värld ---------------------------------------------------------------
 
 STAFF_ORDER = ["Förråd", "Brygga", "Väveri", "Sågverk", "Runsten", "Fårgård", "Stenbrott",
-               "Huggarkoja", "Åker", "Fiskebod"]
+               "Skogshuggare", "Åker", "Fiskebod"]
 FOOD_STAFF = ["Förråd", "Åker", "Fiskebod"]
 STAFF_FOOD_FIRST = FOOD_STAFF + [k for k in STAFF_ORDER if k not in FOOD_STAFF]
-# Matlager, i spelardygn av basbehov, under vilket bemanningen sätter maten först. Tre dygn räcker
+# Matlager, i dagar av basbehov, under vilket bemanningen sätter maten först. Tre dygn räcker
 # för att hinna bemanna om fiskebodar och åkrar innan byborna går hungriga och tillväxten stannar.
 FOOD_DAYS_KEPT = 3
 
@@ -150,13 +150,13 @@ class EpochWorld(World):
         self.beacon_stage = 0       # färdiga etapper
         self.beacon_day = None
         self.day = 0
-        self.firsts = {}            # händelse → första spelardygnet
-        self.hand_projects = []     # (klart spelardygn, etikett, när klart)
+        self.firsts = {}            # händelse → första dagen
+        self.hand_projects = []     # (klart dag, etikett, när klart)
         self.decisions = {}         # vecka → beslut
 
     def staff(self):
         # Bemanningen är gratis planering (D-23): förädling och nya öar först, mat sist när
-        # lagret räcker. Med byggplatser på brickor finns fler fiskebodar än byn kan bemanna.
+        # lagret räcker. Med byggplatser på rutor finns fler fiskebodar än byn kan bemanna.
         food_first = self.stock["fisk"] + self.stock["säd"] < FOOD_DAYS_KEPT * self.villagers
         order = STAFF_FOOD_FIRST if food_first else STAFF_ORDER
         for b in self.buildings:
@@ -189,9 +189,9 @@ class EpochWorld(World):
             self.stock[r] -= take
             need -= take
         fed = need == 0
-        comfort = fed and self.stock["vadmal"] >= 2
+        comfort = fed and self.stock["tyg"] >= 2
         if comfort:
-            self.stock["vadmal"] -= 2
+            self.stock["tyg"] -= 2
         self.villagers = min(self.housing(), self.villagers + (1 if fed else 0) + (1 if comfort else 0))
         self.staff()
         for p in [p for p in self.hand_projects if p[0] <= day]:
@@ -215,7 +215,7 @@ class EpochWorld(World):
         return sum(recent) / len(recent) if recent else 0.0
 
     def use_hand(self, bp, hand_days, reserve):
-        """Handkraft om det går fortare än att vänta in Byggkraften."""
+        """Handkraft om det går fortare än att vänta in Styrkan."""
         if not self.hand or self.forces["B"] - bp >= reserve:
             return False
         rate = self.b_rate()
@@ -234,7 +234,7 @@ class EpochWorld(World):
         return super().occupied(tile) or any(p[1].endswith("@" + ev1.tag(coord(tile))) for p in self.hand_projects)
 
     def build_kind(self, kind, tile, reserve):
-        """Bygg med Byggkraft om den räcker utöver det som sparas, annars kanske med handkraft."""
+        """Bygg med Styrka om den räcker utöver det som sparas, annars kanske med handkraft."""
         spec = SPECS[kind]
         if not spec.build_power:
             return self.build(kind, tile)
@@ -305,7 +305,7 @@ BUILDERS = 4  # bemanningsinställning: minst fyra bybor bygger alltid (gratis p
 
 
 def reserve_for_beacon(w: EpochWorld) -> int:
-    """Byggkraft som sparas till nästa etapp av Vårdkasen (D-35), om den ska byggas med kraft."""
+    """Styrka som sparas till nästa etapp av Vårdkasen (D-35), om den ska byggas med kraft."""
     stage = w.next_stage()
     if stage is None or not w.linked("Nyön") or w.b_rate() * WEEK < 150:
         return 0
@@ -316,11 +316,11 @@ def strategy(w: EpochWorld, day: int):
     w.builders = BUILDERS
     w.staff()
     reserve = reserve_for_beacon(w)
-    # Den guidade turen (resa 1): dagsverke, kartläggning, huggarkoja, brygga.
+    # Den guidade turen (resa 1): extraarbete, kartläggning, skogshuggare, brygga.
     if day == 0:
-        w.decide(w.workday("Fiskebod", "K1"), "Dagsverke")
+        w.decide(w.workday("Fiskebod", "K1"), "Arbeta extra")
     w.decide(w.survey(), "Kartläggning")
-    w.build("Huggarkoja", "F3")
+    w.build("Skogshuggare", "F3")
     w.build_kind("Brygga", "H1", 0)
     # Grundkedjan på Hemön.
     w.build("Stenbrott", "M2")
@@ -332,7 +332,7 @@ def strategy(w: EpochWorld, day: int):
     w.build_kind("Brygga", "Y0", 0)
     # Vårdkasen så fort nästa etapp går.
     w.build_stage()
-    # Bostad: långhus när Byggkraften räcker, annars stuga (D-43).
+    # Bostad: långhus när Styrkan räcker, annars stuga (D-43).
     if w.housing() - w.villagers < 3:
         for tile in ["L1", "L2", "L4", "L5", "L6", "L7", "L8", "L10", "L11", "L12", "L13", "N3", "Y4"]:
             if w.occupied(tile) or coord(tile) not in w.revealed:
@@ -340,37 +340,37 @@ def strategy(w: EpochWorld, day: int):
             if not w.build_kind("Långhus", tile, reserve):
                 w.build("Stuga", tile)
             break
-    # Ull och vadmal för snabbare tillväxt och för Elden.
+    # Ull och tyg för snabbare tillväxt och för Elden.
     w.build("Fårgård", "N1")
     w.build("Stenbrott", "N2")
     w.build_kind("Väveri", "L3", reserve)
     # Mat för en växande by.
     for kind, tile in [("Fiskebod", "K2"), ("Åker", "O2"), ("Fiskebod", "N4"), ("Fiskebod", "K4"),
-                       ("Fiskebod", "K3"), ("Huggarkoja", "Y1"), ("Fiskebod", "Y2"), ("Åker", "Y3")]:
+                       ("Fiskebod", "K3"), ("Skogshuggare", "Y1"), ("Fiskebod", "Y2"), ("Åker", "Y3")]:
         w.build(kind, tile)
     # Forskning när två öar är förbundna.
     if w.linked("Nyön"):
         w.build("Runsten", "L9")
-    # Uppgraderingar med Byggkraft och plank som blir över när nästa etapp är säkrad.
+    # Uppgraderingar med Styrka och plankor som blir över när nästa etapp är säkrad.
     stage = w.next_stage()
-    plank_kept = stage[1].cost.get("plank", 0) if stage else 0
+    plank_kept = stage[1].cost.get("plankor", 0) if stage else 0
     for kind, tile in [("Sågverk", "E2"), ("Stenbrott", "M2"), ("Fårgård", "N1"), ("Väveri", "L3")]:
         if (w.forces["B"] - ev1.UPGRADE.build_power >= reserve + 60
-                and w.stock["plank"] - ev1.UPGRADE.cost["plank"] >= plank_kept):
+                and w.stock["plankor"] - ev1.UPGRADE.cost["plankor"] >= plank_kept):
             w.decide(w.upgrade(kind, tile), "Uppgradering")
     # Forskning är gratis att starta när varorna finns (planering, D-23); fyra steg räcker till Elden.
     if w.research_done < 4 or stage is None:
         w.decide(w.research(), "Forskningssteg")
-    # Gryningskraft: dagens flaskhals, forskningen först när den pågår.
+    # Ork: dagens flaskhals, forskningen först när den pågår.
     for kind, tile in [("Runsten", "L9"), ("Sågverk", "E2"), ("Stenbrott", "M2"), ("Fårgård", "N1"),
                        ("Väveri", "L3")]:
         if kind == "Runsten" and not w.research_left:
             continue
         if w.forces["G"] >= ev1.DAWN_WORKDAY_COST:
-            w.decide(w.workday(kind, tile), "Dagsverke")
+            w.decide(w.workday(kind, tile), "Arbeta extra")
     if w.forces["G"] >= ev1.DAWN_RUSH_COST:
-        w.decide(w.rush(), "Rusta")
-    # Utforskning som blir över: dimman bricka för bricka, men spara till nästa expedition.
+        w.decide(w.rush(), "Skynda på")
+    # Utforskning som blir över: dimman ruta för ruta, men spara till nästa expedition.
     nxt = w.expedition_target
     keep_u = ev1.EXPEDITIONS[nxt][1] if nxt < len(ev1.EXPEDITIONS) and not w.expedition_left else 0
     if w.has("Brygga") and w.forces["U"] - keep_u >= FOG_COST:
@@ -424,7 +424,7 @@ def week(day):
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
 
-    print("## Byggkraft per rullande vecka i jämvikt (vecka 10)\n")
+    print("## Styrka per rullande vecka i jämvikt (vecka 10)\n")
     print("| Pass i veckan | Regel nu | Teleskop |")
     print("|---|---|---|")
     for n in range(1, 8):
@@ -440,7 +440,7 @@ def main():
         print(f"| {n} | {sums[0]} | {sums[1]} |")
 
     print("\n## Krafter per vecka från vanorna (från vecka 2)\n")
-    print("| Profil | Utforskning | Byggkraft, teleskop | Byggkraft, regel nu | Gryningskraft |")
+    print("| Profil | Utforskning | Styrka, teleskop | Styrka, regel nu | Ork |")
     print("|---|---|---|---|---|")
     for name in ORDER:
         p = PROFILES[name]
@@ -456,10 +456,10 @@ def main():
         print(f"| {name} | {u} | {sums[0]} | {sums[1]} | {g} |")
 
     for rule, hand in (("teleskop", True), ("teleskop", False), ("nu", True)):
-        print(f"\n## Vecka då spelaren når varje steg (Byggkraft: {rule}, "
+        print(f"\n## Vecka då spelaren når varje steg (Styrka: {rule}, "
               f"handkraft: {'ja' if hand else 'nej'})\n")
         print("| Profil | " + " | ".join(MILESTONES)
-              + " | Dygn | Bybor | Byggnader | Dagsproduktion | Använt U/B/G | Sparat U/B/G |")
+              + " | Dygn | Bybor | Byggnader | Dagsproduktion | Använt U/S/O | Sparat U/S/O |")
         print("|---|" + "---|" * (len(MILESTONES) + 6))
         for name in ORDER:
             w = run(name, rule, hand)

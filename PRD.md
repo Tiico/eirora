@@ -37,7 +37,7 @@ Spelet har **inget slut**.
 Spelaren får en guidad tur och sedan introduceras nya system löpande genom **epoker** om ungefär 6–10 veckor.
 Vänner kan bjuda in varandra till **grupper** om 2–6 spelare vars världar delar en gemensam **arkipelag**, med sjövägar, handel och gemensamma byggen.
 
-**Den avgörande särskiljande mekaniken:** när byborna går till vila **låses aktivt spelande** under spelarens viloperiod.
+**Den avgörande särskiljande mekaniken:** när byborna går till vila **låses aktivt spelande** under spelarens vilotid.
 Spelaren kan se sin sovande värld, men inte bygga, handla eller ge order.
 Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller nattliga notiser.
 
@@ -50,7 +50,7 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-03 | Aktivt spelande är begränsat; världen lever framför allt passivt. Begränsningen sker naturligt via krafterna (D-23) | [BESLUTAT] |
 | D-04 | V1 använder **fiktiv, procedurgenererad karta** | [BESLUTAT] |
 | D-05 | Arkitekturen ska senare kunna generera spelvärld utifrån verklig geografi (V2) | [BESLUTAT] |
-| D-06 | Under viloperioden är spelet **låst för aktiva spelhandlingar** | [BESLUTAT] |
+| D-06 | Under vilotiden är spelet **låst för aktiva spelhandlingar** | [BESLUTAT] |
 | D-07 | Byggande, ekonomi, logistik och utforskning är kärnan | [BESLUTAT] |
 | D-08 | Inga straff för livet: ingen stressdriven bestraffning för vilodagar, sjukdom eller frånvaro | [BESLUTAT] |
 | D-09 | **Utvecklingstid är aldrig en faktor**; V1 ska vara fullt genomarbetad | [BESLUTAT] |
@@ -59,8 +59,8 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-12 | Spelkänsla: **Anno-ekonomi × Islanders beslutstäthet × Pikmin Blooms dygnsrytm** | [BESLUTAT] |
 | D-13 | **Ingen kampanj och inget slut.** Guidad tur, löpande introduktion av system med tutorialelement, epoker om ~6–10 veckor; inget nollställs | [BESLUTAT] |
 | D-14 | **Egenvård är motorn.** Världen speglar hur spelaren tar hand om sig själv | [BESLUTAT] |
-| D-15 | V1-vanor: **rörelse/steg → Utforskning, träningspass → Byggkraft, sömn → Gryningskraft**. Spelaren väljer vart krafterna riktas | [BESLUTAT] |
-| D-16 | Gryningskraft bygger på **sömnlängd med mjukt tak (~7–8 h)**. Ingen kvalitetspoäng, inget straff; saknad data ger neutral grundnivå | [BESLUTAT] |
+| D-15 | V1-vanor: **rörelse/steg → Utforskning, träningspass → Styrka, sömn → Ork**. Spelaren väljer vart krafterna riktas | [BESLUTAT] |
+| D-16 | Ork bygger på **sömnlängd med mjukt tak (~7–8 h)**. Ingen kvalitetspoäng, inget straff; saknad data ger neutral grundnivå | [BESLUTAT] |
 | D-17 | Utan egenvård **står världen still men förfaller aldrig**; varm återkomst | [BESLUTAT] |
 | D-18 | **Manuell inmatning tillåten för alla.** Bidrag till gruppen märks som verifierade eller egenrapporterade; egenrapporterade får lägre dagligt tak | [BESLUTAT] |
 | D-19 | Grupper om **2–6 spelare, endast via inbjudan**. Ingen matchning med främlingar, ingen fritextchatt | [BESLUTAT] |
@@ -77,93 +77,94 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-30 | Åldersgräns **18+** | [BESLUTAT] |
 | D-31 | **Engelska + svenska**, global release; lokalisering byggd för fler språk | [BESLUTAT] |
 | D-32 | Arbetssätt: **kort design, sedan spelbar prototyp** på produktägarens Android som spelas dagligen | [BESLUTAT] |
-| D-33 | Notiser: **få, valbara per typ, aldrig FOMO**; inga under viloperioden | [BESLUTAT] |
+| D-33 | Notiser: **få, valbara per typ, aldrig FOMO**; inga under vilotiden | [BESLUTAT] |
 | D-34 | **Strategin kan hinna ikapp egenvården:** inom normalt spann ska måttlig egenvård med god strategi kunna mäta sig med hög egenvård och naiv strategi; vid samma strategi syns mer egenvård alltid i världen | [BESLUTAT] |
 | D-35 | **Oanvända krafter sparas med mjukt tak** och förfaller aldrig | [BESLUTAT] |
 | D-36 | **En korrigering nedåt av ett bidrag klipps vid noll:** kraftsaldot blir aldrig negativt och inget som redan hänt tas tillbaka | [BESLUTAT] |
 | D-37 | **Viloschemat följer lokal tid:** 6–10 h gäller schemat på väggklockan; vid sommartidsövergång kan den verkliga längden bli 5–11 h | [BESLUTAT] |
 | D-38 | **Rivning är ett uttryckligt kommando** med bekräftelse och det enda sättet något i världen kan minska | [BESLUTAT] |
 | D-39 | **Ouppfyllda basbehov stoppar bara tillväxt;** bybor, byggnadsnivåer och grundproduktion minskar aldrig | [BESLUTAT] |
-| D-40 | **Krafter räknas per spelardygn,** från gryning till gryning, inte per kalenderdygn | [BESLUTAT] |
+| D-40 | **Krafter räknas per dag,** från gryning till gryning, inte per kalenderdygn | [BESLUTAT] |
 | D-41 | **Aktiva minuter kan matas in som rörelse** och räknas om med 100 steg per minut, inom samma tak som steg | [BESLUTAT] |
 | D-42 | **Ett träningspass räknas från 10 minuter;** längd och intensitet därutöver spelar ingen roll | [BESLUTAT] |
-| D-43 | **Bostad finns både med och utan Byggkraft:** långhus kostar Byggkraft, stugan bara material, så tillväxten blockeras aldrig av en bortvald vana | [BESLUTAT] |
+| D-43 | **Bostad finns både med och utan Styrka:** långhus kostar Styrka, stugan bara material, så tillväxten blockeras aldrig av en bortvald vana | [BESLUTAT] |
 | D-44 | **LOG-06 är P0:** minimilager och prioriteringar behövs redan i prototypen | [BESLUTAT] |
-| D-45 | **Startkrafter i den guidade turen:** 100 Utforskning, 100 Byggkraft, 40 Gryningskraft | [BESLUTAT] |
-| D-46 | **Prototypdagboken är ett GitHub-ärende per vecka** med en kommentar per spelardygn; det bestående förs i lärdomsloggen i repot | [BESLUTAT] |
-| D-47 | **Veckogenomgången görs första spelardygnet** i den nya veckan | [BESLUTAT] |
+| D-45 | **Startkrafter i den guidade turen:** 100 Utforskning, 100 Styrka, 40 Ork | [BESLUTAT] |
+| D-46 | **Prototypdagboken är ett GitHub-ärende per vecka** med en kommentar per dag; det bestående förs i lärdomsloggen i repot | [BESLUTAT] |
+| D-47 | **Veckogenomgången görs första dagen** i den nya veckan | [BESLUTAT] |
 | D-48 | **Hypotes H5 Vilan känns som en gåva** prövas i prototypen tillsammans med H1–H4 | [BESLUTAT] |
-| D-49 | **Första sessionen börjar med den guidade turen;** hälsokälla och viloperiod väljs efteråt | [BESLUTAT] |
-| D-50 | **Den första viloperioden gäller direkt efter turen,** även vid installation under viloperioden | [BESLUTAT] |
-| D-51 | **Det första spelardygnet börjar vid lokal midnatt** på installationsdagen, så att dagens egenvård räknas | [BESLUTAT] |
+| D-49 | **Första sessionen börjar med den guidade turen;** hälsokälla och vilotid väljs efteråt | [BESLUTAT] |
+| D-50 | **Den första vilotiden gäller direkt efter turen,** även vid installation under vilotiden | [BESLUTAT] |
+| D-51 | **Den första dagen börjar vid lokal midnatt** på installationsdagen, så att dagens egenvård räknas | [BESLUTAT] |
 | D-52 | **Ingen återstartsbonus** efter frånvaro; världen och de sparade krafterna är mottagandet | [BESLUTAT] |
-| D-53 | **Manuell inmatning för varje spelardygn sedan senaste besöket,** högst sju, likvärdigt med hälsokällans historik | [BESLUTAT] |
+| D-53 | **Manuell inmatning för varje dag sedan senaste besöket,** högst sju, likvärdigt med hälsokällans historik | [BESLUTAT] |
 | D-54 | **Manuell inmatning är tillåten under vilan;** krafterna krediteras vid gryningen | [BESLUTAT] |
 | D-55 | **Inga kosmetikaköp under vilan;** prenumerationen går alltid att hantera | [BESLUTAT] |
 | D-56 | **Morgonnotisen** kommer bara när något nytt hänt, alltid tyst, och pausas efter två oöppnade i följd | [BESLUTAT] |
-| D-57 | **Bidrag per spelardygn följer med i molnsparningen, end-to-end-krypterade;** servern kan aldrig läsa dem | [BESLUTAT] |
+| D-57 | **Bidrag per dag följer med i molnsparningen, end-to-end-krypterade;** servern kan aldrig läsa dem | [BESLUTAT] |
 | D-58 | **18+ sköts av butikernas åldersklassning,** utan egen bekräftelse i spelet | [BESLUTAT] |
 | D-59 | ~~**Art direction: riktning A Gryningsljus** med tydliga silhuetter från C och snidade gavlar och guldaccenter från B~~ | [ERSATT av D-61] |
 | D-60 | **Guiden är en ljusgestalt inspirerad av Eir** som syns tydligast i gryningen | [BESLUTAT] |
-| D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under viloperioden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
+| D-61 | **Art direction: Gryningsdiorama med Norrskensmytens natt.** Ljus, facetterad low-poly i falurött, björkvitt och havsturkos; under vilotiden dämpat norrsken, stjärnor och runglöd ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
 | D-62 | **En korrigering nedåt drar aldrig av mer kraft än bidraget gav** under sparandets tak, för tillskott som gjorts före en senare spendering (förtydligar D-36, avgränsad av D-74) | [BESLUTAT] |
-| D-63 | **Byggkraftens rullande vecka ger kurvans värde:** ett spelardygn med pass ger kurvan för passen under sju spelardygn minus det de sex föregående redan gav, aldrig under noll; mer träning ger aldrig mindre Byggkraft ([epoch-1.md](./docs/design/epoch-1.md#7-byggkraftens-rullande-vecka)) | [BESLUTAT] |
+| D-63 | **Styrkans rullande vecka ger kurvans värde:** en dag med pass ger kurvan för passen under sju dagar minus det de sex föregående redan gav, aldrig under noll; mer träning ger aldrig mindre Styrka ([epoch-1.md](./docs/design/epoch-1.md#7-styrkans-rullande-vecka)) | [BESLUTAT] |
 | D-64 | **Epok 1:s milstolpe är att Vårdkasen tänds,** byggd i tre etapper (grunden, stommen, elden) med egna förutsättningar ([epoch-1.md](./docs/design/epoch-1.md)) | [BESLUTAT] |
-| D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Byggkraft på en fast tid: 7 spelardygn för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
+| D-65 | **Det milstolpen kräver kan byggas med handkraft** utan Styrka på en fast tid: 7 dagar för brygga och väveri, 21 för varje etapp av Vårdkasen, så att en bortvald vana aldrig blockerar milstolpen (utvidgar D-43) | [BESLUTAT] |
 | D-66 | **Forskning kostar ingen kraft,** bara varor och tid | [BESLUTAT] |
 | D-67 | **Nästa epok börjar vid gryningen efter milstolpen,** utan att något nollställs | [BESLUTAT] |
 | D-68 | **Bara det som är markerat som manuellt inmatat är egenrapporterat:** `MANUAL_ENTRY` i Health Connect, `HKMetadataKeyWasUserEntered` i HealthKit och manuell inmatning i spelet; okänd inspelningsmetod (`UNKNOWN`) räknas som verifierat ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-69 | **Sparandets mjuka tak räknas på kraftens läge,** allt tillskott före taket: saldot följer av läget, en korrigering nedåt tar tillbaka kraft i samma takt som den gavs och spendering sänker läget till det som är kvar, så att slutsumman aldrig beror på i vilken ordning bidrag kommer (förtydligar D-35 och D-36) | [BESLUTAT] |
 | D-70 | **Hälsodata läses när spelaren öppnar appen;** spelet begär aldrig bakgrundsbehörighet, och krafterna räknas fram ur hälsokällan vid öppning ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
-| D-71 | **Sömnlängden för ett spelardygn är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
+| D-71 | **Sömnlängden för en dag är hälsokällans egen aggregerade sömn över natten fram till gryningen,** inte per kalenderdag och inte en egen regel över sessionerna; källorna slås ihop efter spelarens prioritet i Health Connect ([ADR-0007](./docs/adr/0007-own-health-connect-adapter.md)) | [BESLUTAT] |
 | D-72 | **Kontot skapas först när spelaren loggar in med Apple eller Google;** dessförinnan finns inget om spelaren på servern, och inga lösenord eller e-postadresser lagras ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
-| D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och spelardygnen före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
-| D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
+| D-73 | **En förlorad bidragsnyckel förlorar bara bidragshistoriken, aldrig världen;** nyckeln följer med via plattformens nyckelring eller QR-överföring, en återställningskod är frivillig, och dagarna före en ny nyckel kan inte längre rättas ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md)) | [BESLUTAT] |
+| D-74 | **Gränsen i D-62 gäller bara när kraften har spenderats sedan bidraget krediterades;** utan spendering däremellan flyttar en korrigering bara tillbaka läget, så att Styrka som flyttas mellan dagar ger samma saldo oavsett i vilken ordning pass kommer (förtydligar D-62 och D-69) | [BESLUTAT] |
 | D-75 | ~~**Prototypen når telefonen genom Google Plays interna test:** varje push till `main` som ändrar bygget blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation ([development.md](./docs/development.md#google-play))~~ | [ERSATT av D-98] |
 | D-76 | **Google förvarar appens signeringsnyckel (Play App Signing);** prototypens nyckel är uppladdningsnyckel, så en APK från CI eller datorn kan inte installeras över appen från Google Play | [BESLUTAT] |
 | D-77 | **Appen från Google Play är en ny app,** `se.eirora.app`, och dagboken börjar i den; de sidladdade provbyggena (`com.eirora.game`) kan ligga kvar, men deras värld följer inte med | [BESLUTAT] |
 | D-78 | **Androids säkerhetskopiering till spelarens eget Google-konto är påslagen** och tar med journalen, så att världen kan följa med till en ny telefon; journalen innehåller bara dygnssummor, aldrig enskilda hälsoposter (HLT-10) | [BESLUTAT] |
-| D-79 | **Varje landbricka är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
-| D-80 | **En världs karta är en hexskiva med radie 24, 1 801 brickor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
+| D-79 | **Varje landruta är en möjlig byggplats;** vad den duger till följer av terräng, höjd och grannar, och prototypens namngivna platser försvinner ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
+| D-80 | **En världs karta är en hexskiva med radie 24, 1 801 rutor,** och växer aldrig i efterhand ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-81 | **Prototypens värld behålls:** Hemön och Nyön blir en handgjord karta, och generatorn fyller en gång den del av havet som prototypen aldrig visat ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)) | [BESLUTAT] |
 | D-82 | **M0:s designdokument och prototypdagboken är godkända som v1.0 vid grind A0:** kärnfantasin, invarianterna, krafternas regler, ekonomi v1, epok 1 och UX-resorna från M0, och prototypdagboken för M1 och grind A1; siffrorna är startvärden som trimmas under O-01 ([gate-a0.md](./docs/design/gate-a0.md)) | [BESLUTAT] |
-| D-83 | **Batteriet mäts med fast ljusstyrka under det aktiva passet,** på produktägarens vanliga nivå som skrivs in i rapporten, och med automatisk ljusstyrka över ett helt spelardygn ([device-measurements.md](./docs/design/device-measurements.md)) | [BESLUTAT] |
-| D-84 | **Dygnsljuset följer spelardygnet, inte solen:** natt under viloperioden, gryning en timme efter den och skymning en timme före ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
+| D-83 | **Batteriet mäts med fast ljusstyrka under det aktiva passet,** på produktägarens vanliga nivå som skrivs in i rapporten, och med automatisk ljusstyrka över en hel dag ([device-measurements.md](./docs/design/device-measurements.md)) | [BESLUTAT] |
+| D-84 | **Dygnsljuset följer dagen, inte solen:** natt under vilotiden, gryning en timme efter den och skymning en timme före ([art-direction.md](./docs/design/art-direction.md)) | [BESLUTAT] |
 | D-85 | **Byborna syns som små figurer** vid bemannade byggnader under dagen, trots att de modelleras som arbetsgrupper | [BESLUTAT] |
-| D-86 | **I prototypen behåller spelaren spelkameran när viloperioden börjar;** om kameran ska sänkas till nattvyn avgörs i M7 eller M9 | [BESLUTAT] |
-| D-87 | **Vid gryning äter byborna och byn växer före Gryningskraften och bidragen;** stegen påverkar inte varandra, så ordningen ändrar inget utfall ([ux-journeys.md](./docs/design/ux-journeys.md)) | [BESLUTAT] |
-| D-88 | **Fiskeboden står på pålar i det grunda vattnet** intill land, inte på en landbricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-89 | **Ett hamnläge är varje landbricka utom berg vid grunt vatten som når djuphavet,** inte bara strand ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-90 | **Huggarkojan får stå bredvid skogen** och fäller skogsbrickorna på och intill sin bricka ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-91 | **Långhus, förråd och andra byggnader får stå på varje landbricka utom berg,** även skog, åker och bete, som då inte längre går att hugga, odla eller beta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-92 | **Krönet är startöns enda högsta bricka och bär bara Vårdkasen,** även när det är ett berg; en karta måste ha en enda sådan bricka, och på prototypens karta är det västra berget (-4,0) högst ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md), [ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-93 | **Skogskravet räknar bara skog som huggarkojan kan fälla:** upptäckta skogsbrickor på eller intill brickan som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
-| D-94 | **Epok 1:s tempo med byggplatser på brickor är målet:** 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning ([epok 1](./docs/design/epoch-1.md#5-tempo)) | [BESLUTAT] |
-| D-95 | **Startön har minst två berg att bryta sten i utom krönet,** så att det rikaste berget är ett val: prototypens karta får ett vanligt berg på (-3,-1) intill krönet, och kartvalideringen kräver det; besvarar O-16 ([kartvalidering](./docs/design/map-validation.md), [ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | [BESLUTAT] |
+| D-86 | **I prototypen behåller spelaren spelkameran när vilotiden börjar;** om kameran ska sänkas till nattvyn avgörs i M7 eller M9 | [BESLUTAT] |
+| D-87 | **Vid gryning äter byborna och byn växer före Orken och bidragen;** stegen påverkar inte varandra, så ordningen ändrar inget utfall ([ux-journeys.md](./docs/design/ux-journeys.md)) | [BESLUTAT] |
+| D-88 | **Fiskeboden står på pålar i det grunda vattnet** intill land, inte på en landruta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-89 | **Ett hamnläge är varje landruta utom berg vid grunt vatten som når djuphavet,** inte bara strand ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-90 | **Skogshuggaren får stå bredvid skogen** och fäller skogsrutorna på och intill sin ruta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-91 | **Långhus, förråd och andra byggnader får stå på varje landruta utom berg,** även skog, åker och betesmark, som då inte längre går att hugga, odla eller beta ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-92 | **Toppen är startöns enda högsta ruta och bär bara Vårdkasen,** även när det är ett berg; en karta måste ha en enda sådan ruta, och på prototypens karta är det västra berget (-4,0) högst ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md), [ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-93 | **Skogskravet räknar bara skog som skogshuggaren kan fälla:** upptäckta skogsrutor på eller intill rutan som ingen annan byggnad står på, så att byggvyn aldrig avslöjar dimman ([ekonomi v1](./docs/design/economy-v1.md#31-byggplatser)) | [BESLUTAT] |
+| D-94 | **Epok 1:s tempo med byggplatser på rutor är målet:** 6 veckor med hög egenvård, 7 med normal, 8 med enbart manuell inmatning, 11 med låg och 11 utan träning ([epok 1](./docs/design/epoch-1.md#5-tempo)) | [BESLUTAT] |
+| D-95 | **Startön har minst två berg att bryta sten i utom toppen,** så att det rikaste berget är ett val: prototypens karta får ett vanligt berg på (-3,-1) intill toppen, och kartvalideringen kräver det; besvarar O-16 ([kartvalidering](./docs/design/map-validation.md), [ekonomi v1](./docs/design/economy-v1.md#10-beslut)) | [BESLUTAT] |
 | D-96 | **En ny värld känner startön och havet längs dess kust;** allt bortom kusten ligger under dimma, och de dolda platserna ligger under små dimfläckar tills en kartläggning lyfter dem (TASK-032) | [BESLUTAT] |
-| D-97 | **Dimman lyfts bricka för bricka med Utforskning, 10 per bricka vid kanten av det kända,** men inte från platser som en kartläggning visar eller land på öar som en expedition hittar, så att kartläggningar och expeditioner behåller sitt värde (TASK-032) | [BESLUTAT] |
+| D-97 | **Dimman lyfts ruta för ruta med Utforskning, 10 per ruta vid kanten av det kända,** men inte från platser som en kartläggning visar eller land på öar som en expedition hittar, så att kartläggningar och expeditioner behåller sitt värde (TASK-032) | [BESLUTAT] |
 | D-98 | **Prototypen når telefonen genom Google Plays interna test när en version släpps:** en GitHub-release med en tagg på `main` blir ett signerat app-paket i det interna testet, och telefonen uppdaterar från Play Store utan kabel och utan avinstallation; pull requests kör bara testerna, så att Actions-budgeten på 2000 minuter i månaden räcker ([development.md](./docs/development.md#släppa-en-version)) | [BESLUTAT] |
 | D-99 | **Två enheter som spelat offline slår ihop sina journaler:** klienten spelar upp båda enheternas kommandon från den gemensamma snapshoten i tidsordning, idempotensnycklarna hindrar dubbla bidrag och byggnader, och ett kommando som inte längre går avvisas, så att ingen spelad tid går förlorad (TASK-023, ACC-03) | [BESLUTAT] |
-| D-100 | **Molnsparningens bidragsdel bär hela journalen:** världsdelen är kartan och senaste snapshoten utom det som hålls per spelardygn, och bidragsdelen resten av snapshoten, segmentens start och journalerna, så att sammanslagning och omgjord migration har hela journalen och servern ser mindre än ADR-0008 tillåter ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
-| D-101 | **Utan bidragsnyckeln stängs spelardygnen till och med snapshotens spelardygn:** de tar inte emot mer egenvård och räknas som tomma i Byggkraftens rullande vecka, eftersom det de krediterats fanns i bidragsdelen; egenvården räknas igen från nästa spelardygn ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
+| D-100 | **Molnsparningens bidragsdel bär hela journalen:** världsdelen är kartan och senaste snapshoten utom det som hålls per dag, och bidragsdelen resten av snapshoten, segmentens start och journalerna, så att sammanslagning och omgjord migration har hela journalen och servern ser mindre än ADR-0008 tillåter ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
+| D-101 | **Utan bidragsnyckeln stängs dagarna till och med snapshotens dag:** de tar inte emot mer egenvård och räknas som tomma i Styrkans rullande vecka, eftersom det de krediterats fanns i bidragsdelen; egenvården räknas igen från nästa dag ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023) | [BESLUTAT] |
 | D-102 | **Olika öar på telefonen och kontot avgörs av spelaren:** loggar spelaren in på ett konto vars molnsparning är en annan värld än telefonens, eller vars bidragsdel inte öppnas med telefonens nyckel, väljer spelaren mellan att hämta kontots ö och att behålla telefonens; den som inte väljs sparas undan på telefonen och raderas inte, och en bidragsdel som inte öppnas slås aldrig ihop utan låses under en ny nyckelepok ([ADR-0008](./docs/adr/0008-backend-hosting-accounts-and-database.md), TASK-023, ACC-03) | [BESLUTAT] |
-| D-103 | **Avstånd, nivå 2 och dagsverke skalar hur fort åkern och fårgården växer,** som de skalar all annan produktion: en åker 2–3 steg från förrådet mognar med 75 % av takten, och nivå 2 och dagsverke ger 50 % mer; skörden tömmer bara det som vuxit ([ekonomi v1](./docs/design/economy-v1.md#3-byggnader), TASK-038) Avståndsdelen är ersatt av D-110. | [BESLUTAT] |
-| D-104 | **En prototypjournal från M1 tas inte längre över:** sedan byggande på varje landbricka (regelversion 4) skulle den bli en annan värld, så den vägras, sparas undan och spelaren får veta varför i stället för att se en annan värld; sparningar migreras som vanligt (TASK-037, ADR-0006) | [BESLUTAT] |
+| D-103 | **Avstånd, nivå 2 och extraarbete skalar hur fort åkern och fårgården växer,** som de skalar all annan produktion: en åker 2–3 steg från förrådet mognar med 75 % av takten, och nivå 2 och extraarbete ger 50 % mer; skörden tömmer bara det som vuxit ([ekonomi v1](./docs/design/economy-v1.md#3-byggnader), TASK-038) Avståndsdelen är ersatt av D-110. | [BESLUTAT] |
+| D-104 | **En prototypjournal från M1 tas inte längre över:** sedan byggande på varje landruta (regelversion 4) skulle den bli en annan värld, så den vägras, sparas undan och spelaren får veta varför i stället för att se en annan värld; sparningar migreras som vanligt (TASK-037, ADR-0006) | [BESLUTAT] |
 | D-105 | **Innehållet har Anno-bredd med gradvis upplåsning:** befolkningsnivåer med egna behov och fler än 20 byggnader redan i epok 1; nivåerna och behoven låses upp gradvis under epoken, till exempel när en bosättning når en viss storlek, så att första veckan är lika lätt som i dag och den guidade turen förblir kort (H4, D-12); nivåer, behov, byggnader, kedjor och upplåsning tas fram i ekonomi v2 (O-02, TASK-039, TASK-058) | [BESLUTAT] |
-| D-106 | **En bosättning per ö:** det första förrådet eller den första bryggan på en ö anlägger öns bosättning, med egna bybor, bostäder och lager; byborna bemannar bara byggnader på sin ö, äter ur sin ös lager vid gryningen och flyttar över en sjöväg till en bosättning med lediga bostäder, högst en per spelardygn; varje bosättning har egna befolkningsnivåer och behov, och D-39 gäller (CIV-01, TASK-040) Utvidgas av D-113. | [BESLUTAT] |
+| D-106 | **En bosättning per ö:** det första förrådet eller den första bryggan på en ö anlägger öns bosättning, med egna bybor, bostäder och lager; byborna bemannar bara byggnader på sin ö, äter ur sin ös lager vid gryningen och flyttar över en sjöväg till en bosättning med lediga bostäder, högst en per dag; varje bosättning har egna befolkningsnivåer och behov, och D-39 gäller (CIV-01, TASK-040) Utvidgas av D-113. | [BESLUTAT] |
 | D-107 | **Transporten på land sker med bärare med kapacitet,** som Annos kärror: varje förråd har bärare som flyttar en begränsad mängd per timme mellan produktion, lager och mottagare, och vägar gör dem snabbare; flaskhalsdiagnostiken visar alltid varför en vara inte når fram och vad en väg, ett förråd eller fler bärare skulle ge; vad bärarna är, hur vägar läggs och siffrorna tas fram i ekonomi v2 (LOG-01–03, CIV-05, TASK-041, TASK-058) | [BESLUTAT] |
 | D-108 | **Rivning ger tillbaka hälften av materialet, aldrig kraft:** hälften av det byggnaden kostade, avrundat nedåt per resurs, går till öns lager och måste rymmas där (INV-R1); bekräftelsen visar exakt vad som kommer tillbaka, så att inget försvinner utan att spelaren sett det; att riva och bygga om kostar alltså halva materialet och hela kraften (förtydligar D-38, TASK-059) | [BESLUTAT] |
 | D-109 | **Bärarna är bybor som förrådet anställer själv:** vid gryningen tar varje förråd och brygga så många lediga torpare som varorna kräver, en till fyra, upp till spelarens tak, som är gratis planering; förrådet kan då ta byggarna, och diagnostiken säger när byggkön står still för att alla lediga bär ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
-| D-110 | **Avståndet kostar bärartid i stället för produktion:** avståndsklasserna försvinner, en byggnad producerar fullt var den står och avståndet syns som bärare som inte räcker; avståndsdelen av D-103 faller bort, medan nivå 2 och dagsverke fortsätter att skala de långsamma processernas tillväxt ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
+| D-110 | **Avståndet kostar bärartid i stället för produktion:** avståndsklasserna försvinner, en byggnad producerar fullt var den står och avståndet syns som bärare som inte räcker; avståndsdelen av D-103 faller bort, medan nivå 2 och extraarbete fortsätter att skala de långsamma processernas tillväxt ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-111 | **Bärarna tar först där det väntar mest:** det fullaste utlagret eller den förädling som har minst råvara kvar, och spelarens prioritet från arbetsfördelningen (TASK-044) går före ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058); förtydligat: prioriteten är ett uttryckligt läge, så bara en byggnad som spelaren flyttat upp i bemanningsordningen tar bärarna först, också när andra flyttas upp ovanför den, och resten tas där mest väntar (TASK-051) | [BESLUTAT] |
-| D-112 | **Vägar läggs bricka för bricka** för 2 sten och 4 arbetstimmar per bricka, och byggnadens blad har genvägen *Väg till förrådet* längs den kortaste sökvägen; bärarna går dubbelt så fort på en väg ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
-| D-113 | **Lediga bybor får bygga på andra öar som sjövägen förbinder med deras,** men bor och arbetar kvar hemma, eftersom att bygga inte är att bemanna; det är det enda tillägget till D-106, som i övrigt gäller: inga nybyggare följer med när en bosättning anläggs, högst en bybo flyttar per gryning i hela världen, och byggmaterial från hemön till en ö tar plats på sjövägen, vars tak på 40 enheter per spelardygn gäller åt båda hållen ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
+| D-112 | **Vägar läggs ruta för ruta** för 2 sten och 4 arbetstimmar per ruta, och byggnadens blad har genvägen *Väg till förrådet* längs den kortaste sökvägen; bärarna går dubbelt så fort på en väg ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
+| D-113 | **Lediga bybor får bygga på andra öar som sjövägen förbinder med deras,** men bor och arbetar kvar hemma, eftersom att bygga inte är att bemanna; det är det enda tillägget till D-106, som i övrigt gäller: inga nybyggare följer med när en bosättning anläggs, högst en bybo flyttar per gryning i hela världen, och byggmaterial från hemön till en ö tar plats på sjövägen, vars tak på 40 enheter per dag gäller åt båda hållen ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-114 | **Upplåsningen gäller hela världen:** ett steg som nåtts i någon bosättning låser upp nivåer, behov och byggnader överallt, medan bostäder, nivåer och behov hör till varje bosättning ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-115 | **Ett uppfyllt behov ger bara tillväxt och att stiga en nivå,** ingen produktionsbonus som kan försvinna vid brist (D-17, D-39) ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-116 | **Hantverkare bygger dubbelt så fort som andra lediga bybor och bemannar varvet** ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
-| D-117 | **Varvet kräver Byggkraft och har ingen handkraft;** sjöfarten är ett lyft som tillväxten, nivåerna och milstolpen inte kräver (D-43, D-65) ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
+| D-117 | **Varvet kräver Styrka och har ingen handkraft;** sjöfarten är ett lyft som tillväxten, nivåerna och milstolpen inte kräver (D-43, D-65) ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-118 | **Avvikelserna från dagens första vecka godtas:** bärarna presenteras som förrådets bemanning i introduktion 2 och deras första flaskhals är en diagnos, den som satsar på tillväxt kan nå bönderna dygn 7, och Nyön blir en egen bosättning med egna bybor, som introduktion 6 visar tillsammans med sjövägen ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-119 | **D-34:s andra halva gäller över veckor:** med samma beslut ger mer egenvård aldrig en mindre värld vid veckans slut, men bärarnas ordning kan göra världen något mindre enstaka dygn; kalkylen spärrar dippen till 0,1 %, strax över det den mäter ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
+| D-120 | **Spelets begrepp är vardaglig svenska:** ruta i stället för bricka, topp i stället för krön, dag i stället för spelardygn, vilotid i stället för viloperiod, Styrka och Ork i stället för Byggkraft och Gryningskraft, *Skynda på* och *Arbeta extra* i stället för Rusta och Dagsverke, och utkikstorn, skogshuggare, tyg, plankor och betesmark för byggnader, varor och mark; kodnamnen är oförändrade ([GLOSSARY.md](./GLOSSARY.md)) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -191,7 +192,7 @@ Eirora är ett konstruerat fantasynamn inspirerat av två källor:
 - **Aurora:** gryning, ljus och en ny början.
 
 Namnet ska förmedla nordisk mystik, livskraft, personlig utveckling och harmoni.
-Det knyter ihop egenvård och vila som motor (D-14, D-22) med gryningen som visuellt motiv (D-10) och Gryningskraften (D-15).
+Det knyter ihop egenvård och vila som motor (D-14, D-22) med gryningen som visuellt motiv (D-10) och Orken (D-15).
 Tidigare arbetsnamn (Arkipelagen, Verdawn) används inte längre.
 Den visuella riktningen står i [art direction](./docs/design/art-direction.md) (D-61).
 
@@ -218,7 +219,7 @@ Spelet rangordnar aldrig kroppar.
 - När jag har ett par minuter vill jag **fatta ett viktigt beslut om vart mina krafter ska**, inte klicka på hundra knappar.
 - När jag rör på mig, tränar eller sover vill jag att det **bidrar positivt utan tvång**.
 - När jag och mina vänner vill peppa varandra vill jag **se att vi bygger något tillsammans**, utan att någon dras ned.
-- När min viloperiod börjar vill jag att spelet **tydligt stänger för kvällen**.
+- När min vilotid börjar vill jag att spelet **tydligt stänger för kvällen**.
 
 ### 2.4 Mätbara mål [FÖRSLAG – slutvärden bestäms under alfa]
 
@@ -261,9 +262,9 @@ Optimera inte ensidigt sessionstid eller retention.
 
 1. **Lev:** rörelse, träning och sömn registreras (automatiskt eller manuellt) och blir krafter.
 2. **Återvänd:** en rapport visar vad världen gjort, vad expeditionerna hittat och vad gruppen byggt.
-3. **Rikta:** spendera Utforskning, Byggkraft och Gryningskraft där de gör störst nytta.
+3. **Rikta:** spendera Utforskning, Styrka och Ork där de gör störst nytta.
 4. **Planera:** justera produktionskedjor, logistik och sjövägar (alltid gratis).
-5. **Vila:** viloperioden börjar, byborna sover, långsamma processer fortgår; gryningen öppnar världen igen.
+5. **Vila:** vilotiden börjar, byborna sover, långsamma processer fortgår; gryningen öppnar världen igen.
 
 ### 4.2 Tidsskalor
 
@@ -277,10 +278,10 @@ Optimera inte ensidigt sessionstid eller retention.
 
 ### 4.3 Exempel på ett speldygn
 
-- **Gryning:** viloperioden tar slut.
-  Gryningskraft från nattens sömn finns att använda.
+- **Gryning:** vilotiden tar slut.
+  Ork från nattens sömn finns att använda.
   Valfri morgonnotis: "Byn har vaknat, expeditionen är tillbaka."
-- **Dag:** promenader och träning ger Utforskning och Byggkraft i bakgrunden.
+- **Dag:** promenader och träning ger Utforskning och Styrka i bakgrunden.
 - **Kväll:** spelaren skickar en expedition längre ut och startar en uppgradering, ser att en vän bidragit till gruppens fyr.
 - **Vila:** nattvy, besked om när världen öppnar.
   Inga kommandon, inga notiser.
@@ -292,9 +293,9 @@ Steg för steg, med integritetsförklaring: se [UX-resorna](./docs/design/ux-jou
 
 1. Välj språk och tillgänglighet.
 2. Guidad tur: en liten bosättning på en ö vid gryning.
-3. Lär dig de tre krafterna genom tre konkreta handlingar: ett dagsverke (Gryningskraft), kartlägg närområdet (Utforskning), bygg en brygga (Byggkraft); planering är gratis.
+3. Lär dig de tre krafterna genom tre konkreta handlingar: arbeta extra (Ork), kartlägg närområdet (Utforskning), bygg en brygga (Styrka); planering är gratis.
 4. Integritetsförklaring: hälsokälla eller manuell inmatning, båda fullvärdiga.
-5. Välj viloperiod (6–10 h) med nattläget och vilolåset framför dig.
+5. Välj vilotid (6–10 h) med nattläget och vilolåset framför dig.
 6. Erbjudande att bjuda in vänner, utan press.
 
 ---
@@ -372,7 +373,7 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 | HLT-06 | P0 | Dålig sömn, vilodag eller frånvaro ger aldrig straff eller förlust. |
 | HLT-07 | P0 | **Manuell inmatning** för varje vana är en fullvärdig väg för den egna världen. |
 | HLT-08 | P0 | Varje bidrag klassas som verifierat eller egenrapporterat (via `recordingMethod` i Health Connect respektive `HKMetadataKeyWasUserEntered` i HealthKit, plus manuell inmatning i spelet). |
-| HLT-09 | P0 | Omvandling: steg → Utforskning, träningspass → Byggkraft, sömnlängd → Gryningskraft (mjukt tak ~7–8 h, saknad data = neutral grundnivå). |
+| HLT-09 | P0 | Omvandling: steg → Utforskning, träningspass → Styrka, sömnlängd → Ork (mjukt tak ~7–8 h, saknad data = neutral grundnivå). |
 | HLT-10 | P0 | Rå hälsodata stannar på enheten; endast det spelaren uttryckligen delar skickas till servern. |
 | HLT-11 | P0 | Spelaren kan pausa, återkalla, granska och radera hälsorelaterad data. |
 | HLT-12 | P0 | Spelet kräver aldrig hälsobehörighet för att få spela eller vara med i grupper. |
@@ -382,15 +383,15 @@ Att ta bort en P1 kräver ett dokumenterat produktbeslut.
 
 | ID | Prioritet | Krav |
 |---|---|---|
-| RST-01 | P0 | Spelaren väljer en återkommande viloperiod om **6–10 timmar**; tidszon och skiftarbete beaktas. |
-| RST-02 | P0 | Under viloperioden blockeras alla spelpåverkande handlingar i den lokala simuleringen, och servern nekar spelarens gruppåtgärder. |
+| RST-01 | P0 | Spelaren väljer en återkommande vilotid om **6–10 timmar**; tidszon och skiftarbete beaktas. |
+| RST-02 | P0 | Under vilotiden blockeras alla spelpåverkande handlingar i den lokala simuleringen, och servern nekar spelarens gruppåtgärder. |
 | RST-03 | P0 | Nattvy med besked om när världen öppnar och ett lugnt budskap. |
 | RST-04 | P0 | Bybornas arbete pausar; långsamma processer fortgår; inget går förlorat. |
 | RST-05 | P0 | Hälsodata läses när spelaren öppnar appen, aldrig i bakgrunden (D-70); krafter blir tillgängliga vid gryningen. |
-| RST-06 | P0 | Inga notiser under viloperioden. |
+| RST-06 | P0 | Inga notiser under vilotiden. |
 | RST-07 | P0 | Konto, integritet, tillgänglighet, hjälp och radering är åtkomliga även under vila. |
 | RST-08 | P0 | Inget köp, annons eller premiumläge låser upp spel under vila. |
-| RST-09 | P0 | Schemaändringar börjar gälla först efter **24 timmar**; en pågående viloperiod kan inte kortas. |
+| RST-09 | P0 | Schemaändringar börjar gälla först efter **24 timmar**; en pågående vilotid kan inte kortas. |
 | RST-10 | P0 | Upplåsning kräver aldrig bevisad sömn. |
 | RST-11 | P0 | Gruppinteraktioner som berör en vilande medlem köas tills medlemmen vaknar. |
 
@@ -453,7 +454,7 @@ Kväll, nattvy och gryning steg för steg: se [UX-resorna](./docs/design/ux-jour
 
 ### 6.1 Karta och topologi
 
-- Axiala hexkoordinater `(q,r)`; varje bricka har terräng, biom, höjd, resurser och byggregler.
+- Axiala hexkoordinater `(q,r)`; varje ruta har terräng, biom, höjd, resurser och byggregler.
 - En **värld** är en ögrupp med kustlinjer, farleder, inland och flaskhalsar.
 - `WorldGenerator` producerar en normaliserad `WorldMap`: `ProceduralGenerator` i V1, `GeographicGenerator` senare.
 - Genererade kartor valideras mot startresurser, anslutbarhet och expansionsvägar.
@@ -467,8 +468,8 @@ Kväll, nattvy och gryning steg för steg: se [UX-resorna](./docs/design/ux-jour
 | Vana | Kraft | Driver | Begränsning |
 |---|---|---|---|
 | Steg | Utforskning | Expeditioners räckvidd, att lyfta dimman, nya öar | Avtagande avkastning, mjukt tak |
-| Träningspass | Byggkraft | Större byggprojekt, uppgraderingar, gemensamma byggen | Ett pass är ett pass; intensitet krävs inte |
-| Sömnlängd | Gryningskraft | Bybornas energi, morgonens planeringsdrag | Mjukt tak ~7–8 h; ingen kvalitetspoäng; saknad data = grundnivå |
+| Träningspass | Styrka | Större byggprojekt, uppgraderingar, gemensamma byggen | Ett pass är ett pass; intensitet krävs inte |
+| Sömnlängd | Ork | Bybornas energi, morgonens planeringsdrag | Mjukt tak ~7–8 h; ingen kvalitetspoäng; saknad data = grundnivå |
 
 Kurvor, tak och sparande står i [krafternas regler](./docs/design/forces.md).
 
@@ -476,7 +477,7 @@ Kurvor, tak och sparande står i [krafternas regler](./docs/design/forces.md).
 Krafterna avgör vilka stora steg som kan tas.
 Resurslager [FÖRSLAG]: basbehov, naturresurser, förädlade varor, avancerade varor, kapaciteter.
 
-**Strategiska avvägningar** ska finnas på varje nivå, t.ex.: rikta Byggkraft mot ett nytt sågverk nära skogen *eller* mot en hamn som öppnar handel med gruppen; spendera Utforskning på en lång expedition mot en ny ö *eller* kartlägga närområdet för resurser.
+**Strategiska avvägningar** ska finnas på varje nivå, t.ex.: rikta Styrka mot ett nytt sågverk nära skogen *eller* mot en hamn som öppnar handel med gruppen; spendera Utforskning på en lång expedition mot en ny ö *eller* kartlägga närområdet för resurser.
 
 Ingen obligatorisk resurs får ha ett enda, lätt blockerbart sätt att produceras.
 
@@ -536,8 +537,8 @@ Inga medicinska påståenden.
 - Resurser uttrycks i heltal eller fixed-point för deterministisk replay.
 - Regelversion och tillämpade händelser ska kunna reproduceras i tester, lokalt och på servern.
 - Vilolåset använder enhetens klocka offline och serverns tid online (ADR-0003).
-  Servern nekar gruppåtgärder under spelarens viloperiod.
-- Under viloperioden pausar bybornas arbete medan långsamma processer fortgår.
+  Servern nekar gruppåtgärder under spelarens vilotid.
+- Under vilotiden pausar bybornas arbete medan långsamma processer fortgår.
 - Sent inkommande hälsodata hanteras med idempotenta kompensationshändelser.
 - Det som alltid ska gälla i simuleringen står i [simuleringsinvarianterna](./docs/design/invariants.md).
 
@@ -549,7 +550,7 @@ Inga medicinska påståenden.
 4. Krafter beräknas lokalt med tak och avtagande avkastning.
 5. Till servern skickas endast: aggregerade bidrag till gemensamma byggen och de siffror spelaren uttryckligen valt att dela.
    Rådata lämnar aldrig enheten.
-   Molnsparningen innehåller bidrag per spelardygn end-to-end-krypterade, så att servern aldrig kan läsa dem (D-57).
+   Molnsparningen innehåller bidrag per dag end-to-end-krypterade, så att servern aldrig kan läsa dem (D-57).
 6. Spelaren kan pausa, återkalla, granska och radera; återkallat tillstånd innebär inga nya läsningar.
 
 ### 7.5 Dataskydd och butikspolicy
@@ -597,7 +598,7 @@ Numeriska budgetar: [ÖPPET], fastställs efter mätningar på målenheter.
 ## 9. Kritiska acceptansscenarier
 
 **AC-01 — Vilolåset.**
-Givet att spelarens viloperiod pågår, när spelaren försöker bygga, starta en expedition eller handla, så nekas handlingen lokalt utan sidoeffekter, och servern nekar varje gruppåtgärd med förutsägbar felkod.
+Givet att spelarens vilotid pågår, när spelaren försöker bygga, starta en expedition eller handla, så nekas handlingen lokalt utan sidoeffekter, och servern nekar varje gruppåtgärd med förutsägbar felkod.
 Nattvyn är tillgänglig.
 
 **AC-02 — Flera dagars frånvaro.**
@@ -610,7 +611,7 @@ Givet att telefon och klocka rapporterar överlappande steg, när import körs u
 Givet att spelaren nekar all hälsobehörighet och loggar manuellt, när hen spelar, så fungerar alla system i den egna världen, och hen kan vara med i en grupp där hens bidrag visas som egenrapporterade.
 
 **AC-05 — Schemaändring och tidszon.**
-Givet en pågående viloperiod, när mobilen byter tidszon eller spelaren ändrar schemat, så förblir pågående lås oförändrat och det nya schemat gäller först efter 24 timmar.
+Givet en pågående vilotid, när mobilen byter tidszon eller spelaren ändrar schemat, så förblir pågående lås oförändrat och det nya schemat gäller först efter 24 timmar.
 
 **AC-06 — Variation i strategi.**
 Givet två spelare med samma egenvård i liknande världar, när de riktar sina krafter olika, så får de mätbart olika världar och ingen strategi dominerar utan avvägning.
@@ -683,7 +684,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-43–D-45 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-004 |
 | D-46–D-48 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-009 |
 | D-49–D-58 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-005 |
-| — | 2026-10-17 | Första sessionens ordning i 4.4 ändrad: turen före hälsokälla och viloperiod | D-49 |
+| — | 2026-10-17 | Första sessionens ordning i 4.4 ändrad: turen före hälsokälla och vilotid | D-49 |
 | — | 2026-10-17 | O-12 avgjord: ingen återstartsbonus | D-52 |
 | D-59–D-60 | 2026-10-17 | Se avsnitt 1.1 | Öppna frågor i TASK-006 |
 | D-61 | 2026-10-17 | Se avsnitt 1.1 | Produktägarens val bland tre riktningar i TASK-006 (PR #21); ersätter D-59 |
@@ -711,6 +712,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-108 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens val i TASK-059 |
 | D-109–D-118 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens svar på delfrågorna F1–F10 i ekonomi v2 (TASK-058, PR #151) |
 | D-113, D-118, D-119 | 2026-10-23 | Se avsnitt 1.1; D-113 omskriven till v2.1, D-118 utökad med Nyöns bosättning, D-103:s avståndsdel ersatt av D-110 | Produktägarens andra omgång i TASK-058 (PR #151) |
+| D-120 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens val i översynen av spelets svenska begrepp |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |
