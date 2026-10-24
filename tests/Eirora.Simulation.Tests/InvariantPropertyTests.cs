@@ -203,17 +203,17 @@ public sealed class InvariantPropertyTests
                 foreach (string line in world.Fingerprint().Split('\n'))
                 {
                     string[] fields = line.Split(' ');
-                    records.Add(fields[0] + (fields[0] == "cycle" ? $"-{world.Phase}" : fields[0] == "stock" ? $"-{fields[1]}" : string.Empty));
+                    records.Add(fields[0] + (fields[0] == "cycle" ? $"-{world.Phase}" : fields[0] == "stock" ? (fields[1] == world.HomeIsland ? "-home" : "-away") : string.Empty));
                 }
             }
         }
 
-        Assert.Equal(14, accepted.Count); // Every kind of command.
+        Assert.Equal(16, accepted.Count); // Every kind of command.
         Assert.Superset(
             new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued },
             rejections);
         Assert.Superset(
-            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second" },
+            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-away", "owed", "road", "held" },
             records);
         Assert.True(duplicates > 50, $"Only {duplicates} duplicates.");
     }

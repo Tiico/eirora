@@ -102,7 +102,7 @@ namespace Eirora.Simulation.Events
     /// <summary>A building, upgrade or road in the queue was finished.</summary>
     public sealed class ProjectCompleted : GameEvent
     {
-        public ProjectCompleted(long utcSeconds, ProjectKind kind, BuildingKind building, Hex tile)
+        public ProjectCompleted(long utcSeconds, ProjectKind kind, BuildingKind? building, Hex tile)
             : base(utcSeconds)
         {
             Kind = kind;
@@ -112,9 +112,10 @@ namespace Eirora.Simulation.Events
 
         public ProjectKind Kind { get; }
 
-        public BuildingKind Building { get; }
+        /// <summary>What was built or upgraded; null for a road.</summary>
+        public BuildingKind? Building { get; }
 
-        /// <summary>The building site, or the building the upgrade or road was for.</summary>
+        /// <summary>The building site, the building the upgrade was for, or the tile the road was laid on.</summary>
         public Hex Tile { get; }
     }
 

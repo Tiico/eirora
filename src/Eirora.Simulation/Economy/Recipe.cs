@@ -5,7 +5,7 @@ namespace Eirora.Simulation.Economy
 {
     /// <summary>
     /// What a producing building makes and from what (economy-v1.md, section 3): its raw materials, its product and its
-    /// rate. Distance, level 2 and a workday scale every recipe; a full store stops it and nothing is lost (D-17).
+    /// rate. Level 2 and a workday scale every recipe; a full outbox stops it and nothing is lost (D-17, INV-R2).
     /// </summary>
     /// <remarks>
     /// A recipe is one of four kinds. It gathers from its own tile; it processes raw materials and leaves the reserve
@@ -65,7 +65,7 @@ namespace Eirora.Simulation.Economy
         public Resource Product { get; }
 
         /// <summary>
-        /// Millionths of a unit of the product an active hour at level 1, beside a depot and without a workday: what a
+        /// Millionths of a unit of the product an active hour at level 1 and without a workday: what a
         /// slow process harvests at most, and what a woodcutter fells from each forest tile.
         /// </summary>
         public long PerHour { get; }
@@ -86,6 +86,20 @@ namespace Eirora.Simulation.Economy
         public int ForestTiles { get; }
 
         public bool IsSlowProcess => GrowsPerHour > 0;
+
+        /// <summary>Whether it is one of the raw materials.</summary>
+        public bool Uses(Resource resource)
+        {
+            foreach (var input in Inputs)
+            {
+                if (input.Resource == resource)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         internal long PerTick => PerHour / TicksPerHour;
 

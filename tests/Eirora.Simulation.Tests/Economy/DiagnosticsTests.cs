@@ -11,8 +11,9 @@ using static Eirora.Simulation.Tests.Tiles;
 namespace Eirora.Simulation.Tests.Economy;
 
 /// <summary>
-/// The bottleneck diagnosis (TASK-043; CIV-05, LOG-03): why a building stands still, what distance costs, the sea
-/// route's use and each island's largest bottleneck, read without changing the world (INV-D2).
+/// The bottleneck diagnosis (TASK-043, TASK-051; CIV-05, LOG-03): why a building stands still, why its goods do not reach
+/// the store and what a road, a storehouse or more carriers would give, the sea route's use and each island's largest
+/// bottleneck, read without changing the world (INV-D2).
 /// </summary>
 public sealed class DiagnosticsTests
 {
@@ -22,7 +23,7 @@ public sealed class DiagnosticsTests
     [Fact]
     public void ASawmillWithoutTimberAboveTheReserveWaitsForTimberAndSaysHowMuchIsMissing()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0");
 
         var sawmill = world.Diagnose().At(L1)!;
 
@@ -32,15 +33,16 @@ public sealed class DiagnosticsTests
         Assert.Equal(Resource.Timber, waiting.Resource);
         Assert.Equal((18L, 20), (waiting.Stock, waiting.Reserve));
 
-        // The woodcutter fells a little first; a full hour of planks takes two timber above the reserve of 20.
+        // A full hour of planks takes two timber above the reserve of 20; the woodcutter's timber waits at the woodcutter.
         Assert.Equal(4, waiting.Missing);
         Assert.Equal(Unit, waiting.LostPerHour);
     }
 
     [Fact]
-    public void ASawmillWithSomeTimberAboveTheReserveProcessesWhatThereIs()
+    public void ASawmillWithSomeTimberBroughtProcessesWhatThereIs()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 20), buildings: "building Sawmill -1 0 1 1 0 0 0 0");
+        // The carriers have brought it 0.3 timber, and the store has none above the reserve to bring more.
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 20), buildings: "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0\nheld Timber 300000");
 
         var sawmill = world.Diagnose().At(L1)!;
 
@@ -50,41 +52,99 @@ public sealed class DiagnosticsTests
     }
 
     [Fact]
-    public void AFishingHutFourStepsFromTheStorehouseDeliversHalfAndSaysWhatARoadWouldGive()
+    public void AFishingHutFourStepsAwayFishesFullyWhileTheCarriersKeepUp()
     {
         var far = FishingWater(4);
-        var world = Edited(Morning(), buildings: $"building FishingHut {far.Q} {far.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), buildings: $"building FishingHut {far.Q} {far.R} 1 1 0 0 0 0 0 0 0 0 0 0");
 
-        var hut = world.Diagnose().At(far)!;
+        var diagnosis = world.Diagnose();
+        var hut = diagnosis.At(far)!;
 
-        Assert.Equal(Production.Reduced, hut.Production);
-        var way = Assert.IsType<LongWay>(Assert.Single(hut.Hindrances));
-        Assert.Equal((4, 50, 75), (way.Steps, way.Percent, way.RoadPercent));
-        // Rates are scaled each quarter hour, as the settlement does: 1.25 fish an hour times the water's richness.
-        long tick = 312_500L * world.Map.RichnessAt(far) / 100;
-        Assert.Equal((4 * (tick / 2), 4 * (tick * 3 / 4), 4 * tick), (way.PerHour, way.WithRoadPerHour, way.BesideDepotPerHour));
-        Assert.Equal(4 * (tick - (tick / 2)), way.LostPerHour);
-        Assert.Equal(way.PerHour, hut.PerHour);
+        // Distance costs the carriers' time, not production (D-110): 1.25 fish an hour times the water's richness.
+        Assert.Equal(Production.Full, hut.Production);
+        Assert.Empty(hut.Hindrances);
+        Assert.Equal(4 * (312_500L * world.Map.RichnessAt(far) / 100), hut.PerHour);
+        var storehouse = diagnosis.DepotAt(S)!;
+        Assert.Contains(world.BuildingAt(far)!, storehouse.Serves);
+        Assert.Equal((1, 100), (storehouse.Depot.Carriers, storehouse.SharePercent));
+        Assert.InRange(storehouse.LoadPercent, 1, 100);
     }
 
     [Fact]
-    public void AFarBuildingWithARoadSaysWhatAStorehouseWouldGiveButNoMoreRoad()
+    public void FarBuildingsWhoseCarriersCannotKeepUpSayWhatARoadACarrierAndAStorehouseWouldGive()
     {
-        var far = FishingWater(4);
-        var world = Edited(Morning(), buildings: $"building FishingHut {far.Q} {far.R} 1 1 1 0 0 0");
+        var (world, far) = BehindTheCarriers();
 
-        var way = Assert.IsType<LongWay>(Assert.Single(world.Diagnose().At(far)!.Hindrances));
+        var diagnosis = world.Diagnose();
+        var depot = diagnosis.DepotAt(S)!;
+        var behind = Assert.IsType<CarriersBehind>(Assert.Single(diagnosis.At(far[0])!.Hindrances));
 
-        Assert.Equal((75, (int?)null), (way.Percent, way.RoadPercent));
-        Assert.Equal(way.PerHour, way.WithRoadPerHour);
-        Assert.True(way.BesideDepotPerHour > way.PerHour);
+        // The carriers bring their share of every building's goods: one carrier-hour of what the goods need (section 7.1).
+        Assert.True(depot.NeedPerHour > Quantity.PerUnit, $"The storehouse needs only {depot.NeedPerHour}.");
+        Assert.Equal((int)(Quantity.PerUnit * Quantity.PerUnit / depot.NeedPerHour * 100 / Quantity.PerUnit), depot.SharePercent);
+        Assert.True(depot.LoadPercent > 100);
+        Assert.Equal((4, S, depot.SharePercent), (behind.Trip.Steps, behind.Trip.Depot, behind.SharePercent));
+        Assert.Equal(Production.Reduced, diagnosis.At(far[0])!.Production);
+
+        // Each would bring more of the hut's fish to the store, and nothing would bring more than it makes.
+        long full = behind.PerHour + behind.LostPerHour;
+        Assert.InRange(behind.WithRoadPerHour, behind.PerHour + 1, full);
+        Assert.InRange(behind.WithCarrierPerHour!.Value, behind.PerHour + 1, full);
+        Assert.InRange(behind.BesideDepotPerHour, behind.PerHour + 1, full);
+        Assert.NotNull(behind.BesideDepotSite);
+        Assert.Equal(world.RoadToDepot(far[0]).Count, behind.RoadTiles);
+        Assert.True(behind.VillagerFree);
+
+        // The storehouse's sheet: one more carrier, the road that gives most and the storehouse that gives most.
+        Assert.Contains(depot.WithCarrier!, g => g.Resource == Resource.Fish && g.PerHour > 0);
+        Assert.Contains(depot.Road!.Gains, g => g.Resource == Resource.Fish && g.PerHour > 0);
+        Assert.Contains(depot.Storehouse!.Gains, g => g.Resource == Resource.Fish && g.PerHour > 0);
+        Assert.Equal(world.RoadToDepot(depot.Road.From.Tile), depot.Road.Tiles);
+        Assert.Equal(Rejection.None, world.CheckBuild(BuildingKind.Storehouse, depot.Storehouse.Site));
+
+        // A workday on the storehouse eases the island's bottleneck.
+        var bottleneck = diagnosis.BottleneckOn(PrototypeHome.Home)!;
+        Assert.IsType<CarriersBehind>(bottleneck.Hindrance);
+        Assert.Equal(S, bottleneck.Workday!.Tile);
+    }
+
+    [Fact]
+    public void WhatTheDiagnosisSaysARoadWouldGiveIsWhatTheRoadGives()
+    {
+        var (world, _) = BehindTheCarriers();
+        var diagnosis = world.Diagnose();
+        var road = diagnosis.DepotAt(S)!.Road!;
+        var promised = Assert.IsType<CarriersBehind>(Assert.Single(diagnosis.At(road.From.Tile)!.Hindrances)).WithRoadPerHour;
+
+        var after = Edited(world, roads: road.Tiles).Diagnose();
+
+        Assert.Equal(promised, Reaches(after.At(road.From.Tile)!));
+        Assert.Equal(road.Gains.Single(g => g.Resource == Resource.Fish).PerHour, Fish(after) - Fish(diagnosis));
+
+        // What reaches the store an active hour: the carriers' share when they cannot keep up, else all it makes.
+        static long Reaches(BuildingDiagnosis b) => b.Hindrances.OfType<CarriersBehind>().SingleOrDefault()?.PerHour ?? b.PerHour;
+        static long Fish(Diagnostics d) => d.Buildings.Where(b => b.Product == Resource.Fish).Sum(Reaches);
+    }
+
+    [Fact]
+    public void ABuildingThatNoStaffedDepotReachesSaysSo()
+    {
+        // Nyön's two villagers work the quarry, so its jetty has nobody to carry for it (D-106).
+        var world = Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Fish, 0), settlement: (PrototypeHome.Nyon, 2), buildings: $"building Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0\nbuilding Quarry {N2.Q} {N2.R} 1 1 0 0 0 0 0 0 0 0 0 0");
+
+        var quarry = world.Diagnose().At(N2)!;
+
+        var none = Assert.IsType<NoDepot>(Assert.Single(quarry.Hindrances));
+        Assert.True(none.DepotStands);
+        Assert.Equal(Production.Reduced, quarry.Production);
+        Assert.False(world.TripFrom(N2).Reaches);
     }
 
     [Fact]
     public void ABuildingWithoutStaffStandsStillAndSaysHowManyVillagersAreMissing()
     {
         // Eight villagers: seven run the start buildings, so one is free for a sawmill that takes two.
-        var world = Edited(Morning(), villagers: 8, buildings: "building Sawmill -1 0 1 0 0 0 0 0");
+        var world = Edited(Morning(), villagers: 8, buildings: "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 0 0 0");
 
         var sawmill = world.Diagnose().At(L1)!;
 
@@ -97,7 +157,7 @@ public sealed class DiagnosticsTests
     public void AStorehouseWithoutStaffStillStoresGoodsAndNeverStandsStill()
     {
         // Seven villagers run the start buildings, so none is left for a second storehouse; it stores all the same.
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Fish, 150), villagers: 7, buildings: "building Storehouse -1 0 1 0 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Fish, 150), villagers: 7, buildings: "building Storehouse -1 0 1 0 0 0 0 0 4 0 0 0 0 0");
 
         var diagnosis = world.Diagnose();
 
@@ -130,68 +190,79 @@ public sealed class DiagnosticsTests
     public void AFarSawmillWithoutTimberWaitsForTimberAndARoadWouldGiveNothing()
     {
         var far = FarLand(4);
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: $"building Sawmill {far.Q} {far.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: $"building Sawmill {far.Q} {far.R} 1 1 0 0 0 0 0 0 0 0 0 0");
 
         var sawmill = world.Diagnose().At(far)!;
 
+        // Its carriers could not keep up either, but without timber there is nothing to carry.
         Assert.Equal(Production.Stopped, sawmill.Production);
-        Assert.IsType<WaitingForInput>(Assert.Single(sawmill.Hindrances));
+        Assert.Equal([typeof(WaitingForInput), typeof(CarriersBehind)], sawmill.Hindrances.Select(h => h.GetType()));
+        Assert.Equal(1_000_000, sawmill.Hindrances[0].LostPerHour);
     }
 
     [Fact]
-    public void AFarSawmillShortOfTimberIsHeldBackByTheTimberAndNotByTheWay()
+    public void AFarSawmillShortOfTimberIsHeldBackMostByTheTimber()
     {
-        // The woodcutter fells a quarter of timber first: enough for half the sawmill's pace, which is all that four
-        // steps let reach the store anyway, so a road or a storehouse would give no more without more timber.
+        // The carriers have brought half the sawmill's pace in timber and the store has none above the reserve; its
+        // carriers cannot keep up either, but the timber costs it more.
         var far = FarLand(4);
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 20), buildings: $"building Sawmill {far.Q} {far.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 20), buildings: $"building Sawmill {far.Q} {far.R} 1 1 0 0 0 0 0 0 0 0 0 0\nheld Timber 250000");
 
         var diagnosis = world.Diagnose();
         var sawmill = diagnosis.At(far)!;
 
         Assert.Equal(Production.Reduced, sawmill.Production);
-        Assert.IsType<WaitingForInput>(Assert.Single(sawmill.Hindrances));
-        var bottleneck = diagnosis.BottleneckOn(PrototypeHome.Home)!;
-        Assert.IsType<WaitingForInput>(bottleneck.Hindrance);
-        Assert.Equal(F1, bottleneck.Workday!.Tile);
+        Assert.Equal([typeof(WaitingForInput), typeof(CarriersBehind)], sawmill.Hindrances.Select(h => h.GetType()));
+        Assert.True(sawmill.Hindrances[0].LostPerHour > sawmill.Hindrances[1].LostPerHour);
     }
 
     [Fact]
     public void AFarSawmillWithTimberEnoughSaysWhatARoadAndAStorehouseWouldGive()
     {
+        // A plank and two timber an hour, there and back four steps: one and a half carrier-hours for the sawmill alone.
         var far = FarLand(4);
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 30), buildings: $"building Sawmill {far.Q} {far.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 30), buildings: $"building Sawmill {far.Q} {far.R} 1 1 0 0 0 0 0 0 0 0 0 0\nheld Timber 4000000");
 
         var sawmill = world.Diagnose().At(far)!;
 
         Assert.Equal(Production.Reduced, sawmill.Production);
-        var way = Assert.IsType<LongWay>(Assert.Single(sawmill.Hindrances));
-        Assert.Equal((500_000L, 750_000L, 1_000_000L), (way.PerHour, way.WithRoadPerHour, way.BesideDepotPerHour));
+        Assert.Equal(1_000_000, sawmill.PerHour);
+        var behind = Assert.IsType<CarriersBehind>(Assert.Single(sawmill.Hindrances));
+        Assert.True(behind.PerHour < behind.WithRoadPerHour && behind.WithRoadPerHour < 1_000_000, $"{behind.PerHour} planks an hour, {behind.WithRoadPerHour} with the road");
+        Assert.True(behind.PerHour < behind.BesideDepotPerHour, $"{behind.PerHour} planks an hour, {behind.BesideDepotPerHour} beside a storehouse");
+        Assert.Equal(1_000_000, behind.PerHour + behind.LostPerHour);
     }
 
     [Fact]
     public void ARoadOrAStorehouseGivesNoMoreThanTheStoreHasRoomFor()
     {
         var far = FishingWater(4);
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Fish, 150), buildings: $"building FishingHut {far.Q} {far.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Fish, 150), buildings: $"building FishingHut {far.Q} {far.R} 1 1 0 0 0 0 0 0 0 0 0 0");
 
         var hut = world.Diagnose().At(far)!;
 
-        Assert.Equal(Production.Stopped, hut.Production);
+        // It fishes on into its outbox, but nothing reaches the full store.
+        Assert.Equal(Production.Reduced, hut.Production);
         Assert.IsType<StoreFull>(Assert.Single(hut.Hindrances));
     }
 
     [Fact]
-    public void AFullStoreStopsTheFishingHut()
+    public void AFullStoreHoldsTheFishingHutBackAndAFullOutboxStopsIt()
     {
         var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Fish, 150));
 
         var hut = world.Diagnose().At(K1)!;
 
-        Assert.Equal(Production.Stopped, hut.Production);
+        Assert.Equal(Production.Reduced, hut.Production);
         var full = Assert.IsType<StoreFull>(Assert.Single(hut.Hindrances));
         Assert.Equal((Resource.Fish, 150), (full.Resource, full.Capacity));
         Assert.Equal(1_250_000, full.LostPerHour);
+
+        // Eight fish wait in its outbox once the store has stayed full for more than six hours.
+        world.AdvanceTo(At("2026-10-15 16:00", 2));
+        Assert.Equal(Logistics.OutboxUnits, world.BuildingAt(K1)!.WaitingUnits);
+        Assert.Equal(Production.Stopped, world.Diagnose().At(K1)!.Production);
+        Assert.True(world.Diagnose().At(K1)!.StandsStill);
     }
 
     [Fact]
@@ -214,7 +285,7 @@ public sealed class DiagnosticsTests
     {
         var start = Morning();
         var bare = Hex.Origin.Within(6).First(h => (start.UsesOf(h) & TileUse.Land) != 0 && start.BuildingAt(h) is null && Woods(start, h).Count == 0);
-        var world = Edited(Morning(), buildings: $"building Woodcutter {bare.Q} {bare.R} 1 1 0 0 0 0");
+        var world = Edited(Morning(), buildings: $"building Woodcutter {bare.Q} {bare.R} 1 1 0 0 0 0 0 0 0 0 0 0");
 
         var woodcutter = world.Diagnose().At(bare)!;
 
@@ -251,7 +322,7 @@ public sealed class DiagnosticsTests
     [Fact]
     public void TheIslandsBottleneckIsTheSawmillWaitingForTimberAndAWorkdayOnTheWoodcutterEasesIt()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0");
 
         var bottleneck = world.Diagnose().BottleneckOn(PrototypeHome.Home)!;
 
@@ -264,7 +335,7 @@ public sealed class DiagnosticsTests
     [Fact]
     public void AWorkdayAlreadyGivenIsNotSuggestedAgain()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0");
         Assert.True(Apply(world, new Workday(F1)).Accepted);
 
         Assert.Null(world.Diagnose().BottleneckOn(PrototypeHome.Home)!.Workday);
@@ -273,7 +344,7 @@ public sealed class DiagnosticsTests
     [Fact]
     public void TheSeaRouteSaysHowMuchOfItsCapacityIsUsedAndWhatWaits()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 1 4 0 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0");
 
         var route = Assert.Single(world.Diagnose().SeaRoutes);
 
@@ -287,7 +358,7 @@ public sealed class DiagnosticsTests
     public void AFullStoreAtHomeHoldsTheShipsBack()
     {
         var world = Edited(
-            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0"),
+            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 1 4 0 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0"),
             stock: (PrototypeHome.Home, Resource.Wool, 150 + 50)); // A storehouse and a jetty.
 
         var route = world.Diagnose().SeaRouteFrom(PrototypeHome.Nyon)!;
@@ -326,7 +397,7 @@ public sealed class DiagnosticsTests
     [Fact]
     public void ReadingTheDiagnosisChangesNothing()
     {
-        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0");
+        var world = Edited(Morning(), stock: (PrototypeHome.Home, Resource.Timber, 18), buildings: "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0");
         string before = world.Fingerprint();
 
         world.Diagnose();
@@ -351,7 +422,7 @@ public sealed class DiagnosticsTests
                 return false;
             }
 
-            // The staffing gives a building all the villagers it needs or none, so one that lacks them lacks at least one.
+            // The staffing gives a building all the villagers it needs none, so one 0 0 0 0 that lacks them lacks at least one.
             if (diagnosis.Buildings.SelectMany(b => b.Hindrances).OfType<MissingStaff>().Any(m => m.Villagers < 1))
             {
                 return false;
@@ -380,7 +451,7 @@ public sealed class DiagnosticsTests
     public void TheDiagnosisForetellsWhatTheShipsCarry()
     {
         var world = Edited(
-            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0"),
+            Edited(Morning(), stock: (PrototypeHome.Nyon, Resource.Wool, 30), buildings: $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 1 4 0 0 0 0 0\nbuilding Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0"),
             stock: (PrototypeHome.Home, Resource.Wool, 190));
         for (int hour = 0; hour < 12; hour++)
         {
@@ -401,7 +472,7 @@ public sealed class DiagnosticsTests
     /// </summary>
     private static void AssertForetellsTheNextQuarterHour(World world)
     {
-        var foretold = world.Settlement.Diagnose().NextStores;
+        var foretold = world.Settlement.Diagnose(world.ActiveTicks).NextStores;
         var next = SimulationSnapshot.Take(world).Restore(world.Map);
         long tick = world.Now.UtcSeconds - (world.Now.UtcSeconds % Settlement.TickSeconds) + Settlement.TickSeconds;
         var events = next.AdvanceTo(new TimeReading(tick, world.Now.ZoneId, world.Now.OffsetSeconds));
@@ -418,11 +489,13 @@ public sealed class DiagnosticsTests
     }
 
     /// <summary>Fishing water at <paramref name="steps"/> steps over land from the start village's storehouse.</summary>
-    private static Hex FishingWater(int steps)
+    private static Hex FishingWater(int steps) => FishingWaters(steps).First();
+
+    private static IEnumerable<Hex> FishingWaters(int steps)
     {
         var world = Morning();
         return Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
-            .First(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.DepotDistance(h) == steps);
+            .Where(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.TripFrom(h).Steps == steps);
     }
 
     /// <summary>Land a sawmill takes at <paramref name="steps"/> steps over land from the start village's storehouse.</summary>
@@ -430,7 +503,20 @@ public sealed class DiagnosticsTests
     {
         var world = Morning();
         return Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
-            .First(h => world.CheckBuild(BuildingKind.Sawmill, h) == Rejection.None && world.DepotDistance(h) == steps);
+            .First(h => world.CheckBuild(BuildingKind.Sawmill, h) == Rejection.None && world.TripFrom(h).Steps == steps);
+    }
+
+    /// <summary>
+    /// The start village with three fishing huts four steps out, more than its one carrier can keep up with, and sixteen
+    /// villagers, three of them free.
+    /// </summary>
+    private static (World World, Hex[] Far) BehindTheCarriers()
+    {
+        var far = FishingWaters(4).Take(3).ToArray();
+        Assert.Equal(3, far.Length);
+        var world = Edited(Morning(), villagers: 16, buildings: string.Join("\n", far.Select(h => $"building FishingHut {h.Q} {h.R} 1 1 0 0 0 0 0 0 0 0 0 0")));
+        Assert.Equal(3, world.FreeVillagers);
+        return (world, far);
     }
 
     /// <summary>The forest tiles a woodcutter on <paramref name="tile"/> reaches: known forest there and around it, unbuilt.</summary>
@@ -450,7 +536,7 @@ public sealed class DiagnosticsTests
         // The other islands' settlements have no villagers, so their jetties are not staffed.
         var jetties = new[] { Archipelago.Home, Archipelago.First, Archipelago.Second }
             .Select(island => (Tile: Archipelago.Map.Features.LandOf(island).First(h => Archipelago.Map.Features.IsHarborSpot(h) && world.BuildingAt(h) is null), Home: island == Archipelago.Home))
-            .Select(jetty => $"building Jetty {jetty.Tile.Q} {jetty.Tile.R} 1 {(jetty.Home ? 1 : 0)} 0 0 0 0");
+            .Select(jetty => jetty.Home ? $"building Jetty {jetty.Tile.Q} {jetty.Tile.R} 1 1 0 0 0 1 4 0 0 0 0 0" : $"building Jetty {jetty.Tile.Q} {jetty.Tile.R} 1 0 0 0 0 0 4 0 0 0 0 0");
         world = Edited(world, stock: (Archipelago.First, Resource.Wool, first));
         world = Edited(world, stock: (Archipelago.Second, Resource.Wool, second));
         return Edited(world, stock: (Archipelago.Home, Resource.Wool, home), buildings: string.Join('\n', jetties));
@@ -473,7 +559,9 @@ public sealed class DiagnosticsTests
         (string Island, Resource Resource, decimal Units)? stock = null,
         int? villagers = null,
         string? buildings = null,
-        IEnumerable<string>? forest = null)
+        IEnumerable<string>? forest = null,
+        IEnumerable<Hex>? roads = null,
+        (string Island, int Villagers)? settlement = null)
     {
         var lines = world.Fingerprint().TrimEnd('\n').Split('\n').ToList();
         if (stock is var (island, resource, units))
@@ -491,6 +579,12 @@ public sealed class DiagnosticsTests
             lines[at] = $"stock {island} {resource} {(long)(units * Unit)}";
         }
 
+        if (settlement is var (settled, people))
+        {
+            int at = lines.FindIndex(l => l.StartsWith($"settlement {settled} ", StringComparison.Ordinal));
+            lines[at] = $"settlement {settled} {people.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        }
+
         if (villagers is int count)
         {
             int at = lines.FindIndex(l => l.StartsWith($"settlement {world.HomeIsland} ", StringComparison.Ordinal));
@@ -506,6 +600,13 @@ public sealed class DiagnosticsTests
         {
             lines.RemoveAll(l => l.StartsWith("forest ", StringComparison.Ordinal));
             lines.InsertRange(lines.FindIndex(l => l.StartsWith("fog ", StringComparison.Ordinal)), forest);
+        }
+
+        if (roads is not null)
+        {
+            var laid = roads.Concat(world.Roads).Distinct().Order().Select(t => $"road {t.Q} {t.R}");
+            lines.RemoveAll(l => l.StartsWith("road ", StringComparison.Ordinal));
+            lines.InsertRange(lines.FindIndex(l => l.StartsWith("forest ", StringComparison.Ordinal) || l.StartsWith("fog ", StringComparison.Ordinal)), laid);
         }
 
         return World.Read(new StateReader(string.Join('\n', lines) + "\n"), world.Map);

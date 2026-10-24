@@ -111,7 +111,7 @@ En gratis planeringsinställning som anger hur mycket av en råvara förädlinge
 _Avoid_: buffert, spärr
 
 **Flaskhals** (`Bottleneck`):
-Det som just nu håller tillbaka en byggnad eller en ö mest: en paus, bemanning som saknas, råvara under minimilagret, fälld skog, fullt lager eller lång väg till förrådet; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
+Det som just nu håller tillbaka en byggnad eller en ö mest: en paus, bemanning som saknas, råvara under minimilagret, fälld skog, fullt lager, inget bemannat förråd eller bärare som inte hinner; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
 _Avoid_: blockering, stopp (som term)
 
 **Långsam process** (`SlowProcess`):
@@ -150,7 +150,7 @@ _Avoid_: krav, efterfrågan, hunger
 Ett steg i epoken där nya befolkningsnivåer, behov och byggnader blir tillgängliga i hela världen när någon bosättning uppfyller stegets villkor, till exempel en viss storlek; ett steg som nåtts låses aldrig igen (D-105, D-114).
 _Avoid_: nivå (om steget), teknikträd
 
-**Utlager** (`OutputBuffer`):
+**Utlager** (`Outbox`):
 Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret är fullt stannar byggnaden, och inget går förlorat (D-107).
 _Avoid_: buffert, kö (om varorna)
 

@@ -38,18 +38,19 @@ public sealed class Strategy
 
     /// <summary>
     /// Närområdet, ordnad: Närområdet with the work ordered (economy-v1.md, section 4.1): the first longhouse first in
-    /// the building queue, and the quarry paused while 100 stone is in store, so that its villagers build instead, until
-    /// the last day.
+    /// the building queue, and the quarry paused from 100 stone in store until it is down below 80, so that its villagers
+    /// build instead, until the last day.
     /// </summary>
     public static Strategy NearOrdered { get; } = new(
         "near-ordered",
         "Närområdet, ordnad",
         Near.Goals,
-        [.. Near.Daily, new QueueFirstUntilBuilt(BuildingKind.Longhouse), new PauseWhileStocked(BuildingKind.Quarry, Resource.Stone, 100)]);
+        [.. Near.Daily, new QueueFirstUntilBuilt(BuildingKind.Longhouse), new PauseWhileStocked(BuildingKind.Quarry, Resource.Stone, 100, 80)]);
 
     /// <summary>
-    /// Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth. The jetty there
-    /// goes first in the queue, so that its settlement is founded and villagers can move there early (D-106).
+    /// Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth. The jetty,
+    /// sheep and stone on the island go before the first housing, which is a cottage (economy-v2.md, section 9), and the
+    /// jetty goes first in the queue, so that its settlement is founded and villagers can move there early (D-106).
     /// </summary>
     public static Strategy Sea { get; } = new(
         "sea",
@@ -59,10 +60,10 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Woodcutter, Placement.Richest),
             new BuildOne(BuildingKind.Sawmill, Placement.Village),
             new SendExpeditionOnce(),
-            new BuildOne(BuildingKind.Longhouse, Placement.Village),
             new BuildOne(BuildingKind.Jetty, Placement.RichGround, Where.ExpeditionIsland),
             new BuildOne(BuildingKind.SheepFarm, Placement.Richest, Where.ExpeditionIslandElseHome),
             new BuildOne(BuildingKind.Quarry, Placement.Richest, Where.ExpeditionIslandElseHome),
+            new BuildOne(BuildingKind.Cottage, Placement.Village),
             new BuildOne(BuildingKind.Weavery, Placement.Village),
             new BuildOne(BuildingKind.Longhouse, Placement.Village),
         ],

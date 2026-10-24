@@ -1,3 +1,5 @@
+using Eirora.Simulation.Map;
+
 namespace Eirora.Simulation.Economy
 {
     /// <summary>
@@ -5,7 +7,7 @@ namespace Eirora.Simulation.Economy
     /// does not reach the store because of it.
     /// </summary>
     /// <remarks>
-    /// Each rule that can hold a building back adds its own kind, so that later rules (bearers, needs) add theirs without
+    /// Each rule that can hold a building back adds its own kind, so that later rules (carriers, needs) add theirs without
     /// changing how a diagnosis is read (TASK-043, D-107). A client that does not know a kind yet can still show the loss.
     /// </remarks>
     public abstract class Hindrance
@@ -102,39 +104,81 @@ namespace Eirora.Simulation.Economy
     }
 
     /// <summary>
-    /// The way to the nearest storehouse or jetty is long, so only part of the production reaches the store
-    /// (economy-v1.md, section 5); with what a road or a storehouse beside it would give, as far as the raw materials, the
-    /// forest and the room in the store let it. Only there when a storehouse beside it would give more.
+    /// The building's outbox is full and waits for the carriers, who keep up over time: what was made while they were
+    /// busy elsewhere waits there, and nothing is lost (INV-R2).
     /// </summary>
-    public sealed class LongWay : Hindrance
+    public sealed class OutboxFull : Hindrance
     {
-        internal LongWay(int steps, int percent, int? roadPercent, long perHour, long withRoadPerHour, long besideDepotPerHour)
-            : base(besideDepotPerHour - perHour)
+        internal OutboxFull(int units, long lostPerHour)
+            : base(lostPerHour) => Units = units;
+
+        /// <summary>Whole units the outbox holds.</summary>
+        public int Units { get; }
+    }
+
+    /// <summary>
+    /// No staffed storehouse or jetty reaches the building over land, so what it makes waits in its outbox until one does
+    /// (economy-v2.md, section 7): a depot without carriers takes over no buildings (D-39).
+    /// </summary>
+    public sealed class NoDepot : Hindrance
+    {
+        internal NoDepot(bool depotStands, long lostPerHour)
+            : base(lostPerHour) => DepotStands = depotStands;
+
+        /// <summary>Whether a storehouse or a jetty stands on the island but has no villager to carry for it.</summary>
+        public bool DepotStands { get; }
+    }
+
+    /// <summary>
+    /// The carriers of the building's depot cannot keep up, so only part of what it makes reaches the store and the rest
+    /// waits in its outbox (economy-v2.md, sections 7 and 7.1); with what a road, one more carrier or a storehouse beside it
+    /// would give, by the same rules as the carriers' own. Rates are an active hour at the building's level without a
+    /// workday, as the depot plans its carriers.
+    /// </summary>
+    public sealed class CarriersBehind : Hindrance
+    {
+        internal CarriersBehind(Trip trip, int sharePercent, long perHour, long fullPerHour, int roadTiles, long withRoadPerHour, long? withCarrierPerHour, Hex? beside, long besideDepotPerHour, bool villagerFree)
+            : base(fullPerHour - perHour)
         {
-            Steps = steps;
-            Percent = percent;
-            RoadPercent = roadPercent;
+            Trip = trip;
+            SharePercent = sharePercent;
             PerHour = perHour;
+            RoadTiles = roadTiles;
             WithRoadPerHour = withRoadPerHour;
+            WithCarrierPerHour = withCarrierPerHour;
+            BesideDepotSite = beside;
             BesideDepotPerHour = besideDepotPerHour;
+            VillagerFree = villagerFree;
         }
 
-        /// <summary>Steps over land to the nearest storehouse or jetty, or <see cref="int.MaxValue"/> when none can be reached.</summary>
-        public int Steps { get; }
+        /// <summary>The way to its depot, and which depot.</summary>
+        public Trip Trip { get; }
 
-        /// <summary>The share of the production that reaches the store, in percent.</summary>
-        public int Percent { get; }
+        /// <summary>The share of what the depot's buildings make that its carriers bring to the store, in percent.</summary>
+        public int SharePercent { get; }
 
-        /// <summary>The share with a road to the storehouse, or null when the building has one or none can be built.</summary>
-        public int? RoadPercent { get; }
-
-        /// <summary>Millionths of a unit an active hour that reach the store now.</summary>
+        /// <summary>Millionths of a unit of the product that reach the store an active hour.</summary>
         public long PerHour { get; }
 
-        /// <summary>What would reach the store with a road; the same as <see cref="PerHour"/> when no road can be built.</summary>
+        /// <summary>The tiles a road to the depot would be laid on; 0 when the way has its road.</summary>
+        public int RoadTiles { get; }
+
+        /// <summary>What would reach the store with the road; the same as <see cref="PerHour"/> when the way has its road.</summary>
         public long WithRoadPerHour { get; }
 
-        /// <summary>What would reach it with a storehouse beside the building, where everything reaches the store.</summary>
+        /// <summary>What would reach it with one more carrier at the depot, or null when it has the most it can take.</summary>
+        public long? WithCarrierPerHour { get; }
+
+        /// <summary>Where a storehouse beside it could stand, or null when none can be built there.</summary>
+        public Hex? BesideDepotSite { get; }
+
+        /// <summary>What would reach the store with that storehouse and its carrier; <see cref="PerHour"/> without a site.</summary>
         public long BesideDepotPerHour { get; }
+
+        /// <summary>
+        /// Whether a villager is free to carry; when none is, one more carrier or a new storehouse takes nobody from
+        /// another building, and comes when a villager is free (D-39).
+        /// </summary>
+        public bool VillagerFree { get; }
     }
 }

@@ -1,73 +1,130 @@
 using System.Collections.Generic;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Map;
+using static Eirora.Simulation.Economy.Logistics;
 
 namespace Eirora.Simulation.Economy
 {
     /// <summary>
-    /// The bottleneck diagnosis (TASK-043): why a building or a settlement stands still, read from the economy.
+    /// The bottleneck diagnosis (TASK-043, TASK-050, TASK-051): why a building or a settlement stands still, read from the
+    /// economy.
     /// </summary>
     /// <remarks>
-    /// The diagnosis walks the work of the next quarter hour with the villagers awake as <see cref="Tick"/> does it,
-    /// on copies of the stores, the goods waiting at the depots and the forest, and never changes the state (INV-D2).
-    /// What a road, a storehouse beside the building or its villagers would give is the same walk on further copies,
-    /// so every gain is limited by the raw materials, the forest and the room as the rules would limit it. The walk
-    /// leaves out the building queue: a quarter hour in which a project finishes can staff, upgrade or give a road to a
-    /// building before it works, and the diagnosis then tells what the buildings would make as they stand now. Its only
-    /// writes are the caches of depot distances and the woods list, which are not state.
-    /// DiagnosticsTests.TheDiagnosisForetellsTheNextQuarterHour keeps it in step with the rules.
+    /// The diagnosis plays the work of the next quarter hour with the villagers awake on a copy of the settlement, with
+    /// the same code as <see cref="Tick"/>, so it cannot drift from the rules and never changes the state (INV-D2). What
+    /// reaches the store over time is the carriers' share, as the depots plan their carriers at dawn: every building's goods
+    /// need carrier-hours, and a depot whose carriers have fewer brings that share of them (economy-v2.md, section 7.1).
+    /// What a road, one more carrier or a new storehouse would give is the same reckoning with the road, the carrier or the
+    /// storehouse added. The walk leaves out the building queue: a quarter hour in which a project finishes can staff,
+    /// upgrade or lay a road before the buildings work, and the diagnosis then tells what they would make as they stand
+    /// now. Its only writes are the caches of the carriers' ways and the woods list, which are not state.
     /// </remarks>
     internal sealed partial class Settlement
     {
-        public Diagnostics Diagnose()
+        public Diagnostics Diagnose(int activeTicks)
         {
-            // The goods waiting at the depots move in first, as in Tick.
-            var stores = new Dictionary<string, long[]>(System.StringComparer.Ordinal);
-            var free = new Dictionary<string, int>(System.StringComparer.Ordinal); // As StaffBuildings gives them out: in the staffing order.
-            foreach (var island in _islands)
+            var next = CopyForWork();
+            next.GrowSlowProcesses(1);
+            next.Unload();
+            var made = new long[_buildings.Count];
+            var supply = new long[_buildings.Count];
+            next.Produce(made, supply);
+            next.Carry();
+            var seaRoutes = DiagnoseSeaRoutes(next._stores);
+
+            var reaches = new Dictionary<string, Reach>(System.StringComparer.Ordinal);
+            Reach ReachOf(string island)
             {
-                var store = (long[])_stores[island].Clone();
-                if (_atDepots.TryGetValue(island, out var waiting))
+                if (!reaches.TryGetValue(island, out var reach))
                 {
-                    for (int r = 0; r < s_resourceCount; r++)
-                    {
-                        Add(store, (Resource)r, waiting[r], StorageCapacity(island));
-                    }
+                    reach = ReachOn(island, activeTicks, null, null, null);
+                    reaches.Add(island, reach);
                 }
 
-                stores[island] = store;
+                return reach;
+            }
+
+            var advice = new Dictionary<Hex, Advice>();
+            var buildings = new List<BuildingDiagnosis>(_buildings.Count);
+            // As StaffBuildings gives them out: each island's in the staffing order, after the carriers the depots took at
+            // dawn.
+            var free = new Dictionary<string, int>(System.StringComparer.Ordinal);
+            foreach (var island in _islands)
+            {
                 free[island] = _settlements[island].Villagers;
             }
 
-            var forest = new Dictionary<Hex, long>(); // Timber left on the tiles felled so far this quarter hour.
-            var buildings = new List<BuildingDiagnosis>(_buildings.Count);
             foreach (var building in _buildings)
             {
+                free[building.Island] -= IsDepot(building.Kind) && building.Carriers > 1 ? building.Carriers - 1 : 0;
+            }
+
+            for (int i = 0; i < _buildings.Count; i++)
+            {
+                var building = _buildings[i];
                 var spec = _content.For(building.Kind);
                 int left = free[building.Island];
                 int lacking = !building.Staffed && !building.Paused && spec.Staff > left ? spec.Staff - left : 0;
                 free[building.Island] = left - (building.Staffed ? spec.Staff : 0);
 
                 // Staffing matters only to what a building makes: a storehouse or a jetty without its villagers still
-                // stores goods and is a depot, so it never stands still for want of them.
-                buildings.Add(spec.Recipe is Recipe recipe
-                    ? DiagnoseProduction(building, recipe, lacking, stores[building.Island], forest)
-                    : new BuildingDiagnosis(building, Production.None, null, 0, System.Array.Empty<Hindrance>()));
+                // stores goods, so it never stands still for want of them.
+                if (spec.Recipe is not Recipe recipe)
+                {
+                    buildings.Add(new BuildingDiagnosis(building, Production.None, null, 0, System.Array.Empty<Hindrance>()));
+                }
+                else if (!building.Staffed)
+                {
+                    // What it would make with its villagers, here and now, is what the pause or the missing villagers cost.
+                    long would = PerHour(Supply(building, recipe, null));
+                    var why = building.Paused ? (Hindrance)new Paused(would) : new MissingStaff(lacking, would);
+                    buildings.Add(new BuildingDiagnosis(building, Production.Stopped, recipe.Product, 0, new[] { why }));
+                }
+                else
+                {
+                    buildings.Add(DiagnoseProduction(building, recipe, made[i], supply[i], activeTicks, ReachOf(MapIslandOf(building.Tile) ?? _home), advice));
+                }
             }
 
-            var seaRoutes = DiagnoseSeaRoutes(stores);
+            var depots = new List<DepotDiagnosis>();
+            foreach (var depot in _buildings)
+            {
+                if (IsDepot(depot.Kind))
+                {
+                    depots.Add(DiagnoseDepot(depot, activeTicks, ReachOf(MapIslandOf(depot.Tile) ?? _home), advice));
+                }
+            }
+
             var settlements = new List<SettlementDiagnosis>(_islands.Count);
             foreach (var island in _islands)
             {
                 settlements.Add(DiagnoseSettlement(_settlements[island], BottleneckOn(island, buildings)));
             }
 
-            return new Diagnostics(buildings, seaRoutes, settlements, stores);
+            // The queue stands still when no project has a free villager to build it, and the carriers took those who
+            // would have: every villager that no building on those islands needs carries (D-109).
+            bool queueStandsStill = _projects.Count > 0;
+            bool carrying = false;
+            var pools = new List<string>();
+            foreach (var project in _projects)
+            {
+                foreach (var island in PoolsOf(project, pools))
+                {
+                    queueStandsStill &= FreeVillagersOf(_settlements[island]) == 0;
+                    foreach (var depot in _buildings)
+                    {
+                        carrying |= depot.Island == island && depot.Carriers > 1;
+                    }
+                }
+            }
+
+            return new Diagnostics(buildings, depots, seaRoutes, settlements, next._stores, queueStandsStill && carrying);
         }
 
         /// <summary>
         /// Whether a settlement would grow if dawn came now and what holds it back (economy-v2.md, section 6): villagers,
-        /// food in its own store for every one of them and housing for one more. Where its buildings lack villagers, the free villagers
-        /// of the settlements a sea route joins to it can move there, one a dawn in the whole world.
+        /// food in its own store for every one of them and housing for one more. Where its buildings lack villagers, the
+        /// free villagers of the settlements a sea route joins to it can move there, one a dawn in the whole world.
         /// </summary>
         private SettlementDiagnosis DiagnoseSettlement(IslandSettlement settlement, Bottleneck? bottleneck)
         {
@@ -87,173 +144,290 @@ namespace Eirora.Simulation.Economy
             return new SettlementDiagnosis(settlement, Quantity.Whole(food), growth, room, MissingStaffOn(settlement.Island), nearby, bottleneck);
         }
 
-        private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, int lacking, long[] store, Dictionary<Hex, long> forest)
+        private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, long made, long supply, int activeTicks, Reach reach, Dictionary<Hex, Advice> advice)
         {
             var hindrances = new List<Hindrance>();
-            int distance = DistancePercent(building);
-            if (!building.Staffed)
-            {
-                // What it would make with its villagers, here and now, is what the pause or the missing villagers cost.
-                long would = WorkOf(building, recipe, distance, (long[])store.Clone(), new Dictionary<Hex, long>(forest)).Made;
-                hindrances.Add(building.Paused ? new Paused(PerHour(would)) : new MissingStaff(lacking, PerHour(would)));
-                return new BuildingDiagnosis(building, Production.Stopped, recipe.Product, 0, hindrances);
-            }
+            var store = _stores[building.Island];
+            long full = Potential(building, recipe);
 
-            // Beside a depot and with a road, from the same stores and forest as the work itself.
-            var ideal = WorkOf(building, recipe, 100, (long[])store.Clone(), new Dictionary<Hex, long>(forest));
-            int steps = DepotDistance(building.Tile);
-            int? road = distance < 100 && !building.HasRoad && steps > 1 && steps != Unreachable ? DistancePercent(steps, true) : null;
-            var withRoad = road is int percent ? WorkOf(building, recipe, percent, (long[])store.Clone(), new Dictionary<Hex, long>(forest)) : default;
-            var now = WorkOf(building, recipe, distance, store, forest);
-
-            // Raw materials and nature, against what it makes at full pace beside a depot with nothing else holding it back.
-            long full = Potential(building, recipe, 100);
+            // Raw materials and nature, against what it makes at full pace with nothing else holding it back.
             if (recipe.Inputs.Count > 0)
             {
                 foreach (var input in recipe.Inputs)
                 {
-                    long stock = now.Stocks[input.Resource];
-                    long available = stock - Quantity.Units(ProcessingReserve);
-                    long enough = available > 0 ? available / input.PerProduct : 0;
+                    long stock = store[(int)input.Resource];
+                    long held = building.Held![(int)input.Resource];
+                    long available = held + Max(stock - Quantity.Units(ProcessingReserve), 0);
+                    long enough = available / input.PerProduct;
                     if (enough < full)
                     {
-                        // What a full hour at full pace takes above the reserve, in whole units rounded up.
-                        long wanted = Quantity.Units(ProcessingReserve) + (input.PerProduct * full * Recipe.TicksPerHour) - stock;
+                        // What a full hour at full pace takes above the reserve and what it holds, in whole units rounded up.
+                        long wanted = Quantity.Units(ProcessingReserve) + (input.PerProduct * full * Recipe.TicksPerHour) - stock - held;
                         hindrances.Add(new WaitingForInput(
                             input.Resource, Quantity.Whole(stock), ProcessingReserve, (wanted + Quantity.PerUnit - 1) / Quantity.PerUnit, PerHour(full - enough)));
                     }
                 }
             }
-            else if (recipe.ForestTiles > 0 && ideal.Supply < full)
+            else if (recipe.ForestTiles > 0 && supply < full)
             {
-                hindrances.Add(new ForestFelled(now.Felled, now.InReach, PerHour(full - ideal.Supply)));
+                var (bare, inReach) = Bare(building, recipe);
+                hindrances.Add(new ForestFelled(bare, inReach, PerHour(full - supply)));
             }
 
-            if (now.Made < now.Supply)
+            // The way to the store: a depot whose carriers reach it, room in the store, and carriers enough.
+            var trip = TripFrom(building.Tile);
+            long room = StorageCapacity(building.Island) - store[(int)recipe.Product];
+            bool explained = true;
+            if (!trip.Reaches)
             {
-                // What a full store costs a slow process over time is what grows; what has grown waits on the field.
-                long lost = now.Supply - now.Made;
-                hindrances.Add(new StoreFull(recipe.Product, (int)Quantity.Whole(StorageCapacity(building.Island)), PerHour(recipe.IsSlowProcess ? Min(lost, now.Grows) : lost)));
+                hindrances.Add(new NoDepot(DepotOn(building.Island), PerHour(full)));
+            }
+            else if (room < PerHour(full))
+            {
+                hindrances.Add(new StoreFull(recipe.Product, (int)Quantity.Whole(StorageCapacity(building.Island)), PerHour(full) - Max(room, 0)));
+            }
+            else if (reach.Share[trip.Depot] < Quantity.PerUnit)
+            {
+                hindrances.Add(Behind(building, recipe, trip, activeTicks, reach, advice));
+            }
+            else
+            {
+                explained = false;
             }
 
-            if (ideal.Made > now.Made)
+            // An outbox the carriers have yet to empty, though they keep up over time.
+            if (made < supply && !explained)
             {
-                hindrances.Add(new LongWay(steps, distance, road, PerHour(now.Made), PerHour(road is null ? now.Made : withRoad.Made), PerHour(ideal.Made)));
+                hindrances.Add(new OutboxFull(OutboxUnits, PerHour(supply - made)));
             }
 
-            var production = now.Made == 0 ? Production.Stopped : hindrances.Count == 0 ? Production.Full : Production.Reduced;
-            return new BuildingDiagnosis(building, production, recipe.Product, PerHour(now.Made), hindrances);
+            bool hindered = false;
+            foreach (var hindrance in hindrances)
+            {
+                hindered |= hindrance.LostPerHour > 0;
+            }
+
+            var production = made == 0 ? Production.Stopped : hindered || made < full ? Production.Reduced : Production.Full;
+            return new BuildingDiagnosis(building, production, recipe.Product, PerHour(made), hindrances);
         }
 
-        /// <summary>
-        /// A staffed building's work in the next quarter hour at <paramref name="distance"/> percent, as <see cref="Produce"/>
-        /// does it, on <paramref name="store"/> and <paramref name="forest"/>, which it changes as the work would.
-        /// </summary>
-        private QuarterOfWork WorkOf(Building building, Recipe recipe, int distance, long[] store, Dictionary<Hex, long> forest)
+        /// <summary>Why the carriers do not bring a building's goods to the store, and what a road, a carrier or a storehouse would give.</summary>
+        private CarriersBehind Behind(Building building, Recipe recipe, Trip trip, int activeTicks, Reach reach, Dictionary<Hex, Advice> advice)
         {
-            long capacity = StorageCapacity(building.Island);
-            int level = LevelPercent(building), workday = WorkdayPercent(building);
-            var stocks = new Dictionary<Resource, long>();
-            foreach (var input in recipe.Inputs)
-            {
-                stocks[input.Resource] = store[(int)input.Resource];
-            }
-
-            if (recipe.ForestTiles > 0)
-            {
-                return Felling(building, recipe, store, forest, capacity, distance, stocks);
-            }
-
-            if (recipe.IsSlowProcess)
-            {
-                // A staffed field or sheep farm grows before the villagers harvest it (Tick).
-                long grows = Scale(TileRate(recipe.GrowsPerTick, recipe, building.Tile), distance, level, workday);
-                long ripe = Min(building.Ripe + grows, Scale(recipe.PerTick, distance, level, workday));
-                return new QuarterOfWork(ripe, Add(store, recipe.Product, ripe, capacity), stocks, grows);
-            }
-
-            long most = Scale(TileRate(recipe.PerTick, recipe, building.Tile), distance, level, workday);
-            foreach (var input in recipe.Inputs)
-            {
-                long available = store[(int)input.Resource] - Quantity.Units(ProcessingReserve);
-                most = Min(most, available > 0 ? available / input.PerProduct : 0);
-            }
-
-            long made = Add(store, recipe.Product, most, capacity);
-            foreach (var input in recipe.Inputs)
-            {
-                store[(int)input.Resource] -= input.PerProduct * made;
-            }
-
-            return new QuarterOfWork(most, made, stocks);
+            var depot = BuildingAt(trip.Depot)!;
+            var help = AdviceFor(building, depot, activeTicks, reach, advice);
+            long now = reach.PerHour[building.Tile];
+            return new CarriersBehind(
+                trip,
+                (int)(reach.Share[trip.Depot] * 100 / Quantity.PerUnit),
+                now,
+                NominalPerHour(building, recipe, activeTicks),
+                help.Road.Count,
+                help.WithRoad?.PerHour[building.Tile] ?? now,
+                help.WithCarrier?.PerHour[building.Tile],
+                help.Site,
+                help.Beside?.PerHour[building.Tile] ?? now,
+                FreeVillagersOf(_settlements[depot.Island]) > 0);
         }
 
-        /// <summary>What a woodcutter fells, as <see cref="Fell(Building, Recipe, long[], long, int, int, int)"/> does.</summary>
-        private QuarterOfWork Felling(Building building, Recipe recipe, long[] store, Dictionary<Hex, long> forest, long capacity, int distance, Dictionary<Resource, long> stocks)
+        /// <summary>What a road along a building's way, one more carrier at its depot and a storehouse beside it would give.</summary>
+        private Advice AdviceFor(Building building, Building depot, int activeTicks, Reach reach, Dictionary<Hex, Advice> advice)
         {
-            long Left(Hex tile)
+            if (advice.TryGetValue(building.Tile, out var known))
             {
-                if (forest.TryGetValue(tile, out long left))
-                {
-                    return left;
-                }
-
-                // The forest grows back before the villagers work (Tick).
-                long grown = ForestLeft(tile) + ForestRegrowthPerTick;
-                return grown < ForestPerTile ? grown : ForestPerTile;
+                return known;
             }
 
-            // Sorted as Woods sorts them, but by the timber left once the forest has grown and others have felled.
-            var woods = new List<Hex>();
-            foreach (var tile in Woods(building.Tile))
+            string island = MapIslandOf(building.Tile)!;
+            var road = RoadToDepot(building.Tile);
+            var help = new Advice(road)
             {
-                int at = woods.Count;
-                while (at > 0 && FellsBefore(tile, woods[at - 1], Left))
-                {
-                    at--;
-                }
+                WithRoad = road.Count > 0 ? ReachOn(island, activeTicks, new HashSet<Hex>(road), null, null) : null,
+                WithCarrier = depot.Carriers < MostCarriers ? ReachOn(island, activeTicks, null, null, depot.Tile) : null,
+            };
 
-                woods.Insert(at, tile);
-            }
-
-            long felling = 0, made = 0;
-            int felled = 0, bare = 0;
-            foreach (var tile in woods)
+            // The site beside it where a storehouse would bring most of its goods; the first counter-clockwise from east.
+            for (int direction = 0; direction < Hex.Directions; direction++)
             {
-                long rate = Scale(TileRate(recipe.PerTick, recipe, tile), distance, LevelPercent(building), WorkdayPercent(building));
-                long left = Left(tile);
-                bare += left < rate ? 1 : 0;
-                if (left == 0 || felled == recipe.ForestTiles)
+                var site = building.Tile.Neighbour(direction);
+                if (CheckBuild(BuildingKind.Storehouse, site) != Rejection.None || MapIslandOf(site) != island)
                 {
                     continue;
                 }
 
-                long wanted = Min(rate, left);
-                long timber = Add(store, recipe.Product, wanted, capacity);
-                forest[tile] = left - timber;
-                felling += wanted;
-                made += timber;
-                felled++;
+                var beside = ReachOn(island, activeTicks, null, site, null);
+                if (help.Beside is null || beside.PerHour[building.Tile] > help.Beside.PerHour[building.Tile])
+                {
+                    help.Site = site;
+                    help.Beside = beside;
+                }
             }
 
-            return new QuarterOfWork(felling, made, stocks, felled: bare, inReach: woods.Count);
+            advice[building.Tile] = help;
+            return help;
         }
 
-        private bool FellsBefore(Hex a, Hex b, System.Func<Hex, long> left)
+        private DepotDiagnosis DiagnoseDepot(Building depot, int activeTicks, Reach reach, Dictionary<Hex, Advice> advice)
         {
-            int richness = _map.RichnessAt(a).CompareTo(_map.RichnessAt(b));
-            if (richness != 0)
+            var serves = new List<Building>();
+            foreach (var building in _buildings)
             {
-                return richness > 0;
+                var trip = TripFrom(building.Tile);
+                if (!IsDepot(building.Kind) && trip.Reaches && trip.Depot == depot.Tile && _content.For(building.Kind).Recipe is not null)
+                {
+                    serves.Add(building);
+                }
             }
 
-            int timber = left(a).CompareTo(left(b));
-            return timber != 0 ? timber > 0 : a < b;
+            long need = reach.Need.TryGetValue(depot.Tile, out long n) ? n : 0;
+            long share = reach.Share.TryGetValue(depot.Tile, out long s) ? s : Quantity.PerUnit;
+            IReadOnlyList<Gain>? withCarrier = null;
+            RoadAdvice? road = null;
+            StorehouseAdvice? storehouse = null;
+            if (depot.Carriers > 0 && depot.Carriers < MostCarriers)
+            {
+                withCarrier = Gains(reach, ReachOn(MapIslandOf(depot.Tile)!, activeTicks, null, null, depot.Tile));
+            }
+
+            if (share < Quantity.PerUnit)
+            {
+                long bestRoad = 0, bestSite = 0;
+                foreach (var building in serves)
+                {
+                    if (!building.Staffed)
+                    {
+                        continue;
+                    }
+
+                    var help = AdviceFor(building, depot, activeTicks, reach, advice);
+                    if (help.WithRoad is Reach withRoad && Total(reach, withRoad) is long gained && gained > bestRoad)
+                    {
+                        bestRoad = gained;
+                        road = new RoadAdvice(building, help.Road, Gains(reach, withRoad));
+                    }
+
+                    if (help.Beside is Reach beside && help.Site is Hex site && Total(reach, beside) is long more && more > bestSite)
+                    {
+                        bestSite = more;
+                        storehouse = new StorehouseAdvice(site, building, Gains(reach, beside));
+                    }
+                }
+            }
+
+            return new DepotDiagnosis(depot, need, (int)(share * 100 / Quantity.PerUnit), serves, withCarrier, road, storehouse, FreeVillagersOf(_settlements[depot.Island]) > 0);
         }
 
         /// <summary>
-        /// The ships' next quarter hour on every sea route, as <see cref="Ship"/> does, after the islands' production: the
-        /// routes in map order, each sharing the home island's store with those before it.
+        /// What reaches the store from each building on an island an active hour, as the depots plan their carriers:
+        /// each depot's carriers, a workday counted, against the carrier-hours its buildings need, with
+        /// <paramref name="roads"/>, a staffed <paramref name="depot"/> with one carrier, or one more carrier at
+        /// <paramref name="carrier"/> added. Each building keeps its depot, with the roads too; a new depot takes over
+        /// the buildings it reaches fastest, as it would at the next dawn.
+        /// </summary>
+        private Reach ReachOn(string island, int activeTicks, ICollection<Hex>? roads, Hex? depot, Hex? carrier)
+        {
+            var nearest = depot is not null ? Walk(island, roads, depot, null) : null;
+            var walks = new Dictionary<Hex, Dictionary<Hex, Trip>>();
+            var reach = new Reach();
+            foreach (var building in _buildings)
+            {
+                if (!IsDepot(building.Kind) && MapIslandOf(building.Tile) == island)
+                {
+                    var trip = TripFrom(building.Tile);
+                    if (nearest is not null)
+                    {
+                        trip = TripOn(nearest, building.Tile, island, roads);
+                    }
+                    else if (roads is not null && trip.Reaches)
+                    {
+                        if (!walks.TryGetValue(trip.Depot, out var walk))
+                        {
+                            walk = Walk(island, roads, null, trip.Depot);
+                            walks.Add(trip.Depot, walk);
+                        }
+
+                        trip = TripOn(walk, building.Tile, island, roads);
+                    }
+
+                    reach.Trips[building.Tile] = trip;
+                    if (trip.Reaches)
+                    {
+                        reach.Need[trip.Depot] = (reach.Need.TryGetValue(trip.Depot, out long need) ? need : 0) + NeedOf(building, trip, activeTicks);
+                    }
+                }
+            }
+
+            void Share(Hex tile, int carriers, int workday)
+            {
+                long hours = carriers * Quantity.PerUnit * workday / 100;
+                long need = reach.Need.TryGetValue(tile, out long n) ? n : 0;
+                reach.Share[tile] = need <= hours ? Quantity.PerUnit : hours * Quantity.PerUnit / need;
+            }
+
+            foreach (var building in _buildings)
+            {
+                if (IsDepot(building.Kind) && building.Carriers > 0 && MapIslandOf(building.Tile) == island)
+                {
+                    int carriers = building.Carriers + (building.Tile == carrier ? 1 : 0);
+                    Share(building.Tile, carriers, WorkdayPercent(building));
+                }
+            }
+
+            if (depot is Hex site)
+            {
+                Share(site, 1, 100);
+            }
+
+            foreach (var building in _buildings)
+            {
+                if (reach.Trips.TryGetValue(building.Tile, out var trip) && _content.For(building.Kind).Recipe is Recipe recipe)
+                {
+                    long nominal = building.Staffed ? NominalPerHour(building, recipe, activeTicks) : 0;
+                    reach.PerHour[building.Tile] = trip.Reaches ? nominal * reach.Share[trip.Depot] / Quantity.PerUnit : 0;
+                }
+            }
+
+            return reach;
+        }
+
+        /// <summary>How much more of each resource reaches the store in <paramref name="then"/> than <paramref name="now"/>, in resource order.</summary>
+        private List<Gain> Gains(Reach now, Reach then)
+        {
+            var more = new long[s_resourceCount];
+            foreach (var building in _buildings)
+            {
+                if (now.PerHour.TryGetValue(building.Tile, out long before) && _content.For(building.Kind).Recipe is Recipe recipe)
+                {
+                    more[(int)recipe.Product] += then.PerHour[building.Tile] - before;
+                }
+            }
+
+            var gains = new List<Gain>();
+            for (int resource = 0; resource < s_resourceCount; resource++)
+            {
+                if (more[resource] != 0)
+                {
+                    gains.Add(new Gain((Resource)resource, more[resource]));
+                }
+            }
+
+            return gains;
+        }
+
+        private long Total(Reach now, Reach then)
+        {
+            long total = 0;
+            foreach (var gain in Gains(now, then))
+            {
+                total += gain.PerHour;
+            }
+
+            return total;
+        }
+
+        /// <summary>
+        /// The ships' next quarter hour on every sea route, as <see cref="Ship"/> does, after the islands' work: the routes
+        /// in map order, each sharing the room in the home island's store with those before it.
         /// </summary>
         private List<SeaRouteDiagnosis> DiagnoseSeaRoutes(Dictionary<string, long[]> stores)
         {
@@ -313,9 +487,9 @@ namespace Eirora.Simulation.Economy
         /// <summary>
         /// The hindrance on the island that costs most; first in the settlement's order when two cost the same. A pause is
         /// the player's own choice and never the bottleneck. A missing raw material is eased by a workday on the building
-        /// that makes it.
+        /// that makes it, and carriers that cannot keep up by a workday on their depot.
         /// </summary>
-        private static Bottleneck? BottleneckOn(string island, List<BuildingDiagnosis> buildings)
+        private Bottleneck? BottleneckOn(string island, List<BuildingDiagnosis> buildings)
         {
             BuildingDiagnosis? worst = null;
             Hindrance? why = null;
@@ -355,76 +529,187 @@ namespace Eirora.Simulation.Economy
                     }
                 }
             }
+            else if (why is CarriersBehind behind && BuildingAt(behind.Trip.Depot) is { Staffed: true, WorkdayToday: false } depot)
+            {
+                workday = depot;
+            }
 
             return new Bottleneck(worst, why, workday);
         }
 
         /// <summary>
-        /// What the building makes in a quarter hour at <paramref name="distance"/> percent when nothing holds it back: for a
-        /// slow process what grows, and for a woodcutter what the forest tiles it reaches give when full.
+        /// What the building makes in a quarter hour when nothing holds it back: for a slow process what grows, and for a
+        /// woodcutter what the forest tiles it reaches give when full.
         /// </summary>
-        private long Potential(Building building, Recipe recipe, int distance)
+        private long Potential(Building building, Recipe recipe)
         {
             int level = LevelPercent(building), workday = WorkdayPercent(building);
             if (recipe.IsSlowProcess)
             {
-                return Scale(TileRate(recipe.GrowsPerTick, recipe, building.Tile), distance, level, workday);
+                return Scale(TileRate(recipe.GrowsPerTick, recipe, building.Tile), level, workday);
             }
 
             if (recipe.ForestTiles == 0)
             {
-                return Scale(TileRate(recipe.PerTick, recipe, building.Tile), distance, level, workday);
+                return Scale(TileRate(recipe.PerTick, recipe, building.Tile), level, workday);
             }
 
             // Woods lists the richest first; with no forest left in reach, what it would fell from plain forest.
             var woods = Woods(building.Tile);
             if (woods.Count == 0)
             {
-                return recipe.ForestTiles * Scale(recipe.PerTick, distance, level, workday);
+                return recipe.ForestTiles * Scale(recipe.PerTick, level, workday);
             }
 
             long potential = 0;
             for (int i = 0; i < woods.Count && i < recipe.ForestTiles; i++)
             {
-                potential += Scale(TileRate(recipe.PerTick, recipe, woods[i]), distance, level, workday);
+                potential += Scale(TileRate(recipe.PerTick, recipe, woods[i]), level, workday);
             }
 
             return potential;
         }
 
+        /// <summary>
+        /// What a building could make in the next quarter hour if it were staffed, with room in its outbox: as fast as it
+        /// works, as far as the raw materials in the store and at the building and the forest after it grows let it.
+        /// </summary>
+        private long Supply(Building building, Recipe recipe, long[]? store)
+        {
+            long full = Potential(building, recipe);
+            store ??= _stores[building.Island];
+            if (recipe.Inputs.Count > 0)
+            {
+                foreach (var input in recipe.Inputs)
+                {
+                    long available = building.Held![(int)input.Resource] + Max(store[(int)input.Resource] - Quantity.Units(ProcessingReserve), 0);
+                    full = Min(full, available / input.PerProduct);
+                }
+
+                return full;
+            }
+
+            if (recipe.ForestTiles == 0)
+            {
+                return full;
+            }
+
+            long felling = 0;
+            int felled = 0;
+            int level = LevelPercent(building), workday = WorkdayPercent(building);
+            foreach (var tile in Woods(building.Tile))
+            {
+                long left = Min(ForestLeft(tile) + ForestRegrowthPerTick, ForestPerTile);
+                felling += Min(Scale(TileRate(recipe.PerTick, recipe, tile), level, workday), left);
+                if (++felled == recipe.ForestTiles)
+                {
+                    break;
+                }
+            }
+
+            return felling;
+        }
+
+        /// <summary>The woodcutter's forest tiles with too little timber for a full quarter hour once grown, and all it reaches.</summary>
+        private (int Bare, int InReach) Bare(Building building, Recipe recipe)
+        {
+            int bare = 0;
+            var woods = Woods(building.Tile);
+            foreach (var tile in woods)
+            {
+                long left = Min(ForestLeft(tile) + ForestRegrowthPerTick, ForestPerTile);
+                bare += left < Scale(TileRate(recipe.PerTick, recipe, tile), LevelPercent(building), WorkdayPercent(building)) ? 1 : 0;
+            }
+
+            return (bare, woods.Count);
+        }
+
+        /// <summary>Whether a storehouse or a jetty stands on the island, staffed or not.</summary>
+        private bool DepotOn(string island)
+        {
+            foreach (var building in _buildings)
+            {
+                if (IsDepot(building.Kind) && building.Island == island)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>The settlement as it is, for the diagnosis to play a quarter hour of work on; the fog is shared, since work never lifts it.</summary>
+        private Settlement CopyForWork()
+        {
+            var copy = new Settlement(_map, Fog, _founding, _content) { SurveysDone = SurveysDone };
+            foreach (var island in _islands)
+            {
+                copy._stores.Add(island, (long[])_stores[island].Clone());
+                copy._islands.Add(island);
+                copy._settlements.Add(island, new IslandSettlement(copy, island) { Villagers = _settlements[island].Villagers });
+                if (_atDepots.TryGetValue(island, out var atDepots))
+                {
+                    copy._atDepots.Add(island, (long[])atDepots.Clone());
+                }
+            }
+
+            _owed.CopyTo(copy._owed, 0);
+
+            foreach (var building in _buildings)
+            {
+                var twin = building.Copy();
+                copy._buildings.Add(twin);
+                copy._buildingAt.Add(twin.Tile, twin);
+            }
+
+            foreach (var forest in _felled)
+            {
+                copy._felled.Add(forest.Key, forest.Value);
+            }
+
+            foreach (var road in _roads)
+            {
+                copy._roads.Add(road);
+            }
+
+            return copy;
+        }
+
         private long TileRate(long perTick, Recipe recipe, Hex tile) => recipe.Richness ? Scale(perTick, _map.RichnessAt(tile)) : perTick;
 
         private static long PerHour(long perTick) => perTick * Recipe.TicksPerHour;
-    }
 
-    /// <summary>One building's work in a quarter hour, as the diagnosis walks it.</summary>
-    internal readonly struct QuarterOfWork
-    {
-        public QuarterOfWork(long supply, long made, Dictionary<Resource, long> stocks, long grows = 0, int felled = 0, int inReach = 0)
+        private static long Max(long a, long b) => a > b ? a : b;
+
+        /// <summary>What reaches the store on an island by the carriers' plan: each building's trip and rate, each depot's need and share.</summary>
+        private sealed class Reach
         {
-            Supply = supply;
-            Made = made;
-            Stocks = stocks;
-            Grows = grows;
-            Felled = felled;
-            InReach = inReach;
+            public Dictionary<Hex, Trip> Trips { get; } = new();
+
+            /// <summary>Millionths of carrier-hours an active hour, by the depot's tile.</summary>
+            public Dictionary<Hex, long> Need { get; } = new();
+
+            /// <summary>Millionths of what its buildings make that reaches the store, by the depot's tile.</summary>
+            public Dictionary<Hex, long> Share { get; } = new();
+
+            /// <summary>Millionths of a unit an active hour, by the building's tile.</summary>
+            public Dictionary<Hex, long> PerHour { get; } = new();
         }
 
-        /// <summary>What the raw materials, the forest or the harvest let it make before the room in the store.</summary>
-        public long Supply { get; }
+        /// <summary>What a road, a carrier and a storehouse would give, worked out once for each building.</summary>
+        private sealed class Advice
+        {
+            public Advice(List<Hex> road) => Road = road;
 
-        /// <summary>What reaches the store.</summary>
-        public long Made { get; }
+            public List<Hex> Road { get; }
 
-        /// <summary>Each raw material in the store when it starts.</summary>
-        public Dictionary<Resource, long> Stocks { get; }
+            public Reach? WithRoad { get; set; }
 
-        /// <summary>What a slow process grows in the quarter hour.</summary>
-        public long Grows { get; }
+            public Reach? WithCarrier { get; set; }
 
-        /// <summary>The woodcutter's forest tiles with too little timber for a full quarter hour, and all it reaches.</summary>
-        public int Felled { get; }
+            public Hex? Site { get; set; }
 
-        public int InReach { get; }
+            public Reach? Beside { get; set; }
+        }
     }
 }

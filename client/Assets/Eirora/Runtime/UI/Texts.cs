@@ -149,12 +149,12 @@ namespace Eirora.Client.UI
         public static string? Staffing(Building building, BuildingSpec spec) =>
             spec.Staff == 0 ? null : building.Paused ? "pausad" : building.Staffed ? "i arbete" : "väntar på bybor";
 
-        /// <summary>What a project in the queue makes: a building, a level or a road.</summary>
+        /// <summary>What a project in the queue makes: a building, a level or a road on a tile.</summary>
         public static string Project(Project project) => project.Kind switch
         {
-            ProjectKind.Upgrade => $"{Name(project.Building)} till nivå 2",
-            ProjectKind.Road => $"Väg till {Name(project.Building).ToLowerInvariant()}",
-            _ => Name(project.Building),
+            ProjectKind.Upgrade => $"{Name(project.Building!.Value)} till nivå 2",
+            ProjectKind.Road => "Väg",
+            _ => Name(project.Building!.Value),
         };
 
         /// <summary>The work hours a project has left, rounded up.</summary>
@@ -233,7 +233,7 @@ namespace Eirora.Client.UI
 
             return kind switch
             {
-                BuildingKind.Storehouse => "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer.",
+                BuildingKind.Storehouse => "Rymmer 150 av varje vara. Bärarna hämtar det byggnaderna närmast gör.",
                 BuildingKind.Lookout => "Kartläggning och expeditioner kostar en fjärdedel mindre Utforskning.",
                 _ => null,
             };
@@ -267,6 +267,8 @@ namespace Eirora.Client.UI
             long fraction = millionths % Quantity.PerUnit;
             return fraction == 0 ? whole : $"{whole},{fraction.ToString("000000", System.Globalization.CultureInfo.InvariantCulture).TrimEnd('0')}";
         }
+
+        private static string Capital(string text) => char.ToUpperInvariant(text[0]) + text.Substring(1);
 
         /// <summary>A small count in words, as the texts say it; larger counts in digits.</summary>
         private static string Count(int count) => count switch
@@ -480,13 +482,42 @@ namespace Eirora.Client.UI
             ForestFelled { InReach: 0 } => "Här finns ingen skog kvar att fälla.",
             ForestFelled forest when forest.Felled == forest.InReach => "Skogen är fälld och växer tillbaka dag och natt.",
             ForestFelled forest => $"{forest.Felled} av {forest.InReach} skogsbrickor är fällda. Skogen växer tillbaka dag och natt.",
-            LongWay way => Way(way, product),
+            NoDepot { DepotStands: true } => "Inget förråd med bärare når hit. Varorna väntar här tills en bybo blir ledig och bär.",
+            NoDepot => "Inget förråd når hit över land. Varorna väntar här tills ett förråd byggs.",
+            OutboxFull outbox => $"Utlagret är fullt: {outbox.Units} väntar på bärarna, som hämtar dem snart. Inget går förlorat.",
+            CarriersBehind behind => Behind(behind, product),
             _ => $"Något håller tillbaka {Rate(hindrance.LostPerHour)} i timmen.",
         };
 
-        /// <summary>What a road gives a building far from the storehouse, beside the road's cost on its sheet.</summary>
-        public static string RoadGives(LongWay way, Resource product) =>
-            $"{Rate(way.WithRoadPerHour)} {Name(product)}/h i stället för {Rate(way.PerHour)}";
+        /// <summary>What a road to the storehouse gives a building, beside the road's cost on its sheet.</summary>
+        public static string RoadGives(CarriersBehind behind, Resource product) =>
+            $"{Rate(behind.WithRoadPerHour)} {Name(product)}/h i stället för {Rate(behind.PerHour)}";
+
+        /// <summary>
+        /// A storehouse's or a jetty's carriers in a sentence for its sheet (economy-v2.md, section 7.1): how many, how much
+        /// the buildings' goods need of them and how much reaches the store.
+        /// </summary>
+        public static string Carriers(DepotDiagnosis depot)
+        {
+            int carriers = depot.Depot.Carriers;
+            if (carriers == 0)
+            {
+                return $"Ingen bybo bär här ännu. {Definite(depot.Depot.Kind)} tar en bärare när en blir ledig.";
+            }
+
+            string who = carriers == 1 ? "En bärare" : $"{Capital(Count(carriers))} bärare";
+            string need = $"{Rate(depot.NeedPerHour)} bärartimmar i timmen";
+            return depot.NeedPerHour == 0 ? $"{who}. Inga byggnader här har något att bära."
+                : depot.SharePercent >= 100 ? $"{who}. Byggnaderna behöver {need}, och allt når fram."
+                : $"{who}. Byggnaderna behöver {need}, så {depot.SharePercent} % når fram och resten väntar vid byggnaderna.";
+        }
+
+        /// <summary>What a depot's advice would bring more to the store, such as "+0,8 fisk/h och +0,3 sten/h".</summary>
+        public static string Gains(IEnumerable<Gain> gains)
+        {
+            var more = gains.Where(g => g.PerHour > 0).Select(g => $"+{Rate(g.PerHour)} {Name(g.Resource)}/h").ToList();
+            return more.Count == 0 ? "ger inget mer i dag" : List(more);
+        }
 
         /// <summary>
         /// The sea route's use now, what it carries out before the island's goods go home, and what keeps goods from
@@ -528,13 +559,15 @@ namespace Eirora.Client.UI
                 StoreFull full => $"Lagret är fullt av {Name(full.Resource)}, så {building.ToLowerInvariant()} "
                     + (bottleneck.Building.Production == Production.Stopped ? "står still." : "går långsammare."),
                 ForestFelled => $"Skogen kring {building.ToLowerInvariant()} är fälld.",
-                LongWay way when bottleneck.Building.Product is Resource product =>
-                    $"{Share(way.Percent)} av {building.ToLowerInvariant()}s {Name(product)} når fram.",
+                CarriersBehind behind when bottleneck.Building.Product is Resource product =>
+                    $"Bärarna hinner inte med: {behind.SharePercent} % av {building.ToLowerInvariant()}s {Name(product)} når fram.",
+                NoDepot => $"Inget förråd med bärare når {building.ToLowerInvariant()}.",
                 _ => $"{building} hålls tillbaka.",
             };
 
-            return bottleneck.Workday is Building workday && bottleneck.Hindrance is WaitingForInput missing
-                ? $"{held} Ett dagsverke på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
+            return bottleneck.Workday is not Building workday ? held
+                : bottleneck.Hindrance is WaitingForInput missing ? $"{held} Ett dagsverke på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
+                : bottleneck.Hindrance is CarriersBehind ? $"{held} Ett dagsverke på {Definite(workday.Kind).ToLowerInvariant()} låter bärarna bära hälften mer."
                 : held;
         }
 
@@ -549,21 +582,36 @@ namespace Eirora.Client.UI
                 : $"{whole},{fraction.ToString("00", System.Globalization.CultureInfo.InvariantCulture)}";
         }
 
-        private static string Way(LongWay way, Resource? product)
+        /// <summary>Why the carriers do not bring all of a building's goods to the store, and what would help.</summary>
+        private static string Behind(CarriersBehind behind, Resource? product)
         {
-            string steps = way.Steps == int.MaxValue ? "inget förråd nås över land" : $"{Count(way.Steps)} steg till närmaste förråd";
-            string text = $"{Share(way.Percent)} når fram, {steps}.";
-            return product is Resource made && way.BesideDepotPerHour > way.PerHour
-                ? $"{text} Ett förråd intill ger {Rate(way.BesideDepotPerHour)} {Name(made)}/h."
-                : text;
-        }
+            string steps = behind.Trip.Steps == 1 ? "Ett steg" : $"{Capital(Count(behind.Trip.Steps))} steg";
+            string text = $"Bärarna hinner inte: {behind.SharePercent} % når fram. {steps} till förrådet.";
+            if (product is not Resource made)
+            {
+                return text;
+            }
 
-        private static string Share(int percent) => percent switch
-        {
-            50 => "Hälften",
-            75 => "Tre fjärdedelar",
-            _ => $"{percent} %",
-        };
+            var better = new List<(string What, long PerHour)>();
+            if (behind.RoadTiles > 0 && behind.WithRoadPerHour > behind.PerHour)
+            {
+                better.Add(("en väg", behind.WithRoadPerHour));
+            }
+
+            if (behind.WithCarrierPerHour is long carrier && carrier > behind.PerHour)
+            {
+                better.Add(("en bärare till", carrier));
+            }
+
+            if (behind.BesideDepotSite is not null && behind.BesideDepotPerHour > behind.PerHour)
+            {
+                better.Add(("ett förråd intill", behind.BesideDepotPerHour));
+            }
+
+            // The first says what is given and in what; the others only how much.
+            var said = better.Select((b, i) => i == 0 ? $"{b.What} ger {Rate(b.PerHour)} {Name(made)}/h" : $"{b.What} {Rate(b.PerHour)}");
+            return better.Count == 0 ? text : $"{text} {Capital(List(said))}.";
+        }
 
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
         public static string? Describe(World world, GameEvent gameEvent) => gameEvent switch
@@ -582,8 +630,8 @@ namespace Eirora.Client.UI
             DawnBroke dawn => $"Byn vaknade till spelardygn {dawn.GameDay}.",
             ForceCredited { Amount: > 0 } credit => $"+{credit.Amount} {Name(credit.Force)} från din egenvård.",
             VillagersMovedIn moved => moved.Count == 1 ? "En ny bybo flyttade in." : $"{moved.Count} nya bybor flyttade in.",
-            ProjectCompleted { Kind: ProjectKind.Build } done => $"{Name(done.Building)} är färdig.",
-            ProjectCompleted { Kind: ProjectKind.Upgrade } done => $"{Name(done.Building)} är uppgraderad.",
+            ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind built } => $"{Name(built)} är färdig.",
+            ProjectCompleted { Kind: ProjectKind.Upgrade, Building: BuildingKind upgraded } => $"{Name(upgraded)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
             TilesRevealed => "Kartläggningen lyfte dimman över nya brickor.",
             ExpeditionReturned { Island: PrototypeHome.Nyon } => "Expeditionen kom hem. Den hittade Nyön i öster.",

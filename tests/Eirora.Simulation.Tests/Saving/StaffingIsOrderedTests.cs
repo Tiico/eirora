@@ -19,15 +19,13 @@ public sealed class StaffingIsOrderedTests
         var builtBefore = before.Where(IsBuilding).ToList();
 
         var world = Save.Load(bytes).World;
-        var after = world.Fingerprint().Split('\n');
 
-        // The save keeps the contributions in a part of their own (D-101), which follows the world in the fingerprint.
-        // Rules 7 named the stores by the map's islands (IslandsFromTheMapTests), which keeps every amount, and rules 8
-        // gave the villagers to the settlements (SettlementsPerIslandTests), here all to the home island's.
-        var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l) && !IsStock(l) && !IsSettlement(l)).ToList();
-        Assert.Equal(kept, after.Where(l => !IsBuilding(l) && !IsStock(l) && !IsSettlement(l)).Take(kept.Count));
-        string[] settlement = before.Single(IsSettlement).Split(' ');
-        Assert.Equal([$"economy {settlement[2]} {settlement[3]}", $"settlement home {settlement[1]}"], after.Where(IsSettlement));
+        // As far as rules 7, after which roads became tiles (RoadsAreTilesTests). Rules 7 named the stores by the map's
+        // islands (IslandsFromTheMapTests), which keeps every amount.
+        string state = string.Join('\n', before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)));
+        var after = new IslandsFromTheMap().Migrate(new StaffingIsOrdered().Migrate(state, world.Map), world.Map).Split('\n');
+        var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l) && !IsStock(l)).ToList();
+        Assert.Equal(kept, after.Where(l => !IsBuilding(l) && !IsStock(l)).Take(kept.Count));
         Assert.Equal(
             before.Where(l => l.StartsWith("stock Home ", StringComparison.Ordinal)).Select(l => l["stock Home".Length..]),
             after.Where(IsStock).Select(l => l["stock home".Length..]));
@@ -42,7 +40,7 @@ public sealed class StaffingIsOrderedTests
     [Fact]
     public void OnlyTheBuildingsOfRulesFiveAreMigrated()
     {
-        string current = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night).Fingerprint();
+        string current = RoadsAreTilesTests.RulesSeven(World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night).Fingerprint());
 
         Assert.Equal(current, new StaffingIsOrdered().Migrate(RulesFive(current), PrototypeHome.Map));
         Assert.Throws<FormatException>(() => new StaffingIsOrdered().Migrate(current, PrototypeHome.Map));
@@ -55,6 +53,4 @@ public sealed class StaffingIsOrderedTests
     private static bool IsBuilding(string line) => line.StartsWith("building ", StringComparison.Ordinal);
 
     private static bool IsStock(string line) => line.StartsWith("stock ", StringComparison.Ordinal);
-
-    private static bool IsSettlement(string line) => line.StartsWith("settlement ", StringComparison.Ordinal) || line.StartsWith("economy ", StringComparison.Ordinal);
 }

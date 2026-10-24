@@ -56,49 +56,75 @@ public sealed class IslandsFromTheMapTests
     public void ARulesSixStateOnThePrototypesMapGetsTheStoresOfHemonAndNyon(int seed)
     {
         var world = BuiltOutWorld.GenerateSave(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
-        string state = world.Fingerprint();
+        string state = RoadsAreTilesTests.RulesSeven(world.Fingerprint());
 
-        Assert.Equal(SettlementsPerIslandTests.RulesSeven(state), new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
+        Assert.Equal(state, new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
     }
 
-    // Under rules 6 every island but the home island shared Nyon's store; it goes to the island of the first building off
-    // the home island, which was the island the expedition found, and every other island built on gets an empty store.
+    // Under rules 6 every island but the home island shared Nyon's store, whose goods waited for the ships at its jetty;
+    // it goes to the first island off the home island with a jetty, and every other island built on gets an empty store.
     [Fact]
-    public void NyonsStoreGoesToTheIslandOfTheFirstBuildingOffTheHomeIsland()
+    public void NyonsStoreGoesToTheFirstIslandOffTheHomeIslandWithAJetty()
     {
         var map = Archipelago.Map;
-        var world = Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        var lines = world.Fingerprint().Split('\n').ToList();
-        lines.InsertRange(
-            lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1,
-            [Jetty(Archipelago.Second), Jetty(Archipelago.First)]);
-        string state = string.Join('\n', lines);
-        string nyon = string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
-        string rulesSix = RulesSix(state, world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
-
-        string migrated = new SettlementsPerIsland().Migrate(new IslandsFromTheMap().Migrate(rulesSix, map), map);
+        string migrated = WithNyonsGoods(("Woodcutter", Archipelago.First), ("Jetty", Archipelago.Second), ("Jetty", Archipelago.First));
 
         var stores = migrated.Split('\n').Where(l => l.StartsWith("stock ", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
         Assert.Equal(map.Islands.Select(i => i.Id).Where(i => i is Archipelago.Home or Archipelago.First or Archipelago.Second), stores.Select(s => s[1]).Distinct());
+        Assert.Equal(Archipelago.Second, NyonsIsland(migrated));
         Assert.All(stores.Where(s => s[1] == Archipelago.First), s => Assert.Equal("0", s[3]));
-        Assert.Equal(Enum.GetValues<Resource>().Select(r => ((int)r + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)), stores.Where(s => s[1] == Archipelago.Second).Select(s => s[3]));
-        var reader = new StateReader(migrated);
+
+        // It plays on through the later rules.
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(migrated, 7, RulesVersion.Current, map));
         var read = World.Read(reader, map);
         reader.End();
         Assert.Equal(new[] { Archipelago.Home, Archipelago.First, Archipelago.Second }, read.Islands);
+    }
 
-        string Jetty(string island)
-        {
-            var landing = map.Features.LandOf(island).First(map.Features.IsHarborSpot);
-            return $"building Jetty {landing.Q} {landing.R} 1 0 0 0 0 0";
-        }
+    // Without a jetty off the home island the goods go to the island the expedition found, if it was built on, and else to
+    // the first island built on off the home island.
+    [Fact]
+    public void WithoutAJettyNyonsStoreGoesToTheExpeditionsIslandOrElseTheFirstBuiltOn()
+    {
+        Assert.Equal(Archipelago.First, Founding.For(Archipelago.Map).ExpeditionIsland);
+        Assert.Equal(Archipelago.First, NyonsIsland(WithNyonsGoods(("Woodcutter", Archipelago.Second), ("Quarry", Archipelago.First))));
+        Assert.Equal(Archipelago.Second, NyonsIsland(WithNyonsGoods(("Woodcutter", Archipelago.Second))));
+    }
+
+    /// <summary>
+    /// A new world on the archipelago as rules 6 wrote it, with the given buildings after its own on land of their
+    /// islands and goods in Nyon's store, migrated to rules 7.
+    /// </summary>
+    private static string WithNyonsGoods(params (string Kind, string Island)[] buildings)
+    {
+        var map = Archipelago.Map;
+        var world = Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
+        var lines = RoadsAreTilesTests.RulesSeven(world.Fingerprint()).Split('\n').ToList();
+        lines.InsertRange(
+            lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1,
+            buildings.Select((b, i) =>
+            {
+                var tile = b.Kind == "Jetty" ? map.Features.LandOf(b.Island).First(map.Features.IsHarborSpot) : map.Features.LandOf(b.Island).Where(t => !map.Features.IsHarborSpot(t)).ElementAt(i);
+                return $"building {b.Kind} {tile.Q} {tile.R} 1 0 0 0 0 0";
+            }));
+        string nyon = string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
+        string rulesSix = RulesSix(string.Join('\n', lines), world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
+        return new IslandsFromTheMap().Migrate(rulesSix, map);
+    }
+
+    /// <summary>The island whose store holds Nyon's goods after the migration.</summary>
+    private static string NyonsIsland(string migrated)
+    {
+        var holding = migrated.Split('\n').Where(l => l.StartsWith("stock ", StringComparison.Ordinal) && !l.EndsWith(" 0", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
+        Assert.Equal(Enum.GetValues<Resource>().Select(r => ((int)r + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)), holding.Where(s => s[1] != Archipelago.Home).Select(s => s[3]));
+        return holding.Select(s => s[1]).Distinct().Single(i => i != Archipelago.Home);
     }
 
     [Fact]
     public void GoodsOnNyonWithNothingBuiltOffTheHomeIslandAreRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesSix = RulesSix(world.Fingerprint(), world);
+        string rulesSix = RulesSix(RoadsAreTilesTests.RulesSeven(world.Fingerprint()), world);
         Assert.DoesNotContain("stock nyon", new IslandsFromTheMap().Migrate(rulesSix, PrototypeHome.Map), StringComparison.Ordinal);
 
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix.Replace("stock Nyon Stone 0", "stock Nyon Stone 1", StringComparison.Ordinal), PrototypeHome.Map));
@@ -108,7 +134,7 @@ public sealed class IslandsFromTheMapTests
     public void AStateOfAnotherMapOrWithoutTheStoresOfRulesSixIsRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string rulesSix = RulesSix(world.Fingerprint(), world);
+        string rulesSix = RulesSix(RoadsAreTilesTests.RulesSeven(world.Fingerprint()), world);
 
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(rulesSix, Archipelago.Map));
         Assert.Throws<FormatException>(() => new IslandsFromTheMap().Migrate(world.Fingerprint(), PrototypeHome.Map));
@@ -116,15 +142,15 @@ public sealed class IslandsFromTheMapTests
     }
 
     /// <summary>
-    /// A state of rules 8 as rules 6 wrote it: all the villagers on the settlement's line (rules 7,
-    /// <see cref="SettlementsPerIslandTests.RulesSeven"/>), and every resource on Home, then on Nyon, which holds the
-    /// store of the one island off the home island built on, if any.
+    /// A state of rules 7 (see <see cref="RoadsAreTilesTests.RulesSeven"/>) as rules 6 wrote it: every resource on Home,
+    /// then on Nyon, which holds the store of the one
+    /// island off the home island built on, if any.
     /// </summary>
     internal static string RulesSix(string state, World world)
     {
         var off = world.Islands.Where(i => i != world.HomeIsland).ToList();
         Assert.True(off.Count <= 1, "Rules 6 had one store for every island off the home island.");
-        var lines = SettlementsPerIslandTests.RulesSeven(state).Split('\n').ToList();
+        var lines = state.Split('\n').ToList();
         int at = lines.FindIndex(l => l.StartsWith("stock ", StringComparison.Ordinal));
         string Store(string name, string? island) =>
             string.Join('\n', Enum.GetValues<Resource>().Select(r => $"stock {name} {r} {(island is null ? 0 : world.Settlement.Stock(island, r))}"));

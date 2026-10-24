@@ -108,18 +108,19 @@ public sealed class FastForwardTests
             [typeof(Settlement)] =
             [
                 // Recorded.
-                "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_buildings", "_projects", "_felled", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
+                "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_buildings", "_projects", "_felled", "_roads", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
 
                 // Fixed for the world.
                 "_map", "_home", "_founding", "_content", "_mapIndex",
 
                 // Derived, or scratch for a single call.
-                "_buildingAt", "_capacity", "_depotDistances", "_woods", "_regrowing", "_before", "_after", "_unstaffed", "_labour",
+                "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_regrowing", "_jobs", "_before", "_after", "_unstaffed", "_labour", "_pools",
             ],
             [typeof(IslandSettlement)] = ["<Villagers>k__BackingField", "<Island>k__BackingField", "_economy"],
             [typeof(Building)] =
             [
-                "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<HasRoad>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
+                "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
+                "<Carriers>k__BackingField", "<CarrierCap>k__BackingField", "<CarriedFirst>k__BackingField", "<Depot>k__BackingField", "<Waiting>k__BackingField", "<Held>k__BackingField",
                 "<Kind>k__BackingField", "<Tile>k__BackingField", "<Island>k__BackingField",
             ],
             [typeof(Project)] = ["<WorkLeft>k__BackingField", "<Kind>k__BackingField", "<Building>k__BackingField", "<Tile>k__BackingField"],

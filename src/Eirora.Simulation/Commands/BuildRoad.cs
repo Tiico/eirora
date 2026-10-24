@@ -5,14 +5,13 @@ using Eirora.Simulation.Map;
 namespace Eirora.Simulation.Commands
 {
     /// <summary>
-    /// Builds a road from a producing building to the nearest store: 2 stone and 4 hours of work per step over land,
-    /// and no force (economy-v1.md, section 5).
+    /// The shortcut <em>Road to the storehouse</em> on a producing building's sheet (D-112): lays a road on every tile
+    /// between the building and the storehouse or jetty it belongs to that can take one, along the shortest way, for 2
+    /// stone and 4 hours of work a tile and no force. Each tile is a project of its own in the queue, nearest the depot
+    /// first, as if laid one by one with <see cref="LayRoad"/>.
     /// </summary>
     public sealed class BuildRoad : GameCommand
     {
-        private const int StonePerHex = 2;
-        private const int HoursPerHex = 4;
-
         public BuildRoad(Hex tile) => Tile = tile;
 
         /// <summary>Where the building stands.</summary>
@@ -24,29 +23,29 @@ namespace Eirora.Simulation.Commands
         {
             var settlement = world.Settlement;
             var building = settlement.BuildingAt(Tile);
-            if (building is null || !world.Content.For(building.Kind).Produces)
+            if (building is null || !world.Content.For(building.Kind).Produces || !settlement.TripFrom(Tile).Reaches)
             {
                 return Rejection.NoBuildingThere;
             }
 
-            int distance = settlement.DepotDistance(building.Tile);
-            if (distance == Settlement.Unreachable)
-            {
-                return Rejection.NoBuildingThere;
-            }
-
-            if (building.HasRoad || distance <= 1 || settlement.IsQueued(Tile, ProjectKind.Road))
+            var tiles = settlement.RoadToDepot(Tile);
+            if (tiles.Count == 0)
             {
                 return Rejection.AlreadyDone;
             }
 
-            var cost = new Dictionary<Resource, int> { [Resource.Stone] = StonePerHex * distance };
+            var cost = new Dictionary<Resource, int> { [Resource.Stone] = Logistics.RoadStone * tiles.Count };
             if (!settlement.CanAfford(cost, Tile))
             {
                 return Rejection.InsufficientResources;
             }
 
-            settlement.Queue(ProjectKind.Road, building.Kind, Tile, cost, HoursPerHex * distance);
+            var each = new Dictionary<Resource, int> { [Resource.Stone] = Logistics.RoadStone };
+            foreach (var tile in tiles)
+            {
+                settlement.Queue(ProjectKind.Road, null, tile, each, Logistics.RoadHours);
+            }
+
             return Rejection.None;
         }
     }

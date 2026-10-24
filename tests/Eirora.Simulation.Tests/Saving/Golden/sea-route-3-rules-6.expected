@@ -20,7 +20,7 @@ stock home Fish 274125000
 stock home Grain 6250000
 stock home Timber 10734638
 stock home Planks 76070181
-stock home Stone 450000000
+stock home Stone 454000000
 stock home Wool 383512500
 stock home Wadmal 1218750
 stock nyon Fish 0
@@ -30,35 +30,38 @@ stock nyon Planks 0
 stock nyon Stone 41046875
 stock nyon Wool 187500
 stock nyon Wadmal 0
-building FishingHut 1 0 1 1 0 0 0 0
-building Field 0 1 2 0 0 0 0 1
-building Storehouse 0 0 1 1 0 0 0 0
-building Woodcutter 1 -1 2 1 0 0 0 0
-building Longhouse 0 2 1 0 0 0 0 0
-building Storehouse 1 -3 1 1 0 0 0 0
-building Quarry -3 -1 1 1 0 0 0 0
-building FishingHut 5 -3 1 1 0 0 0 0
-building Woodcutter -2 1 1 1 1 1 0 0
-building Sawmill -3 0 1 1 0 0 0 0
-building Jetty 2 1 1 1 0 0 0 0
-building SheepFarm -2 -1 1 1 1 0 0 0
-building Cottage -4 3 1 0 0 0 0 0
-building Quarry 3 -1 1 0 0 0 0 1
-building Cottage -2 4 1 0 0 0 0 0
-building Jetty 9 1 1 1 0 0 0 0
-building Longhouse -3 1 1 0 0 0 0 0
-building Storehouse 4 -2 1 1 0 0 0 0
-building SheepFarm 10 1 1 1 0 0 0 0
-building Cottage 11 -1 1 0 0 0 0 0
-building Lookout 10 -1 1 0 0 0 0 0
-building Storehouse 10 0 1 1 0 0 0 0
-building Cottage 0 3 1 0 0 0 0 0
-building Lookout -1 -3 1 0 0 0 0 0
-building Longhouse -2 2 1 0 0 0 0 0
-building Quarry 11 0 1 1 0 0 0 0
-building Weavery -1 -1 1 1 0 0 0 0
-building Jetty -4 2 1 1 0 0 0 0
+building FishingHut 1 0 1 1 0 0 0 0 0 0 0 1 0 0
+building Field 0 1 2 0 0 0 1 0 0 0 0 1 0 0
+building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0
+building Woodcutter 1 -1 2 1 0 0 0 0 0 0 0 1 0 0
+building Longhouse 0 2 1 0 0 0 0 0 0 0 0 0 0 0
+building Storehouse 1 -3 1 1 0 0 0 1 4 0 0 0 0 0
+building Quarry -3 -1 1 1 0 0 0 0 0 0 0 1 0 0
+building FishingHut 5 -3 1 1 0 0 0 0 0 0 0 1 4 -2
+building Woodcutter -2 1 1 1 1 0 0 0 0 0 0 1 0 0
+building Sawmill -3 0 1 1 0 0 0 0 0 0 0 1 -4 2
+building Jetty 2 1 1 1 0 0 0 1 4 0 0 0 0 0
+building SheepFarm -2 -1 1 1 0 0 0 0 0 0 0 1 0 0
+building Cottage -4 3 1 0 0 0 0 0 0 0 0 0 0 0
+building Quarry 3 -1 1 0 0 0 1 0 0 0 0 1 4 -2
+building Cottage -2 4 1 0 0 0 0 0 0 0 0 0 0 0
+building Jetty 9 1 1 1 0 0 0 1 4 0 0 0 0 0
+building Longhouse -3 1 1 0 0 0 0 0 0 0 0 0 0 0
+building Storehouse 4 -2 1 1 0 0 0 1 4 0 0 0 0 0
+building SheepFarm 10 1 1 1 0 0 0 0 0 0 0 1 10 0
+building Cottage 11 -1 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 10 -1 1 0 0 0 0 0 0 0 0 0 0 0
+building Storehouse 10 0 1 1 0 0 0 1 4 0 0 0 0 0
+building Cottage 0 3 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -1 -3 1 0 0 0 0 0 0 0 0 0 0 0
+building Longhouse -2 2 1 0 0 0 0 0 0 0 0 0 0 0
+building Quarry 11 0 1 1 0 0 0 0 0 0 0 1 10 0
+building Weavery -1 -1 1 1 0 0 0 0 0 0 0 1 0 0
+building Jetty -4 2 1 1 0 0 0 1 4 0 0 0 0 0
 project Build Weavery -1 4 14000
+road -1 -1
+road 0 -1
+road -1 1
 forest 1 -2 0
 forest 1 -1 0
 forest -2 0 0
