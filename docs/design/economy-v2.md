@@ -58,13 +58,14 @@ Sedan sker det här, i den här ordningen; stegen 1–4 i varje bosättning för
    En mätt bosättning får en torpare till om det finns plats i torparnas bostäder.
    Får också en andra torpare plats, och finns det 2 kläder utöver det nivåerna behöver till nästa gryning, förbrukas de och ger en torpare till; det är v1:s komfort med tyg.
    I v1 förbrukas tyget även när den andra torparen inte får plats; v2 gör inte så.
-5. **Flytt.**
-   En ledig torpare flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder (avsnitt 6).
-6. **Bemanning.**
-   Byggnaderna bemannas i ordningen ovan.
+5. **Bemanning.**
+   Förråden släpper de bärare som deras varor inte längre behöver, och sedan bemannas byggnaderna i ordningen ovan, varje ö med sina egna bybor.
+6. **Flytt.**
+   En ledig bybo flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder (avsnitt 6, D-124), och byggnaderna bemannas igen.
 7. **Bärare.**
-   Varje förråd tar så många bärare som varorna kräver av de lediga torparna (avsnitt 7).
-   Flytten går före, så en torpare som flyttar blir inte bärare samma gryning.
+   Varje förråd tar så många bärare som varorna kräver av sin ös lediga torpare, efter flytten (avsnitt 7).
+   Flytten går före, så en bybo som flyttar blir inte bärare på sin gamla ö samma gryning.
+   Kalkylen flyttar före bemanningen och släpper bärarna först i det här steget; det ändrar bara vilken gryning något sker.
 8. **Upplåsning.**
    Ett steg vars villkor nu är uppfyllt låses upp; byborna stiger till den nya nivån tidigast nästa gryning.
 
@@ -238,7 +239,7 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
 - **En bosättning anläggs** av det första förrådet eller den första bryggan på en ö (D-106).
   Byggnaden har 4 bostäder för torpare, och byborna kommer genom flytten; inga nybyggare följer med, och en tom bosättning växer inte av sig själv (D-121).
 - **Egna bybor, bostäder och lager.**
-  Byborna bemannar bara byggnader på sin ö och äter ur sin ös lager.
+  Byborna bemannar bara byggnader på sin ö, bär bara för dess förråd och bryggor och äter ur sin ös lager.
   Varje bosättning har egna nivåer, och nivåernas behov tas ur dess eget lager.
 - **Flytt.**
   Vid gryningen flyttar högst en bybo i hela världen (D-106).
@@ -274,7 +275,7 @@ Havets strategi bygger därför Nyöns brygga före den första bostaden, så at
 
 - **Bärarna är bybor vid förråden och bryggorna** (D-109).
   Varje förråd och brygga har minst en och högst fyra.
-  Vid gryningen tar förrådet så många som varorna kräver av de lediga torparna, upp till spelarens tak, och släpper dem som inte behövs; taket är gratis planering (D-23).
+  Vid gryningen tar förrådet så många som varorna kräver av sin ös lediga torpare, efter flytten, upp till spelarens tak, och släpper dem som inte behövs; taket är gratis planering (D-23).
   Förrådet tar också byggarna om det behöver dem, så byggkön kan stå still tills bosättningen växt; diagnostiken säger då *Byggkön står still: alla lediga bybor bär*, så att spelaren kan sänka taket.
   Förrådet tar aldrig en bybo från en annan byggnad: bemanningen är klibbig, så en byggnad som är bemannad förblir det, och en ny byggnad eller ett nytt förråd tar bara lediga bybor (D-39).
 - **Varje byggnad hör till det bemannade förråd eller den bemannade brygga som bärarna når snabbast på sin ö.**

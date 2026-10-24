@@ -101,6 +101,41 @@ public sealed class SettlementsPerIslandTests
         Assert.InRange(after.Settlement.Stock(Archipelago.Second, Resource.Timber), Quantity.Units(49), Quantity.Units(50));
     }
 
+    // Under rules 8 a depot's carriers beyond the first were the home island's villagers wherever the depot stood; they
+    // move to the depot's island with it, and at dawn the depot lets go of those it does not need, to its own island's
+    // free villagers (D-106; review of #164).
+    [Fact]
+    public void ADepotsCarriersOffTheHomeIslandBelongToItsIsland()
+    {
+        var map = Archipelago.Map;
+        var landing = map.Features.LandOf(Archipelago.Second).First(map.Features.IsHarborSpot);
+        var world = Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
+        world.AdvanceTo(TestClock.At("2026-10-15 09:00", 2));
+        string state = world.Fingerprint().Replace(
+            "\nstock home Wadmal 0",
+            $"\nstock home Wadmal 0\n{string.Concat(s_resources.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
+            StringComparison.Ordinal);
+        int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
+        state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing, carriers: 3)}");
+        string rulesEight = RulesEight(state);
+
+        var reader = new StateReader(new SettlementsPerIsland().Migrate(rulesEight, map));
+        var migrated = World.Read(reader, map);
+        reader.End();
+
+        AssertKeptEverything(rulesEight, migrated);
+        var second = migrated.SettlementOn(Archipelago.Second)!;
+        Assert.Equal((3, 0), (second.Villagers, second.FreeVillagers));
+        Assert.Equal(world.Villagers - 3, migrated.SettlementOn(Archipelago.Home)!.Villagers);
+        Assert.Equal(3, migrated.BuildingAt(landing)!.Carriers);
+
+        // Nothing on the second island needs carrying, so at dawn its jetty keeps one carrier and the others are free
+        // there; fed and with a home free, the island also grows by one.
+        migrated.AdvanceTo(TestClock.At("2026-10-16 09:00", 2));
+        Assert.Equal(1, migrated.BuildingAt(landing)!.Carriers);
+        Assert.Equal((4, 3), (second.Villagers, second.FreeVillagers));
+    }
+
     // Under rules 8 an island's buildings could need more villagers than its settlement has homes: they all move there
     // and stay, and it grows only once there is room (economy-v2.md, section 12; review of #164).
     [Fact]
@@ -231,8 +266,8 @@ public sealed class SettlementsPerIslandTests
         });
     }
 
-    /// <summary>A staffed jetty with its one carrier, as rules 8 and 9 write it.</summary>
-    private static string Jetty(Hex tile) => $"building Jetty {tile.Q} {tile.R} 1 1 0 0 0 1 4 0 0 0 0 0";
+    /// <summary>A staffed jetty with its carriers, one unless given, as rules 8 and 9 write it.</summary>
+    private static string Jetty(Hex tile, int carriers = 1) => $"building Jetty {tile.Q} {tile.R} 1 1 0 0 0 {carriers} 4 0 0 0 0 0";
 
     private static string Edit(string state, string prefix, string line)
     {
