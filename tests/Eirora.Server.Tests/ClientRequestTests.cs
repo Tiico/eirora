@@ -136,10 +136,54 @@ public sealed partial class ClientRequestTests(ServerFixture fixture)
     }
 
     [Fact]
-    public async Task TheClientsCloudSaveUploadIsAcceptedAndReadsBackAsTheClientExpects()
+    public async Task TheClientsConsentCallsAreAcceptedAndReadBackAsTheClientExpects()
     {
         using var api = _server.CreateApi();
         var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        var values = new Dictionary<string, string> { ["ACCESS_TOKEN"] = tokens.Access };
+
+        var (asked, unanswered) = await SendAsync("contribution-consent.http", values);
+        var (given, consent) = await SendAsync("contribution-consent-answer.http", values);
+        var (got, current) = await SendAsync("contribution-consent.http", values);
+        var (withdrawn, declined) = await SendAsync("contribution-consent-withdrawal.http", values);
+
+        Assert.Equal(HttpStatusCode.OK, asked);
+        AssertReadsAsTheClientExpects("contribution-consent-unanswered-response.json", unanswered);
+        Assert.Equal(HttpStatusCode.OK, given);
+        AssertReadsAsTheClientExpects("contribution-consent-response.json", consent);
+        Assert.Equal(HttpStatusCode.OK, got);
+        AssertReadsAsTheClientExpects("contribution-consent-response.json", current);
+        Assert.Equal(HttpStatusCode.OK, withdrawn);
+        AssertReadsAsTheClientExpects("contribution-consent-response.json", declined);
+        Assert.Equal(ConsentAnswer.Declined, (await api.GetConsentAsync(tokens.Access)).Consent!.Answer);
+    }
+
+    [Fact]
+    public async Task TheClientsWorldPartUploadIsAcceptedAndReadsBackAsTheClientExpects()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
+        await api.AnswerConsentAsync(tokens.Access, new ContributionConsentAnswer(false, ContributionConsent.CurrentVersion));
+        var values = new Dictionary<string, string>
+        {
+            ["ACCESS_TOKEN"] = tokens.Access,
+            ["WORLD"] = Convert.ToBase64String(TestSaves.World()),
+        };
+
+        var (uploaded, version) = await SendAsync("cloud-save-world-upload.http", values);
+        var (got, save) = await SendAsync("cloud-save.http", values);
+
+        Assert.Equal(HttpStatusCode.OK, uploaded);
+        AssertReadsAsTheClientExpects("cloud-save-version-response.json", version);
+        Assert.Equal(HttpStatusCode.OK, got);
+        AssertReadsAsTheClientExpects("cloud-save-world-response.json", save);
+    }
+
+    [Fact]
+    public async Task TheClientsCloudSaveUploadIsAcceptedAndReadsBackAsTheClientExpects()
+    {
+        using var api = _server.CreateApi();
+        var tokens = await api.SignInWithConsentAsync(_server.Providers.SignIn(LoginProviders.Google));
         var values = new Dictionary<string, string>
         {
             ["ACCESS_TOKEN"] = tokens.Access,
