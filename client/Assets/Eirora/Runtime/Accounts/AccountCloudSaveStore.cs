@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Eirora.CloudSaving;
 using Eirora.Contracts;
@@ -57,6 +58,31 @@ namespace Eirora.Client.Accounts
                 400 or 413 => new StoreReply<CloudSaveVersion>(StoreStatus.Rejected),
                 _ => new StoreReply<CloudSaveVersion>(StoreStatus.Failed),
             };
+        }
+
+        public Task<StoreReply<ContributionConsent>> GetConsentAsync() =>
+            ConsentAsync(access => _account.Server.GetConsentAsync(access));
+
+        public Task<StoreReply<ContributionConsent>> AnswerConsentAsync(ContributionConsentAnswer answer) =>
+            ConsentAsync(access => _account.Server.AnswerConsentAsync(access, answer));
+
+        private async Task<StoreReply<ContributionConsent>> ConsentAsync(Func<string, Task<(HttpReply Reply, ContributionConsent? Consent)>> call)
+        {
+            ContributionConsent? consent = null;
+            var (outcome, reply) = await _account.AuthorizedAsync(async access =>
+            {
+                var (sent, answer) = await call(access);
+                consent = answer;
+                return sent;
+            });
+            if (reply is null)
+            {
+                return new StoreReply<ContributionConsent>(Status(outcome));
+            }
+
+            return reply.Status == 200 && consent is not null
+                ? new StoreReply<ContributionConsent>(StoreStatus.Ok, consent)
+                : new StoreReply<ContributionConsent>(StoreStatus.Failed);
         }
 
         private static StoreStatus Status(AccountOutcome outcome) => outcome switch

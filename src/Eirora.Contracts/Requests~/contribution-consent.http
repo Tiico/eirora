@@ -1,0 +1,2 @@
+GET /api/account/contribution-consent
+Authorization: Bearer __ACCESS_TOKEN__

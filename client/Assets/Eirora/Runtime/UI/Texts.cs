@@ -324,6 +324,7 @@ namespace Eirora.Client.UI
                 ? $"Molnsparning: din ö är sparad på kontot, senast {at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}"
                 : "Molnsparning: din ö är sparad på kontot",
             App.CloudSyncStatus.NoWorld => "Molnsparning: ingen ö att spara ännu",
+            App.CloudSyncStatus.ConsentNeeded => "Molnsparning: väntar på ditt svar om egenvården",
             App.CloudSyncStatus.Offline => "Molnsparning: väntar på uppkoppling, din ö sparas när servern nås",
             App.CloudSyncStatus.ChoiceNeeded => "Molnsparning: telefonen och kontot har olika öar",
             App.CloudSyncStatus.KeyNeeded => "Molnsparning: kontots ö väntar på nyckeln från din gamla telefon",

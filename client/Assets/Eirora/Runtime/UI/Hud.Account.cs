@@ -84,6 +84,20 @@ namespace Eirora.Client.UI
                 return;
             }
 
+            if (_confirmingWithdrawal && account.IsSignedIn && _cloud is { Consent: ConsentAnswer.Given or null } withdrawing)
+            {
+                ConsentWithdrawalSheet(withdrawing);
+                return;
+            }
+
+            if (_askingConsent && account.IsSignedIn && _cloud is { Consent: ConsentAnswer.Declined } asking)
+            {
+                ConsentSheet(asking);
+                return;
+            }
+
+            _confirmingWithdrawal = _askingConsent = false;
+
             if (_sendingKey && account.IsSignedIn && _cloud is { RecoveryCode: not null } sending && _scanner is { } scanner)
             {
                 KeySendingSheet(sending, scanner);
@@ -154,7 +168,13 @@ namespace Eirora.Client.UI
                 }
             }
 
-            if (_cloud?.RecoveryCode is not null)
+            if (_cloud is { } cloudSync)
+            {
+                ConsentActions(cloudSync);
+            }
+
+            // The key unlocks only what the account keeps with consent (TASK-060).
+            if (_cloud is { Consent: ConsentAnswer.Given, RecoveryCode: not null })
             {
                 if (_cloud.KeyReach == KeyBackupReach.ThisPhone)
                 {

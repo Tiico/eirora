@@ -1,0 +1,5 @@
+PUT /api/account/contribution-consent
+Authorization: Bearer __ACCESS_TOKEN__
+Content-Type: application/json
+
+{"given":false,"version":1}

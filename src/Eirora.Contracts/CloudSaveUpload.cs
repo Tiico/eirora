@@ -8,6 +8,11 @@ namespace Eirora.Contracts
     /// based on another version or an older key epoch: then another device has uploaded since, and the client downloads
     /// that save, merges the journals and uploads again (D-99). The server checks that the world part loads and that both
     /// parts are within their limits (413), but never reads the contributions (ADR-0001, ADR-0008).
+    /// <para>
+    /// The contribution part goes up only while the player consents to it (<see cref="ContributionConsent"/>); otherwise
+    /// the upload is the world part alone, with key epoch 0. An upload whose parts do not match the account's consent, or
+    /// one before the player has answered, gets 409 too, so that the device asks the server how things stand.
+    /// </para>
     /// </remarks>
     public sealed class CloudSaveUpload
     {
@@ -40,14 +45,20 @@ namespace Eirora.Contracts
 
         /// <summary>
         /// The epoch of the contribution key the contribution part is encrypted with: 1 or more, and never lower than the
-        /// cloud save's. A higher epoch locks the current contribution part (<see cref="LockedContributions"/>).
+        /// cloud save's. A higher epoch locks the current contribution part (<see cref="LockedContributions"/>). 0 for an
+        /// upload without a contribution part, which leaves the cloud save's epoch as it is.
         /// </summary>
         public int KeyEpoch { get; }
 
         /// <summary>The save's world part (<c>Save.ToParts().World</c>); null when a request leaves it out, which the server rejects.</summary>
         public byte[]? World { get; }
 
-        /// <summary>The encrypted contribution part; null when a request leaves it out, which the server rejects.</summary>
+        /// <summary>
+        /// The encrypted contribution part; null or empty for an upload of the world part alone, as without consent.
+        /// </summary>
         public byte[]? Contributions { get; }
+
+        /// <summary>Whether the upload carries a contribution part.</summary>
+        public bool HasContributions => Contributions is { Length: > 0 };
     }
 }
