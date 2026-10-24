@@ -23,7 +23,7 @@ namespace Eirora.Simulation.Events
         }
     }
 
-    /// <summary>The rest period ended and a new game day began (GLOSSARY: Gryning, Spelardygn).</summary>
+    /// <summary>The rest period ended and a new game day began (GLOSSARY: Gryning, Dag).</summary>
     public sealed class DawnBroke : GameEvent
     {
         public DawnBroke(long utcSeconds, int gameDay)
@@ -97,6 +97,22 @@ namespace Eirora.Simulation.Events
 
         /// <summary>The map's id of the island the villager moved to.</summary>
         public string To { get; }
+    }
+
+    /// <summary>
+    /// The first jetty on an island off the home island was finished, so the island has a settlement of its own, with
+    /// housing and no villagers until they move there over the sea route (D-106, D-121).
+    /// </summary>
+    public sealed class SettlementFounded : GameEvent
+    {
+        public SettlementFounded(long utcSeconds, string island)
+            : base(utcSeconds)
+        {
+            Island = island;
+        }
+
+        /// <summary>The map's id of the settlement's island.</summary>
+        public string Island { get; }
     }
 
     /// <summary>A building, upgrade or road in the queue was finished.</summary>

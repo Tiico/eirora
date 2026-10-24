@@ -5,7 +5,7 @@ title: "Prototypdagbok ÅÅÅÅ-Wvv"
 labels: prototype-diary
 ---
 
-Veckans prototypdagbok: en kommentar per spelardygn, direkt efter spelet.
+Veckans prototypdagbok: en kommentar per dag, direkt efter spelet.
 Rutinen beskrivs i [docs/design/prototype-diary.md](https://github.com/Tiico/eirora/blob/main/docs/design/prototype-diary.md).
 
 > **Ingen hälsodata.**

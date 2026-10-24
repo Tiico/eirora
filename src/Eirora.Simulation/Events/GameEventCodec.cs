@@ -35,6 +35,9 @@ namespace Eirora.Simulation.Events
                 case VillagerMoved e:
                     writer.Line("villager-moved").Long(e.UtcSeconds).Text(e.From).Text(e.To);
                     break;
+                case SettlementFounded e:
+                    writer.Line("settlement-founded").Long(e.UtcSeconds).Text(e.Island);
+                    break;
                 case ProjectCompleted e:
                     // A road lies on a tile of its own and names no building.
                     var line = writer.Line("project-completed").Long(e.UtcSeconds).Enum(e.Kind);
@@ -94,6 +97,11 @@ namespace Eirora.Simulation.Events
             if (reader.Next("villager-moved"))
             {
                 return new VillagerMoved(reader.Long(), reader.Text(), reader.Text());
+            }
+
+            if (reader.Next("settlement-founded"))
+            {
+                return new SettlementFounded(reader.Long(), reader.Text());
             }
 
             if (reader.Next("project-completed"))

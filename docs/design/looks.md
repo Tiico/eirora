@@ -8,7 +8,7 @@ Bakgrunden och valet står i [ADR-0009](../adr/0009-looks-are-a-modular-kit-as-d
 
 1. Öppna `client/` i Unity och välj **Eirora → Look Gallery**.
 2. Galleriet visar varje byggnad och varje sorts natur på en rad, med en kolumn per nivå eller steg, sett från spelets kamera.
-   Byggnader står på sin egen mark och med naturen runt sig, så som i spelet: en huggarkoja står bland träd och en fiskebod på grunt vatten.
+   Byggnader står på sin egen mark och med naturen runt sig, så som i spelet: en skogshuggare står bland träd och en fiskebod på grunt vatten.
 3. Klicka på en bild för att öppna looken i inspectorn.
    Ändra något, så ritas galleriet om direkt.
 4. Välj ljus i verktygsfältet (Dawn, Day, Dusk, Night) för att se looken i dygnets olika stämningar; fönster och runglöd syns bara i skymning och natt.

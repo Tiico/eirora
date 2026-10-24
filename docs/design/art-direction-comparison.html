@@ -245,7 +245,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     <p>Gryningsdioraman ger den tydligaste hexkartan på en liten skärm, den lägsta prestandakostnaden och den ljusaste spegeln av egenvården. Dess svaghet är att den liknar andra lugna byggspel. Därför föreslås att nattvyn lånas från Norrskensmyten: ett dämpat norrsken och glödande runor när byborna sover, så att vilolåset blir det mest egna ögonblicket i spelet och namnets aurora syns.</p>
     <ol>
       <li>Grunden är A: palett, formspråk och ljus för gryning, dag och skymning.</li>
-      <li>Under viloperioden gäller C:s natt, med runglöd som ljusfärg i A:s värld.</li>
+      <li>Under vilotiden gäller C:s natt, med runglöd som ljusfärg i A:s värld.</li>
       <li>Valet styr M1-prototypens ö och byggs ut till art bible i M9.</li>
     </ol>
   </section>
@@ -270,8 +270,8 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
   ];
   const ICONS = {
     Utforskning: '<path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z"/>',
-    Byggkraft: '<path d="M12 3l9 8h-2.5v10h-13V11H3z"/>',
-    Gryningskraft: '<path d="M4.5 17a7.5 7.5 0 0115 0z"/><path d="M2 19.5h20v1.6H2z"/><path d="M11.2 3h1.6v4h-1.6zM3.9 7l1.1-1.1 2.8 2.8-1.1 1.1zM16.2 9.6l2.8-2.8 1.1 1.1-2.8 2.8z"/>'
+    Styrka: '<path d="M12 3l9 8h-2.5v10h-13V11H3z"/>',
+    Ork: '<path d="M4.5 17a7.5 7.5 0 0115 0z"/><path d="M2 19.5h20v1.6H2z"/><path d="M11.2 3h1.6v4h-1.6zM3.9 7l1.1-1.1 2.8 2.8-1.1 1.1zM16.2 9.6l2.8-2.8 1.1 1.1-2.8 2.8z"/>'
   };
   const DIRS = {
     A: {
@@ -283,7 +283,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
         "Berg": "#A3A0A8", "Snö": "#F5F3F8", "Dimma": "#C9C2DD", "Tak, falurött": "#B4473A", "Vägg, björk": "#F3E9DA"
       },
       extra: { cliff: "#C9A577", rockSide: "#807D88", trunk: "#EDE6DA", wood: "#6B4A3A", sail: "#F3E9DA", glow: "#FFC27A", villager: ["#2A7FB0", "#B4473A", "#E3C26B"] },
-      forces: { Utforskning: "#2A7FB0", Byggkraft: "#B4473A", Gryningskraft: "#C27A12" },
+      forces: { Utforskning: "#2A7FB0", Styrka: "#B4473A", Ork: "#C27A12" },
       ui: { panel: "#FBF7EF", text: "#2B2A33", muted: "#5E5A66", accent: "#B4473A", accentText: "#FFFFFF" },
       style: { jitter: 0.03, tree: "birch", house: "gable", special: "hall", grid: "#FFFFFF" },
       cost: 1,
@@ -309,7 +309,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
         "Berg": "#77716A", "Snö": "#E4E1DA", "Dimma": "#B9B6AE", "Torvtak": "#6B7F3E", "Tjärat trä": "#4A3426"
       },
       extra: { cliff: "#5E4B3A", rockSide: "#5A554F", trunk: "#3A2A20", wood: "#2E2420", sail: "#9E3B2E", glow: "#E39B4A", villager: ["#9E3B2E", "#CDBFA6", "#5C6B7A"] },
-      forces: { Utforskning: "#6A9CB8", Byggkraft: "#B85F38", Gryningskraft: "#E6B04F" },
+      forces: { Utforskning: "#6A9CB8", Styrka: "#B85F38", Ork: "#E6B04F" },
       ui: { panel: "#2A2420", text: "#EDE6D8", muted: "#B8AE9E", accent: "#E39B4A", accentText: "#1E1611" },
       style: { jitter: 0.09, tree: "spruce", house: "longhouse", special: "stave", grid: "#F3E4C8" },
       cost: 2,
@@ -329,22 +329,22 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     C: {
       name: "Norrskensmyt",
       short: "Ljuset är huvudpersonen. Djupt blått, runguld och norrsken.",
-      idea: "Myten blir synlig genom ljus. Djupa kalla toner, självlysande runor och ett världsträd vid bosättningen. Gryningskraften syns som guldljus i världen. Natten, med norrsken, är riktningens höjdpunkt.",
+      idea: "Myten blir synlig genom ljus. Djupa kalla toner, självlysande runor och ett världsträd vid bosättningen. Orken syns som guldljus i världen. Natten, med norrsken, är riktningens höjdpunkt.",
       pal: {
         "Djupt hav": "#13314A", "Grunt hav": "#2A7A8C", "Sand": "#D9C9A3", "Gräs": "#6FAE7E", "Skog": "#1F5A55",
         "Berg": "#5A6480", "Snö": "#E6EEF5", "Dimma": "#7F8CB0", "Tak, skiffer": "#3D4A6B", "Vägg, kalk": "#D8D2E2",
         "Runglöd": "#FFD27A", "Norrsken": "#6EF0B4"
       },
       extra: { cliff: "#4A4F6A", rockSide: "#424A63", trunk: "#5C4E6E", wood: "#3A3550", sail: "#E6EEF5", glow: "#FFD27A", villager: ["#D8D2E2", "#FFD27A", "#59C3E8"] },
-      forces: { Utforskning: "#59C3E8", Byggkraft: "#F08A5D", Gryningskraft: "#FFD27A" },
+      forces: { Utforskning: "#59C3E8", Styrka: "#F08A5D", Ork: "#FFD27A" },
       ui: { panel: "#101830", text: "#E8EEF8", muted: "#A9B4CC", accent: "#FFD27A", accentText: "#1A1405" },
       style: { jitter: 0.04, tree: "spire", house: "steep", special: "worldtree", grid: "#BFD8FF" },
       cost: 3,
-      strengths: ["Mest särpräglad; knyter an till namnet (aurora) och Gryningskraften", "Natten blir en gåva: vilolåset blir vackert att titta på", "Starka siluetter mot ljus himmel"],
+      strengths: ["Mest särpräglad; knyter an till namnet (aurora) och Orken", "Natten blir en gåva: vilolåset blir vackert att titta på", "Starka siluetter mot ljus himmel"],
       risks: ["Högst prestandakostnad: bloom, transparens och emissiva material", "Kall dagspalett kan kännas mindre varm och omhändertagande", "Ljust norrsken kan väcka i stället för lugna; måste dämpas"],
       moods: {
         gryning: { zen: "#3B3F8E", hor: "#F3A7B4", sun: "#FFC0A8", sunI: 1.3, el: 14, az: 202, hs: "#CDB6E2", hg: "#DCA6A6", hi: 0.92, glow: 0.35, stars: 0.15, aurora: 0,
-          note: "Rosa och violett gryning; runorna slocknar långsamt när solen kommer. Gryningskraften syns som guldljus i världsträdet." },
+          note: "Rosa och violett gryning; runorna slocknar långsamt när solen kommer. Orken syns som guldljus i världsträdet." },
         dag: { zen: "#4A9CD8", hor: "#C3E5F3", sun: "#FFF3DA", sunI: 0.8, el: 55, az: 130, hs: "#CFE6F5", hg: "#7FB59A", hi: 0.45, glow: 0, stars: 0, aurora: 0,
           note: "Krispigt, kallt nordiskt dagsljus med hög sikt. Inga glödeffekter; dagen är för att läsa kartan." },
         skymning: { zen: "#2A1F5C", hor: "#E07088", sun: "#FF8A6A", sunI: 1.2, el: 12, az: 343, hs: "#9A7EC4", hg: "#A65E7C", hi: 0.85, glow: 0.7, stars: 0.3, aurora: 0,
@@ -807,7 +807,7 @@ footer { color: var(--muted); font-size: var(--step--1); display: grid; gap: 4px
     hud.hidden = !state.hud;
     hud.innerHTML = `<div class="forces">${Object.entries(D.forces).map(([n, h], i) => `<span class="chip"><svg viewBox="0 0 24 24" fill="${h}">${ICONS[n]}</svg>${values[i]}</span>`).join("")}</div><div></div>` +
       (night
-        ? `<div class="bottom"><div class="rest"><b>Viloperiod · byborna sover</b><span>Världen öppnar vid gryningen, 06:30</span></div></div>`
+        ? `<div class="bottom"><div class="rest"><b>Vilotid · byborna sover</b><span>Världen öppnar vid gryningen, 06:30</span></div></div>`
         : `<div class="bottom"><span class="btn primary">Rikta krafter</span><span class="btn">Planera</span></div>`);
   }
 

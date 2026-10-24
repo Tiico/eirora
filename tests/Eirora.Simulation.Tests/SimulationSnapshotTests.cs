@@ -85,6 +85,7 @@ public sealed class SimulationSnapshotTests
             new ForceWithdrawn(6, Force.DawnPower, 7),
             new VillagersMovedIn(8, 2, "nyon"),
             new VillagerMoved(8, "home", "nyon"),
+            new SettlementFounded(8, "nyon"),
             new ProjectCompleted(9, ProjectKind.Road, null, new Hex(-3, -1)),
             new TilesRevealed(10, [new Hex(3, -1), new Hex(-2, 0)]),
             new ExpeditionReturned(11, "nyon"),

@@ -1138,8 +1138,14 @@ namespace Eirora.Simulation.Economy
                 }
 
                 _projects.RemoveAt(i);
+                int settlements = _settlements.Count;
                 Finish(project);
                 events.Add(new ProjectCompleted(utcSeconds, project.Kind, project.Building, project.Tile));
+                if (_settlements.Count > settlements)
+                {
+                    events.Add(new SettlementFounded(utcSeconds, IslandOf(project.Tile)));
+                }
+
                 StaffBuildings();
             }
         }

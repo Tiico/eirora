@@ -11,7 +11,7 @@ Vad krafterna kostar att använda bestäms i ekonomin (TASK-004).
 
 ## 1. Grundprinciper
 
-1. **En bra, hållbar dag ger ungefär 100** av Utforskning och Gryningskraft; Byggkraft räknas per vecka eftersom vilodagar är en del av träning.
+1. **En bra, hållbar dag ger ungefär 100** av Utforskning och Ork; Styrka räknas per vecka eftersom vilodagar är en del av träning.
 2. **De första stegen är värda mest.**
    Kurvorna är branta i början och planar ut, så den som rör sig lite får mycket ut av lite, och den som gör mycket når snart taket.
 3. **Extrem egenvård ger högst ungefär 20–30 % mer än en måttlig nivå.**
@@ -21,22 +21,22 @@ Vad krafterna kostar att använda bestäms i ekonomin (TASK-004).
 5. **Inget går förlorat.**
    Krafter förfaller aldrig och sparas med mjukt tak (D-35); en korrigering nedåt klipps vid noll (D-36).
 
-## 2. Spelardygnet
+## 2. Dagen
 
-Krafter räknas per **spelardygn**: från en gryning till nästa (D-40).
-Spelardygnet följer alltså spelarens eget viloschema, inte midnatt, och fungerar likadant för skiftarbetare.
+Krafter räknas per **dag**: från en gryning till nästa (D-40).
+Dagen följer alltså spelarens eget viloschema, inte midnatt, och fungerar likadant för skiftarbetare.
 
-- Steg och träningspass räknas till det spelardygn de sker i.
-- Sömn räknas till det spelardygn då sömnperioden **slutar**, så att nattens sömn hör till morgonen den leder till.
+- Steg och träningspass räknas till den dag de sker i.
+- Sömn räknas till den dag då sömnperioden **slutar**, så att nattens sömn hör till morgonen den leder till.
   Tupplurar räknas också, inom samma tak.
-- Vid gryningen krediteras genast Gryningskraftens grundnivå.
+- Vid gryningen krediteras genast Orkens grundnivå.
   När sömndata kommer in fylls det på upp till kurvans värde; kurvan är aldrig lägre än grundnivån (INV-F4), så påfyllningen är aldrig negativ.
 
 ## 3. Omvandling
 
 Varje kurva är styckvis linjär med avtagande lutning och därmed växande, konkav och begränsad (INV-F3).
 
-### Steg → Utforskning (per spelardygn)
+### Steg → Utforskning (per dag)
 
 | Steg | Utforskning per 1 000 steg | Ackumulerat vid intervallets slut |
 |---|---|---|
@@ -49,30 +49,30 @@ Varje kurva är styckvis linjär med avtagande lutning och därmed växande, kon
 Rullstolsskjut behandlas som steg [FÖRSLAG].
 Både Health Connect och HealthKit har en egen datatyp för dem; det verifieras i TASK-007.
 
-### Träningspass → Byggkraft (rullande sju spelardygn)
+### Träningspass → Styrka (rullande sju dagar)
 
 Ett pass är ett pass: intensitet och längd utöver minimigränsen spelar ingen roll.
 Ett pass räknas om det varar **minst 10 minuter** (D-42); yoga, stretching och en promenad räknas lika mycket som ett löppass.
 
-| Passets ordning inom sju spelardygn | 1 | 2 | 3 | 4 | 5 | 6 och fler |
+| Passets ordning inom sju dagar | 1 | 2 | 3 | 4 | 5 | 6 och fler |
 |---|---|---|---|---|---|---|
-| Byggkraft för passet | 100 | 90 | 80 | 50 | 25 | 0 |
+| Styrka för passet | 100 | 90 | 80 | 50 | 25 | 0 |
 | Ackumulerat | 100 | 190 | 270 | 320 | **345 (tak)** | 345 |
 
-Ett spelardygn med pass ger `max(0, G(n + m) − B)`, där `G` är den ackumulerade raden, `n` antalet pass under de sex föregående spelardygnen, `m` antalet pass under dagen och `B` den Byggkraft som de sex föregående spelardygnen gav (D-63).
-Ett spelardygn utan pass ger 0.
+En dag med pass ger `max(0, G(n + m) − B)`, där `G` är den ackumulerade raden, `n` antalet pass under de sex föregående dagarna, `m` antalet pass under dagen och `B` den Styrka som de sex föregående dagarna gav (D-63).
+En dag utan pass ger 0.
 Varje rullande vecka som slutar med ett pass ger därmed minst kurvans värde för sina pass och aldrig mer än taket.
 Med sex pass i veckan, måndag till lördag, ger den första veckan 100, 90, 80, 50, 25 och 0.
 Nästa måndag ger 100, eftersom tisdag till söndag gav 245 och kurvan för veckans sex pass är 345.
 Avtagandet räknas per vecka och inte per dag, så att vilodagar aldrig kostar något: tre pass i veckan ger 78 % av taket, vecka efter vecka.
-Mer träning ger aldrig mindre Byggkraft, och det finns ingen fast veckodag.
+Mer träning ger aldrig mindre Styrka, och det finns ingen fast veckodag.
 `B` är det som dygnen gav enligt regeln, före sparandets tak (avsnitt 5), så ett fullt förråd ändrar inte vad kommande pass ger.
-Ett pass som kommer in i efterhand räknar om de senare spelardygnen med pass; det de då ger mindre dras av enligt D-36, D-62 och D-74.
-Ett pass som också registreras som promenad ger både Byggkraft och steg; det är två olika vanor.
+Ett pass som kommer in i efterhand räknar om de senare dagarna med pass; det de då ger mindre dras av enligt D-36, D-62 och D-74.
+Ett pass som också registreras som promenad ger både Styrka och steg; det är två olika vanor.
 
-### Sömnlängd → Gryningskraft (per spelardygn)
+### Sömnlängd → Ork (per dag)
 
-| Sömn | Gryningskraft per timme | Ackumulerat vid intervallets slut |
+| Sömn | Ork per timme | Ackumulerat vid intervallets slut |
 |---|---|---|
 | Saknad data | — | **40 (grundnivå)** |
 | 0–7 h | 8 | 96 |
@@ -86,7 +86,7 @@ Bara längd räknas, aldrig kvalitet eller sömnstadier.
 
 ## 4. Räkneexempel och extremvärden
 
-| Fall | Utforskning | Byggkraft | Gryningskraft | Kommentar |
+| Fall | Utforskning | Styrka | Ork | Kommentar |
 |---|---|---|---|---|
 | 0 steg | 0 | | | Världen står still men förfaller inte (D-17) |
 | 2 000 steg | 30 | | | Lite rörelse ger märkbar kraft |
@@ -104,7 +104,7 @@ Bara längd räknas, aldrig kvalitet eller sömnstadier.
 **Hinner strategin ikapp (D-34)?**
 Veckosummor för två profiler med samma strategi:
 
-| Profil | Utforskning | Byggkraft | Gryningskraft |
+| Profil | Utforskning | Styrka | Ork |
 |---|---|---|---|
 | Måttlig: 7 500 steg, 3 pass, 6,5 h | 602 | 270 | 644 |
 | Hög: 15 000 steg, 6 pass, 8 h | 721 | 345 | 686 |
@@ -121,32 +121,32 @@ Ett mjukt tak per kraft begränsar bara nya tillskott:
 | Kraft | Fullt tillskott upp till | Halvt tillskott upp till | Inget tillskott över |
 |---|---|---|---|
 | Utforskning | 400 | 800 | 800 |
-| Byggkraft | 600 | 1 200 | 1 200 |
-| Gryningskraft | 300 | 600 | 600 |
+| Styrka | 600 | 1 200 | 1 200 |
+| Ork | 300 | 600 | 600 |
 
-Byggkraft får det högsta taket eftersom den är till för stora projekt som det ska gå att spara ihop till under ett par veckor.
-Gryningskraft får det lägsta eftersom den hör till morgonens planering.
+Styrka får det högsta taket eftersom den är till för stora projekt som det ska gå att spara ihop till under ett par veckor.
+Ork får det lägsta eftersom den hör till morgonens planering.
 
 Taket räknas på kraftens **läge**: allt tillskott kraften fått före taket (D-69).
 Saldot följer av läget enligt tabellen, så samma bidrag ger samma saldo oavsett ordning och uppdelning.
 En korrigering nedåt flyttar läget tillbaka och tar därmed tillbaka kraft i samma takt som den gavs.
 Har kraften spenderats sedan bidraget krediterades tar korrigeringen aldrig mer än bidraget gav (D-62, D-74).
-Utan spendering däremellan räcker läget, så att Byggkraft som flyttas mellan spelardygn ger samma saldo i vilken ordning pass än kommer.
+Utan spendering däremellan räcker läget, så att Styrka som flyttas mellan dagar ger samma saldo i vilken ordning pass än kommer.
 Tillskott över taket syns inte i saldot men finns kvar i läget, så att en senare korrigering tar av dem först.
 Spendering sänker läget till det lägsta som ger saldot som är kvar, så att taket alltid räknas från det som faktiskt är sparat.
 När ett förråd är fullt säger spelet det lugnt, utan uppmaning att spendera (princip 11).
 
 ## 6. Manuell inmatning (HLT-07, D-18)
 
-| Vana | Inmatning | Rimlighetsgräns per spelardygn |
+| Vana | Inmatning | Rimlighetsgräns per dag |
 |---|---|---|
 | Rörelse | Steg, eller aktiva minuter som räknas om med 100 steg per minut (D-41) | 60 000 steg |
 | Träning | Ett pass med starttid och längd | 6 pass |
 | Sömn | Sömnperiod med start och slut, i steg om 15 minuter | 16 h |
 
-- Inmatning kan göras för varje spelardygn sedan senaste besöket, högst sju bakåt, så att den är likvärdig med hälsokällans historik (D-53).
-- Inmatning är tillåten även under viloperioden; krafterna krediteras vid gryningen (D-54, INV-T9).
-- Om samma vana och spelardygn har både data från hälsokällan och egen inmatning gäller det **högre** värdet, inte summan.
+- Inmatning kan göras för varje dag sedan senaste besöket, högst sju bakåt, så att den är likvärdig med hälsokällans historik (D-53).
+- Inmatning är tillåten även under vilotiden; krafterna krediteras vid gryningen (D-54, INV-T9).
+- Om samma vana och dag har både data från hälsokällan och egen inmatning gäller det **högre** värdet, inte summan.
   Spelaren kan alltså komplettera en dag då telefonen låg hemma, utan att något räknas två gånger.
 - Hälsokällans summa består av en verifierad del och den del som källan markerat som manuellt inmatad (D-68).
   Källan har redan tagit bort dubbletter mellan dem, så de två delarna räknas ihop innan summan jämförs med spelarens egen inmatning.
@@ -160,9 +160,9 @@ I gruppen har egenrapporterade bidrag ett lägre dagligt tak (D-18, INV-G3) [FÖ
 
 | Vana | Tak för verifierat gruppbidrag | Tak för egenrapporterat gruppbidrag |
 |---|---|---|
-| Rörelse | 100 Utforskning per spelardygn | 60 |
-| Träning | 100 Byggkraft per spelardygn | 60 |
-| Sömn | 100 Gryningskraft per spelardygn | 60 |
+| Rörelse | 100 Utforskning per dag | 60 |
+| Träning | 100 Styrka per dag | 60 |
+| Sömn | 100 Ork per dag | 60 |
 
 Taken prövas på nytt i M8 tillsammans med reglerna för gemensamma byggen.
 
@@ -178,15 +178,15 @@ Taken prövas på nytt i M8 tillsammans med reglerna för gemensamma byggen.
 
 Produktägarens svar på de öppna frågorna i v0.1:
 
-- **D-40:** krafter räknas per spelardygn, från gryning till gryning.
+- **D-40:** krafter räknas per dag, från gryning till gryning.
 - **D-41:** aktiva minuter kan matas in som rörelse, med 100 steg per minut.
 - **D-42:** 10 minuter är minsta passlängd.
 
 Senare beslut som ändrar reglerna ovan:
 
-- **D-63** (från [epok 1](./epoch-1.md#7-byggkraftens-rullande-vecka)): formeln `G(n + m) − G(n)` gav mindre Byggkraft ju fler pass som gjordes vecka efter vecka, till exempel 0 i veckan med sex pass.
-  Den är ersatt av kurvan för passen under sju spelardygn minus det de sex föregående spelardygnen redan gav, aldrig under noll (avsnitt 3).
+- **D-63** (från [epok 1](./epoch-1.md#7-styrkans-rullande-vecka)): formeln `G(n + m) − G(n)` gav mindre Styrka ju fler pass som gjordes vecka efter vecka, till exempel 0 i veckan med sex pass.
+  Den är ersatt av kurvan för passen under sju dagar minus det de sex föregående dagarna redan gav, aldrig under noll (avsnitt 3).
 - **D-69:** en korrigering nedåt drog av kraft i full takt även när tillskottet gavs till halva, så att ett sent pass över sparandets tak gav en lägre slutsumma än pass i ordning.
   Taket räknas nu på kraftens läge, se [avsnitt 5](#5-sparande-d-35).
-- **D-74:** ett sent pass kunde tillfälligt lyfta saldot över sparandets tak, så att spelardygnet räknades ha gett mindre än sitt tillskott, och gränsen i D-62 lämnade sedan kvar kraft när Byggkraften flyttades till andra spelardygn.
+- **D-74:** ett sent pass kunde tillfälligt lyfta saldot över sparandets tak, så att dagen räknades ha gett mindre än sitt tillskott, och gränsen i D-62 lämnade sedan kvar kraft när Styrkan flyttades till andra dag.
   Gränsen gäller nu bara när kraften har spenderats sedan bidraget krediterades, se [avsnitt 5](#5-sparande-d-35).

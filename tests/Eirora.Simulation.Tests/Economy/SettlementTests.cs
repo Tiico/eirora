@@ -26,7 +26,8 @@ public sealed class SettlementTests
     private static readonly string s_homeJetty = $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 1 4 0 0 0 0 0";
     private static int s_key;
 
-    // Acceptance: a new settlement has its own housing and store, and its villagers staff only buildings on its island.
+    // Acceptance: a new settlement has its own housing and store, and its villagers staff only buildings on its island; the
+    // first jetty founds it, and only the first.
     [Fact]
     public void ANewSettlementHasItsOwnHousingAndStoreAndItsVillagersStaffOnlyItsIsland()
     {
@@ -36,7 +37,8 @@ public sealed class SettlementTests
         int free = world.FreeVillagers;
 
         // No settlement yet on Nyön, so the home island's free villagers build its jetty, and the ships owe its materials.
-        world.AdvanceTo(At("2026-10-15 16:00", 2));
+        var founding = world.AdvanceTo(At("2026-10-15 16:00", 2));
+        Assert.Equal(PrototypeHome.Nyon, Assert.Single(founding.OfType<SettlementFounded>()).Island);
 
         var nyon = world.SettlementOn(PrototypeHome.Nyon)!;
         Assert.Equal([PrototypeHome.Home, PrototypeHome.Nyon], world.Islands);
@@ -54,6 +56,13 @@ public sealed class SettlementTests
         Assert.Equal((1, 0), (nyon.Villagers, nyon.FreeVillagers));
         Assert.True(world.BuildingAt(N0)!.Staffed);
         Assert.All(world.Buildings.Where(b => b.Island == PrototypeHome.Home && world.Content.For(b.Kind).Staff > 0), b => Assert.True(b.Staffed, $"{b.Kind} lost its villagers."));
+
+        // A second jetty on the island founds nothing: the settlement is there already.
+        Record(world, Habit.Workouts, 3);
+        Assert.True(Apply(world, new Build(BuildingKind.Jetty, N9)).Accepted);
+        var second = world.AdvanceTo(At("2026-10-17 20:00", 2));
+        Assert.Contains(second.OfType<ProjectCompleted>(), done => done.Tile == N9);
+        Assert.Empty(second.OfType<SettlementFounded>());
     }
 
     // Acceptance: with housing to spare and a sea route to a full settlement, at most one villager moves at dawn; it goes
@@ -242,6 +251,44 @@ public sealed class SettlementTests
         world.AdvanceTo(At("2026-10-15 07:00", 2));
         world.Settlement.Fog.LiftIsland(PrototypeHome.Nyon);
         return Edited(world, nyon is int villagers ? [(PrototypeHome.Nyon, villagers)] : [], buildings, stock ?? []);
+    }
+
+    // Each island's depots hire their carriers from its own free villagers (D-106): with the same buildings to carry for,
+    // the island without free villagers keeps one carrier at its jetty, and the island with free villagers hires more.
+    [Fact]
+    public void EachIslandsDepotsHireCarriersOnlyFromItsOwnFreeVillagers()
+    {
+        var map = Archipelago.Map;
+        var world = Archipelago.Create(At("2026-10-14 14:00", 2), Night);
+        world.AdvanceTo(At("2026-10-15 09:00", 2));
+        int fisherStaff = world.Content.For(BuildingKind.FishingHut).Staff;
+        Hex Landing(string island) => map.Features.LandOf(island).First(h => map.Features.IsHarborSpot(h) && world.BuildingAt(h) is null);
+        IEnumerable<string> Island(string island)
+        {
+            var jetty = Landing(island);
+            var waters = Enumerable.Range(0, map.Disc.Count).Select(i => map.Disc[i])
+                .Where(h => (map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.IslandOf(h) == island && h.DistanceTo(jetty) >= 3)
+                .OrderBy(h => h.DistanceTo(jetty)).ThenBy(h => h.Q).ThenBy(h => h.R).Take(3);
+            return [Line(BuildingKind.Jetty, jetty, staffed: true), .. waters.Select(h => Line(BuildingKind.FishingHut, h, staffed: true))];
+        }
+
+        int staff = 1 + (3 * fisherStaff);
+        world = Edited(
+            world,
+            settlements: [(Archipelago.First, staff), (Archipelago.Second, staff + 3)],
+            buildings: [Line(BuildingKind.Jetty, Landing(Archipelago.Home), staffed: true), .. Island(Archipelago.First), .. Island(Archipelago.Second)],
+            stock: [(Archipelago.First, Resource.Fish, 40), (Archipelago.Second, Resource.Fish, 40)]);
+
+        world.AdvanceTo(At("2026-10-16 10:00", 2));
+
+        int Carriers(string island) => world.Buildings.Single(b => b.Kind == BuildingKind.Jetty && b.Island == island).Carriers;
+        Assert.Equal(0, world.SettlementOn(Archipelago.First)!.FreeVillagers);
+        Assert.Equal(1, Carriers(Archipelago.First));
+        Assert.True(Carriers(Archipelago.Second) > 1, $"The second island's jetty has {Carriers(Archipelago.Second)} carriers.");
+        Assert.Equal(3 - (Carriers(Archipelago.Second) - 1), world.SettlementOn(Archipelago.Second)!.FreeVillagers);
+        Assert.All(world.Settlements, s => Assert.Equal(
+            s.Villagers - world.Buildings.Where(b => b.Island == s.Island).Sum(b => Logistics.IsDepot(b.Kind) ? b.Carriers : b.Staffed ? world.Content.For(b.Kind).Staff : 0),
+            s.FreeVillagers));
     }
 
     /// <summary>

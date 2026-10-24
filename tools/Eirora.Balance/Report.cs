@@ -69,8 +69,8 @@ public static class Report
 
         foreach (var group in all.GroupBy(r => (r.Spec.Map.Name, r.Spec.Days)))
         {
-            text.Append(Invariant($"\n## {group.Key.Name}, {group.Key.Days} spelardygn\n\n"));
-            text.Append("| Karta | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft | Planen klar | Mål kvar |\n");
+            text.Append(Invariant($"\n## {group.Key.Name}, {group.Key.Days} dagar\n\n"));
+            text.Append("| Karta | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft | Planen klar | Mål kvar |\n");
             text.Append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
             foreach (var run in group)
             {

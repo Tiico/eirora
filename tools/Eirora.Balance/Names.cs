@@ -12,13 +12,13 @@ internal static class Names
         BuildingKind.Storehouse => "förråd",
         BuildingKind.FishingHut => "fiskebod",
         BuildingKind.Field => "åker",
-        BuildingKind.Woodcutter => "huggarkoja",
+        BuildingKind.Woodcutter => "skogshuggare",
         BuildingKind.SheepFarm => "fårgård",
         BuildingKind.Quarry => "stenbrott",
         BuildingKind.Sawmill => "sågverk",
         BuildingKind.Weavery => "väveri",
         BuildingKind.Jetty => "brygga",
-        _ => "utkiksvarde",
+        _ => "utkikstorn",
     };
 
     public static string Of(Where where) => where switch
