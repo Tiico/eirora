@@ -40,7 +40,7 @@ namespace Eirora.Client.Tests
         {
             _hud.Select(Jetty(_game.World!.HomeIsland));
 
-            Assert.That(Labels(), Does.Contain("Sjövägen till Nyön är öppen. Skeppen bär 40 varor per dygn, åt båda hållen tillsammans."));
+            Assert.That(Labels(), Does.Contain("Sjövägen till Nyön är öppen. Skeppen bär 40 varor per dag, åt båda hållen tillsammans."));
             Assert.That(Labels().Where(l => l.StartsWith("Nyön: ")).ToArray(), Is.EqualTo(new[] { Settlement(), $"Nyön: {Waiting()} väntar på skeppen." }));
         }
 
@@ -53,7 +53,7 @@ namespace Eirora.Client.Tests
             var nyon = _game.World!.SettlementOn(PrototypeHome.Nyon)!;
             Assert.That(nyon.Villagers, Is.GreaterThan(0), "No villager has moved to Nyön by the end of the tour's week.");
             Assert.That(Labels(), Does.Contain(Settlement()));
-            Assert.That(Labels(), Does.Contain("Skeppen seglar mellan Nyön och Hemön med 40 varor per dygn, åt båda hållen tillsammans."));
+            Assert.That(Labels(), Does.Contain("Skeppen seglar mellan Nyön och Hemön med 40 varor per dag, åt båda hållen tillsammans."));
             Assert.That(Labels(), Does.Contain($"Väntar på skeppen: {Waiting()}."));
         }
 

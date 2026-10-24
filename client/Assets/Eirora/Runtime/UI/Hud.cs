@@ -806,7 +806,7 @@ namespace Eirora.Client.UI
                 bool sailing = world.SeaRoutes.Any(r => r.From == building.Island);
                 SettlementLines(world, building.Island);
                 Text("sheet-text", _sheet, sailing
-                    ? $"Skeppen seglar mellan {name} och Hemön med {SeaRoute.UnitsPerGameDay} varor per dygn, åt båda hållen tillsammans."
+                    ? $"Skeppen seglar mellan {name} och Hemön med {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
                     : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
                 Text("sheet-text", _sheet, Waiting(world, building.Island, sailing) is string goods
                     ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
@@ -841,8 +841,8 @@ namespace Eirora.Client.UI
             if (world.SeaRoutes.Count > 0)
             {
                 Text("sheet-text", _sheet, world.SeaRoutes.Count == 1
-                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dygn, åt båda hållen tillsammans."
-                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dygn på varje, åt båda hållen tillsammans.");
+                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
+                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag på varje, åt båda hållen tillsammans.");
             }
 
             foreach (var route in world.SeaRoutes)

@@ -540,7 +540,7 @@ namespace Eirora.Client.UI
 
             if (route.SuppliesPerHour > 0)
             {
-                yield return "De tar ut mat från Hemön, så att öns bybor har för två dygn.";
+                yield return "De tar ut mat från Hemön, så att öns bybor har för två dagar.";
             }
 
             foreach (var hindrance in route.Hindrances)
