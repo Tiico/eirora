@@ -31,7 +31,7 @@ public sealed class DiagnosticsTests
         Assert.True(sawmill.StandsStill);
         var waiting = Assert.IsType<WaitingForInput>(Assert.Single(sawmill.Hindrances));
         Assert.Equal(Resource.Timber, waiting.Resource);
-        Assert.Equal((18L, 20), (waiting.Stock, waiting.Reserve));
+        Assert.Equal((18L, 20), (waiting.Stock, waiting.Kept));
 
         // A full hour of planks takes two timber above the reserve of 20; the woodcutter's timber waits at the woodcutter.
         Assert.Equal(4, waiting.Missing);

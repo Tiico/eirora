@@ -9,10 +9,13 @@ namespace Eirora.Simulation.Commands
     /// </summary>
     public sealed class MoveImport : GameCommand
     {
+        /// <exception cref="System.ArgumentException">
+        /// The island is not a map's id, which is one word, or the resource is not one; a journal could not keep it.
+        /// </exception>
         public MoveImport(string island, Resource resource, int place)
         {
-            Island = island;
-            Resource = resource;
+            Island = IslandArguments.Id(island, nameof(island));
+            Resource = IslandArguments.Defined(resource, nameof(resource));
             Place = place;
         }
 
@@ -29,7 +32,7 @@ namespace Eirora.Simulation.Commands
         internal override Rejection Execute(World world)
         {
             var settlement = world.Settlement;
-            if (Island == settlement.HomeIsland || !settlement.HasStore(Island) || !System.Enum.IsDefined(typeof(Resource), Resource))
+            if (Island == settlement.HomeIsland || !settlement.HasStore(Island))
             {
                 return Rejection.NoSuchIsland;
             }

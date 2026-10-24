@@ -523,10 +523,10 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
 - **D-117 (F9):** varvet kräver Styrka och har ingen handkraft.
 - **D-118 (F10):** avvikelserna från dagens första vecka godtas: bärarna i introduktion 2 med flaskhalsen som diagnos, bönderna dygn 7 för den som satsar på tillväxt, och Nyön som egen bosättning i introduktion 6.
 - **D-119 (F11):** D-34:s andra halva gäller över veckor.
+  Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter 0,07 % (avsnitt 9).
 
 Lagerreglerna i TASK-046 (#129) avgjordes efter v2.3 och står i [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler):
 
 - **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
 - **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
 - **D-127:** reserveringen hindrar bara skeppning hemåt och förädling, inte byggmaterial och mat som skeppas ut till öarna.
-  Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter 0,07 % (avsnitt 9).

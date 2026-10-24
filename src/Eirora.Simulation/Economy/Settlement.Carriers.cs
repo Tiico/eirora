@@ -379,6 +379,7 @@ namespace Eirora.Simulation.Economy
                 }
 
                 var store = _stores[depot.Island];
+                _reserved.TryGetValue(depot.Island, out var reserved);
                 long capacity = StorageCapacity(depot.Island);
                 _jobs.Clear();
                 foreach (var (building, recipe, trip) in served)
@@ -393,7 +394,7 @@ namespace Eirora.Simulation.Economy
                     {
                         foreach (var input in recipe.Inputs)
                         {
-                            long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Leaves(building, input.Resource).Kept);
+                            long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Leaves(building, input.Resource, reserved).Kept);
                             if (wanted > 0)
                             {
                                 AddJob(new Job(building, input.Resource, wanted * OutboxUnits, trip));
@@ -415,7 +416,7 @@ namespace Eirora.Simulation.Economy
                     if (job.Input is Resource input)
                     {
                         var held = job.Building.Held!;
-                        moved = Min(Min(Quantity.Units(InputUnits) - held[(int)input], store[(int)input] - Leaves(job.Building, input).Kept), reach);
+                        moved = Min(Min(Quantity.Units(InputUnits) - held[(int)input], store[(int)input] - Leaves(job.Building, input, reserved).Kept), reach);
                         if (moved <= 0)
                         {
                             continue;

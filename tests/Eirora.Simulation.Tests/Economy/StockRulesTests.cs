@@ -65,11 +65,26 @@ public sealed class StockRulesTests
         // With 20 timber, the minimum stock keeps it until the reservation is above it.
         var scarce = Sawmill(timber: 20);
         var waiting = Assert.IsType<WaitingForInput>(Assert.Single(scarce.Diagnose().At(L1)!.Hindrances));
-        Assert.Equal((20, KeptBy.Reserve), (waiting.Reserve, waiting.KeptBy));
+        Assert.Equal((20, KeptBy.Reserve), (waiting.Kept, waiting.KeptBy));
 
         Assert.True(Apply(scarce, new SetReservation(scarce.HomeIsland, Resource.Timber, 24)).Accepted);
         waiting = Assert.IsType<WaitingForInput>(Assert.Single(scarce.Diagnose().At(L1)!.Hindrances));
-        Assert.Equal((24, KeptBy.Reservation, 20L, 6L), (waiting.Reserve, waiting.KeptBy, waiting.Stock, waiting.Missing));
+        Assert.Equal((24, KeptBy.Reservation, 20L, 6L), (waiting.Kept, waiting.KeptBy, waiting.Stock, waiting.Missing));
+    }
+
+    // Review of #167: a raw material the player's rules keep can be the island's bottleneck, unlike a pause, since more of it
+    // helps; the workday then goes to the building that makes it (economy-v1.md, section 5).
+    [Fact]
+    public void ARawMaterialAReservationKeepsCanBeTheBottleneckAndAWorkdayOnItsMakerEasesIt()
+    {
+        var world = CarriersTests.Edited(Morning(), "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0 20", stock: (Resource.Timber, 22));
+        Assert.True(Apply(world, new SetReservation(world.HomeIsland, Resource.Timber, 30)).Accepted);
+
+        var bottleneck = world.Diagnose().BottleneckOn(world.HomeIsland)!;
+
+        Assert.Equal(L1, bottleneck.Building.Building.Tile);
+        Assert.Equal(KeptBy.Reservation, Assert.IsType<WaitingForInput>(bottleneck.Hindrance).KeptBy);
+        Assert.Equal(F1, bottleneck.Workday!.Tile);
     }
 
     // Acceptance: with stone before wool on a sea route, the ships take the stone first; with wool first, the wool.
@@ -168,6 +183,25 @@ public sealed class StockRulesTests
         Assert.Equal(Rejection.NoSuchIsland, Apply(world, new MoveImport(PrototypeHome.Nyon, Resource.Stone, 0)).Rejection);
 
         Assert.Equal(before, world.Fingerprint());
+    }
+
+    // Review of #167: a command is written to the journal before it runs, so one that a journal could not keep is never made,
+    // and one that names an island without a store is refused and read back.
+    [Fact]
+    public void ACommandThatAJournalCouldNotKeepIsNeverMadeAndARefusedOneIsReadBack()
+    {
+        Assert.Throws<ArgumentException>(() => new SetReservation(PrototypeHome.Home, (Resource)99, 5));
+        Assert.Throws<ArgumentException>(() => new SetReservation("two words", Resource.Timber, 5));
+        Assert.Throws<ArgumentException>(() => new SetReservation(string.Empty, Resource.Timber, 5));
+        Assert.Throws<ArgumentException>(() => new MoveImport(PrototypeHome.Nyon, (Resource)(-1), 0));
+        Assert.Throws<ArgumentException>(() => new MoveImport(null!, Resource.Stone, 0));
+
+        var journal = Journal.Start(At("2026-10-14 14:00", 2), Night);
+        Assert.Equal(Rejection.NoSuchIsland, journal.Apply("nowhere", new SetReservation("nowhere", Resource.Timber, 5)).Rejection);
+        Assert.Equal(Rejection.NoSuchIsland, journal.Apply("nyon", new MoveImport(PrototypeHome.Nyon, Resource.Stone, 0)).Rejection);
+        Assert.True(journal.Apply("timber", new SetReservation(PrototypeHome.Home, Resource.Timber, 5)).Accepted);
+
+        Assert.Equal(journal.World.Fingerprint(), Journal.Load(journal.ToText()).World.Fingerprint());
     }
 
     [Fact]

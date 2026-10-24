@@ -98,7 +98,7 @@ public sealed class GoldenSaveTests
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(35);
+        var save = WithStockRules(BuiltOutWorld.GenerateSave(35));
         var world = save.World;
         Assert.Equal(2, world.SeaRoutes.Count);
         Assert.Contains(world.Buildings, b => b.Paused);
@@ -115,6 +115,36 @@ public sealed class GoldenSaveTests
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
         File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
+    }
+
+    /// <summary>
+    /// The save with the player's stock rules set while the villagers are awake (TASK-046): the first processing
+    /// building's minimum stock raised, timber reserved at home and wool on the island of the first sea route, and stone
+    /// shipped first from it, so that the golden save keeps all three in its state and its journal.
+    /// </summary>
+    private static Save WithStockRules(Save save)
+    {
+        while (save.World.Phase != Phase.Active)
+        {
+            var now = save.World.Now;
+            save.AdvanceTo(new TimeReading(now.UtcSeconds + 900, now.ZoneId, now.OffsetSeconds));
+        }
+
+        var world = save.World;
+        string away = world.SeaRoutes[0].From;
+        var processing = world.Buildings.First(b => b.Held is not null);
+        foreach (var (key, command) in new (string, GameCommand)[]
+        {
+            ("golden-reserve", new SetReserve(processing.Tile, 35)),
+            ("golden-timber", new SetReservation(world.HomeIsland, Resource.Timber, 30)),
+            ("golden-wool", new SetReservation(away, Resource.Wool, 10)),
+            ("golden-stone", new MoveImport(away, Resource.Stone, 0)),
+        })
+        {
+            Assert.True(save.Apply(key, command).Accepted, $"{key} was refused.");
+        }
+
+        return save;
     }
 
     /// <summary>The bytes of a checked-in golden save.</summary>

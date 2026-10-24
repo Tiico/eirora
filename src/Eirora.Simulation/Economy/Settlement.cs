@@ -1025,9 +1025,9 @@ namespace Eirora.Simulation.Economy
 
                 var from = _stores[island];
                 long room = SeaRoutePerTick;
-                var order = ImportOrder(island);
+                var order = ShippingOrder(island);
                 _reserved.TryGetValue(island, out var reserved);
-                for (int i = 0; i < order.Count && room > 0; i++)
+                for (int i = 0; i < order.Length && room > 0; i++)
                 {
                     var resource = order[i];
                     long moved = Add(home, resource, Min(room, Shippable(from, reserved, resource)), capacity);

@@ -427,11 +427,11 @@ namespace Eirora.Client.UI
             MissingStaff staff => $"Det saknas {Villagers(staff.Villagers)} här. Flytta upp den i bemanningen eller pausa en byggnad före den.",
             Paused => "Pausad: byborna bygger i stället. Nivån och lagret står kvar.",
             WaitingForInput { KeptBy: KeptBy.Reservation } input =>
-                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. {input.Reserve} är reserverade på ön.",
-            WaitingForInput { Reserve: 0 } input =>
+                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. {input.Kept} är reserverade på ön.",
+            WaitingForInput { Kept: 0 } input =>
                 $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete.",
             WaitingForInput input =>
-                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. Minimilagret på {input.Reserve} sparas till byggen.",
+                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. Minimilagret på {input.Kept} sparas till byggen.",
             StoreFull { Capacity: 0 } full => $"Ön har inget förråd för {Name(full.Resource)}.",
             StoreFull full => $"Lagret är fullt: {full.Capacity} {Name(full.Resource)}. Inget går förlorat.",
             ForestFelled { InReach: 0 } => "Här finns ingen skog kvar att fälla.",

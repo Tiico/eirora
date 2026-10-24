@@ -735,7 +735,7 @@ namespace Eirora.Client.UI
             Text("sheet-text", _sheet, home
                 ? "Det som är reserverat tar förädlingen inte. Byggen betalar ändå ur det."
                 : sails
-                    ? "Skeppen tar hem varorna uppifrån och lämnar det som är reserverat. Byggen betalar ändå ur det."
+                    ? "Skeppen tar hem varorna uppifrån och lämnar det som är reserverat."
                     : "Skeppen tar hem varorna uppifrån när sjövägen öppnar, och lämnar det som är reserverat.");
 
             for (int i = 0; i < order.Count; i++)

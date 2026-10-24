@@ -28,7 +28,6 @@ namespace Eirora.Simulation
         private const string Header = "eirora-journal";
 
         private static readonly char[] s_lineBreak = { '\n' };
-        private static readonly char[] s_spaces = { ' ', '\n', '\r' };
 
         // The prototype journal's header and create line; empty for a journal that continues from a snapshot.
         private readonly string _start;
@@ -223,8 +222,8 @@ namespace Eirora.Simulation
             LayRoad c => $"lay {Text(c.Tile)}",
             SetCarrierCap c => $"carriers {Text(c.Tile)} {Text(c.Cap)}",
             SetReserve c => $"reserve {Text(c.Tile)} {Text(c.Units)}",
-            SetReservation c => $"reservation {Word(c.Island)} {c.Resource} {Text(c.Units)}",
-            MoveImport c => $"import {Word(c.Island)} {c.Resource} {Text(c.Place)}",
+            SetReservation c => $"reservation {c.Island} {c.Resource} {Text(c.Units)}",
+            MoveImport c => $"import {c.Island} {c.Resource} {Text(c.Place)}",
             Survey => "survey",
             Workday c => $"workday {Text(c.Tile)}",
             Rush => "rush",
@@ -295,9 +294,5 @@ namespace Eirora.Simulation
         private static string Text(long value) => value.ToString(CultureInfo.InvariantCulture);
 
         private static string Text(Hex tile) => $"{Text(tile.Q)} {Text(tile.R)}";
-
-        /// <summary>A map's id as one field of a line; a map's ids never hold spaces (WorldMapBuilder).</summary>
-        private static string Word(string id) =>
-            !string.IsNullOrEmpty(id) && id.IndexOfAny(s_spaces) < 0 ? id : throw new ArgumentException($"'{id}' cannot be journalled as an island.", nameof(id));
     }
 }

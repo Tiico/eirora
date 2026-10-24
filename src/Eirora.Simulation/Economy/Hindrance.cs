@@ -46,12 +46,12 @@ namespace Eirora.Simulation.Economy
     /// </summary>
     public sealed class WaitingForInput : Hindrance
     {
-        internal WaitingForInput(Resource resource, long stock, int reserve, KeptBy keptBy, long missing, long lostPerHour)
+        internal WaitingForInput(Resource resource, long stock, int kept, KeptBy keptBy, long missing, long lostPerHour)
             : base(lostPerHour)
         {
             Resource = resource;
             Stock = stock;
-            Reserve = reserve;
+            Kept = kept;
             KeptBy = keptBy;
             Missing = missing;
         }
@@ -62,7 +62,7 @@ namespace Eirora.Simulation.Economy
         public long Stock { get; }
 
         /// <summary>Whole units that processing leaves in the store: the larger of its minimum stock and the reservation.</summary>
-        public int Reserve { get; }
+        public int Kept { get; }
 
         /// <summary>Which of the two keeps it, the minimum stock when they are the same.</summary>
         public KeptBy KeptBy { get; }

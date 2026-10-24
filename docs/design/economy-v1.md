@@ -197,9 +197,11 @@ De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-
 - **Importprioritet** per sjöväg: i vilken ordning skeppen tar hem öns varor, till exempel sten före ull så att stenådern på Nyön inte trängs undan.
   Spelaren ordnar alla varor, och utan spelarens ordning går de i sin fasta ordning: fisk, säd, timmer, plankor, sten, ull och tyg (D-126).
   Ordningen kan sättas innan sjövägen öppnar.
-- **Reservering** per ö och vara: ett lager som skeppen inte tar hem och förädlingen inte tar, till exempel timmer på Nyön till byggen där.
+- **Reservering** per ö och vara: ett lager som skeppen inte tar hem och förädlingen inte tar, till exempel timmer på Hemön som sågverket inte ska såga eller ull som ska stanna på Nyön.
   Med 30 timmer reserverade på en ö lämnar sjövägen 30 timmer kvar där.
   Byggen betalar ändå ur det reserverade, eftersom ett projekt betalas när det läggs i kön; reserveringen gäller lagret, och byborna äter som förut (D-127).
+  Så länge alla byggen betalas ur Hemöns lager skyddar en reservering på en annan ö alltså inget byggmaterial där; det gör den först när byggen på ön betalas ur öns eget lager (TASK-050).
+- Ett minimilager eller en reservering kan vara större än lagret rymmer, om lagret blir mindre när en byggnad rivs; då lämnas allt kvar, och spelarens inställning står kvar tills spelaren ändrar den.
 
 Förädlingen lämnar det största av sitt minimilager och reserveringen på sin ö, så de två lägger sig inte på varandra (D-125).
 Diagnostiken säger vilket av dem som håller kvar råvaran, och en sjöväg som har plats över men lämnar varor för en reservering säger det också.
@@ -236,6 +238,7 @@ Byggkön ingår inte: en kvart då ett bygge blir klart kan ge en byggnad bybor,
 Varje sjöväg visar hur stor del av sin kapacitet den använder, vad som väntar på ön den går från i importprioritetens ordning och när en reservering håller kvar varor som skeppen hade plats för; sjövägarna delar på platsen i Hemöns lager i kartans ordning.
 Varje ö får sin största flaskhals, skälet som kostar mest just nu, och när det är en råvara som saknas också var extraarbete gör mest nytta (avsnitt 6, beslut 3).
 En paus är spelarens eget val och blir aldrig öns flaskhals.
+En råvara som minimilagret eller en reservering håller kvar kan däremot bli det, eftersom mer av råvaran hjälper och rådet om extraarbete då gäller byggnaden som gör den; skälet säger vilken av inställningarna det är.
 Kartan markerar byggnader som står still med en skylt med två staplar medan byborna är vakna, så att formen och inte färgen bär det (UX-05).
 Senare regler, som bärarna i D-107, lägger till sina skäl utan att ändra hur diagnostiken läses.
 
