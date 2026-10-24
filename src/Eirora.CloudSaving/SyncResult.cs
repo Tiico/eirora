@@ -5,7 +5,15 @@ namespace Eirora.CloudSaving
     /// <summary>How a reconciliation or an upload went, and what it did to the device's world.</summary>
     public sealed class SyncResult
     {
-        internal SyncResult(SyncOutcome outcome, SyncChanges changes, long? version = null, int? cloudGameDay = null, DateTimeOffset? cloudSavedAt = null, bool contributionsUnreadable = false)
+        internal SyncResult(
+            SyncOutcome outcome,
+            SyncChanges changes,
+            long? version = null,
+            int? cloudGameDay = null,
+            DateTimeOffset? cloudSavedAt = null,
+            bool contributionsUnreadable = false,
+            bool cloudWithoutContributions = false,
+            bool contributionsOnAccount = false)
         {
             Outcome = outcome;
             Downloaded = changes.Downloaded;
@@ -13,15 +21,21 @@ namespace Eirora.CloudSaving
             KeyEpochBegan = changes.KeyEpochBegan;
             ContributionPartLocked = changes.ContributionPartLocked;
             CloudSaveUnreadable = changes.CloudSaveUnreadable;
+            WorldPartOnly = changes.WorldPartOnly;
             Version = version;
             CloudGameDay = cloudGameDay;
             CloudSavedAt = cloudSavedAt;
             ContributionsUnreadable = contributionsUnreadable;
+            CloudWithoutContributions = cloudWithoutContributions;
+            ContributionsOnAccount = contributionsOnAccount;
         }
 
         public SyncOutcome Outcome { get; }
 
-        /// <summary>The device had no world and the cloud save's came down.</summary>
+        /// <summary>
+        /// The cloud save's world came down: the device had none, or had played nothing since the version it was based on
+        /// and the cloud's world without a contribution part was newer (TASK-060).
+        /// </summary>
         public bool Downloaded { get; }
 
         /// <summary>The device's journal and the cloud save's were merged (D-99).</summary>
@@ -49,6 +63,12 @@ namespace Eirora.CloudSaving
         /// </summary>
         public bool CloudSaveUnreadable { get; }
 
+        /// <summary>
+        /// The cloud's world came down, or was chosen, from its world part alone, because the account keeps no
+        /// contribution part (TASK-060): its game days so far are closed, as on a phone without the key (D-101).
+        /// </summary>
+        public bool WorldPartOnly { get; }
+
         /// <summary>The cloud save version the device's world is now based on, when it is.</summary>
         public long? Version { get; }
 
@@ -63,6 +83,18 @@ namespace Eirora.CloudSaving
         /// the cloud's world begins a new key epoch.
         /// </summary>
         public bool ContributionsUnreadable { get; }
+
+        /// <summary>
+        /// For <see cref="SyncOutcome.ChoiceNeeded"/>: the account keeps no contribution part (TASK-060), so the two
+        /// worlds cannot be merged, and taking the cloud's closes the game days so far.
+        /// </summary>
+        public bool CloudWithoutContributions { get; }
+
+        /// <summary>
+        /// For <see cref="SyncOutcome.ConsentNeeded"/>: the account holds a contribution part from before the question,
+        /// which stays until the player answers and is deleted if they decline (TASK-060).
+        /// </summary>
+        public bool ContributionsOnAccount { get; }
     }
 
     public enum SyncOutcome
@@ -72,6 +104,13 @@ namespace Eirora.CloudSaving
 
         /// <summary>Neither the device nor the account has a world yet.</summary>
         NoWorld,
+
+        /// <summary>
+        /// The player has not answered whether the contribution part may be stored on the account (TASK-060). Nothing
+        /// goes up until they do; the answer goes to <see cref="CloudSync.AnswerConsentAsync"/>, and the reconciliation
+        /// is run again.
+        /// </summary>
+        ConsentNeeded,
 
         /// <summary>
         /// The phone and the cloud hold different worlds; the player chooses, and the reconciliation is run again with
@@ -146,5 +185,7 @@ namespace Eirora.CloudSaving
         public bool ContributionPartLocked { get; set; }
 
         public bool CloudSaveUnreadable { get; set; }
+
+        public bool WorldPartOnly { get; set; }
     }
 }

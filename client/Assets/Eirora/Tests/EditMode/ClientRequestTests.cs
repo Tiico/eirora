@@ -72,6 +72,42 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void UploadingTheWorldPartAlone()
+        {
+            byte[] world = Encoding.UTF8.GetBytes("eirora-save 3\n");
+
+            Sends(
+                "cloud-save-world-upload.http",
+                _server.UploadCloudSaveAsync("__ACCESS_TOKEN__", new CloudSaveUpload(0, 0, world, null)),
+                new Dictionary<string, string> { ["WORLD"] = Convert.ToBase64String(world) });
+        }
+
+        [Test]
+        public void GettingTheConsent() => Sends("contribution-consent.http", _server.GetConsentAsync("__ACCESS_TOKEN__"));
+
+        [Test]
+        public void GivingTheConsent() => Sends(
+            "contribution-consent-answer.http",
+            _server.AnswerConsentAsync("__ACCESS_TOKEN__", new ContributionConsentAnswer(true, ContributionConsent.CurrentVersion)));
+
+        [Test]
+        public void WithdrawingTheConsent() => Sends(
+            "contribution-consent-withdrawal.http",
+            _server.AnswerConsentAsync("__ACCESS_TOKEN__", new ContributionConsentAnswer(false, ContributionConsent.CurrentVersion)));
+
+        [Test]
+        public void TheConsentIsReadAsTheServerSendsIt()
+        {
+            var given = AccountServer.ParseConsent(Read("contribution-consent-response.json"))!;
+            var unanswered = AccountServer.ParseConsent(Read("contribution-consent-unanswered-response.json"))!;
+
+            Assert.That((given.Answer, given.Version), Is.EqualTo((ConsentAnswer.Given, 1)));
+            Assert.That(given.AnsweredAt, Is.EqualTo(new DateTimeOffset(2026, 10, 23, 8, 0, 0, TimeSpan.Zero)));
+            Assert.That((unanswered.Answer, unanswered.Version, unanswered.AnsweredAt), Is.EqualTo((ConsentAnswer.Unanswered, 0, (DateTimeOffset?)null)));
+            Assert.That(unanswered.NeedsAnswer, Is.True);
+        }
+
+        [Test]
         public void CreatingAKeyTransfer()
         {
             byte[] publicKey = new byte[32];
@@ -117,8 +153,18 @@ namespace Eirora.Client.Tests
 
             Assert.That((save.Version, save.KeyEpoch), Is.EqualTo((1L, 1)));
             Assert.That(Encoding.UTF8.GetString(save.World), Is.EqualTo("eirora-save 3\n"));
-            Assert.That(Encoding.UTF8.GetString(save.Contributions), Is.EqualTo("eirora-sealed 1\n"));
+            Assert.That(Encoding.UTF8.GetString(save.Contributions!), Is.EqualTo("eirora-sealed 1\n"));
             Assert.That(save.SavedAt, Is.EqualTo(new DateTimeOffset(2026, 10, 21, 20, 0, 0, TimeSpan.Zero)));
+        }
+
+        [Test]
+        public void ACloudSaveWithoutAContributionPartIsReadAsTheServerSendsIt()
+        {
+            var save = AccountServer.ParseCloudSave(Read("cloud-save-world-response.json"))!;
+
+            Assert.That((save.Version, save.KeyEpoch), Is.EqualTo((1L, 0)));
+            Assert.That(Encoding.UTF8.GetString(save.World), Is.EqualTo("eirora-save 3\n"));
+            Assert.That(save.Contributions, Is.Null);
         }
 
         [Test]

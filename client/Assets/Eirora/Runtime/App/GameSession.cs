@@ -264,8 +264,9 @@ namespace Eirora.Client.App
         }
 
         /// <summary>
-        /// Makes <paramref name="save"/> the world: merged with the cloud save's, brought down to a phone without one, or
-        /// chosen over the phone's, which is then kept aside under a dated name (never deleted). The world catches up
+        /// Makes <paramref name="save"/> the world: merged with the cloud save's, brought down to a phone without one,
+        /// chosen over the phone's, or taken in place of one where nothing was played since (TASK-060); the phone's is then
+        /// kept aside under a dated name (never deleted). The world catches up
         /// with the clock, and the report starts over.
         /// </summary>
         public void Replace(Save save, ReplaceReason reason)
@@ -275,7 +276,7 @@ namespace Eirora.Client.App
                 throw new ArgumentNullException(nameof(save));
             }
 
-            if (reason == ReplaceReason.CloudChosen && _savePath is not null && File.Exists(_savePath))
+            if ((reason is ReplaceReason.CloudChosen or ReplaceReason.FastForwarded) && _savePath is not null && File.Exists(_savePath))
             {
                 File.Move(_savePath, Aside(_savePath, "replaced"));
             }

@@ -480,4 +480,5 @@
     font-size: 64px;
     -unity-font-style: bold;
     color: rgb(180, 71, 58);
+    white-space: normal;
 }

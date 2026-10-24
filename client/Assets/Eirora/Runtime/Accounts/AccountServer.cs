@@ -81,6 +81,20 @@ namespace Eirora.Client.Accounts
             return (reply, reply.Status == 200 || reply.Status == 409 ? ParseCloudSaveVersion(reply.Body) : null);
         }
 
+        /// <summary><c>GET /api/account/contribution-consent</c>: the player's answer about the contribution part (TASK-060).</summary>
+        public async Task<(HttpReply Reply, ContributionConsent? Consent)> GetConsentAsync(string accessToken)
+        {
+            var reply = await _http.SendAsync(new HttpCall("GET", _baseUrl + "/api/account/contribution-consent", bearer: accessToken));
+            return (reply, reply.Status == 200 ? ParseConsent(reply.Body) : null);
+        }
+
+        /// <summary><c>PUT /api/account/contribution-consent</c>: the player's answer, as the server keeps it.</summary>
+        public async Task<(HttpReply Reply, ContributionConsent? Consent)> AnswerConsentAsync(string accessToken, ContributionConsentAnswer answer)
+        {
+            var reply = await _http.SendAsync(new HttpCall("PUT", _baseUrl + "/api/account/contribution-consent", Json(answer), HttpCall.Json, accessToken));
+            return (reply, reply.Status == 200 ? ParseConsent(reply.Body) : null);
+        }
+
         /// <summary><c>POST /api/account/key-transfers</c>: a transfer with the new phone's one-time public key (TASK-023b).</summary>
         public async Task<(HttpReply Reply, KeyTransfer? Transfer)> CreateKeyTransferAsync(string accessToken, byte[] receiverPublicKey)
         {
@@ -139,7 +153,32 @@ namespace Eirora.Client.Accounts
             }
         }
 
-        /// <summary>A <see cref="CloudSaveUpload"/> as the server reads it: the parts in base64.</summary>
+        /// <summary>A <see cref="ContributionConsentAnswer"/> as the server reads it.</summary>
+        public static string Json(ContributionConsentAnswer answer) =>
+            JsonUtility.ToJson(new ConsentAnswerJson { given = answer.Given, version = answer.Version });
+
+        public static ContributionConsent? ParseConsent(string json)
+        {
+            ConsentJson? consent;
+            try
+            {
+                consent = JsonUtility.FromJson<ConsentJson>(json);
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+
+            if (consent is null || !Enum.IsDefined(typeof(ConsentAnswer), consent.answer) || consent.version < 0)
+            {
+                return null;
+            }
+
+            var answer = (ConsentAnswer)consent.answer;
+            return new ContributionConsent(answer, consent.version, answer == ConsentAnswer.Unanswered ? null : Time(consent.answeredAt ?? string.Empty));
+        }
+
+        /// <summary>A <see cref="CloudSaveUpload"/> as the server reads it: the parts in base64, the contribution part empty when there is none.</summary>
         public static string Json(CloudSaveUpload upload) => JsonUtility.ToJson(new CloudSaveUploadJson
         {
             baseVersion = upload.BaseVersion,
@@ -160,14 +199,21 @@ namespace Eirora.Client.Accounts
                 return null;
             }
 
-            if (save is null || save.version < 1 || save.keyEpoch < 1 || save.world is null || save.contributions is null)
+            // Without consent the cloud save is its world part alone (TASK-060): no contribution part, and possibly epoch 0.
+            bool withPart = !string.IsNullOrEmpty(save?.contributions);
+            if (save is null || save.version < 1 || save.keyEpoch < (withPart ? 1 : 0) || string.IsNullOrEmpty(save.world))
             {
                 return null;
             }
 
             try
             {
-                return new CloudSave(save.version, save.keyEpoch, Convert.FromBase64String(save.world), Convert.FromBase64String(save.contributions), Time(save.savedAt ?? string.Empty));
+                return new CloudSave(
+                    save.version,
+                    save.keyEpoch,
+                    Convert.FromBase64String(save.world),
+                    withPart ? Convert.FromBase64String(save.contributions) : null,
+                    Time(save.savedAt ?? string.Empty));
             }
             catch (FormatException)
             {
@@ -316,6 +362,21 @@ namespace Eirora.Client.Accounts
             public string? receiverPublicKey;
             public string? sealedKey;
             public string? expiresAt;
+        }
+
+        [Serializable]
+        internal sealed class ConsentAnswerJson
+        {
+            public bool given;
+            public int version;
+        }
+
+        [Serializable]
+        internal sealed class ConsentJson
+        {
+            public int answer;
+            public int version;
+            public string? answeredAt;
         }
 
         [Serializable]
