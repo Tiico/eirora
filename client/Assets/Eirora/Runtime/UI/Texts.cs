@@ -689,8 +689,6 @@ namespace Eirora.Client.UI
             return lines;
         }
 
-        private static string Capital(string text) => char.ToUpperInvariant(text[0]) + text.Substring(1);
-
         private static string FogLiftedOver(int tiles) =>
             tiles == 1 ? "Dimman lättade över en ruta." : $"Dimman lättade över {tiles} rutor.";
     }
