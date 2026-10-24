@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Eirora.Simulation.Commands;
 
 namespace Eirora.Simulation.Economy
@@ -66,6 +68,27 @@ namespace Eirora.Simulation.Economy
         /// it, since they are not goods until harvested.
         /// </summary>
         public long Unharvested { get; }
+
+        /// <summary>
+        /// The other buildings that get villagers once it is gone: its villagers and carriers are given out again in the
+        /// staffing order, so one passed over for want of them may be staffed (economy-v1.md, section 4.1).
+        /// </summary>
+        public IReadOnlyList<Building> Staffs { get; internal set; } = Array.Empty<Building>();
+
+        /// <summary>
+        /// The other buildings that lose their villagers once it is gone, when one before them in the staffing order takes
+        /// them; a storehouse or a jetty loses its carriers with its first one.
+        /// </summary>
+        public IReadOnlyList<Building> Unstaffs { get; internal set; } = Array.Empty<Building>();
+
+        /// <summary>How many more villagers build once it is gone, after the staffing has been given out again.</summary>
+        public int MoreBuilders { get; internal set; }
+
+        /// <summary>The islands, by the map's id, whose sea route home closes with it: a jetty on the island or the home island's last one.</summary>
+        public IReadOnlyList<string> ClosesSeaRoutes { get; internal set; } = Array.Empty<string>();
+
+        /// <summary>Whether it is the home island's last jetty, from which every expedition sets out.</summary>
+        public bool EndsExpeditions { get; internal set; }
 
         /// <summary>Half of what it cost of a resource, its upgrade included, rounded down (D-108).</summary>
         public long Refund(Resource resource) => _refund[(int)resource];

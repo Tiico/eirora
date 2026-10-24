@@ -216,6 +216,98 @@ public sealed class DemolitionTests
         Assert.Equal(before, world.Fingerprint());
     }
 
+    // The extra carriers a storehouse took at dawn build again once it is gone, and the confirmation counts them.
+    [Fact]
+    public void ADemolishedStorehouseLetsAllItsCarriersBuild()
+    {
+        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 3 4 0 0 0 0 0"]);
+        int free = world.FreeVillagers;
+
+        var demolition = world.Demolition(E1)!;
+        Assert.True(Apply(world, new Demolish(E1)).Accepted);
+
+        Assert.Equal(3, demolition.MoreBuilders);
+        Assert.Equal(free + 3, world.FreeVillagers);
+    }
+
+    // The goods waiting at a building whose storehouse goes stay in its outbox for the carriers of the one it now belongs to.
+    [Fact]
+    public void TheGoodsWaitingForADemolishedStorehouseWaitForTheNextOne()
+    {
+        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0", "building Quarry 3 -1 1 1 0 0 0 0 0 0 5000000 1 2 -1"]);
+        long stone = world.Settlement.Stock(Resource.Stone);
+
+        Assert.True(Apply(world, new Demolish(E1)).Accepted);
+
+        var quarry = world.BuildingAt(M2)!;
+        Assert.Equal((5_000_000L, (Hex?)S), (quarry.Waiting, quarry.Depot));
+        Assert.Equal(stone + (2 * Quantity.PerUnit), world.Settlement.Stock(Resource.Stone));
+    }
+
+    // Freed villagers are given out again in the staffing order (economy-v1.md, section 4.1): a building passed over for
+    // want of them may take them and more, so that one after it stands still; the confirmation says so beforehand, as the
+    // demolition then does.
+    [Fact]
+    public void TheConfirmationSaysWhichBuildingsTheStaffingGivesAndTakes()
+    {
+        var world = Village(
+            At("2026-10-15 07:00", 2),
+            11,
+            ["building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0", "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0",
+                "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 0 0 0", "building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0"]);
+        Assert.Equal((false, true, 0), (world.BuildingAt(L1)!.Staffed, world.BuildingAt(H1)!.Staffed, world.FreeVillagers));
+
+        var demolition = world.Demolition(E1)!;
+        Assert.Equal([L1], demolition.Staffs.Select(b => b.Tile));
+        Assert.Equal([H1], demolition.Unstaffs.Select(b => b.Tile));
+        Assert.Equal(0, demolition.MoreBuilders);
+
+        Assert.True(Apply(world, new Demolish(E1)).Accepted);
+        Assert.Equal((true, false, 0), (world.BuildingAt(L1)!.Staffed, world.BuildingAt(H1)!.Staffed, world.FreeVillagers));
+    }
+
+    // The home island's last jetty closes every sea route and ends the expeditions, and the confirmation says so; the goods
+    // on the other island stay there (INV-R2).
+    [Fact]
+    public void DemolishingTheHomeJettyClosesTheSeaRoutesAndSaysSo()
+    {
+        var world = OnNyon(fish: 40);
+        Assert.Equal([PrototypeHome.Nyon], world.SeaRoutes.Select(r => r.From));
+
+        var demolition = world.Demolition(H1)!;
+        Assert.Equal([PrototypeHome.Nyon], demolition.ClosesSeaRoutes);
+        Assert.True(demolition.EndsExpeditions);
+
+        Assert.True(Apply(world, new Demolish(H1)).Accepted);
+        Assert.Empty(world.SeaRoutes);
+        Assert.Equal(40, world.Stock(PrototypeHome.Nyon, Resource.Fish));
+        Assert.Equal(Rejection.NoBuildingThere, Apply(world, new SendExpedition()).Rejection);
+    }
+
+    // An island's last jetty leaves a store that holds nothing (INV-R1): with goods there it stands until they are shipped,
+    // and once the store is empty it goes, and none of its materials fit to come back (D-128).
+    [Fact]
+    public void AnIslandsLastJettyGoesOnlyWithAnEmptyStoreAndGivesNothingBack()
+    {
+        var full = OnNyon(fish: 40);
+        var empty = OnNyon(fish: 0);
+
+        Assert.Equal((Rejection.NoRoomInStore, 40L), (full.Demolition(N0)!.Rejection, full.Demolition(N0)!.TooMuch(Resource.Fish)));
+        var demolition = empty.Demolition(N0)!;
+        Assert.Equal((Rejection.None, 7L, 0L), (demolition.Rejection, demolition.Lost(Resource.Timber), demolition.Returned(Resource.Timber)));
+        Assert.Equal([PrototypeHome.Nyon], demolition.ClosesSeaRoutes);
+        Assert.False(demolition.EndsExpeditions);
+    }
+
+    /// <summary>The start village with a jetty at home and one on Nyön, whose store holds <paramref name="fish"/>.</summary>
+    private static World OnNyon(int fish) => Village(
+        At("2026-10-15 07:00", 2),
+        12,
+        ["building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0", "building Jetty 10 0 1 1 0 0 0 1 4 0 0 0 0 0"],
+        lines => lines.InsertRange(
+            lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
+            Enum.GetValues<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? fish * Quantity.PerUnit : 0)}")));
+
     private static Dictionary<Resource, long> Stocks(World world) => Enum.GetValues<Resource>().ToDictionary(r => r, world.Stock);
 
     private static World Morning(string[] buildings, params (string Resource, int Units)[] stock) => Village(At("2026-10-15 07:00", 2), 12, buildings, stock);
@@ -224,17 +316,23 @@ public sealed class DemolitionTests
     /// The start village at <paramref name="at"/> with its villagers, <paramref name="buildings"/> (and projects) after its
     /// own and some stock set.
     /// </summary>
-    private static World Village(TimeReading at, int villagers, string[] buildings, params (string Resource, int Units)[] stock)
+    private static World Village(TimeReading at, int villagers, string[] buildings, params (string Resource, int Units)[] stock) =>
+        Village(at, villagers, buildings, lines =>
+        {
+            foreach (var (resource, units) in stock)
+            {
+                lines[lines.FindIndex(l => l.StartsWith($"stock home {resource} ", StringComparison.Ordinal))] = $"stock home {resource} {units * Quantity.PerUnit}";
+            }
+        });
+
+    /// <summary>The start village with its villagers, <paramref name="buildings"/> after its own and the state edited.</summary>
+    private static World Village(TimeReading at, int villagers, string[] buildings, Action<List<string>> edit)
     {
         var world = World.Create(At("2026-10-14 14:00", 2), Night);
         world.AdvanceTo(at);
         var lines = world.Fingerprint().Split('\n').ToList();
         lines[lines.FindIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal))] = $"settlement {villagers} 0 0";
-        foreach (var (resource, units) in stock)
-        {
-            lines[lines.FindIndex(l => l.StartsWith($"stock home {resource} ", StringComparison.Ordinal))] = $"stock home {resource} {units * Quantity.PerUnit}";
-        }
-
+        edit(lines);
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return World.Read(new StateReader(string.Join("\n", lines)), PrototypeHome.Map);
     }

@@ -52,7 +52,37 @@ namespace Eirora.Simulation.Economy
                 ? Rejection.LastStorehouse
                 : fits ? Rejection.None : Rejection.NoRoomInStore;
             long unharvested = recipe is { IsSlowProcess: true } ? Quantity.Whole(building.Ripe) : 0;
-            return new Demolition(building, rejection, refund, returned, emptied, tooMuch, unharvested, upgradeQueued);
+            var demolition = new Demolition(building, rejection, refund, returned, emptied, tooMuch, unharvested, upgradeQueued);
+
+            // What becomes of the staffing and the sea routes is read from a copy that the building is taken from, by the
+            // same code that the demolition runs, so that the confirmation cannot tell otherwise.
+            var without = CopyForWork();
+            without.Remove(without.BuildingAt(tile)!);
+            var staffs = new List<Building>();
+            var unstaffs = new List<Building>();
+            foreach (var other in _buildings)
+            {
+                if (other != building && without.BuildingAt(other.Tile) is { } twin && twin.Staffed != other.Staffed)
+                {
+                    (twin.Staffed ? staffs : unstaffs).Add(other);
+                }
+            }
+
+            var closed = new List<string>();
+            foreach (var route in SeaRoutes)
+            {
+                if (!without.HasSeaRoute(route.From))
+                {
+                    closed.Add(route.From);
+                }
+            }
+
+            demolition.Staffs = staffs;
+            demolition.Unstaffs = unstaffs;
+            demolition.MoreBuilders = without.FreeVillagers - FreeVillagers;
+            demolition.ClosesSeaRoutes = closed;
+            demolition.EndsExpeditions = building.Kind == BuildingKind.Jetty && building.Island == _home && !without.HasBuilt(BuildingKind.Jetty, _home);
+            return demolition;
         }
 
         /// <summary>
@@ -74,13 +104,19 @@ namespace Eirora.Simulation.Economy
                 store[r] += (building.Held?[r] ?? 0) + Quantity.Units(demolition.Returned((Resource)r));
             }
 
-            _buildings.Remove(building);
-            _buildingAt.Remove(building.Tile);
             if (Queued(building.Tile, ProjectKind.Upgrade) is { } upgrade)
             {
                 _projects.Remove(upgrade);
             }
 
+            Remove(building);
+        }
+
+        /// <summary>Takes a building away and gives its villagers and carriers out again, its buildings to other depots.</summary>
+        private void Remove(Building building)
+        {
+            _buildings.Remove(building);
+            _buildingAt.Remove(building.Tile);
             _capacity.Clear();
             ForgetTrips();
             StaffBuildings();

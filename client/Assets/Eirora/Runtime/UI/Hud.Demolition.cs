@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
@@ -31,7 +33,7 @@ namespace Eirora.Client.UI
         /// </summary>
         private void DemolitionButton(World world, Building building)
         {
-            if (world.Phase != Phase.Active || world.Demolition(building.Tile) is null)
+            if (world.Phase != Phase.Active)
             {
                 return;
             }
@@ -87,16 +89,41 @@ namespace Eirora.Client.UI
             }
 
             int upgrades = building.Level - 1 + (demolition.CancelsUpgrade ? 1 : 0);
-            int power = spec.BuildPower + (upgrades * world.Content.Upgrade.BuildPower);
-            if (power > 0)
+            if (spec.BuildPower + (upgrades * world.Content.Upgrade.BuildPower) > 0)
             {
-                Text("sheet-text", _sheet, $"{power} {Texts.Name(Force.BuildPower)} kommer inte tillbaka.");
+                Text("sheet-text", _sheet, $"Ingen {Texts.Name(Force.BuildPower)} kommer tillbaka.");
             }
 
-            int freed = Logistics.IsDepot(building.Kind) ? building.Carriers : building.Staffed ? spec.Staff : 0;
-            if (freed > 0)
+            if (building.WorkdayToday)
             {
-                Text("sheet-text", _sheet, freed == 1 ? "En bybo blir ledig och bygger." : $"{Capital(Texts.Villagers(freed))} blir lediga och bygger.");
+                Text("sheet-text", _sheet, "Arbeta extra i dag går förlorat.");
+            }
+
+            // As the villagers are given out again in the staffing order (economy-v1.md, section 4.1).
+            if (demolition.MoreBuilders > 0)
+            {
+                Text("sheet-text", _sheet, demolition.MoreBuilders == 1 ? "En bybo till bygger." : $"{Capital(Texts.Villagers(demolition.MoreBuilders))} till bygger.");
+            }
+
+            if (demolition.Staffs.Count > 0)
+            {
+                Text("sheet-text", _sheet, $"{Capital(Definites(demolition.Staffs))} får bybor och kommer i gång.");
+            }
+
+            if (demolition.Unstaffs.Count > 0)
+            {
+                Text("sheet-text", _sheet, $"{Capital(Definites(demolition.Unstaffs))} blir utan bybor och står still.");
+            }
+
+            foreach (string island in demolition.ClosesSeaRoutes)
+            {
+                Text("sheet-text", _sheet, $"Sjövägen till {Texts.IslandName(world, island)} stängs."
+                    + (Waiting(world, island) is string goods ? $" Där väntar {goods} tills en ny brygga står." : string.Empty));
+            }
+
+            if (demolition.EndsExpeditions)
+            {
+                Text("sheet-text", _sheet, "Utan brygga på Hemön kan ingen expedition skickas.");
             }
 
             int housing = world.Housing - spec.Housing;
@@ -151,6 +178,10 @@ namespace Eirora.Client.UI
             Toast(returned is null ? $"{Texts.Definite(building.Kind)} revs." : $"{Texts.Definite(building.Kind)} revs. {Capital(returned)} kom tillbaka till lagret.");
             Select(building.Tile);
         }
+
+        /// <summary>Buildings in the definite form, as a list: "sågverket och bryggan".</summary>
+        private static string Definites(IEnumerable<Building> buildings) =>
+            Texts.List(buildings.Select(b => Texts.Definite(b.Kind).ToLowerInvariant()));
 
         /// <summary>What the tile is good for again once the building is gone (D-91).</summary>
         private static string Freed(WorldMap map, Hex tile)

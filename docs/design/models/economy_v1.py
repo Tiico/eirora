@@ -707,7 +707,8 @@ class World:
             store, cap = self.stock, STORAGE_PER_DEPOT * sum(1 for o in rest if o.kind == "Förråd")
         else:
             store = self.remote_stock[island]
-            cap = STORAGE_PER_DEPOT * max(1, sum(1 for o in rest if o.kind in DEPOTS and TILES[o.tile].island == island))
+            # Utan förråd eller brygga kvar rymmer öns lager ingenting (INV-R1), som i simuleringen.
+            cap = STORAGE_PER_DEPOT * sum(1 for o in rest if o.kind in DEPOTS and TILES[o.tile].island == island)
         goods = dict.fromkeys(RESOURCES, 0.0)
         if b.kind in PRODUCERS:
             goods[self.rate_resource(b)] += b.out

@@ -165,6 +165,11 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-118 | **Avvikelserna från dagens första vecka godtas:** bärarna presenteras som förrådets bemanning i introduktion 2 och deras första flaskhals är en diagnos, den som satsar på tillväxt kan nå bönderna dygn 7, och Nyön blir en egen bosättning med egna bybor, som introduktion 6 visar tillsammans med sjövägen ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-119 | **D-34:s andra halva gäller över veckor:** med samma beslut ger mer egenvård aldrig en mindre värld vid veckans slut, men bärarnas ordning kan göra världen något mindre enstaka dygn; kalkylen spärrar dippen till 0,1 %, strax över det den mäter ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-120 | **Spelets begrepp är vardaglig svenska:** ruta i stället för bricka, topp i stället för krön, dag i stället för spelardygn, vilotid i stället för viloperiod, Styrka och Ork i stället för Byggkraft och Gryningskraft, *Skynda på* och *Arbeta extra* i stället för Rusta och Dagsverke, och utkikstorn, skogshuggare, tyg, plankor och betesmark för byggnader, varor och mark; kodnamnen är oförändrade ([GLOSSARY.md](./GLOSSARY.md)) | [BESLUTAT] |
+| D-128 | **Ett förråd eller en brygga nekas rivning bara när öns varor inte ryms** i det lager som blir kvar; den del av återbetalningen som inte ryms visas i bekräftelsen och förloras, som för andra byggnader, så att en ös sista lagerbyggnad också går att riva ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), förtydligar D-108, TASK-047) | [BESLUTAT] |
+| D-129 | **Hemöns sista förråd kan inte rivas,** eftersom allt betalas ur Hemöns lager och ingenting annars kunde byggas igen (INV-R4) ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), TASK-047) | [BESLUTAT] |
+| D-130 | **En uppgradering räknas till det byggnaden kostade,** också en uppgradering som står i byggkön, som följer med byggnaden när den rivs; arbetet på den går förlorat ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), förtydligar D-108, TASK-047) | [BESLUTAT] |
+| D-131 | **Startbyns byggnader ger tillbaka hälften av katalogens kostnad** som andra byggnader, fast de var gratis ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), förtydligar D-108, TASK-047) | [BESLUTAT] |
+| D-132 | **Säd och ull som vuxit men inte skördats följer med åkern eller fårgården** när den rivs, eftersom de inte är varor förrän de skördats; bekräftelsen visar hur mycket (INV-R2) ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), TASK-047) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -713,6 +718,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-109–D-118 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens svar på delfrågorna F1–F10 i ekonomi v2 (TASK-058, PR #151) |
 | D-113, D-118, D-119 | 2026-10-23 | Se avsnitt 1.1; D-113 omskriven till v2.1, D-118 utökad med Nyöns bosättning, D-103:s avståndsdel ersatt av D-110 | Produktägarens andra omgång i TASK-058 (PR #151) |
 | D-120 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens val i översynen av spelets svenska begrepp |
+| D-128–D-132 | 2026-10-24 | Se avsnitt 1.1 | Produktägarens svar på frågorna i TASK-047 (PR #168) |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

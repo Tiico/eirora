@@ -42,7 +42,7 @@ namespace Eirora.Client.Tests
             Assert.That(Texts(), Is.EqualTo(new[]
             {
                 "Tillbaka till lagret: 3 timmer.",
-                "Två bybor blir lediga och bygger.",
+                "Två bybor till bygger.",
                 "Rutan blir ledig, och skogen på den går att fälla igen.",
             }));
             Assert.That(_world.BuildingAt(s_woodcutter), Is.Not.Null);
@@ -97,7 +97,27 @@ namespace Eirora.Client.Tests
             _hud.Select(new Hex(0, -1));
             Press(Demolish());
             Assert.That(Texts().First(), Is.EqualTo("Tillbaka till lagret: 7 timmer, 5 plankor och 5 sten."));
-            Assert.That(Texts(), Does.Contain("80 Styrka kommer inte tillbaka."));
+            Assert.That(Texts(), Does.Contain("Ingen Styrka kommer tillbaka."));
+        }
+
+        [Test]
+        public void TheConfirmationSaysWhichSeaRoutesCloseAndWhatWaitsThere()
+        {
+            var jetty = new Hex(1, 1);
+            Open(Edited(NewWorld(), lines =>
+            {
+                lines.InsertRange(
+                    lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
+                    Enum.GetValues(typeof(Resource)).Cast<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? 40 * Quantity.PerUnit : 0)}"));
+                Buildings(lines, $"building Jetty {jetty.Q} {jetty.R} 1 1 0 0 0 1 4 0 0 0 0 0", "building Jetty 10 0 1 1 0 0 0 1 4 0 0 0 0 0");
+            }));
+            _hud.Select(jetty);
+
+            Press(Demolish());
+
+            Assert.That(Texts(), Does.Contain("Sjövägen till Nyön stängs. Där väntar 40 fisk tills en ny brygga står."));
+            Assert.That(Texts(), Does.Contain("Utan brygga på Hemön kan ingen expedition skickas."));
+            Assert.That(Texts(), Does.Contain("En bybo till bygger."));
         }
 
         [Test]
