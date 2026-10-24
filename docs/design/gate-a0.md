@@ -8,44 +8,44 @@ Kvalitetsgrind A0 kräver två saker innan M0 stängs (ROADMAP, M0).
 Det ska gå att beskriva en hel dag inklusive vila med konkreta siffror, och inget beslut som blockerar prototypen får vara öppet.
 Avsnitt 1 är dagen, avsnitt 2 de öppna frågorna, avsnitt 3 det som skiljer dokumenten från kalkylen och avsnitt 4 grindens bedömning.
 
-## 1. Ett helt spelardygn
+## 1. En hel dag
 
-Avsnittet följer ett spelardygn från gryning till gryning med siffror ur kalkylen [`economy_v1.py`](./models/economy_v1.py).
+Avsnittet följer en dag från gryning till gryning med siffror ur kalkylen [`economy_v1.py`](./models/economy_v1.py).
 Varje siffra går att räkna om med kommandona i [avsnitt 1.9](#19-räkna-om-siffrorna), körda från repots rot.
 
 ### 1.1 Spelare, strategi och dygn
 
-- **Egenvård:** profilen *måttlig* (`PROFILES["måttlig"]`), med 7 500 steg och 6,5 h sömn varje spelardygn och tre pass i veckan, på dygn 1, 3 och 5.
+- **Egenvård:** profilen *måttlig* (`PROFILES["måttlig"]`), med 7 500 steg och 6,5 h sömn varje dag och tre pass i veckan, på dygn 1, 3 och 5.
   Den är referensprofil i [krafternas regler](./forces.md) (avsnitt 4) och [ekonomi v1](./economy-v1.md) (avsnitt 7), och samma som *normal* i [epok 1](./epoch-1.md).
 - **Strategi:** *Närområdet* (`strategy_land`).
   Det är den körning i ekonomi v1 som når högst utvecklingsvärde (1 188), och den håller sig till en ö.
-- **Dygn:** spelardygn 5 (`day = 4`).
-  Det är veckans enda dygn där alla tre vanorna ger kraft och där vi samtidigt ser sparandets tak, ett bygge med Byggkraft, dagsverke, rustning, minimilagret och bybornas tillväxt.
-- **Viloperiod:** 23:00–07:00, som i resa 3 i [UX-resorna](./ux-journeys.md).
+- **Dygn:** dag 5 (`day = 4`).
+  Det är veckans enda dygn där alla tre vanorna ger kraft och där vi samtidigt ser sparandets tak, ett bygge med Styrka, extraarbete, att skynda på ett bygge, minimilagret och bybornas tillväxt.
+- **Vilotid:** 23:00–07:00, som i resa 3 i [UX-resorna](./ux-journeys.md).
   Det motsvarar kalkylens 16 aktiva timmar och 8 timmars vila, och kalkylens timme 0 är 07:00–08:00.
 
 ### 1.2 Före gryningen
 
 | | Värde |
 |---|---|
-| Krafter (Utforskning / Byggkraft / Gryningskraft) | 264 / 200 / 238 |
-| Lager | 56 fisk, 63,5 säd, 37 timmer, 17 plank, 124,9 sten |
+| Krafter (Utforskning / Styrka / Ork) | 264 / 200 / 238 |
+| Lager | 56 fisk, 63,5 säd, 37 timmer, 17 plankor, 124,9 sten |
 | Lagertak | 300 per resurs (två förråd × 150) |
 | Bybor | 16, med bostad för 24 (16 från start och 8 från långhuset vid L1) |
-| Byggnader | 10: två förråd, fiskebod, två åkrar, två huggarkojor, stenbrott på stenådern, sågverk och långhus |
+| Byggnader | 10: två förråd, fiskebod, två åkrar, två skogshuggare, stenbrott på stenådern, sågverk och långhus |
 | Byggkö | Fiskeboden vid det rika fiskevattnet, 10 arbetstimmar kvar |
-| Långsamma processer | 4 mogen säd i varje åker; skogen vid huggarkojan F1 har 31,75 timmer |
+| Långsamma processer | 4 mogen säd i varje åker; skogen vid skogshuggaren F1 har 31,75 timmer |
 
 ### 1.3 Gryning 07:00
 
 Fasen går från `RESTING` via `DAWN` till `ACTIVE`, och det styrs bara av schema och tid (INV-T1, INV-T2).
-Simuleringen låter först byborna äta och byn växa, krediterar sedan Gryningskraftens grundnivå och fyller på med sömnen och krediterar till sist bidragen från natten (D-87, INV-T9).
+Simuleringen låter först byborna äta och byn växa, krediterar sedan Orkens grundnivå och fyller på med sömnen och krediterar till sist bidragen från natten (D-87, INV-T9).
 Kalkylen krediterar krafterna före måltiden, men stegen påverkar inte varandra, så utfallet blir detsamma.
 
 **Basbehov och bybor.**
 De 16 byborna äter 1 mat var och tar fisk först, så fisken går från 56 till 40 och säden lämnas orörd.
 Byborna är mätta och det finns bostad, så antalet går från 16 till 17.
-Det finns ingen vadmal, så ingen extra bybo tillkommer för komfort.
+Det finns ingen tyg, så ingen extra bybo tillkommer för komfort.
 Bemanningen fyller 16 platser, och 1 bybo blir över för att bygga (INV-V2).
 
 **Krafterna.**
@@ -53,12 +53,12 @@ Bemanningen fyller 16 platser, och 1 bybo blir över för att bygga (INV-V2).
 | Vana | Egenvård | Kurva ([krafternas regler](./forces.md), avsnitt 3) | Kraft | Saldo | Sparandets tak (D-35) |
 |---|---|---|---|---|---|
 | Rörelse | 7 500 steg | 4 000 × 15/1 000 + 3 500 × 7,5/1 000 = 60 + 26,25 = 86,25, avrundat nedåt | 86 Utforskning | 264 → 350 | Under 400, så hela tillskottet räknas |
-| Träning | 1 pass, det tredje på sju spelardygn | G(3) − B = 270 − (100 + 0 + 90 + 0) | 80 Byggkraft | 200 → 280 | Under 600, så hela tillskottet räknas |
-| Sömn | 6,5 h | 40 + 6,5 × 8 | 92 Gryningskraft | 238 → 315 | 62 räknas fullt upp till 300, och resterande 30 räknas till hälften, alltså 15 |
+| Träning | 1 pass, det tredje på sju dagar | G(3) − B = 270 − (100 + 0 + 90 + 0) | 80 Styrka | 200 → 280 | Under 600, så hela tillskottet räknas |
+| Sömn | 6,5 h | 40 + 6,5 × 8 | 92 Ork | 238 → 315 | 62 räknas fullt upp till 300, och resterande 30 räknas till hälften, alltså 15 |
 
 Avkastningen avtar: steg mellan 4 000 och 8 000 ger hälften så mycket per 1 000 som de första 4 000, och veckans tredje pass ger 80 mot 100 för det första (INV-F3).
 Grundnivån 40 krediteras genast vid gryningen, och sömnen fyller på med 52 upp till kurvans värde 92 (INV-F4).
-Saldot ökar ändå bara med 77 och inte med 92, eftersom Gryningskraften passerar det fulla taket 300.
+Saldot ökar ändå bara med 77 och inte med 92, eftersom Orken passerar det fulla taket 300.
 Inget av det som redan är sparat förfaller (INV-F6).
 Varje vana ger bara sin egen kraft (INV-F2).
 Inmatade och uppmätta bidrag ger samma kraft (INV-F7), och kraften blir densamma oavsett hur bidragen delas upp eller i vilken ordning de kommer (INV-F8, INV-B1).
@@ -67,41 +67,41 @@ Det här dygnet påverkar förenklingen inget av världens utfall, vilket varian
 
 **Vad spelaren ser.**
 Spelaren ser en kort gryningsövergång och sedan den dagliga rapporten, *God morgon*.
-Under *Egenvård* står: Rörelse 7 500 steg → Utforskning 86, Träning 1 pass → Byggkraft 80 och Sömn 6 h 30 min → Gryningskraft 92.
+Under *Egenvård* står: Rörelse 7 500 steg → Utforskning 86, Träning 1 pass → Styrka 80 och Sömn 6 h 30 min → Ork 92.
 Under *I världen* står till exempel att sågverket blev klart i går och att säden har mognat i natt.
 
 ### 1.4 Morgonens beslut
 
 | Kommando | Kraft | Varor | Effekt |
 |---|---|---|---|
-| Bygga långhus vid L2 | 60 Byggkraft | 10 timmer, 15 plank, 10 sten | 8 bostäder till efter 40 arbetstimmar |
-| Dagsverke på stenbrottet | 30 Gryningskraft | | Stenbrottet producerar 50 % mer under dygnet |
-| Dagsverke på sågverket | 30 Gryningskraft | | Sågverket producerar 50 % mer under dygnet |
-| Rusta | 20 Gryningskraft | | Fiskeboden först i kön går från 10 till 2 arbetstimmar |
+| Bygga långhus vid L2 | 60 Styrka | 10 timmer, 15 plankor, 10 sten | 8 bostäder till efter 40 arbetstimmar |
+| Arbeta extra på stenbrottet | 30 Ork | | Stenbrottet producerar 50 % mer under dygnet |
+| Arbeta extra på sågverket | 30 Ork | | Sågverket producerar 50 % mer under dygnet |
+| Skynda på | 20 Ork | | Fiskeboden först i kön går från 10 till 2 arbetstimmar |
 
 Efter besluten är krafterna 350 / 220 / 235, eftersom varje kommando minskar saldot med exakt sin kostnad (INV-F5).
-Lagret innehåller då 40 fisk, 63,5 säd, 27 timmer, 2 plank och 114,9 sten.
+Lagret innehåller då 40 fisk, 63,5 säd, 27 timmer, 2 plankor och 114,9 sten.
 Strategin försöker också uppgradera sågverket och bygga ett tredje långhus.
-Båda nekas eftersom bara 2 plank finns kvar, och ett nekat kommando ändrar ingenting (INV-D7).
+Båda nekas eftersom bara 2 plankor finns kvar, och ett nekat kommando ändrar ingenting (INV-D7).
 Utforskningen, 350, blir oanvänd: båda kartläggningarna är redan gjorda, och Närområdet skickar ingen expedition (lärdom 1 i ekonomi v1).
 
 ### 1.5 Dagen 07:00–23:00
 
 | Byggnad | Per aktiv timme | Under dagen |
 |---|---|---|
-| Fiskebod (K1) | 1,25 fisk × 1,0 (1 bricka till förrådet) | +20 fisk |
+| Fiskebod (K1) | 1,25 fisk × 1,0 (1 ruta till förrådet) | +20 fisk |
 | Åker (O1) | Säden växer med 0,5 per timme dygnet runt och skördas med högst 2 per timme | +12 säd |
-| Åker (O2, 2 brickor från förrådet) | Säden växer med 0,5 per timme och skördas med högst 2 × 0,75 = 1,5 per timme | +12 säd |
-| Huggarkoja (F1, 1 skogsbricka) | 0,5 timmer × 1,0 | +8 timmer |
-| Huggarkoja (urskogen F3, rikedom 1,25, 2 brickor bort) | 1,0 × 1,25 × 0,75 = 0,9375 timmer | +15 timmer |
-| Stenbrott (stenådern M2, rikedom 2) | 0,75 × 2,0 × 1,0 × 1,5 (dagsverke) = 2,25 sten | +36 sten |
-| Sågverk (E2) | 1,5 plank av 3 timmer fram till kl. 12, när minimilagret på 20 timmer nås; därefter bara det huggarkojorna hinner ge, ≈ 0,72 plank | +15 plank, −30 timmer |
+| Åker (O2, 2 rutor från förrådet) | Säden växer med 0,5 per timme och skördas med högst 2 × 0,75 = 1,5 per timme | +12 säd |
+| Skogshuggare (F1, 1 skogsruta) | 0,5 timmer × 1,0 | +8 timmer |
+| Skogshuggare (urskogen F3, rikedom 1,25, 2 rutor bort) | 1,0 × 1,25 × 0,75 = 0,9375 timmer | +15 timmer |
+| Stenbrott (stenådern M2, rikedom 2) | 0,75 × 2,0 × 1,0 × 1,5 (extraarbete) = 2,25 sten | +36 sten |
+| Sågverk (E2) | 1,5 plankor av 3 timmer fram till kl. 12, när minimilagret på 20 timmer nås; därefter bara det skogshuggarna hinner ge, ≈ 0,72 plankor | +15 plankor, −30 timmer |
 
 Den lediga bybon gör klart fiskeboden vid det rika fiskevattnet kl. 09.
 Fiskeboden kan ändå inte bemannas förrän två bybor är lediga.
 Resten av dagen bygger bybon på långhuset, som har 26 av 40 arbetstimmar kvar kl. 23.
 
-| Tid | Fisk | Säd | Timmer | Plank | Sten |
+| Tid | Fisk | Säd | Timmer | Plankor | Sten |
 |---|---|---|---|---|---|
 | 07:00, efter besluten | 40 | 63,5 | 27 | 2 | 114,9 |
 | 11:00 | 45 | 75,5 | 20,75 | 8 | 123,9 |
@@ -109,11 +109,11 @@ Resten av dagen bygger bybon på långhuset, som har 26 av 40 arbetstimmar kvar 
 | Dagens netto | +20 | +24 | −7 | +15 | +36 |
 
 Inget lager hamnar under 0 eller över taket 300 (INV-R1).
-Sågverket omvandlar exakt 2 timmer till 1 plank (INV-R2).
+Sågverket omvandlar exakt 2 timmer till 1 planka (INV-R2).
 Minimilagret är en gratis planeringsinställning som ser till att det alltid finns timmer kvar till byggen (LOG-06, D-44).
-Dagsverket på sågverket ger ingenting i dag: med eller utan det blir det 15 plank.
-Det beror på att bara (27 − 20) + 23 = 30 timmer finns över minimilagret, och det räcker till 15 plank.
-Samma 30 Gryningskraft på fiskeboden hade gett 1,25 × 0,5 × 16 = 10 fisk till.
+Extraarbetet på sågverket ger ingenting i dag: med eller utan det blir det 15 plankor.
+Det beror på att bara (27 − 20) + 23 = 30 timmer finns över minimilagret, och det räcker till 15 plankor.
+Samma 30 Ork på fiskeboden hade gett 1,25 × 0,5 × 16 = 10 fisk till.
 Det bekräftar lärdom 2 och 3 i ekonomi v1: ved är grundflaskhalsen, och morgonens val har verklig betydelse.
 
 ### 1.6 Skymning 22:30–23:00
@@ -126,35 +126,35 @@ Klockan 23:00 går fasen från `ACTIVE` till `RESTING` enbart av schema och tid,
 ### 1.7 Vila 23:00–07:00 med vilolås
 
 Spelaren ser nattvyn: *Byn vilar. Världen öppnar klockan 7.*
-Under *Medan byn sover* står att säden mognar och att skogen vid huggarkojan växer tillbaka.
-Vilolåset nekar varje spelpåverkande kommando, som att bygga, lägga dagsverke eller kartlägga (INV-T3, INV-D7).
+Under *Medan byn sover* står att säden mognar och att skogen vid skogshuggaren växer tillbaka.
+Vilolåset nekar varje spelpåverkande kommando, som att bygga, arbeta extra eller kartlägga (INV-T3, INV-D7).
 Administrativa kommandon och registrering av egenvård är tillåtna.
-Ett bidrag som skrivs in under vilan, till exempel en kvällspromenad på 30 aktiva minuter, alltså 3 000 steg (D-41), räknas till det pågående spelardygnet och krediteras senast vid gryningen (INV-T9, D-54).
-Viloperiodens 8 timmar ligger inom 6–10 timmar (INV-T6).
+Ett bidrag som skrivs in under vilan, till exempel en kvällspromenad på 30 aktiva minuter, alltså 3 000 steg (D-41), räknas till det pågående dagen och krediteras senast vid gryningen (INV-T9, D-54).
+Vilotidens 8 timmar ligger inom 6–10 timmar (INV-T6).
 
 | | 23:00 | 07:00 | Regel |
 |---|---|---|---|
-| Lager (fisk / säd / timmer / plank / sten) | 60 / 87,5 / 20 / 17 / 150,9 | Oförändrat | INV-T4, INV-R3 |
+| Lager (fisk / säd / timmer / plankor / sten) | 60 / 87,5 / 20 / 17 / 150,9 | Oförändrat | INV-T4, INV-R3 |
 | Långhuset vid L2 | 26 h kvar | 26 h kvar | INV-T4 |
 | Krafter | 350 / 220 / 235 | Oförändrade | INV-F6 |
 | Bybor och byggnader | 17 och 11 | Oförändrade | INV-V1 |
 | Mogen säd i åkrarna O1 och O2 | 0 + 0 | 4 + 4 (0,5 × 8 h) | INV-T5 |
-| Skogen vid huggarkojan F1 (1 bricka) | 27,75 | 29,75 (0,25 × 8 h) | INV-T5 |
-| Urskogen F3 (4 brickor) | 159,06 | 160, som är taket 4 × 40 | INV-T5 |
+| Skogen vid skogshuggaren F1 (1 ruta) | 27,75 | 29,75 (0,25 × 8 h) | INV-T5 |
+| Urskogen F3 (4 rutor) | 159,06 | 160, som är taket 4 × 40 | INV-T5 |
 
-### 1.8 Nästa gryning 07:00 (spelardygn 6)
+### 1.8 Nästa gryning 07:00 (dag 6)
 
 | Kraft | Uträkning | Saldo |
 |---|---|---|
 | Utforskning | 350 + 86: 50 räknas fullt upp till 400 och 36 räknas till hälften, alltså 18 | 418 |
-| Byggkraft | Inget pass i dag ger 0, och vilodagar kostar inget (D-63) | 220 |
-| Gryningskraft | 235 + 92: 65 räknas fullt upp till 300 och 27 räknas till hälften, alltså 13,5; spelet sparar 627 halva krafter och visar 313 (INV-F1) | 313 |
+| Styrka | Inget pass i dag ger 0, och vilodagar kostar inget (D-63) | 220 |
+| Ork | 235 + 92: 65 räknas fullt upp till 300 och 27 räknas till hälften, alltså 13,5; spelet sparar 627 halva krafter och visar 313 (INV-F1) | 313 |
 
 De 17 byborna äter 17 fisk, så fisken går från 60 till 43, och byn växer till 18 bybor.
 Två bybor bemannar den nya fiskeboden, som ger 1,25 × 1,5 × 0,75 ≈ 1,41 fisk per timme.
 Därmed finns ingen ledig bybo kvar för långhuset, och folk är den knappa resursen (ekonomi v1, avsnitt 1).
 De 8 säd som mognat under natten skördas under morgonens första timmar.
-En morgonnotis kommer bara om något nytt har hänt, högst en per spelardygn och alltid tyst (D-56).
+En morgonnotis kommer bara om något nytt har hänt, högst en per dag och alltid tyst (D-56).
 
 | | Gryning dygn 5 | Skymning dygn 5 | Gryning dygn 6 |
 |---|---|---|---|
@@ -163,7 +163,7 @@ En morgonnotis kommer bara om något nytt har hänt, högst en per spelardygn oc
 | Byggnader | 10 | 11 | 11 |
 
 **Samma dygn med grundnivå.**
-Läget före gryningen är detsamma, men spelardygn 5 körs med profilen `ingen`: 0 steg, inget pass och ingen sömndata.
+Läget före gryningen är detsamma, men dag 5 körs med profilen `ingen`: 0 steg, inget pass och ingen sömndata.
 
 | Vana | Egenvård | Kraft | Saldo |
 |---|---|---|---|
@@ -171,25 +171,25 @@ Läget före gryningen är detsamma, men spelardygn 5 körs med profilen `ingen`
 | Träning | Inget pass | 0 | 200 → 200 |
 | Sömn | Ingen data (0 h ger också 40) | 40, grundnivån | 238 → 278 |
 
-Med sparade krafter går samma beslut att fatta: 60 av 200 Byggkraft och 80 av 278 Gryningskraft.
+Med sparade krafter går samma beslut att fatta: 60 av 200 Styrka och 80 av 278 Ork.
 Efter besluten är krafterna 264 / 140 / 198.
 Världen blir identisk timme för timme: samma lager kl. 23, samma 18 bybor och samma 11 byggnader vid nästa gryning.
 
-| Efter sju spelardygn | Måttlig egenvård varje dygn | Grundnivå på dygn 5 |
+| Efter sju dagar | Måttlig egenvård varje dygn | Grundnivå på dygn 5 |
 |---|---|---|
 | Bybor | 19 | 19 |
 | Byggnader | 12 | 12 |
 | Sten i lager | 208 | 208 |
 | Dagsproduktion | 182 | 182 |
 | Utvecklingsvärde | 1 188 | 1 188 |
-| Sparat (Utforskning / Byggkraft / Gryningskraft) | 461 / 110 / 233 | 418 / 30 / 221 |
+| Sparat (Utforskning / Styrka / Ork) | 461 / 110 / 233 | 418 / 30 / 221 |
 
 Ett lågt dygn ger alltså mindre att spara, men aldrig ett avdrag.
 Kurvorna ger 0 vid 0 och blir aldrig negativa (INV-F3), och sömnen ger aldrig mindre än grundnivån (INV-F4).
 Inget i världen eller i de sparade krafterna går förlorat (INV-V1, INV-V3, INV-V4, INV-R3, INV-F6, D-17).
 Ett pass som uteblir ger 0 just det dygnet, och den rullande veckan räknas vidare utan straff: `build_power` ger 100, 0, 90, 0, 0.
 Rapporten har inga rader om saknad egenvård; bara sömnen visas alltid, med minst grundnivån.
-En hel vecka utan egenvård och utan beslut finns i ekonomi v1, avsnitt 8: byn växer från 12 till 16 bybor, Gryningskraften blir 310 och inget förfaller.
+En hel vecka utan egenvård och utan beslut finns i ekonomi v1, avsnitt 8: byn växer från 12 till 16 bybor, Orken blir 310 och inget förfaller.
 
 ### 1.9 Räkna om siffrorna
 
@@ -211,7 +211,7 @@ w = ev.World()
 for day in range(4):
     w.dawn(day, "måttlig"); ev.strategy_land(w, day)
     for h in range(24): w.hour(active=h < ev.ACTIVE_HOURS)
-lager = lambda: {k: round(v, 2) for k, v in w.stock.items() if k not in ("ull", "vadmal")}
+lager = lambda: {k: round(v, 2) for k, v in w.stock.items() if k not in ("ull", "tyg")}
 print("före gryningen:", w.forces, lager(), w.villagers)
 w.dawn(4, PROFIL); print("gryning:", w.forces, lager(), w.villagers, w.free_villagers())
 ev.strategy_land(w, 4); print("efter besluten:", w.forces, lager(), [(p.label, p.work_left) for p in w.projects])
@@ -298,7 +298,7 @@ Med *blockerar M1* menas att ett M1-ärende (TASK-013, TASK-014, TASK-015 eller 
 | device-measurements.md:114 | Batteriet mätt med fast eller automatisk ljusstyrka? | Ja: avgör hur batterimätningen i TASK-015 görs | M1, förslag 2 |
 | device-measurements.md:115 | Behövs en andra, äldre Android-telefon redan i M1? | Nej: M1 mäter bara på produktägarens telefon | M2 (#39) |
 | art-direction.md:40 | Gemensamma principer `[FÖRSLAG]` | Nej: D-61 valde riktningen | M9 |
-| art-direction.md:55, :431; ux-journeys.md:510 | Följer dygnsljuset viloperioden eller solen? | Nej: avgjort i kod, `Atmosphere.cs` följer viloperioden | Loggas, förslag 3 |
+| art-direction.md:55, :431; ux-journeys.md:510 | Följer dygnsljuset vilotiden eller solen? | Nej: avgjort i kod, `Atmosphere.cs` följer vilotiden | Loggas, förslag 3 |
 | art-direction.md:70 | Kamera `[FÖRSLAG]`: 40–50° lutning, tre zoomnivåer, fri rotation | Nej: `CameraRig.cs` har 50° och tre zoomnivåer men ingen rotation | M9 |
 | art-direction.md:432 | Sänks kameran automatiskt till nattvyn? | Nej: prototypen behåller spelkameran | M7/M9 |
 | art-direction.md:433 | Syns byborna som små figurer? | Nej: avgjort i kod, `IslandView.cs` visar figurer på dagen | Loggas, förslag 3 |
@@ -306,14 +306,14 @@ Med *blockerar M1* menas att ett M1-ärende (TASK-013, TASK-014, TASK-015 eller 
 | art-direction.md:358, :435 | Prestanda `[FÖRSLAG]` och lågklassenhet för referens | Nej: se O-13 | M2 (#39) |
 | epoch-1.md:85; epoch_1.py:23 | Nytt innehåll i epok 1 `[FÖRSLAG]` | Nej: epoch-1.md:196 säger att M1 inte behöver det | M5 |
 | epoch-1.md:198, :200 | Forskningens inriktningar; fynd i dimman och från expeditioner | Nej | M5 |
-| epoch-1.md:202 | Räcker Gryningskraftens användningar? | Nej: prövas i prototypen som H1 | M5, med underlag från A1 |
+| epoch-1.md:202 | Räcker Orkens användningar? | Nej: prövas i prototypen som H1 | M5, med underlag från A1 |
 | epoch-1.md:204 | Ytteröns innehåll och generatorns placering | Nej | M3 (#65) |
 | epoch-1.md:206 | Guidens repliker och introduktionerna | Nej | M9 |
 | forces.md:49 | Rullstolsskjut räknas som steg `[FÖRSLAG]` | Nej: aktiva minuter kan matas in manuellt (D-41) | M6 |
 | forces.md:159 | Tak för egenrapporterade gruppbidrag `[FÖRSLAG]` | Nej: se O-10 | M8 |
 | ux-journeys.md:409 | Ordningen vid gryning `[FÖRSLAG]` | Nej: avgjort i kod, se förslag 3 | Loggas, förslag 3 |
 | ux-journeys.md:503 | Utkast för en påbörjad placering vid övergången `[FÖRSLAG]` | Nej: en förlorad obekräftad placering kostar bara ett nytt tryck | M7 |
-| ux-journeys.md:505 | Gruppåtgärd köad offline före viloperioden `[FÖRSLAG]` | Nej: gäller grupper | M8 |
+| ux-journeys.md:505 | Gruppåtgärd köad offline före vilotiden `[FÖRSLAG]` | Nej: gäller grupper | M8 |
 | core-fantasy.md:102–106 | Hypoteserna H1–H5 | Nej: det är dem M1 ska pröva | A1 (#31) |
 | economy_v1.py:133 | Startkrafter från den guidade turen `[FÖRSLAG]` | Nej: inaktuell, D-45 avgör den | – |
 
@@ -332,12 +332,12 @@ Avvägning: efter godkännandet lyfts varje ändring efter lärdomar från proto
 
 **2. Ljusstyrka vid batterimätningen.**
 Förslag: det aktiva passet mäts med fast ljusstyrka på den nivå produktägaren brukar använda, och nivån skrivs in i rapporten.
-Mätningen över ett helt spelardygn görs med automatisk ljusstyrka, som i vardagen.
+Mätningen över en hel dag görs med automatisk ljusstyrka, som i vardagen.
 Skäl: med fast ljusstyrka kan passet upprepas inom felmarginalen på 10 %, vilket behövs för att jämföra byggen, medan dygnsmätningen ska svara på om prototypen märks på batteriet en vanlig dag.
 Avvägning: dygnets siffra kan bara jämföras mot budgeten, inte mellan byggen.
 
 **3. Logga det koden redan avgjort.**
-Förslag: logga som beslut att dygnsljuset följer viloperioden, att byborna syns som figurer på dagen, att prototypen behåller spelkameran i nattvyn och att byborna äter före Gryningskraften och bidragen vid gryningen.
+Förslag: logga som beslut att dygnsljuset följer vilotiden, att byborna syns som figurer på dagen, att prototypen behåller spelkameran i nattvyn och att byborna äter före Orken och bidragen vid gryningen.
 Ta bort de inaktuella markeringarna i PRD.md:467 och economy_v1.py:133, och besvara device-measurements.md:115 med att målenheterna bestäms i TASK-024.
 Det blockerar inget men gör att listan över öppna frågor stämmer.
 
@@ -347,7 +347,7 @@ Alla sex raderna i tabellen i ekonomi v1, avsnitt 7, stämmer exakt med kalkylen
 Genomgången i avsnitt 1 följer kalkylen.
 Följande skiljer sig ändå mellan text och kalkyl; ingen av punkterna blockerar M1.
 
-1. **Avstånd, dagsverke och nivå 2 påverkar inte vad åkern och fårgården ger.**
+1. **Avstånd, extraarbete och nivå 2 påverkar inte vad åkern och fårgården ger.**
    economy-v1.md säger att de gör det (rad 57, 80 och 109).
    I kalkylen växer säd och ull med en fast takt, och faktorerna skalar bara skördetaket, som aldrig nås.
    C#-simuleringen gör likadant (`Settlement.cs`, `Min(b.Ripe, Scale(...))`).
@@ -358,9 +358,9 @@ Följande skiljer sig ändå mellan text och kalkyl; ingen av punkterna blockera
    Det ändrar inget utfall för dygnet i avsnitt 1.
 3. **Krafternas saldon är decimaltal i kalkylen,** medan INV-F1 kräver ett heltal ≥ 0.
    C#-simuleringen sparar krediten i halva krafter, och saldot som går att spendera avrundas nedåt (`ForceBalances.Available`).
-   Kalkylens 313,5 Gryningskraft i avsnitt 1.8 blir därför 313 i spelet, och kalkylens 232,75 efter sju spelardygn blir 233, som i tabellen.
+   Kalkylens 313,5 Ork i avsnitt 1.8 blir därför 313 i spelet, och kalkylens 232,75 efter sju dagar blir 233, som i tabellen.
 4. **Kalkylen prövar bara att lagret inte blir negativt,** inte taket och inte lagren på andra öar, fast economy-v1.md säger att den prövar INV-R1.
-5. **Havet lägger aldrig dagsverke på fårgården,** som economy-v1.md:136 säger, eftersom fårgården inte hinner byggas under veckan.
+5. **Havet låter aldrig fårgården arbeta extra,** som economy-v1.md:136 säger, eftersom fårgården inte hinner byggas under veckan.
 
 ## 4. Grindens bedömning
 

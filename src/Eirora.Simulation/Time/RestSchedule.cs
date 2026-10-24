@@ -3,7 +3,7 @@ using System;
 namespace Eirora.Simulation.Time
 {
     /// <summary>
-    /// The player's recurring rest period in local wall-clock time (GLOSSARY: Viloperiod, D-22, D-37).
+    /// The player's recurring rest period in local wall-clock time (GLOSSARY: Vilotid, D-22, D-37).
     /// </summary>
     public readonly struct RestSchedule : IEquatable<RestSchedule>
     {

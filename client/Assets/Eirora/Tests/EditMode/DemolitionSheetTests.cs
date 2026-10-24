@@ -38,12 +38,12 @@ namespace Eirora.Client.Tests
 
             Press(Demolish());
 
-            Assert.That(Title(), Is.EqualTo("Riva huggarkojan?"));
+            Assert.That(Title(), Is.EqualTo("Riva skogshuggaren?"));
             Assert.That(Texts(), Is.EqualTo(new[]
             {
                 "Tillbaka till lagret: 3 timmer.",
                 "Två bybor blir lediga och bygger.",
-                "Brickan blir ledig, och skogen på den går att fälla igen.",
+                "Rutan blir ledig, och skogen på den går att fälla igen.",
             }));
             Assert.That(_world.BuildingAt(s_woodcutter), Is.Not.Null);
 
@@ -51,8 +51,8 @@ namespace Eirora.Client.Tests
 
             Assert.That(_world.BuildingAt(s_woodcutter), Is.Null);
             Assert.That(_world.Stock(Resource.Timber), Is.EqualTo(43));
-            Assert.That(_root.Q<Label>(className: "toast").text, Is.EqualTo("Huggarkojan revs. 3 timmer kom tillbaka till lagret."));
-            Assert.That(Title(), Is.Not.EqualTo("Riva huggarkojan?"));
+            Assert.That(_root.Q<Label>(className: "toast").text, Is.EqualTo("Skogshuggaren revs. 3 timmer kom tillbaka till lagret."));
+            Assert.That(Title(), Is.Not.EqualTo("Riva skogshuggaren?"));
         }
 
         [Test]
@@ -64,7 +64,7 @@ namespace Eirora.Client.Tests
 
             Press(Choice("Avbryt"));
 
-            Assert.That(Title(), Is.EqualTo("Huggarkoja"));
+            Assert.That(Title(), Is.EqualTo("Skogshuggare"));
             Assert.That(_world.BuildingAt(s_woodcutter), Is.Not.Null);
         }
 
@@ -96,8 +96,8 @@ namespace Eirora.Client.Tests
             Press(Choice("Avbryt"));
             _hud.Select(new Hex(0, -1));
             Press(Demolish());
-            Assert.That(Texts().First(), Is.EqualTo("Tillbaka till lagret: 7 timmer, 5 plank och 5 sten."));
-            Assert.That(Texts(), Does.Contain("De 80 Byggkraft den kostade kommer inte tillbaka."));
+            Assert.That(Texts().First(), Is.EqualTo("Tillbaka till lagret: 7 timmer, 5 plankor och 5 sten."));
+            Assert.That(Texts(), Does.Contain("80 Styrka kommer inte tillbaka."));
         }
 
         [Test]

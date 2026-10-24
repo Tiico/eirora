@@ -34,11 +34,11 @@ Byggnader, resurser och kraftkostnader följer [ekonomi v1](./economy-v1.md), se
 ### Daglig rapport
 
 Den dagliga rapporten (UX-02) visas första gången spelaren öppnar spelet efter en gryning.
-Den sammanfattar allt sedan spelaren senast läste en rapport, så efter en frånvaro är det en rapport, inte en per spelardygn.
+Den sammanfattar allt sedan spelaren senast läste en rapport, så efter en frånvaro är det en rapport, inte en per dag.
 
 | Del | Innehåll | Regel |
 |---|---|---|
-| Rubrik | *God morgon*, *God dag* eller *God kväll* efter lokal tid; *Sedan sist* efter mer än ett spelardygn | Ingen räkning av dagar |
+| Rubrik | *God morgon*, *God dag* eller *God kväll* efter lokal tid; *Sedan sist* efter mer än en dag | Ingen räkning av dagar |
 | Egenvård | En rad per vana: mängd och kraft som blev av den | Vanor utan data utelämnas, utom sömn som alltid visar minst grundnivån |
 | I världen | Högst fem händelser och fynd, viktigast först | Bara det som hänt, aldrig det som kunde ha hänt |
 | Gruppen | Gruppens framsteg och hälsningar (från M8) | Bara positivt; aldrig vem som inte bidragit |
@@ -52,31 +52,31 @@ Resorna använder bara det ur [ekonomi v1](./economy-v1.md) som står i tabellen
 
 | Används i resorna | Värde i ekonomi v1 | Används till |
 |---|---|---|
-| Startkrafter | 100 Utforskning, 100 Byggkraft, 40 Gryningskraft (D-45) | Den guidade turen |
-| Handling för Gryningskraft | Dagsverke på en byggnad, 30 | Resa 1, steg 4 |
+| Startkrafter | 100 Utforskning, 100 Styrka, 40 Ork (D-45) | Den guidade turen |
+| Handling för Ork | Arbeta extra på en byggnad, 30 | Resa 1, steg 4 |
 | Handling för Utforskning | Kartlägg närområdet, 60 | Resa 1, steg 5 |
-| Gratis bygge | Huggarkoja | Resa 1, steg 6 |
-| Handling för Byggkraft | Brygga, 60 | Resa 1, steg 7 |
+| Gratis bygge | Skogshuggare | Resa 1, steg 6 |
+| Handling för Styrka | Brygga, 60 | Resa 1, steg 7 |
 | Expedition | 250 Utforskning; kräver brygga; framsteg bara under aktiva timmar | Resa 3 |
-| Bybornas tillväxt utan spelare | Från 12 till bostadstaket 16 på sju spelardygn | Resa 2 |
-| Händelser i rapporterna | Säd, timmer, plank, fisk, sågverk, långhus, ny ö | Skisserna |
+| Bybornas tillväxt utan spelare | Från 12 till bostadstaket 16 på sju dagar | Resa 2 |
+| Händelser i rapporterna | Säd, timmer, plankor, fisk, sågverk, långhus, ny ö | Skisserna |
 
 Startkrafterna är en del av starttillståndet och inte en händelse, så INV-F2 gäller oförändrad: efter starten ökar bara egenvård ett kraftsaldo.
 
 ## Resa 1: Första sessionen
 
-**Mål:** spelaren förstår de tre krafterna genom att använda dem en gång var, ser att planering är gratis, väljer sin viloperiod med nattläget framför sig och väljer källa för egenvården, utan att någon hälsobehörighet krävs (UX-03, HLT-12, PRG-01).
+**Mål:** spelaren förstår de tre krafterna genom att använda dem en gång var, ser att planering är gratis, väljer sin vilotid med nattläget framför sig och väljer källa för egenvården, utan att någon hälsobehörighet krävs (UX-03, HLT-12, PRG-01).
 Sessionen tar 5–8 minuter och har ett tydligt slut.
 
 **Förutsättningar:**
 
 - Ny installation, inget konto och ingen värld.
 - Inga hälsobehörigheter och ingen egenvård registrerad i spelet.
-- Tiden på dygnet är godtycklig; gränsfallet när installationen sker under den valda viloperioden beskrivs nedan.
+- Tiden på dygnet är godtycklig; gränsfallet när installationen sker under den valda vilotiden beskrivs nedan.
 - Åldersgränsen 18+ (D-30) sköts av butikernas åldersklassning; turen frågar inte om ålder (D-58).
 
-**Ordning:** valet av hälsokälla och viloperiod kommer efter turen (D-49, PRD 4.4).
-Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett nattläget när viloperioden väljs.
+**Ordning:** valet av hälsokälla och vilotid kommer efter turen (D-49, PRD 4.4).
+Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett nattläget när vilotiden väljs.
 
 ### Steg
 
@@ -95,36 +95,36 @@ Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett n
    - *Ser:* kameran glider över en ögrupp i dimma och landar vid en liten bosättning i gryningen; byborna går ut till sina sysslor.
      *Det här är din ö. Varje gryning vaknar den med det du gav dig själv i går.*
      *I dag får du en gåva att börja med.*
-     Tre krafter visas med sina saldon: *Utforskning 100 · Byggkraft 100 · Gryningskraft 40*.
+     Tre krafter visas med sina saldon: *Utforskning 100 · Styrka 100 · Ork 40*.
    - *Gör:* tittar.
    - *Känner:* att ön är hens egen.
    - *Simuleringen:* `WorldGenerator` skapar världen från en seed; starttillståndet innehåller startkrafterna.
-     Det första spelardygnet börjar vid lokal midnatt samma dag, så att dagens steg räknas (D-51).
-4. **Gryningskraft.**
+     Den första dagen börjar vid lokal midnatt samma dag, så att dagens steg räknas (D-51).
+4. **Ork.**
    - *Ser:* guiden pekar på fiskeboden.
-     *Gryningskraft kommer av sömn. Med den ger du byn en extra god dag där den behövs bäst.*
-   - *Gör:* trycker *Dagsverke · 30* på fiskeboden.
+     *Ork kommer av sömn. Med den ger du byn en extra god dag där den behövs bäst.*
+   - *Gör:* trycker *Arbeta extra · 30* på fiskeboden.
    - *Känner:* att ett litet val syns direkt: båtarna går ut och fisken ökar snabbare.
-   - *Simuleringen:* ett spelpåverkande kommando godkänns; Gryningskraft 40 → 10 (INV-F5).
+   - *Simuleringen:* ett spelpåverkande kommando godkänns; Ork 40 → 10 (INV-F5).
 5. **Utforskning.**
    - *Ser:* dimman runt byn.
      *Utforskning kommer av rörelse. Den lyfter dimman och visar vad som finns runt omkring.*
    - *Gör:* trycker *Kartlägg närområdet · 60*.
    - *Känner:* upptäckarglädje: dimman drar sig undan och en urskog och en stenåder syns.
-   - *Simuleringen:* Utforskning 100 → 40; brickorna blir utforskade och förblir det (INV-V1).
+   - *Simuleringen:* Utforskning 100 → 40; rutorna blir utforskade och förblir det (INV-V1).
 6. **Planering är gratis.**
    - *Ser:* urskogen markerad.
      *Att planera och bygga smått kostar ingen kraft. Rika platser ger mer.*
-   - *Gör:* placerar en huggarkoja i urskogen.
+   - *Gör:* placerar en skogshuggare i urskogen.
    - *Känner:* att strategi är något man alltid kan utöva, och att platsen spelar roll (D-23).
    - *Simuleringen:* bygget godkänns utan kraftkostnad; lediga bybor börjar bygga.
-7. **Byggkraft.**
+7. **Styrka.**
    - *Ser:* kusten vid byn.
-     *Byggkraft kommer av träning. Den räcker till de stora stegen.*
+     *Styrka kommer av träning. Den räcker till de stora stegen.*
    - *Gör:* placerar en brygga och trycker *Bygg · 60*.
    - *Ser sedan:* *Från bryggan kan en expedition en dag segla mot det okända.*
    - *Känner:* ett mål några dagar bort, utan tidspress.
-   - *Simuleringen:* Byggkraft 100 → 40; bryggan läggs i byggkön.
+   - *Simuleringen:* Styrka 100 → 40; bryggan läggs i byggkön.
 8. **Var ska krafterna komma ifrån?**
    - *Ser:* integritetsförklaringen, se [skissen nedan](#integritetsförklaringen).
    - *Gör:* väljer *Koppla Health Connect* eller *Jag skriver in själv*.
@@ -137,8 +137,8 @@ Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett n
    - *Om det inte finns något:* steget hoppas över utan kommentar.
    - *Känner:* aha-ögonblicket; det jag redan gjort i dag finns i världen.
    - *Simuleringen:* bidragen importeras och omvandlas; 3 200 steg ger 3,2 × 15 = 48 Utforskning, lika mycket oavsett källa (INV-F7).
-10. **Viloperioden och natten.**
-    - *Ser:* ett dygnsur där viloperioden dras mellan 6 och 10 timmar, förvalt 23–07.
+10. **Vilotiden och natten.**
+    - *Ser:* ett dygnsur där vilotiden dras mellan 6 och 10 timmar, förvalt 23–07.
       Ön tonar till natt medan spelaren väljer: lyktorna tänds och byborna går hem.
       *När du vilar, vilar byn. Då kan du titta, men inte bygga eller ge order.*
       *Skogen växer och säden mognar ändå.*
@@ -159,11 +159,11 @@ Spelaren ska ha sett vad krafterna gör innan behörighetsfrågan, och ha sett n
     - *Känner:* inget tryck; skärmen visas en gång.
     - *Simuleringen:* inget; grupper kommer i M8, och i prototypen hoppas steget över.
 13. **Ön, fri.**
-    - *Ser:* ön i dagsljus och kraftsaldot: *Utforskning 40 · Byggkraft 40 · Gryningskraft 10*, plus det som steg 9 gav.
+    - *Ser:* ön i dagsljus och kraftsaldot: *Utforskning 40 · Styrka 40 · Ork 10*, plus det som steg 9 gav.
       *Byn fortsätter i sin egen takt. Kom tillbaka när du vill.*
     - *Gör:* tittar runt eller stänger appen.
     - *Känner:* att ha spelat färdigt för i dag.
-    - *Simuleringen:* byborna bygger huggarkojan och bryggan under aktiva timmar.
+    - *Simuleringen:* byborna bygger skogshuggaren och bryggan under aktiva timmar.
 
 ### Integritetsförklaringen
 
@@ -206,14 +206,14 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 - *Läs mer* öppnar integritetspolicyn i klartext.
 - Valet kan alltid ändras under *Inställningar → Egenvård och integritet*, även under vilan (RST-07).
 - Rå hälsodata lämnar aldrig telefonen (HLT-10).
-  Molnsparningen innehåller bidrag per spelardygn, end-to-end-krypterade så att servern aldrig kan läsa dem (D-57).
+  Molnsparningen innehåller bidrag per dag, end-to-end-krypterade så att servern aldrig kan läsa dem (D-57).
 
 ### Gränsfall
 
 - **Ingen egenvård alls, ingen sensor eller ingen förmåga att gå:** hela turen går att genomföra på startkrafterna; inget steg kräver data (princip 6, AC-04).
 - **Spelaren nekar allt i systemdialogen:** spelet går vidare till egen inmatning som om spelaren valt den, utan felmeddelande eller ny fråga.
 - **Health Connect saknas på telefonen:** *Koppla*-knappen ersätts av *Health Connect finns inte på den här telefonen. Du kan skriva in själv och koppla senare.*
-- **Installationen sker under den valda viloperioden**, till exempel 23:30 med viloperiod 23–07: turen genomförs till slut, eftersom schemat börjar gälla först när turen är klar.
+- **Installationen sker under den valda vilotiden**, till exempel 23:30 med vilotid 23–07: turen genomförs till slut, eftersom schemat börjar gälla först när turen är klar.
   Efter steg 13 övergår ön direkt till nattvyn: *Byn vilar redan i natt. Världen öppnar klockan 7.*
   Vilolåset blir därmed konkret redan första kvällen (D-50).
 - **Turen avbryts:** nästa start fortsätter på samma steg.
@@ -234,8 +234,8 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 
 **Förutsättningar:**
 
-- Resa 1 är genomförd och spelaren har inte öppnat spelet på sju spelardygn.
-- Viloperiod 23–07; spelaren öppnar spelet en vardag klockan 18:10.
+- Resa 1 är genomförd och spelaren har inte öppnat spelet på sju dagar.
+- Vilotid 23–07; spelaren öppnar spelet en vardag klockan 18:10.
 - Tre varianter av frånvaron:
   - **A, ingen egenvård registrerad,** till exempel sjukdom.
     Det är huvudfallet och skissen nedan.
@@ -246,15 +246,15 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 ### Vad simuleringen har gjort
 
 När spelaren öppnar appen spolas världen fram från senaste snapshot i ett steg (INV-D4).
-Det ger exakt samma värld som om spelaren haft appen öppen hela veckan, inklusive sju viloperioder.
+Det ger exakt samma värld som om spelaren haft appen öppen hela veckan, inklusive sju vilotider.
 
 - Grundtakten har fortsatt under aktiva timmar och långsamma processer hela tiden (INV-T5).
-- Byborna har vuxit från 12 till bostadstaket 16; huggarkojan och bryggan är klara.
-- Inget har förfallit: inga bybor, byggnader, nivåer, lager eller utforskade brickor har minskat (INV-V1, INV-R3, INV-V4).
+- Byborna har vuxit från 12 till bostadstaket 16; skogshuggaren och bryggan är klara.
+- Inget har förfallit: inga bybor, byggnader, nivåer, lager eller utforskade rutor har minskat (INV-V1, INV-R3, INV-V4).
 - Fullt lager har stoppat produktionen av det som är fullt, utan att något gått förlorat.
-- Varje gryning har gett Gryningskraftens grundnivå 40, eftersom sömndata saknas (D-16): 10 + 7 × 40 = 290, under sparandets tak 300.
-- Utforskning och Byggkraft står kvar på 40 var; krafter förfaller aldrig (INV-F6).
-- I variant B importeras hälsokällans historik för perioden och krediteras per spelardygn som om spelaren varit där, en gång per intervall (INV-B1), inom sparandets tak (D-35).
+- Varje gryning har gett Orkens grundnivå 40, eftersom sömndata saknas (D-16): 10 + 7 × 40 = 290, under sparandets tak 300.
+- Utforskning och Styrka står kvar på 40 var; krafter förfaller aldrig (INV-F6).
+- I variant B importeras hälsokällans historik för perioden och krediteras per dag som om spelaren varit där, en gång per intervall (INV-B1), inom sparandets tak (D-35).
 
 ### Steg
 
@@ -269,7 +269,7 @@ Det ger exakt samma värld som om spelaren haft appen öppen hela veckan, inklus
    - *Känner:* glädje över det som hänt; inget om det som inte hänt.
    - *Simuleringen:* rapporten byggs av händelserna sedan den senast lästa rapporten.
 3. **Krafterna.**
-   - *Ser:* *Gryningskraft 290 · Utforskning 40 · Byggkraft 40* och *Byn har samlat gryningskraft medan du var borta.*
+   - *Ser:* *Ork 290 · Utforskning 40 · Styrka 40* och *Byn har samlat Ork medan du var borta.*
    - *Känner:* att det finns något att göra, även utan egenvård.
    - *Simuleringen:* inget nytt.
 4. **Nästa beslut.**
@@ -289,20 +289,19 @@ Variant A, ingen egenvård registrerad.
 │  Sedan sist                                  │
 │                                              │
 │  Egenvård                                    │
-│   Sömn   ingen registrerad → Gryningskraft   │
-│                              40 varje gryning│
+│   Sömn   ingen registrerad → Ork         40  │
 │                                              │
 │  I världen                                   │
 │   · Fyra nya bybor har flyttat in.           │
 │     Alla bostäder är fulla.                  │
-│   · Bryggan och huggarkojan är klara.        │
+│   · Bryggan och skogshuggaren är klara.      │
 │   · Åkern har gett 84 säd.                   │
 │   · Förrådet är fullt av timmer, så huggarna │
 │     har tagit det lugnt.                     │
 │                                              │
 │  Krafter att använda                         │
-│   Gryningskraft 290 · Utforskning 40         │
-│   Byggkraft 40                               │
+│   Ork 290 · Utforskning 40                   │
+│   Styrka 40                                  │
 │                                              │
 │  Värt att titta på                           │
 │   · Ett nytt långhus ger plats för fler.     │
@@ -317,13 +316,13 @@ Världens händelser i skissen är illustrationer tills ekonomin är beslutad; k
 
 ### Gränsfall
 
-- **Variant B, aktiv vecka med hälsokälla:** med 7 500 steg varje spelardygn blir det 86 Utforskning per dygn, 602 för veckan.
+- **Variant B, aktiv vecka med hälsokälla:** med 7 500 steg varje dag blir det 86 Utforskning per dygn, 602 för veckan.
   Saldot går från 40 till 400 med fullt tillskott och sedan till 521 med halvt (D-35).
   Raden lyder *Rörelse 52 500 steg → Utforskning 481*; när ett förråd når taket står det bara *Förrådet av Utforskning är fullt.*, utan uppmaning att spendera.
-- **Variant C, aktiv vecka med egen inmatning:** spelaren kan skriva in för varje spelardygn sedan senaste besöket, högst sju ([forces.md](./forces.md#6-manuell-inmatning-hlt-07-d-18), D-53).
-  Krafterna krediteras per spelardygn precis som hälsokällans historik, inom sparandets tak, så båda vägarna är likvärdiga (HLT-07).
+- **Variant C, aktiv vecka med egen inmatning:** spelaren kan skriva in för varje dag sedan senaste besöket, högst sju ([forces.md](./forces.md#6-manuell-inmatning-hlt-07-d-18), D-53).
+  Krafterna krediteras per dag precis som hälsokällans historik, inom sparandets tak, så båda vägarna är likvärdiga (HLT-07).
   Länken *Lägg till egenvård* leder till dygnen sedan senast; rapporten räknar inte dagarna och påpekar inte vad som saknas.
-- **Återkomst under viloperioden,** till exempel klockan 01:00: nattvyn visas med rapporten tillgänglig.
+- **Återkomst under vilotiden,** till exempel klockan 01:00: nattvyn visas med rapporten tillgänglig.
   *Välkommen tillbaka. Byn vilar nu och världen öppnar klockan 7.*
   Rapporten går att läsa men inga kommandon går att ge (INV-T3).
 - **En expedition kom tillbaka under frånvaron:** fyndet väntar i rapporten och på kartan.
@@ -335,13 +334,13 @@ Världens händelser i skissen är illustrationer tills ekonomin är beslutad; k
 - **Mycket lång frånvaro,** till exempel ett halvår: samma resa.
   Rapporten visar de fem viktigaste händelserna och *och 23 saker till* som går att fälla ut; världen är minst lika utvecklad som före (INV-V4).
 - **Appen har uppdaterats under frånvaron:** sparningen migreras (NFR-09); rapporten nämner bara det som är nytt för spelaren, under *Nytt i Eirora*.
-- **Resa i annan tidszon:** viloperioden följer telefonens lokala tid (D-37); resten av reglerna avgörs i O-07.
+- **Resa i annan tidszon:** vilotiden följer telefonens lokala tid (D-37); resten av reglerna avgörs i O-07.
 
 ### Återstartsbonus (O-12)
 
 Beslutet är **ingen särskild återstartsbonus** (D-52).
 
-- Den sparade Gryningskraften och en värld som vuxit av sig själv är redan ett varmt mottagande.
+- Den sparade Orken och en värld som vuxit av sig själv är redan ett varmt mottagande.
 - En bonus i krafter skulle kräva ett undantag från INV-F2, att bara egenvård skapar krafter.
 - En bonus för att ha varit borta riskerar att belöna frånvaro, eller att kännas som tröst och därmed påminna om frånvaron.
 
@@ -358,7 +357,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 
 **Förutsättningar:**
 
-- Viloperiod 23:00–07:00, satt för mer än 24 timmar sedan.
+- Vilotid 23:00–07:00, satt för mer än 24 timmar sedan.
 - Morgonnotisen är påslagen.
 - Spelaren har läst morgonens rapport och öppnar spelet en fredag klockan 21:30.
 
@@ -368,7 +367,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
    - *Ser:* ön i kvällsljus.
    - *Gör:* skickar en expedition från bryggan och lägger ett sågverk i byggkön.
    - *Känner:* att kvällen är en naturlig planeringsstund.
-   - *Simuleringen:* två spelpåverkande kommandon godkänns och kostar Utforskning respektive Byggkraft (INV-F5).
+   - *Simuleringen:* två spelpåverkande kommandon godkänns och kostar Utforskning respektive Styrka (INV-F5).
 2. **22:30 Skymningsbeskedet.**
    - *Ser:* om appen är öppen, en lugn rad överst medan ljuset blir varmare: *Byn gör sig redo för natten om en halvtimme.*
    - *Känner:* framförhållning, inte stress; det finns ingen nedräkning.
@@ -384,18 +383,18 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
    - *Gör:* trycker på sågverkets byggplats.
    - *Ser:* informationen om bygget som vanligt, men handlingsknapparna är ersatta av *Byborna sover. Det här kan du göra i morgon.*
    - *Känner:* ett vänligt nej, inget fel.
-   - *Simuleringen:* om ett kommando ändå skickas nekas det utan sidoeffekter med orsaken att viloperioden pågår (INV-D7, INV-T3, AC-01).
+   - *Simuleringen:* om ett kommando ändå skickas nekas det utan sidoeffekter med orsaken att vilotiden pågår (INV-D7, INV-T3, AC-01).
 5. **23:10 Skriver in kvällspromenaden.**
    - *Gör:* *Lägg till egenvård → Rörelse → 30 aktiva minuter*.
    - *Ser:* *Sparat. Det blir kraft när byn vaknar.*
-   - *Simuleringen:* bidraget, 3 000 steg enligt D-41, hör till det pågående spelardygnet och krediteras senast vid gryningen (INV-T9).
+   - *Simuleringen:* bidraget, 3 000 steg enligt D-41, hör till det pågående dagen och krediteras senast vid gryningen (INV-T9).
      Det är ett bidrag, inte ett spelpåverkande kommando; under vilan har manuell inmatning samma villkor som hälsodata som läses när appen öppnas (RST-05, HLT-07, D-54, D-70).
-6. **23:12 Ändrar viloperioden.**
-   - *Gör:* *Inställningar → Viloperiod*, flyttar till 22:30–06:30.
+6. **23:12 Ändrar vilotiden.**
+   - *Gör:* *Inställningar → Vilotid*, flyttar till 22:30–06:30.
    - *Ser:* *Den nya tiden gäller från söndag kväll klockan 22:30. I natt och i morgon natt vilar byn som vanligt, 23–07.*
    - *Känner:* att regeln är tydlig och förutsägbar.
    - *Simuleringen:* ett administrativt kommando godkänns.
-     Ändringen gäller tidigast lördag 23:12; då pågår lördagens viloperiod, som aldrig kortas, så den nya tiden börjar söndag (INV-T7, RST-09, AC-05).
+     Ändringen gäller tidigast lördag 23:12; då pågår lördagens vilotid, som aldrig kortas, så den nya tiden börjar söndag (INV-T7, RST-09, AC-05).
      Texten räknas fram av simuleringen, aldrig skrivs för hand.
 7. **23:20 Stänger appen.**
    - Inget mer händer i telefonen den här kvällen; inga notiser under vilan (RST-06).
@@ -408,7 +407,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 9. **07:00 Gryning.**
    - *Simuleringen:* fasen går till `DAWN` och sedan `ACTIVE`, i denna ordning (D-87):
      1. Byborna äter och byn växer enligt ekonomins regler.
-     2. Gryningskraftens grundnivå krediteras, och sömn som redan synkats fyller på upp till kurvans värde ([forces.md](./forces.md#2-spelardygnet)).
+     2. Orkens grundnivå krediteras, och sömn som redan synkats fyller på upp till kurvans värde ([forces.md](./forces.md#2-dagen)).
      3. Bidrag som kommit in under vilan krediteras (INV-T9).
      4. Den dagliga rapporten byggs.
      5. Morgonnotisen skickas om något nytt har hänt.
@@ -422,18 +421,18 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 
 ### Vad som går och inte går under vilan
 
-| Under viloperioden | Går | Regel |
+| Under vilotiden | Går | Regel |
 |---|---|---|
 | Titta på ön, röra kameran, trycka på saker för information | Ja | D-23 |
 | Läsa daglig rapport och historik | Ja | |
 | Bygga, placera, uppgradera, riva | Nej | INV-T3 |
-| Använda krafter: dagsverke, kartläggning, expedition | Nej | INV-T3 |
+| Använda krafter: extraarbete, kartläggning, expedition | Nej | INV-T3 |
 | Planera: pausa byggnader, bemanningsordning, byggkö, minimilager, vägar | Nej; planering är gratis men ändrar världen | RST-02, TASK-044 |
 | Handel, hälsningar och andra gruppåtgärder | Nej; servern nekar | RST-02 |
 | Ta emot gruppens interaktioner | Köas till gryningen | RST-11 |
 | Läsa egenvård från hälsokällan när appen öppnas | Ja; krafter vid gryningen | RST-05, D-70, INV-T9 |
 | Skriva in egenvård | Ja; krafter vid gryningen | HLT-07, D-54 |
-| Ändra viloperioden | Ja; gäller efter 24 h | RST-09, INV-T7 |
+| Ändra vilotiden | Ja; gäller efter 24 h | RST-09, INV-T7 |
 | Inställningar, tillgänglighet, integritet, hjälp, konto, radering | Ja | RST-07 |
 | Hantera eller avsluta prenumeration | Ja, under konto | RST-07 |
 | Köpa kosmetika | Nej | RST-08, D-55 |
@@ -453,7 +452,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 │                                              │
 │  Medan byn sover                             │
 │   · Säden mognar.                            │
-│   · Skogen vid huggarkojan växer tillbaka.   │
+│   · Skogen vid skogshuggaren växer tillbaka. │
 │   · Expeditionen ligger för ankar.           │
 │                                              │
 │  [ Rapport ]  [ Historik ]  [ Inställningar ]│
@@ -463,7 +462,7 @@ Beslutet är **ingen särskild återstartsbonus** (D-52).
 - Raderna under *Medan byn sover* visar långsamma processer som pågår just nu i världen (RST-03, INV-T5).
 - Nattens budskap växlar mellan några lugna rader om världen, till exempel *Det är stilla i hamnen.*, aldrig om spelarens sömn eller hälsa.
 - Nattvyn har mörka färger men full textkontrast (UX-05); ljud spelas bara om telefonen inte är tystad och aldrig högre än dagens.
-- Norrsken, måne och ljus följer [art direction](./art-direction.md#11-beslut): dämpat norrsken, stjärnor och runglöd under viloperioden (D-61).
+- Norrsken, måne och ljus följer [art direction](./art-direction.md#11-beslut): dämpat norrsken, stjärnor och runglöd under vilotiden (D-61).
 
 ### Skiss: Daglig rapport
 
@@ -476,8 +475,8 @@ Kvällspromenaden från steg 5 ingår i stegen.
 │                                              │
 │  Egenvård                                    │
 │   Rörelse  7 800 steg   → Utforskning    88  │
-│   Träning  1 pass       → Byggkraft      90  │
-│   Sömn     7 h 10 min   → Gryningskraft  96  │
+│   Träning  1 pass       → Styrka         90  │
+│   Sömn     7 h 10 min   → Ork            96  │
 │                                              │
 │  I världen                                   │
 │   · Expeditionen har siktat land i nordväst. │
@@ -485,7 +484,7 @@ Kvällspromenaden från steg 5 ingår i stegen.
 │   · Säden har mognat i natt.                 │
 │                                              │
 │  Värt att titta på                           │
-│   · Den nya ön har bete.                     │
+│   · Den nya ön har betesmark.                │
 │   · Stenbrottet hinner inte med sågverket.   │
 │                                              │
 │                               [ Till ön ]    │
@@ -506,13 +505,13 @@ Kvällspromenaden från steg 5 ingår i stegen.
   Om den inte längre går att utföra står det i rapporten, utan förlust (AC-08, RST-02).
 - **Appen i bakgrunden vid 23:00:** nästa öppning visar nattvyn direkt, med en kort övertoning.
 - **Spelaren lägger sig tidigare:** stänger bara appen; byborna arbetar till 23:00 som vanligt.
-- **Skiftarbete,** till exempel viloperiod 08–16: samma resa på andra klockslag, och nattvyn visas under viloperioden oavsett tid på dygnet.
+- **Skiftarbete,** till exempel vilotid 08–16: samma resa på andra klockslag, och nattvyn visas under vilotiden oavsett tid på dygnet.
   Världens dygnsljus följer schemat, inte solen (D-84).
 - **Övergång till sommartid eller normaltid under natten:** byn vilar till 07:00 lokal tid, även om vilan då blir 7 eller 9 verkliga timmar (D-37, INV-T6).
 - **Tidszonsbyte under vilan,** till exempel en flygresa: pågående vila ändras inte (INV-T8).
   Öppningstiden visas i den nya lokala tiden: *Världen öppnar klockan 8 (lokal tid).*
 - **Sömndata saknas eller kommer sent:** vid gryningen finns grundnivån 40.
-  Raden lyder *Sömn ingen registrerad än → Gryningskraft 40*, och när data kommer fylls det på: *Sömnen kom in: +56 Gryningskraft.*
+  Raden lyder *Sömn ingen registrerad än → Ork 40*, och när data kommer fylls det på: *Sömnen kom in: +56 Ork.*
   Ingen inloggad sömn ger mindre än grundnivån (INV-F4).
 - **Ändrad klocka på telefonen:** accepterad risk som bara drabbar spelaren själv (ADR-0003); spelet varnar inte och misstänkliggör ingen.
 - **Reducerad rörelse:** lyktor, byborna och gryningen visas som mjuka övertoningar.
@@ -529,9 +528,9 @@ Varje resa blir ett automatiserat scenario i headless-simuleringen med virtuell 
 | Resa | Scenario | Kontrollerar |
 |---|---|---|
 | 1 | Turen med alla hälsobehörigheter nekade | Alla tre krafthandlingar godkänns på startkrafterna; saldot efteråt är 40/40/10 |
-| 1 | Installation 23:30 med viloperiod 23–07 | Turens kommandon godkänns; fasen är `RESTING` direkt efter turen |
-| 2 | Sju spelardygn utan bidrag och kommandon | INV-V4; Gryningskraft 290; rapporten innehåller inga rader om saknad egenvård utöver sömnens grundnivå |
-| 2 | Sju spelardygn med 7 500 steg per dygn, importerade efteråt i slumpad ordning med dubbletter | Utforskning 521 (INV-B1, D-35) |
+| 1 | Installation 23:30 med vilotid 23–07 | Turens kommandon godkänns; fasen är `RESTING` direkt efter turen |
+| 2 | Sju dagar utan bidrag och kommandon | INV-V4; Ork 290; rapporten innehåller inga rader om saknad egenvård utöver sömnens grundnivå |
+| 2 | Sju dagar med 7 500 steg per dygn, importerade efteråt i slumpad ordning med dubbletter | Utforskning 521 (INV-B1, D-35) |
 | 3 | Kommandon av varje spelpåverkande typ var femte minut 22:55–07:05 | Godkända före 23:00 och från 07:00, nekade däremellan utan sidoeffekter |
 | 3 | Schemaändring fredag 23:12 till 22:30–06:30 | Vilan lördag är 23–07; första vilan med nya tiden börjar söndag 22:30 |
 | 3 | Sommartidsövergång och tidszonsbyte under vilan | Vilan slutar på schemats lokala klockslag; pågående vila ändras inte |
@@ -540,15 +539,15 @@ Varje resa blir ett automatiserat scenario i headless-simuleringen med virtuell 
 
 Produktägarens svar på de öppna frågorna i v0.1, loggade i PRD 1.1:
 
-- **D-49:** första sessionen börjar med den guidade turen; hälsokälla och viloperiod väljs efteråt, och Utforskning visas med *kartlägg närområdet* (PRD 4.4).
-- **D-50:** den första viloperioden gäller direkt efter turen, även om installationen sker under viloperioden.
-- **D-51:** det första spelardygnet börjar vid lokal midnatt på installationsdagen.
+- **D-49:** första sessionen börjar med den guidade turen; hälsokälla och vilotid väljs efteråt, och Utforskning visas med *kartlägg närområdet* (PRD 4.4).
+- **D-50:** den första vilotiden gäller direkt efter turen, även om installationen sker under vilotiden.
+- **D-51:** den första dagen börjar vid lokal midnatt på installationsdagen.
 - **D-52:** ingen återstartsbonus efter frånvaro (O-12).
-- **D-53:** manuell inmatning kan göras för varje spelardygn sedan senaste besöket, högst sju.
+- **D-53:** manuell inmatning kan göras för varje dag sedan senaste besöket, högst sju.
 - **D-54:** manuell inmatning är tillåten under vilan; krafterna krediteras vid gryningen.
 - **D-55:** köp av kosmetika är stängda under vilan; prenumerationen går alltid att hantera.
 - **D-56:** morgonnotisen kommer bara när något nytt har hänt, alltid tyst, och pausas efter två oöppnade i följd.
-- **D-57:** molnsparningen innehåller bidrag per spelardygn, end-to-end-krypterade så att servern aldrig kan läsa dem.
+- **D-57:** molnsparningen innehåller bidrag per dag, end-to-end-krypterade så att servern aldrig kan läsa dem.
 - **D-58:** åldersgränsen 18+ sköts av butikernas åldersklassning, utan egen bekräftelse i spelet.
 
 Guiden avgjordes med art direction: en ljusgestalt inspirerad av Eir (D-60).

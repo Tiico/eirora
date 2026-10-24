@@ -23,7 +23,7 @@ namespace Eirora.Simulation.Events
         }
     }
 
-    /// <summary>The rest period ended and a new game day began (GLOSSARY: Gryning, Spelardygn).</summary>
+    /// <summary>The rest period ended and a new game day began (GLOSSARY: Gryning, Dag).</summary>
     public sealed class DawnBroke : GameEvent
     {
         public DawnBroke(long utcSeconds, int gameDay)

@@ -219,7 +219,7 @@ public sealed class WorkdayOn : DailyMove
 
     public BuildingKind Building { get; }
 
-    public override string Name => $"dagsverke på {Names.Of(Building)}";
+    public override string Name => $"extraarbete på {Names.Of(Building)}";
 
     internal override void Make(Turn turn)
     {
@@ -234,7 +234,7 @@ public sealed class WorkdayOn : DailyMove
 /// <summary>Rushes the first project in the queue (economy-v1.md, section 6).</summary>
 public sealed class RushFirst : DailyMove
 {
-    public override string Name => "rusta";
+    public override string Name => "skynda på";
 
     internal override void Make(Turn turn)
     {

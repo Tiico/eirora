@@ -28,13 +28,13 @@ namespace Eirora.Client.UI
             BuildingKind.Storehouse => "Förråd",
             BuildingKind.FishingHut => "Fiskebod",
             BuildingKind.Field => "Åker",
-            BuildingKind.Woodcutter => "Huggarkoja",
+            BuildingKind.Woodcutter => "Skogshuggare",
             BuildingKind.SheepFarm => "Fårgård",
             BuildingKind.Quarry => "Stenbrott",
             BuildingKind.Sawmill => "Sågverk",
             BuildingKind.Weavery => "Väveri",
             BuildingKind.Jetty => "Brygga",
-            _ => "Utkiksvarde",
+            _ => "Utkikstorn",
         };
 
         public static string Name(Resource resource) => resource switch
@@ -42,30 +42,34 @@ namespace Eirora.Client.UI
             Resource.Fish => "fisk",
             Resource.Grain => "säd",
             Resource.Timber => "timmer",
-            Resource.Planks => "plank",
+            Resource.Planks => "plankor",
             Resource.Stone => "sten",
             Resource.Wool => "ull",
-            _ => "vadmal",
+            _ => "tyg",
         };
+
+        /// <summary>A resource's name after a count: "1 planka" but "2 plankor"; the other resources do not change.</summary>
+        public static string Name(Resource resource, long count) =>
+            resource == Resource.Planks && count == 1 ? "planka" : Name(resource);
 
         public static string Name(Force force) => force switch
         {
             Force.Exploration => "Utforskning",
-            Force.BuildPower => "Byggkraft",
-            _ => "Gryningskraft",
+            Force.BuildPower => "Styrka",
+            _ => "Ork",
         };
 
         /// <summary>What a tile is: its ground, or the crest, and whether it is rich.</summary>
         public static string Ground(WorldMap map, Hex tile, TileUse uses)
         {
-            string ground = (uses & TileUse.Crest) != 0 ? "Krönet" : map.TerrainAt(tile) switch
+            string ground = (uses & TileUse.Crest) != 0 ? "Toppen" : map.TerrainAt(tile) switch
             {
                 MapTerrain.DeepSea => "Djupt hav",
                 MapTerrain.ShallowSea => "Grunt vatten",
                 MapTerrain.Beach => "Strand",
                 MapTerrain.Forest => "Skog",
                 MapTerrain.Farmland => "Åker",
-                MapTerrain.Pasture => "Bete",
+                MapTerrain.Pasture => "Betesmark",
                 MapTerrain.Mountain => "Berg",
                 _ => "Äng",
             };
@@ -82,7 +86,7 @@ namespace Eirora.Client.UI
         {
             var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
                 .Where(r => amount(r) > 0)
-                .Select(r => $"{amount(r)} {Name(r)}")
+                .Select(r => $"{amount(r)} {Name(r, amount(r))}")
                 .ToList();
             return goods.Count == 0 ? null : List(goods);
         }
@@ -108,7 +112,7 @@ namespace Eirora.Client.UI
 
             Add(TileUse.Land, "byggmark");
             Add(TileUse.Farmland, "åker");
-            Add(TileUse.Pasture, "bete");
+            Add(TileUse.Pasture, "betesmark");
             Add(TileUse.Forest, "skog att fälla");
             Add(TileUse.Mountain, "berg att bryta");
             Add(TileUse.FishingWater, "fiskevatten");
@@ -119,10 +123,10 @@ namespace Eirora.Client.UI
 
         public static string Cost(BuildingSpec spec)
         {
-            var parts = spec.Cost.Select(c => $"{c.Value} {Name(c.Key)}").ToList();
+            var parts = spec.Cost.Select(c => $"{c.Value} {Name(c.Key, c.Value)}").ToList();
             if (spec.BuildPower > 0)
             {
-                parts.Add($"{spec.BuildPower} Byggkraft");
+                parts.Add($"{spec.BuildPower} Styrka");
             }
 
             parts.Add($"{spec.WorkHours} h arbete");
@@ -198,19 +202,20 @@ namespace Eirora.Client.UI
         private static string Effect(Recipe recipe)
         {
             string product = Name(recipe.Product);
+            string one = Name(recipe.Product, 1);
             if (recipe.Inputs.Count > 0)
             {
-                string inputs = List(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource)}"));
-                return recipe.PerHour == Quantity.PerUnit ? $"{inputs} → 1 {product}/h"
-                    : Quantity.PerUnit % recipe.PerHour == 0 ? $"{inputs} → 1 {product} per {Quantity.PerUnit / recipe.PerHour} h"
-                    : $"{inputs} → 1 {product}, {Amount(recipe.PerHour)}/h";
+                string inputs = List(recipe.Inputs.Select(i => $"{i.PerProduct} {Name(i.Resource, i.PerProduct)}"));
+                return recipe.PerHour == Quantity.PerUnit ? $"{inputs} → 1 {one}/h"
+                    : Quantity.PerUnit % recipe.PerHour == 0 ? $"{inputs} → 1 {one} per {Quantity.PerUnit / recipe.PerHour} h"
+                    : $"{inputs} → 1 {one}, {Amount(recipe.PerHour)}/h";
             }
 
             if (recipe.ForestTiles > 0)
             {
                 return recipe.ForestTiles == 1
-                    ? $"{Amount(recipe.PerHour)} {product}/h från en skogsbricka"
-                    : $"{Amount(recipe.PerHour)} {product}/h per skogsbricka, högst {Count(recipe.ForestTiles)}";
+                    ? $"{Amount(recipe.PerHour)} {product}/h från en skogsruta"
+                    : $"{Amount(recipe.PerHour)} {product}/h per skogsruta, högst {Count(recipe.ForestTiles)}";
             }
 
             return recipe.IsSlowProcess ? $"{Amount(recipe.GrowsPerHour)} {product}/h dygnet runt" : $"{Amount(recipe.PerHour)} {product}/h";
@@ -345,8 +350,8 @@ namespace Eirora.Client.UI
             Rejection.SiteUnavailable => "Det går inte att bygga här.",
             Rejection.AlreadyDone => "Det är redan gjort.",
             Rejection.NothingLeftToSurvey => "Hela ön är kartlagd.",
-            Rejection.NothingToRush => "Det finns inget bygge att rusta.",
-            Rejection.NotNextToTheKnown => "Dimman lättar från kanten av det kända. Lyft en bricka närmare först.",
+            Rejection.NothingToRush => "Det finns inget bygge att skynda på.",
+            Rejection.NotNextToTheKnown => "Dimman lättar från kanten av det kända. Lyft en ruta närmare först.",
             Rejection.FoundBySurvey => "Något ligger gömt här. Kartlägg ön för att se vad.",
             Rejection.FoundByExpedition => "Här ligger en okänd ö. En expedition kan hitta den.",
             Rejection.NoBuildingThere => "Det behövs en byggnad för det här först.",
@@ -395,13 +400,13 @@ namespace Eirora.Client.UI
             BuildingKind.Storehouse => "Förrådet",
             BuildingKind.FishingHut => "Fiskeboden",
             BuildingKind.Field => "Åkern",
-            BuildingKind.Woodcutter => "Huggarkojan",
+            BuildingKind.Woodcutter => "Skogshuggaren",
             BuildingKind.SheepFarm => "Fårgården",
             BuildingKind.Quarry => "Stenbrottet",
             BuildingKind.Sawmill => "Sågverket",
             BuildingKind.Weavery => "Väveriet",
             BuildingKind.Jetty => "Bryggan",
-            _ => "Utkiksvarden",
+            _ => "Utkikstornet",
         };
 
         /// <summary>
@@ -417,8 +422,8 @@ namespace Eirora.Client.UI
 
             return building.Building.Paused ? "pausad" : building.Production switch
             {
-                Production.Full => $"går för fullt · {Rate(building.PerHour)} {Name(product)}/h",
-                Production.Reduced => $"går långsammare · {Rate(building.PerHour)} {Name(product)}/h",
+                Production.Full => $"går för fullt · {Rate(building.PerHour, product)}/h",
+                Production.Reduced => $"går långsammare · {Rate(building.PerHour, product)}/h",
                 _ => "står still",
             };
         }
@@ -438,7 +443,7 @@ namespace Eirora.Client.UI
             StoreFull full => $"Lagret är fullt: {full.Capacity} {Name(full.Resource)}. Inget går förlorat.",
             ForestFelled { InReach: 0 } => "Här finns ingen skog kvar att fälla.",
             ForestFelled forest when forest.Felled == forest.InReach => "Skogen är fälld och växer tillbaka dag och natt.",
-            ForestFelled forest => $"{forest.Felled} av {forest.InReach} skogsbrickor är fällda. Skogen växer tillbaka dag och natt.",
+            ForestFelled forest => $"{forest.Felled} av {forest.InReach} skogsrutor är fällda. Skogen växer tillbaka dag och natt.",
             NoDepot { DepotStands: true } => "Inget förråd med bärare når hit. Varorna väntar här tills en bybo blir ledig och bär.",
             NoDepot => "Inget förråd når hit över land. Varorna väntar här tills ett förråd byggs.",
             OutboxFull outbox => $"Utlagret är fullt: {outbox.Units} väntar på bärarna, som hämtar dem snart. Inget går förlorat.",
@@ -448,7 +453,7 @@ namespace Eirora.Client.UI
 
         /// <summary>What a road to the storehouse gives a building, beside the road's cost on its sheet.</summary>
         public static string RoadGives(CarriersBehind behind, Resource product) =>
-            $"{Rate(behind.WithRoadPerHour)} {Name(product)}/h i stället för {Rate(behind.PerHour)}";
+            $"{Rate(behind.WithRoadPerHour, product)}/h i stället för {Rate(behind.PerHour)}";
 
         /// <summary>
         /// A storehouse's or a jetty's carriers in a sentence for its sheet (economy-v2.md, section 7.1): how many, how much
@@ -472,7 +477,7 @@ namespace Eirora.Client.UI
         /// <summary>What a depot's advice would bring more to the store, such as "+0,8 fisk/h och +0,3 sten/h".</summary>
         public static string Gains(IEnumerable<Gain> gains)
         {
-            var more = gains.Where(g => g.PerHour > 0).Select(g => $"+{Rate(g.PerHour)} {Name(g.Resource)}/h").ToList();
+            var more = gains.Where(g => g.PerHour > 0).Select(g => $"+{Rate(g.PerHour, g.Resource)}/h").ToList();
             return more.Count == 0 ? "ger inget mer i dag" : List(more);
         }
 
@@ -510,8 +515,8 @@ namespace Eirora.Client.UI
             };
 
             return bottleneck.Workday is not Building workday ? held
-                : bottleneck.Hindrance is WaitingForInput missing ? $"{held} Ett dagsverke på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
-                : bottleneck.Hindrance is CarriersBehind ? $"{held} Ett dagsverke på {Definite(workday.Kind).ToLowerInvariant()} låter bärarna bära hälften mer."
+                : bottleneck.Hindrance is WaitingForInput missing ? $"{held} Att arbeta extra på {Definite(workday.Kind).ToLowerInvariant()} ger mer {Name(missing.Resource)}."
+                : bottleneck.Hindrance is CarriersBehind ? $"{held} Att arbeta extra på {Definite(workday.Kind).ToLowerInvariant()} låter bärarna bära hälften mer."
                 : held;
         }
 
@@ -524,6 +529,13 @@ namespace Eirora.Client.UI
             return fraction == 0 ? whole
                 : fraction % 10 == 0 ? $"{whole},{fraction / 10}"
                 : $"{whole},{fraction.ToString("00", System.Globalization.CultureInfo.InvariantCulture)}";
+        }
+
+        /// <summary>A resource's rate, such as "0,92 plankor" but "1 planka"; the caller adds the hour.</summary>
+        private static string Rate(long millionths, Resource resource)
+        {
+            string rate = Rate(millionths);
+            return $"{rate} {(rate == "1" ? Name(resource, 1) : Name(resource))}";
         }
 
         /// <summary>Why the carriers do not bring all of a building's goods to the store, and what would help.</summary>
@@ -553,20 +565,20 @@ namespace Eirora.Client.UI
             }
 
             // The first says what is given and in what; the others only how much.
-            var said = better.Select((b, i) => i == 0 ? $"{b.What} ger {Rate(b.PerHour)} {Name(made)}/h" : $"{b.What} {Rate(b.PerHour)}");
+            var said = better.Select((b, i) => i == 0 ? $"{b.What} ger {Rate(b.PerHour, made)}/h" : $"{b.What} {Rate(b.PerHour)}");
             return better.Count == 0 ? text : $"{text} {Capital(List(said))}.";
         }
 
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
         public static string? Describe(GameEvent gameEvent) => gameEvent switch
         {
-            DawnBroke dawn => $"Byn vaknade till spelardygn {dawn.GameDay}.",
+            DawnBroke dawn => $"Byn vaknade till dag {dawn.GameDay}.",
             ForceCredited { Amount: > 0 } credit => $"+{credit.Amount} {Name(credit.Force)} från din egenvård.",
             VillagersMovedIn moved => moved.Count == 1 ? "En ny bybo flyttade in." : $"{moved.Count} nya bybor flyttade in.",
             ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind built } => $"{Name(built)} är färdig.",
             ProjectCompleted { Kind: ProjectKind.Upgrade, Building: BuildingKind upgraded } => $"{Name(upgraded)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
-            TilesRevealed => "Kartläggningen lyfte dimman över nya brickor.",
+            TilesRevealed => "Kartläggningen lyfte dimman över nya rutor.",
             ExpeditionReturned { Island: PrototypeHome.Nyon } => "Expeditionen kom hem. Den hittade Nyön i öster.",
             ExpeditionReturned => "Expeditionen kom hem. Den hittade en ny ö.",
             FogLifted => FogLiftedOver(1),
@@ -611,6 +623,6 @@ namespace Eirora.Client.UI
         }
 
         private static string FogLiftedOver(int tiles) =>
-            tiles == 1 ? "Dimman lättade över en bricka." : $"Dimman lättade över {tiles} brickor.";
+            tiles == 1 ? "Dimman lättade över en ruta." : $"Dimman lättade över {tiles} rutor.";
     }
 }

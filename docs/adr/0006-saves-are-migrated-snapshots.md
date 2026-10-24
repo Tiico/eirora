@@ -23,7 +23,7 @@ En värld kan alltså aldrig förlora något på grund av en ny regelversion: al
 
 ## Snapshoten
 
-- Den innehåller hela det tillstånd som fingeravtrycket täcker: krafter, bidrag per spelardygn, väntande avstämningar, viloschema och väntande schemaändring, ekonomi, historik och alla använda idempotensnycklar med sina utfall (INV-D6).
+- Den innehåller hela det tillstånd som fingeravtrycket täcker: krafter, bidrag per dag, väntande avstämningar, viloschema och väntande schemaändring, ekonomi, historik och alla använda idempotensnycklar med sina utfall (INV-D6).
   Den innehåller aldrig härledda cachar, rådata (INV-B4) eller flyttal (INV-D3).
 - Ett huvud anger formatversion, regelversion, innehållsversion, simuleringstid och en hash av fingeravtrycket.
 - Samma tillstånd serialiseras alltid till samma byte, och innehåll refereras med stabila id:n, aldrig med en position i en lista.
@@ -54,7 +54,7 @@ En värld kan alltså aldrig förlora något på grund av en ny regelversion: al
 - CI laddar varje gyllene sparning med aktuell kod, jämför fingeravtrycket och fortsätter scenariot en bit med aktuella regler.
 - Varje fryst bygge spelar upp sin egen gyllene journal bit för bit, så att ett bygge som inte längre ger samma tillstånd upptäcks.
 - Förväntade fingeravtryck ändras bara i den PR som höjer regelversionen eller ändrar en migration, så att granskningen ser ändringen.
-- Riktiga spelares sparningar checkas aldrig in, eftersom de innehåller bidrag per spelardygn.
+- Riktiga spelares sparningar checkas aldrig in, eftersom de innehåller bidrag per dag.
 
 ## Considered Options
 

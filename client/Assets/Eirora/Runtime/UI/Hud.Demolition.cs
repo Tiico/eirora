@@ -78,7 +78,7 @@ namespace Eirora.Client.UI
             if (demolition.Unharvested > 0 && spec.Recipe is Recipe recipe)
             {
                 string grown = recipe.Product == Resource.Wool ? "Ullen som vuxit och inte klippts" : "Säden som vuxit och inte skördats";
-                Text("sheet-text", _sheet, $"{grown} försvinner: {demolition.Unharvested} {Texts.Name(recipe.Product)}.");
+                Text("sheet-text", _sheet, $"{grown} försvinner: {demolition.Unharvested} {Texts.Name(recipe.Product, demolition.Unharvested)}.");
             }
 
             if (demolition.CancelsUpgrade)
@@ -90,7 +90,7 @@ namespace Eirora.Client.UI
             int power = spec.BuildPower + (upgrades * world.Content.Upgrade.BuildPower);
             if (power > 0)
             {
-                Text("sheet-text", _sheet, $"De {power} {Texts.Name(Force.BuildPower)} den kostade kommer inte tillbaka.");
+                Text("sheet-text", _sheet, $"{power} {Texts.Name(Force.BuildPower)} kommer inte tillbaka.");
             }
 
             int freed = Logistics.IsDepot(building.Kind) ? building.Carriers : building.Staffed ? spec.Staff : 0;
@@ -156,10 +156,10 @@ namespace Eirora.Client.UI
         private static string Freed(WorldMap map, Hex tile)
         {
             var uses = map.Features.UsesOf(tile);
-            return map.TerrainAt(tile) == MapTerrain.Forest ? "Brickan blir ledig, och skogen på den går att fälla igen."
-                : (uses & TileUse.Farmland) != 0 ? "Brickan blir ledig, och åkermarken går att odla igen."
-                : (uses & TileUse.Pasture) != 0 ? "Brickan blir ledig, och betet går att använda igen."
-                : "Brickan blir ledig.";
+            return map.TerrainAt(tile) == MapTerrain.Forest ? "Rutan blir ledig, och skogen på den går att fälla igen."
+                : (uses & TileUse.Farmland) != 0 ? "Rutan blir ledig, och åkermarken går att odla igen."
+                : (uses & TileUse.Pasture) != 0 ? "Rutan blir ledig, och betesmarken går att använda igen."
+                : "Rutan blir ledig.";
         }
     }
 }

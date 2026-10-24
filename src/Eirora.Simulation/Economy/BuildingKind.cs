@@ -18,7 +18,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Grain that ripens day and night and is harvested by day (åker).</summary>
         Field,
 
-        /// <summary>Timber from the forest, which grows back (huggarkoja).</summary>
+        /// <summary>Timber from the forest, which grows back (skogshuggare).</summary>
         Woodcutter,
 
         /// <summary>Wool that grows day and night and is sheared by day (fårgård).</summary>
@@ -36,7 +36,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>A jetty: sea routes and expeditions start here; counts as a storehouse for distance (brygga).</summary>
         Jetty,
 
-        /// <summary>Surveys and expeditions cost a quarter less Exploration (utkiksvarde).</summary>
+        /// <summary>Surveys and expeditions cost a quarter less Exploration (utkikstorn).</summary>
         Lookout,
     }
 }

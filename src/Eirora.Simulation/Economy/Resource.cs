@@ -12,7 +12,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Building material from woodcutters (timmer).</summary>
         Timber,
 
-        /// <summary>Building material from sawmills (plank).</summary>
+        /// <summary>Building material from sawmills (plankor).</summary>
         Planks,
 
         /// <summary>Building material from quarries (sten).</summary>
@@ -21,7 +21,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Raw material from sheep farms, a slow process (ull).</summary>
         Wool,
 
-        /// <summary>Cloth from weaveries; comfort that speeds up growth (vadmal).</summary>
+        /// <summary>Cloth from weaveries; comfort that speeds up growth (tyg).</summary>
         Wadmal,
     }
 }

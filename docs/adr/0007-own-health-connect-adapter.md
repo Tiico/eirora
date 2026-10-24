@@ -30,7 +30,7 @@ Sedan kördes den på produktägarens Pixel 7 med Android 17 och riktig data (ra
 - **Dubbletter:** två källor som räknar samma steg ger en naiv summa som är mer än 50 % för hög.
   Health Connects aggregat deduplicerar per tidsintervall efter användarens källprioritet: där poster överlappar vinner den högst prioriterade källan och den andra fyller bara luckorna.
   Det gäller steg, träningspass och sömn.
-- **Aggregat per kalenderdag** delar en natt vid midnatt, men krafterna räknas per spelardygn (gryning till gryning); spelet måste därför aggregera över egna intervall, inte ta Health Connects dagsvärden.
+- **Aggregat per kalenderdag** delar en natt vid midnatt, men krafterna räknas per dag (gryning till gryning); spelet måste därför aggregera över egna intervall, inte ta Health Connects dagsvärden.
 - **Historik:** utan `READ_HEALTH_DATA_HISTORY` returnerade `readRecords` bara poster från 30 dagar före första beviljandet, men `aggregateGroupByPeriod` returnerade ändå värden 45 och 200 dagar bakåt.
   Spelet behöver ingen historik (D-51, D-53), så vi begär den inte och förlitar oss inte på läckan.
 - **Ändringar:** `getChanges` gav den redigerade posten som ny version och den raderade som bara ett id, utan vana eller tid.
@@ -56,7 +56,7 @@ Sedan kördes den på produktägarens Pixel 7 med Android 17 och riktig data (ra
 - C#-gränssnittet returnerar poster med källa, enhet och `recordingMethod`; klassningen till verifierat eller egenrapporterat görs i C#, så att samma regel gäller för HealthKit och manuell inmatning.
   Bara `MANUAL_ENTRY` blir egenrapporterat, eftersom ordlistan definierar egenrapporterat som det hälsokällan markerat som manuellt inmatat; `UNKNOWN` är inte markerat och blir verifierat (D-68).
 - Spelet identifierar aldrig källor med fasta paketnamn: telefonens egen stegräknare har ett namn per enhet.
-- Bidrag per spelardygn beräknas med Health Connects aggregat över spelardygnets intervall (deduplicering efter användarens prioritet) i stället för att summera poster (INV-B1).
+- Bidrag per dag beräknas med Health Connects aggregat över dagens intervall (deduplicering efter användarens prioritet) i stället för att summera poster (INV-B1).
   Sömn räknas på samma sätt över natten fram till gryningen, med Health Connects egen sömnlängd och utan egen regel för vakenfaser eller överlapp (D-71).
 - Korrigeringar (HLT-04, INV-B3) läses med ändrings-API:t; eftersom en radering bara har ett id måste klienten minnas vilket intervall varje läst post-id hörde till, utan att spara värdena (HLT-10).
   En ändringstoken gäller i 30 dagar; har den gått ut läses de senaste 30 dagarna om.
