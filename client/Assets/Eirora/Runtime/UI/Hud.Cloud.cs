@@ -303,7 +303,7 @@ namespace Eirora.Client.UI
 
             if (choice.ContributionsUnreadable)
             {
-                Text("sheet-text", card, "Egenvården i kontots ö går inte att läsa på den här telefonen. Hämtar du den räknas dagarna hittills som vilodagar, och bidragen räknas igen från nästa spelardygn.");
+                Text("sheet-text", card, "Egenvården i kontots ö går inte att läsa på den här telefonen. Hämtar du den räknas dagarna hittills som vilodagar, och egenvården räknas igen från nästa gryning.");
                 KeyOffer(card, choice);
             }
 
@@ -321,7 +321,7 @@ namespace Eirora.Client.UI
             Text("setup-title", card, "Din ö finns på kontot");
             Text("sheet-text", card, $"Kontot har en ö{CloudWorld(choice)}. Egenvården i den är krypterad med en nyckel som den här telefonen saknar, och servern kan inte läsa den heller.");
             KeyOffer(card, choice);
-            Text("sheet-text", card, "Utan nyckeln hämtas ön ändå, men dagarna till och med i dag räknas som vilodagar och bidragen räknas igen från nästa spelardygn.");
+            Text("sheet-text", card, "Utan nyckeln hämtas ön ändå, men dagarna till och med i dag räknas som vilodagar, och egenvården räknas igen från nästa gryning.");
             Button("button button-wide", card, "Fortsätt utan nyckeln", () => Choose(WorldChoice.TakeCloud));
         }
 
@@ -337,7 +337,7 @@ namespace Eirora.Client.UI
         private static string CloudWorld(SyncResult choice)
         {
             string saved = choice.CloudSavedAt is { } at ? $", senast sparad {at.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : string.Empty;
-            string day = choice.CloudGameDay is { } gameDay ? $" på spelardygn {gameDay.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+            string day = choice.CloudGameDay is { } gameDay ? $" på dag {gameDay.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
             return day + saved;
         }
 
@@ -674,7 +674,7 @@ namespace Eirora.Client.UI
             }
 
             Text("sheet-text recovery-code", _sheet, string.Join("\n", lines));
-            Text("sheet-text", _sheet, "Koden byts när en ny nyckelepok börjar; visa den igen då.");
+            Text("sheet-text", _sheet, "Koden byts om du någon gång fortsätter på en ny telefon utan nyckeln; visa den igen då.");
             Button("button button-wide", _sheet, "Dölj", () =>
             {
                 _showingRecoveryCode = false;
@@ -697,8 +697,8 @@ namespace Eirora.Client.UI
             Text("sheet-text", card, cloud.CloudSaveUnreadable
                 ? "Din ö är hämtad, men egenvården från tidigare dagar gick inte att läsa med den här telefonens nyckel. Servern kan inte läsa den heller."
                 : "Din ö är hämtad, men egenvården från tidigare dagar är krypterad med en nyckel som den här telefonen saknar. Servern kan inte läsa den heller.");
-            Text("sheet-text", card, "Dagarna till och med i dag räknas som vilodagar, och bidragen räknas igen från nästa spelardygn. Byn, krafterna och allt du byggt är kvar.");
-            Text("sheet-text", card, "Den gamla bidragsdelen sparas krypterad på servern i 90 dagar och raderas sedan.");
+            Text("sheet-text", card, "Dagarna till och med i dag räknas som vilodagar, och egenvården räknas igen från nästa gryning. Byn, krafterna och allt du byggt är kvar.");
+            Text("sheet-text", card, "Den gamla egenvården sparas krypterad på servern i 90 dagar och raderas sedan.");
             Button("button button-wide button-primary", card, "Jag förstår", () =>
             {
                 _noticeCard = null;

@@ -93,7 +93,7 @@ Art direction är utgångspunkten och budgeten är gränsen (NFR-13).
 När ett mått går över sänks kostnader i den här ordningen, och bara på de nivåer som går över:
 
 1. Det som inte syns i en skärmbild: skuggornas upplösning och avstånd, MSAA och antalet ljuskällor som räknas per bild.
-2. Mängden detaljer: färre träd per skogsbricka och färre bybor i rörelse.
+2. Mängden detaljer: färre träd per skogsruta och färre bybor i rörelse.
 3. Effekter: partiklar, rörligt vatten och norrsken förenklas.
 4. Ljusstämningarna ändras aldrig: gryning, dag, skymning och natt ser likadana ut på alla nivåer.
 

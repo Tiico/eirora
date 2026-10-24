@@ -33,7 +33,7 @@ Skalets temperatur saknas på en del telefoner och på emulatorn; då redovisas 
 
 Spelet är olika från dygn till dygn, så en mätning av den riktiga världen går inte att upprepa.
 Klienten har därför en mätscen som startas med argumentet `-eirora-measure day` eller `-eirora-measure night`.
-Den spelar samma vecka som skärmbildsturen på en fast klocka, utan att spara, och stannar sedan i dagsljus klockan 13 eller i viloperiodens natt klockan 01.
+Den spelar samma vecka som skärmbildsturen på en fast klocka, utan att spara, och stannar sedan i dagsljus klockan 13 eller i vilotidens natt klockan 01.
 Natten mäts för sig eftersom stjärnor, norrsken och upplysta fönster enligt [art direction](./art-direction.md) kostar annat än dagsljuset.
 Med `-eirora-measure year` laddar scenen i stället en utbyggd värld med 36 byggnader och en expedition till sjöss och stannar klockan ett år efter att spelaren lämnade den, vid samma tid på dagen, så att världen spolas fram ett år när appen startar, som när spelaren kommer tillbaka efter ett års frånvaro (TASK-049).
 Världen är en sparning i `client/Assets/Eirora/Resources/Measurement/AYearAway.bytes`, som .NET-testerna spolar fram på samma sätt.
@@ -143,6 +143,6 @@ Budgetarna håller skönheten i art direction (NFR-13): om ett mått går över 
 ## 7. Öppna frågor
 
 - Ska batteriet mätas med fast ljusstyrka på en nivå som produktägaren brukar använda, eller med automatisk ljusstyrka som i vardagen?
-  Avgjord: fast ljusstyrka under det aktiva passet, med nivån i rapporten, och automatisk ljusstyrka över ett helt spelardygn (D-83).
+  Avgjord: fast ljusstyrka under det aktiva passet, med nivån i rapporten, och automatisk ljusstyrka över en hel dag (D-83).
 - Behövs en andra, äldre Android-telefon redan i M1, eller räcker produktägarens telefon tills målenheterna bestäms i TASK-024?
   Avgjord: produktägarens telefon räcker i M1; målenheterna bestäms i TASK-024.

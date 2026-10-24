@@ -122,7 +122,7 @@ public sealed class EconomyV1Tests
         return folder?.FullName ?? throw new InvalidOperationException("The tests run outside the repository.");
     }
 
-    /// <summary>A row of section 7's tables: | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/B/G | Sparat U/B/G | Värde per använd kraft |.</summary>
+    /// <summary>A row of section 7's tables: | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |.</summary>
     private sealed record Row(string Run, string SelfCare, int Villagers, int Buildings, int Islands, long Stone, long DailyOutput, long Value, string UsedText, string SavedText, decimal? PerForce)
     {
         public string Key => $"{Run}, {SelfCare}";

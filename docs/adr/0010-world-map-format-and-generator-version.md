@@ -1,9 +1,9 @@
 # Kartan är en oföränderlig hexskiva som sparas hel; generatorn körs en gång per värld och hålls fast vid sin version
 
-> **Beslutat 2026-10-18** av produktägaren i [TASK-027](https://github.com/Tiico/eirora/issues/61): varje landbricka är en byggplats (D-79), kartan har radie 24 (D-80) och prototypens värld behålls med havet runt den fyllt en gång (D-81).
+> **Beslutat 2026-10-18** av produktägaren i [TASK-027](https://github.com/Tiico/eirora/issues/61): varje landruta är en byggplats (D-79), kartan har radie 24 (D-80) och prototypens värld behålls med havet runt den fyllt en gång (D-81).
 > **Justerat 2026-10-18** i [TASK-029](https://github.com/Tiico/eirora/issues/63): bytet från plats-id till koordinater görs i TASK-037 tillsammans med regeländringen, inte i TASK-029, och kartans hash står i tillståndet i stället för i snapshotens huvud.
 
-En världs karta (`WorldMap`) är en hexskiva med radie 24 runt origo, 1 801 brickor, där varje bricka har terräng, höjd och rikedom.
+En världs karta (`WorldMap`) är en hexskiva med radie 24 runt origo, 1 801 rutor, där varje ruta har terräng, höjd och rikedom.
 Kartan skapas en gång när världen skapas, av en generator med en fast version, och ändras aldrig därefter: allt som förändras på kartan under spelet, som dimma, avverkad skog, vägar och byggnader, är världens tillstånd och ligger i snapshoten.
 Kartan sparas hel i sparningen, aldrig bara som seed (MAP-06), och snapshoten pekar ut den med en hash, så en ny generatorversion kan aldrig ändra en befintlig värld.
 Generatorerna är rena heltalsfunktioner med en egen, specificerad slumpgenerator, så samma seed och generatorversion ger samma byte på .NET, Mono och IL2CPP (NFR-02, INV-D3).
@@ -20,37 +20,37 @@ Kartformat 1 har följande innehåll.
 - `generator <id> <version>`: generatorn och dess version; en handgjord karta har sitt namn och sin version här.
 - `seed <16 hex>` för procedurgenererade kartor och bara för dem.
 - `provenance <dataset> <version> <licens> <väst> <syd> <öst> <nord>` för geografiska kartor och bara för dem, med utsnittet i hela mikrograder.
-- `start <q> <r>`: brickan där världen grundas.
+- `start <q> <r>`: rutan där världen grundas.
 
-**Brickor.**
-- En rad per rad i skivan, `row <r>`, från norr till söder; brickorna står i ordning efter `q`, så koordinaterna följer av platsen.
-- Varje bricka skrivs som terrängens bokstav och höjden 0–7, till exempel `G3`, och med `:rikedom` i procent när den inte är 100, till exempel `M5:200`.
+**Rutor.**
+- En rad per rad i skivan, `row <r>`, från norr till söder; rutorna står i ordning efter `q`, så koordinaterna följer av platsen.
+- Varje ruta skrivs som terrängens bokstav och höjden 0–7, till exempel `G3`, och med `:rikedom` i procent när den inte är 100, till exempel `M5:200`.
 - Bokstäverna är `D` djupt hav, `S` grunt hav, `B` strand, `G` gräsmark, `F` skog, `A` åker, `P` betesmark och `M` berg.
 - Terrängen är en av `DeepSea`, `ShallowSea`, `Beach`, `Grassland`, `Forest`, `Farmland`, `Pasture` och `Mountain`.
 - Höjden är de tydliga höjdsteg som art direction bygger på (D-61); snö på topparna är utseende och följer av höjden.
-- Rikedomen gäller det brickan ger, och det följer av terrängen: fisk i grunt vatten, sten i berg och bete på betesmark.
+- Rikedomen gäller det rutan ger, och det följer av terrängen: fisk i grunt vatten, sten i berg och betesmark på betesmark.
 
 **Öar.**
-- `island <id> <q> <r>`: ett stabilt id och en ankarbricka.
+- `island <id> <q> <r>`: ett stabilt id och en ankarruta.
 - Ön är den sammanhängande landmassa som innehåller ankaret.
-- Varje landbricka hör till exakt en ö.
+- Varje landruta hör till exakt en ö.
 - Namnen på öarna är innehåll, inte karta.
 
-Det som följer av brickorna sparas inte, eftersom en snapshot aldrig innehåller härledda cachar (ADR-0006):
+Det som följer av rutorna sparas inte, eftersom en snapshot aldrig innehåller härledda cachar (ADR-0006):
 - gångbarhet och byggbarhet följer av terräng, höjd och grannar enligt reglerna;
 - fiskevatten är grunt vatten intill land;
-- ett hamnläge är en landbricka utom berg intill grunt vatten som når djupt hav (D-89);
-- farleder och flaskhalsar följer av havsbrickornas sammanhang;
-- krönet är startöns högsta bricka; en karta har en enda sådan bricka, och krönet bär bara Vårdkasen, även när det är ett berg (D-92).
+- ett hamnläge är en landruta utom berg intill grunt vatten som når djupt hav (D-89);
+- farleder och flaskhalsar följer av havsrutornas sammanhang;
+- toppen är startöns högsta ruta; en karta har en enda sådan ruta, och toppen bär bara Vårdkasen, även när det är ett berg (D-92).
 
-Biom per bricka ingår inte i kartformat 1, eftersom V1 har ett enda nordiskt biom.
-Ett biom läggs till med kartformat 2 och en migration som ger alla befintliga brickor det nordiska biomet.
+Biom per ruta ingår inte i kartformat 1, eftersom V1 har ett enda nordiskt biom.
+Ett biom läggs till med kartformat 2 och en migration som ger alla befintliga rutor det nordiska biomet.
 
-### Byggplatser är brickor
+### Byggplatser är rutor
 
-Varje landbricka är en möjlig byggplats, och vad den duger till följer av dess terräng, höjd och grannar (D-79).
-Dagens 20 namngivna platser (`Site`, `SiteKind`) försvinner som begrepp i TASK-037: tillståndet refererar då till brickor med koordinater i stället för plats-id, och de dolda platserna ersätts av dimman.
-Avverkad skog, vägar, byggnader och lyft dimma är tillstånd per bricka i snapshoten.
+Varje landruta är en möjlig byggplats, och vad den duger till följer av dess terräng, höjd och grannar (D-79).
+Dagens 20 namngivna platser (`Site`, `SiteKind`) försvinner som begrepp i TASK-037: tillståndet refererar då till rutor med koordinater i stället för plats-id, och de dolda platserna ersätts av dimman.
+Avverkad skog, vägar, byggnader och lyft dimma är tillstånd per ruta i snapshoten.
 
 ## Versioner
 
@@ -65,7 +65,7 @@ Fyra versioner hålls isär.
 
 - En kartformatsmigration är en ren funktion från kartans text i version n till n+1, som tillståndsmigrationerna i ADR-0006.
   Den får bara ändra representationen.
-  Ändrar en uppdatering vad en befintlig bricka betyder för reglerna är det en regeländring, med regelversion och migration.
+  Ändrar en uppdatering vad en befintlig ruta betyder för reglerna är det en regeländring, med regelversion och migration.
 - Generatorversionen är härkomst, inte något som körs igen: världen laddas från sin sparade karta, och generatorn för dess version behövs aldrig mer för den världen.
   Den behålls för att reproducera och felsöka kartor och för de gyllene kartorna i CI.
 - En app öppnar aldrig en karta med högre kartformatsversion än den känner till, och skriver den aldrig över (ADR-0006, punkt 5).
@@ -89,7 +89,7 @@ Fyra versioner hålls isär.
 ## Determinism
 
 - Generatorerna och kartan ligger i delade bibliotek utan Unity-beroende som byggs från samma källkod av .NET och Unity (ADR-0004).
-  `WorldMap`, brickor och hexgeometrin ligger i `Eirora.Simulation`, eftersom reglerna läser dem (TASK-028).
+  `WorldMap`, rutor och hexgeometrin ligger i `Eirora.Simulation`, eftersom reglerna läser dem (TASK-028).
   Generatorerna ligger i ett eget bibliotek, `Eirora.WorldGeneration`, som klienten använder när en värld skapas offline (ADR-0001) och servern när kartor valideras i bulk.
   Det omfattas av samma renhetsskanning som simuleringen (MAP-05, INV-D2).
 - Slumpen kommer från en egen implementation av PCG32 (XSH-RR, 64 bitars tillstånd) med publicerade testvektorer.
@@ -105,15 +105,15 @@ Fyra versioner hålls isär.
 
 ## Storlek och prestanda
 
-- Radie 24 ger 1 801 brickor (D-80).
-  Det rymmer startön, innerhavet och öarna i epok 1 (en ögrupp med tre öar och minst 150 brickor dimma över innerhavet) och fler epoker längre ut.
+- Radie 24 ger 1 801 rutor (D-80).
+  Det rymmer startön, innerhavet och öarna i epok 1 (en ögrupp med tre öar och minst 150 rutor dimma över innerhavet) och fler epoker längre ut.
   En karta kan aldrig växa i efterhand, eftersom den är oföränderlig.
-- Kartans text är ungefär 6 kB, tre tecken per bricka (`prototype-home` är 5 880 byte).
+- Kartans text är ungefär 6 kB, tre tecken per ruta (`prototype-home` är 5 880 byte).
   Sparningen bär den en gång, så en sparning växer från omkring 15 kB till omkring 21 kB.
-- I minnet är en bricka några byte, och hela kartan under 10 kB.
-  Sökväg med A* över 1 801 brickor är liten.
+- I minnet är en ruta några byte, och hela kartan under 10 kB.
+  Sökväg med A* över 1 801 rutor är liten.
   Budgetarna för sökväg och rendering sätts i TASK-024 och TASK-028.
-- Rendering är högst 1 801 brickor med 12–40 trianglar var (art direction), alltså under 75 000 trianglar för hela kartan.
+- Rendering är högst 1 801 rutor med 12–40 trianglar var (art direction), alltså under 75 000 trianglar för hela kartan.
   I TASK-033 byggs marken en gång per karta: havet och startön i en mesh och varje annan ö i en egen, som visas först när en expedition har hittat ön, så att dimman aldrig visar dess kontur.
   Dimman och byn ritas om när världen ändras.
   Prototypens karta ritas bara så långt som prototypen alltid ritade den, så att dess världar ser ut som förut.
@@ -147,13 +147,13 @@ Alla källor ger samma `WorldMap` och går genom samma validator.
 Produktägarens värld från M1 lever vidare utan att något den sett eller byggt ändras (D-81).
 
 1. TASK-029 gör Hemön och Nyön till den handgjorda kartan `prototype-home`, version 1, med samma land, vatten och terräng som klienten ritar i dag.
-   Det som i dag är kuliss, som skogsbrickor och stränder, blir riktig terräng.
+   Det som i dag är kuliss, som skogsrutor och stränder, blir riktig terräng.
    Ytan utanför det klienten ritar är djupt hav.
 2. Regelmigrationen 1 → 2 (ADR-0006) ger den sparade världen kartan: tillståndet får raden `map <hex>` först, och inget annat ändras.
-   Platserna i `PrototypeIsland` ligger kvar som innehåll, på brickor vars terräng passar dem.
+   Platserna i `PrototypeIsland` ligger kvar som innehåll, på rutor vars terräng passar dem.
    En prototypjournal från M1 spelas fortfarande upp, eftersom regelversion 2 bara lade till kartan (`RulesVersion.ReplaysJournalsFrom`).
-   Regelversion 3 gjorde de upptäckta platserna till dimma per bricka utan att ändra vad journalens kommandon gör (TASK-032), så journalen spelas upp även efter den.
-3. TASK-037 skriver om tillståndets plats-id till brickornas koordinater, till exempel `building Longhouse S` till `building Longhouse 0 0`, i samma regeländring som gör varje landbricka till en byggplats.
+   Regelversion 3 gjorde de upptäckta platserna till dimma per ruta utan att ändra vad journalens kommandon gör (TASK-032), så journalen spelas upp även efter den.
+3. TASK-037 skriver om tillståndets plats-id till rutornas koordinater, till exempel `building Longhouse S` till `building Longhouse 0 0`, i samma regeländring som gör varje landruta till en byggplats.
    Ett byte och en migration i stället för två, och inget som byggts flyttas.
 4. När generator v1 finns (TASK-031) fyller en regelmigration en gång den del av kartan som prototypen aldrig visat med generatorns hav och öar.
    Seeden härleds från världens första snapshot, så att klient och server får samma karta.
@@ -161,7 +161,7 @@ Produktägarens värld från M1 lever vidare utan att något den sett eller bygg
    Generatorn tar därför emot en fast kärna som den bygger runt, och validatorn kontrollerar att kärnan är orörd.
 5. Därefter är kartan oföränderlig som alla andras.
 
-Byggande på varje landbricka (D-79) är en senare regeländring med egna siffror i ekonomimodellen ([TASK-037](https://github.com/Tiico/eirora/issues/79)).
+Byggande på varje landruta (D-79) är en senare regeländring med egna siffror i ekonomimodellen ([TASK-037](https://github.com/Tiico/eirora/issues/79)).
 Den kommer efter TASK-029, så att flytten till kartan och ändringen av reglerna kan prövas var för sig.
 
 ## Considered Options
@@ -195,17 +195,17 @@ Den kommer efter TASK-029, så att flytten till kartan och ändringen av reglern
   Ett bibliotek färre, men varje låst generator följer med reglerna för alltid och blandar ihop karta och regler.
 
 **Byggplatser (D-79).**
-- **Varje landbricka (vald).**
+- **Varje landruta (vald).**
   Placering och närhet blir ett verkligt val på hela kartan och skalar till genererade världar.
 - **Namngivna platser som i dag.**
   Minst ändring i ekonomin, men generatorn måste avgöra var det är värt att bygga, och placeringen blir mindre fri.
-- **Brickor plus namngivna platser.**
+- **Rutor plus namngivna platser.**
   Mest uttrycksfullt, men två system att hålla i takt.
 
 **Kartans storlek (D-80).**
 - **Radie 24 (vald):** plats för flera epoker till cirka 6 kB.
-- **Radie 16:** 817 brickor, räcker för epok 1 men kan inte växa senare.
-- **Radie 32:** 3 169 brickor, dubbelt så stor sparning och mer att fylla med innehåll.
+- **Radie 16:** 817 rutor, räcker för epok 1 men kan inte växa senare.
+- **Radie 32:** 3 169 rutor, dubbelt så stor sparning och mer att fylla med innehåll.
 
 **Prototypens värld (D-81).**
 - **Behålls och havet fylls runt den en gång (vald):** världen kan fortsätta in i epok 1.
@@ -220,9 +220,9 @@ Den kommer efter TASK-029, så att flytten till kartan och ändringen av reglern
   - PCG32 med testvektorer;
   - `prototype-home` och gyllene kartor per generatorversion;
   - regelmigrationen som ger befintliga världar kartan.
-- TASK-037 byter plats-id mot koordinater och låter ekonomin läsa vad brickorna duger till i stället för `PrototypeIsland`.
+- TASK-037 byter plats-id mot koordinater och låter ekonomin läsa vad rutorna duger till i stället för `PrototypeIsland`.
 - TASK-030 validerar kartans radie, öar, kant av djupt hav och hamnläge mot kanten.
 - TASK-031 skriver `ProceduralArchipelagoV1` med en fast kärna för prototypens värld.
 - Varje låst generatorversion lever kvar i koden och i CI för alltid, även när inga nya världar skapas med den.
 - En ny regel som läser kartan annorlunda kräver regelversion och migration, men aldrig en ny karta.
-- Byggande på varje landbricka kräver en egen regeländring med nya siffror i ekonomimodellen.
+- Byggande på varje landruta kräver en egen regeländring med nya siffror i ekonomimodellen.

@@ -156,7 +156,7 @@ Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.s
 Är sparningen skadad eller saknas laddas reservfilen, eftersom bytet på telefonen är två namnbyten och kan avbrytas mellan dem; en skadad sparning läggs undan som `.damaged`.
 En sparning från en nyare version eller en som inte går att läsa skrivs aldrig över.
 En journalfil från prototypen (`world.journal`) tas över en gång och döps om till `world.journal.taken-over` först när sparningen är skriven, så att ett avbrutet övertagande görs om.
-Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på brickor i stället för namngivna platser (TASK-037, D-104).
+Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på rutor i stället för namngivna platser (TASK-037, D-104).
 En sådan journal skrivs aldrig över: klienten säger att världen inte kan spelas vidare i stället för att visa en annan värld, och lägger journalen undan först när spelaren börjar en ny.
 
 ### Migrationer och gyllene sparningar
@@ -255,7 +255,7 @@ dotnet run -c Release --project tools/Eirora.MapCheck -- --generator procedural-
 ```
 
 Seedverktyget (TASK-034) skriver en fristående HTML-sida som öppnas i webbläsaren.
-För en seed visar den kartan med startön, expeditionernas öar, hamnlägen, krönet, innerhavet och farlederna, och validatorns rapport.
+För en seed visar den kartan med startön, expeditionernas öar, hamnlägen, toppen, innerhavet och farlederna, och validatorns rapport.
 För ett intervall visar den dessutom per regel de kartor som ligger närmast gränsen, så att generatorn kan förbättras där den är svagast:
 
 ```bash
@@ -280,15 +280,15 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 - En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
   Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
 - En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning) och `idle` (Ingen spelare).
-  Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad brickan ger, avståndet till förrådet och vad som redan står där.
+  Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
-- Världen skapas en kvart före sin första gryning, så att spelardygn 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
-  Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta brickor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
+- Världen skapas en kvart före sin första gryning, så att dag 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
+  Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta rutor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
 - Vad en byggnad kostar, kräver och producerar läser botarna ur världens innehållskatalog (`World.Content`), så nytt innehåll och ändrade recept följer med av sig själva.
-  Hur nivån skalar produktionen går inte att läsa ur världen; `ProductionRateTests` bygger varje byggnad med ett recept och kräver att ett spelardygns tillskott, i lagret och i utlagren, är det botarna räknar med, och att varje recept i katalogen prövas där.
+  Hur nivån skalar produktionen går inte att läsa ur världen; `ProductionRateTests` bygger varje byggnad med ett recept och kräver att en dags tillskott, i lagret och i utlagren, är det botarna räknar med, och att varje recept i katalogen prövas där.
 - Måtten är ekonomi v1:s: bybor, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
   Från regelversion 8 räknar dagsproduktionen med den andel som förrådens bärare hinner få fram, läst ur världens behov av bärartimmar (`World.CarrierNeed`).
-- `BalanceRun.PlaySameDecisions` spelar om en körnings beslut med en annan profil och lägger Gryningskraften utöver den förra på dagsverken, för D-119: med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut och ett enskilt dygn högst 0,1 % mindre.
+- `BalanceRun.PlaySameDecisions` spelar om en körnings beslut med en annan profil och lägger Orken utöver den förra på extraarbete, för D-119: med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut och ett enskilt dygn högst 0,1 % mindre.
 
 Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).
 Samma körningar ger alltid samma rapport, byte för byte.
@@ -418,7 +418,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 7. Koppla den andra leverantören efter att ha bekräftat med den första, logga ut och logga in med den; samma konto nås.
    Ta sedan bort en av inloggningarna efter att ha bekräftat med den som blir kvar.
 8. Radera kontot från inställningarna: ett konto med Apple-inloggning bekräftas med Apple, och appen visas inte längre under Apple-ID → Logga in med Apple.
-9. Allt ovan fungerar under viloperioden (RST-07), och i flygplansläge säger appen att servern inte går att nå utan att spelet påverkas.
+9. Allt ovan fungerar under vilotiden (RST-07), och i flygplansläge säger appen att servern inte går att nå utan att spelet påverkas.
 10. Raderingssidan på `https://<värd>/account/delete` raderar ett konto med Google och med Apple från en dators webbläsare.
 
 ## CI

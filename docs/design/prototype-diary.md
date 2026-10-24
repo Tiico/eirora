@@ -64,7 +64,7 @@ Varje fråga besvaras med en mening; ett streck räcker när inget kommer till e
 
 Den fria raden får gärna börja med **Bugg:**, **Fult:**, **Vackert:** eller **Idé:**, så går sorteringen fortare.
 En dag utan spel kan antecknas med "Spelade inte", gärna med varför, men det är frivilligt.
-Den som skriver om ett tidigare spelardygn börjar med **Gäller:** och veckodagen.
+Den som skriver om en tidigare dag börjar med **Gäller:** och veckodagen.
 
 ### Mall att kopiera
 
@@ -86,11 +86,11 @@ Den som skriver om ett tidigare spelardygn börjar med **Gäller:** och veckodag
 
 ## 4. Var dagboken lagras
 
-**Ett GitHub-ärende per vecka, med en kommentar per spelardygn** (D-46).
+**Ett GitHub-ärende per vecka, med en kommentar per dag** (D-46).
 
 | Alternativ | För | Emot |
 |---|---|---|
-| **Ett ärende per vecka, en kommentar per spelardygn** (valt) | Skrivs i GitHub-appen på telefonen direkt efter spelet; tidsstämplas; agenter läser med `gh`; ärenden som skapas ur dagboken länkas automatiskt tillbaka; en uppgift som slunkit igenom kan raderas helt | Inte versionerat i git; redigeringshistoriken måste rensas om något slinker igenom |
+| **Ett ärende per vecka, en kommentar per dag** (valt) | Skrivs i GitHub-appen på telefonen direkt efter spelet; tidsstämplas; agenter läser med `gh`; ärenden som skapas ur dagboken länkas automatiskt tillbaka; en uppgift som slunkit igenom kan raderas helt | Inte versionerat i git; redigeringshistoriken måste rensas om något slinker igenom |
 | En Markdown-fil per vecka i `docs/diary/` | Versionerat och granskat i PR som resten av designen | Varje anteckning blir en commit från telefonen; dagligt brus i historiken; en hälsouppgift som slinker igenom ligger kvar i git-historiken och kräver att historiken skrivs om |
 | En GitHub Discussion per vecka | Trådade samtal | Discussions är avstängt i repot; sämre stöd i `gh`; ingen stängning eller etikett som markerar en genomgången vecka |
 
@@ -108,7 +108,7 @@ Det som ska bestå skrivs ändå in i repot, i [lärdomsloggen](./prototype-lear
 
 ## 5. Veckogenomgången
 
-En gång i veckan, första spelardygnet i den nya veckan (D-47), går produktägaren och en agent igenom veckans anteckningar.
+En gång i veckan, första dagen i den nya veckan (D-47), går produktägaren och en agent igenom veckans anteckningar.
 Agenten gör förarbetet och efterarbetet; produktägarens del tar omkring 15 minuter.
 
 1. **Agenten förbereder.**
@@ -157,7 +157,7 @@ En designändring hänvisar till sitt L-nummer i PR:en.
 ### 5.2 Grind A1
 
 Lärdomsloggen räknar spelade dygn per vecka.
-Ett spelat dygn är ett spelardygn då produktägaren spelade prototypen, enligt produktägaren i genomgången.
+Ett spelat dygn är en dag då produktägaren spelade prototypen, enligt produktägaren i genomgången.
 Dygnen behöver inte vara i följd, och räkningen visas aldrig i spelet.
 
 Grind A1 kan granskas när loggen visar minst 14 spelade dygn, ingen lärdom saknar ärende eller designändring och inget bevakas längre.
@@ -186,6 +186,6 @@ Kommandot skapar nästa veckas ärende från mallen utan dess frontmatter.
 
 Produktägarens svar på de öppna frågorna i v0.1:
 
-- **D-46:** dagboken lagras som ett GitHub-ärende per vecka med en kommentar per spelardygn.
-- **D-47:** veckogenomgången görs första spelardygnet i den nya veckan.
+- **D-46:** dagboken lagras som ett GitHub-ärende per vecka med en kommentar per dag.
+- **D-47:** veckogenomgången görs första dagen i den nya veckan.
 - **D-48:** kärnfantasin får hypotesen H5 Vilan känns som en gåva, som prövas av fråga 3.

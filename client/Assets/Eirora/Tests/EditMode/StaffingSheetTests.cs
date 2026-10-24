@@ -102,7 +102,7 @@ namespace Eirora.Client.Tests
             Assert.That(Labels(), Does.Contain("Fem lediga bybor bygger på det första projektet."));
             Assert.That(QueueItems(), Is.EqualTo(new[] { "Stuga | Byggs nu · 32 h arbete kvar", "Stuga | 32 h arbete kvar" }));
             Assert.That(_root.Query<Button>(className: "queue-button").ToList(), Has.Count.EqualTo(1));
-            Assert.That(Actions(), Is.EqualTo(new[] { "Rusta" }));
+            Assert.That(Actions(), Is.EqualTo(new[] { "Skynda på" }));
 
             Press(_root.Q<Button>(className: "queue-button"));
 

@@ -105,7 +105,7 @@ namespace Eirora.Client.UI
             var card = Container("card setup", _middle);
             _setup = card;
             Text("setup-title", card, "Välkommen till Eirora");
-            Text("sheet-text", card, "När du vilar, vilar byn. Under viloperioden kan du titta på din värld, men inte ge order.");
+            Text("sheet-text", card, "När du vilar, vilar byn. Under vilotiden kan du titta på din värld, men inte ge order.");
             Label? startValue = null, durationValue = null;
             void Show()
             {
@@ -113,7 +113,7 @@ namespace Eirora.Client.UI
                 durationValue!.text = $"{duration / 60} h" + (duration % 60 == 0 ? string.Empty : " 30 min");
             }
 
-            startValue = Stepper(card, "Viloperioden börjar", () => { start = (start + 1440 - 15) % 1440; Show(); }, () => { start = (start + 15) % 1440; Show(); });
+            startValue = Stepper(card, "Vilotiden börjar", () => { start = (start + 1440 - 15) % 1440; Show(); }, () => { start = (start + 15) % 1440; Show(); });
             durationValue = Stepper(
                 card,
                 "Längd",
@@ -163,7 +163,7 @@ namespace Eirora.Client.UI
             }
             else if (problem == SaveProblem.FromOlderPrototype)
             {
-                Text("sheet-text", card, "Din värld kommer från den första prototypen. Nu bygger byborna på brickorna i stället för på bestämda platser, och den gamla världen skulle bli en annan om den spelades upp igen. Den finns kvar på telefonen och ingenting har skrivits över.");
+                Text("sheet-text", card, "Din värld kommer från den första prototypen. Nu bygger byborna på rutorna i stället för på bestämda platser, och den gamla världen skulle bli en annan om den spelades upp igen. Den finns kvar på telefonen och ingenting har skrivits över.");
                 Text("sheet-text", card, "Börja en ny värld. Den gamla sparas då undan.");
             }
             else
@@ -206,7 +206,7 @@ namespace Eirora.Client.UI
             string upcoming = world.Phase == Phase.Resting
                 ? $"Världen öppnar klockan {Clock(RestEnd(world))}"
                 : $"Byn vilar klockan {Clock(world.RestSchedule.StartMinuteOfDay)}";
-            _status.text = $"Spelardygn {world.GameDay} · {world.Villagers} av {world.Housing} bybor · {upcoming}";
+            _status.text = $"Dag {world.GameDay} · {world.Villagers} av {world.Housing} bybor · {upcoming}";
 
             ShowNight(world);
             ShowBar(world);
@@ -458,8 +458,8 @@ namespace Eirora.Client.UI
         private void RoadSheet(World world)
         {
             Text("sheet-title", _sheet, "Lägg väg");
-            Text("sheet-subtitle", _sheet, $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per bricka · {world.Stock(Resource.Stone)} sten i lager");
-            Text("sheet-text", _sheet, "Tryck på brickorna där vägen ska gå. Bärarna går dubbelt så fort på en väg, och den hjälper alla som går över den.");
+            Text("sheet-subtitle", _sheet, $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per ruta · {world.Stock(Resource.Stone)} sten i lager");
+            Text("sheet-text", _sheet, "Tryck på rutorna där vägen ska gå. Bärarna går dubbelt så fort på en väg, och den hjälper alla som går över den.");
             AddAction("Klar", "Vägarna byggs i byggkön", true, () => Select(null));
         }
 
@@ -578,7 +578,7 @@ namespace Eirora.Client.UI
             }
             else if (road)
             {
-                AddAction("Lägg väg", $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per bricka · bärarna går dubbelt så fort", world.Stock(Resource.Stone) >= Logistics.RoadStone, () =>
+                AddAction("Lägg väg", $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per ruta · bärarna går dubbelt så fort", world.Stock(Resource.Stone) >= Logistics.RoadStone, () =>
                 {
                     LayRoads();
                     LayRoad(world, tile);
@@ -622,11 +622,11 @@ namespace Eirora.Client.UI
 
             if (building.Staffed && !building.WorkdayToday)
             {
-                AddAction("Dagsverke", $"{Workday.Cost} Gryningskraft · 50 % mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(building.Tile)));
+                AddAction("Arbeta extra", $"{Workday.Cost} Ork · 50 % mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(building.Tile)));
             }
             else if (building.WorkdayToday)
             {
-                Text("sheet-text", _sheet, "Dagsverke i dag: 50 % mer.");
+                Text("sheet-text", _sheet, "Arbetar extra i dag: 50 % mer.");
             }
 
             if (building.Level == 1 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Upgrade))
@@ -706,11 +706,11 @@ namespace Eirora.Client.UI
 
             if (depot.Staffed && !depot.WorkdayToday)
             {
-                AddAction("Dagsverke", $"{Workday.Cost} Gryningskraft · bärarna bär hälften mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(depot.Tile)));
+                AddAction("Arbeta extra", $"{Workday.Cost} Ork · bärarna bär hälften mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(depot.Tile)));
             }
             else if (depot.WorkdayToday)
             {
-                Text("sheet-text", _sheet, "Dagsverke i dag: bärarna bär hälften mer.");
+                Text("sheet-text", _sheet, "Arbetar extra i dag: bärarna bär hälften mer.");
             }
         }
 
@@ -754,7 +754,7 @@ namespace Eirora.Client.UI
             var projects = world.Projects;
             if (projects.Count == 0)
             {
-                Text("sheet-text", _sheet, "Inget byggs just nu. Tryck på en bricka för att bygga där.");
+                Text("sheet-text", _sheet, "Inget byggs just nu. Tryck på en ruta för att bygga där.");
                 return;
             }
 
@@ -782,7 +782,7 @@ namespace Eirora.Client.UI
 
             if (awake)
             {
-                AddAction("Rusta", $"{Rush.Cost} Gryningskraft · {Rush.Hours} h arbete på det första", world.Available(Force.DawnPower) >= Rush.Cost, () => Run(new Rush()));
+                AddAction("Skynda på", $"{Rush.Cost} Ork · {Rush.Hours} h arbete på det första", world.Available(Force.DawnPower) >= Rush.Cost, () => Run(new Rush()));
             }
             else
             {
@@ -855,7 +855,7 @@ namespace Eirora.Client.UI
         {
             var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
                 .Where(r => world.Stock(island, r) > 0)
-                .Select(r => $"{world.Stock(island, r)} {Texts.Name(r)}")
+                .Select(r => $"{world.Stock(island, r)} {Texts.Name(r, world.Stock(island, r))}")
                 .ToList();
             return goods.Count == 0 ? null : Texts.List(goods);
         }
