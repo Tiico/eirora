@@ -165,6 +165,9 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-118 | **Avvikelserna från dagens första vecka godtas:** bärarna presenteras som förrådets bemanning i introduktion 2 och deras första flaskhals är en diagnos, den som satsar på tillväxt kan nå bönderna dygn 7, och Nyön blir en egen bosättning med egna bybor, som introduktion 6 visar tillsammans med sjövägen ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-119 | **D-34:s andra halva gäller över veckor:** med samma beslut ger mer egenvård aldrig en mindre värld vid veckans slut, men bärarnas ordning kan göra världen något mindre enstaka dygn; kalkylen spärrar dippen till 0,1 %, strax över det den mäter ([ekonomi v2](./docs/design/economy-v2.md#14-beslut), TASK-058) | [BESLUTAT] |
 | D-120 | **Spelets begrepp är vardaglig svenska:** ruta i stället för bricka, topp i stället för krön, dag i stället för spelardygn, vilotid i stället för viloperiod, Styrka och Ork i stället för Byggkraft och Gryningskraft, *Skynda på* och *Arbeta extra* i stället för Rusta och Dagsverke, och utkikstorn, skogshuggare, tyg, plankor och betesmark för byggnader, varor och mark; kodnamnen är oförändrade ([GLOSSARY.md](./GLOSSARY.md)) | [BESLUTAT] |
+| D-125 | **Förädlingen lämnar det största golvet:** när minimilagret och öns reservering gäller samma råvara lämnar förädlingen det största av dem, och diagnostiken säger vilket som håller kvar varan ([ekonomi v1](./docs/design/economy-v1.md#lagerregler), TASK-046) | [BESLUTAT] |
+| D-126 | **Importprioriteten är en ordnad lista med alla varor:** spelaren ordnar alla varor på sjövägen, och standard är dagens fasta ordning ([ekonomi v1](./docs/design/economy-v1.md#lagerregler), TASK-046) | [BESLUTAT] |
+| D-127 | **Reserveringen hindrar bara skeppning hemåt och förädling:** byggen betalar ur det reserverade, och reserveringen håller inte kvar byggmaterial eller mat som skeppas ut till öarna ([ekonomi v1](./docs/design/economy-v1.md#lagerregler), TASK-046) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -713,6 +716,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-109–D-118 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens svar på delfrågorna F1–F10 i ekonomi v2 (TASK-058, PR #151) |
 | D-113, D-118, D-119 | 2026-10-23 | Se avsnitt 1.1; D-113 omskriven till v2.1, D-118 utökad med Nyöns bosättning, D-103:s avståndsdel ersatt av D-110 | Produktägarens andra omgång i TASK-058 (PR #151) |
 | D-120 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens val i översynen av spelets svenska begrepp |
+| D-125–D-127 | 2026-10-24 | Se avsnitt 1.1 | Produktägarens val i TASK-046: minimilager, importprioritet och reservering |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

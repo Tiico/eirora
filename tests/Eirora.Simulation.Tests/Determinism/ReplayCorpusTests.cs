@@ -36,6 +36,7 @@ public sealed class ReplayCorpusTests
         ("economy-sea", () => Week(Sea)),
         ("economy-staffing", Staffing),
         ("economy-carriers", Carriers),
+        ("economy-stock-rules", () => Week(StockRules)),
         ("time-daylight-saving-and-travel", DaylightSavingAndTravel),
         ("epoch-fog-towards-nyon", FogTowardsNyon),
     ];
@@ -213,6 +214,24 @@ public sealed class ReplayCorpusTests
             4 => [("jetty-n0", new Build(BuildingKind.Jetty, Tiles.N0)), ("workday-e2", new Workday(Tiles.E2))],
             5 => [("sheep-n1", new Build(BuildingKind.SheepFarm, Tiles.N1)), ("quarry-n2", new Build(BuildingKind.Quarry, Tiles.N2))],
             _ => [("weavery-l3", new Build(BuildingKind.Weavery, Tiles.L3)), ("longhouse-l1", new Build(BuildingKind.Longhouse, Tiles.L1)), ("workday-n1", new Workday(Tiles.N1))],
+        };
+
+        foreach (var (key, command) in plan)
+        {
+            journal.Apply($"{key}-{day}", command);
+        }
+    }
+
+    // Economy v1, section 5 (TASK-046): the week towards the sea with the sawmill's minimum stock raised, timber reserved
+    // at home and wool on Nyön, and stone shipped first from Nyön.
+    private static void StockRules(Journal journal, int day)
+    {
+        Sea(journal, day);
+        (string Key, GameCommand Command)[] plan = day switch
+        {
+            3 => [("reserve-e2", new SetReserve(Tiles.E2, 30)), ("reserve-timber", new SetReservation(PrototypeHome.Home, Resource.Timber, 25))],
+            6 => [("import-stone", new MoveImport(PrototypeHome.Nyon, Resource.Stone, 0)), ("reserve-wool", new SetReservation(PrototypeHome.Nyon, Resource.Wool, 10))],
+            _ => [],
         };
 
         foreach (var (key, command) in plan)

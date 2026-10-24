@@ -28,6 +28,9 @@ namespace Eirora.Client.UI
         // The queue sheet lists this many projects, so that it leaves the island in view.
         private const int QueueShown = 5;
 
+        // The minimum stock and the reservations go up and down by this many units (TASK-046).
+        private const int StockStep = 5;
+
         private readonly Func<GameCommand, CommandResult> _apply;
         private readonly IHealthControls? _health;
         private bool _explainingHealth;
@@ -51,6 +54,8 @@ namespace Eirora.Client.UI
         private Sheet _open;
         private Hex? _tile;
         private Hex? _fog;
+        private string? _store; // The island whose store sheet is open.
+        private Resource _good; // The good chosen on it, whose reservation the sheet sets.
 
         public Hud(VisualElement root, Func<GameCommand, CommandResult> apply, IHealthControls? health = null)
         {
@@ -93,6 +98,7 @@ namespace Eirora.Client.UI
             Report,
             Account,
             Road,
+            Store,
         }
 
         /// <summary>The selected tile changed; the island marks it.</summary>
@@ -278,6 +284,21 @@ namespace Eirora.Client.UI
             ShowSheet();
         }
 
+        /// <summary>
+        /// Opens an island's store (TASK-046): what each good holds, what is reserved and the order the ships take the goods
+        /// home in, with <paramref name="good"/> chosen, or the first in that order.
+        /// </summary>
+        public void OpenStore(string island, Resource? good = null)
+        {
+            _tile = null;
+            _fog = null;
+            _store = island;
+            _good = good ?? _world?.ImportOrder(island)[0] ?? default;
+            _open = Sheet.Store;
+            SelectionChanged?.Invoke(null);
+            ShowSheet();
+        }
+
         /// <summary>Whether the player is laying roads, so that a tap on the island lays one rather than opening a sheet.</summary>
         public bool IsLayingRoads => _open == Sheet.Road;
 
@@ -448,6 +469,9 @@ namespace Eirora.Client.UI
                 case Sheet.Road:
                     RoadSheet(_world);
                     break;
+                case Sheet.Store when _store is string island:
+                    StoreSheet(_world, island);
+                    break;
             }
         }
 
@@ -602,6 +626,7 @@ namespace Eirora.Client.UI
             {
                 JettyActions(world, building);
                 CarrierActions(world, building);
+                StoreActions(world, building);
                 return;
             }
 
@@ -615,6 +640,7 @@ namespace Eirora.Client.UI
                 if (Logistics.IsDepot(building.Kind))
                 {
                     CarrierActions(world, building);
+                    StoreActions(world, building);
                 }
 
                 return;
@@ -645,6 +671,100 @@ namespace Eirora.Client.UI
                 AddAction("Väg till förrådet", $"{Logistics.RoadStone * tiles} sten och {Logistics.RoadHours * tiles} h arbete · {gives}",
                     world.Stock(Resource.Stone) >= Logistics.RoadStone * tiles, () => Run(new BuildRoad(building.Tile)));
             }
+
+            if (spec.Recipe is { Inputs: { Count: > 0 } } recipe)
+            {
+                ReserveActions(world, building, recipe.Inputs[0].Resource);
+            }
+        }
+
+        /// <summary>
+        /// A processing building's minimum stock (LOG-06, TASK-046): how much of its raw material always stays in the store
+        /// for building, from nothing to what the store holds, and the island's reservation when that keeps more. Free
+        /// planning, so it shows no force.
+        /// </summary>
+        private void ReserveActions(World world, Building building, Resource input)
+        {
+            int reserve = building.Reserve, capacity = world.StorageUnits(building.Island);
+            var row = Container("row", _sheet);
+            var label = Container("row-label", row);
+            Text("row-title", label, "Minimilager");
+            Text("row-detail", label, Texts.Reserve(building, world.ReservationOf(building.Island, input), Texts.IslandName(world, building.Island)));
+            var stepper = Container("stepper", row);
+            Button("stepper-button", stepper, "−", () => Run(new SetReserve(building.Tile, Math.Max((reserve - 1) / StockStep * StockStep, 0)))).SetEnabled(reserve > 0);
+            Text("stepper-value", stepper, $"{reserve} {Texts.Name(input)}");
+            Button("stepper-button", stepper, "+", () => Run(new SetReserve(building.Tile, Math.Min(((reserve / StockStep) + 1) * StockStep, capacity)))).SetEnabled(reserve < capacity);
+        }
+
+        /// <summary>The way from a storehouse or a jetty to its island's store sheet, and from the home island's jetty to each route's.</summary>
+        private void StoreActions(World world, Building depot)
+        {
+            if (depot.Kind == BuildingKind.Jetty && depot.Island == world.HomeIsland)
+            {
+                foreach (var route in world.SeaRoutes)
+                {
+                    string from = route.From;
+                    AddAction($"Skeppen från {Texts.IslandName(world, from)}", "Ordna vad som tas hem först och reservera varor där · ingen kraft", true, () => OpenStore(from));
+                }
+
+                return;
+            }
+
+            string island = depot.Island;
+            string what = island == world.HomeIsland ? "Reservera varor som förädlingen inte tar" : "Reservera varor och ordna vad skeppen tar hem först";
+            AddAction($"Lagret på {Texts.IslandName(world, island)}", $"{what} · ingen kraft", true, () => OpenStore(island));
+        }
+
+        /// <summary>
+        /// An island's store (LOG-06, TASK-046): each good with what it holds and what is reserved, in the order the ships
+        /// take them home, any of which can be moved first; and the reservation of the chosen good. A reservation keeps a
+        /// good from the ships and from processing, but building still pays from it. Free planning, so it shows no force.
+        /// </summary>
+        private void StoreSheet(World world, string island)
+        {
+            if (!world.Islands.Contains(island))
+            {
+                Select(null);
+                return;
+            }
+
+            bool home = island == world.HomeIsland;
+            bool sails = world.SeaRoutes.Any(r => r.From == island);
+            int capacity = world.StorageUnits(island);
+            var order = world.ImportOrder(island);
+            Text("sheet-title", _sheet, $"Lagret på {Texts.IslandName(world, island)}");
+            Text("sheet-subtitle", _sheet, $"{capacity} av varje vara · ingen kraft");
+            Text("sheet-text", _sheet, home
+                ? "Det som är reserverat tar förädlingen inte. Byggen betalar ändå ur det."
+                : sails
+                    ? "Skeppen tar hem varorna uppifrån och lämnar det som är reserverat."
+                    : "Skeppen tar hem varorna uppifrån när sjövägen öppnar, och lämnar det som är reserverat.");
+
+            for (int i = 0; i < order.Count; i++)
+            {
+                var good = order[i];
+                int reserved = world.ReservationOf(island, good);
+                var item = Container(good == _good ? "good good-chosen" : "good", _sheet);
+                var pick = Button("good-pick", item, string.Empty, () =>
+                {
+                    _good = good;
+                    ShowSheet();
+                });
+                Text("good-name", pick, Capital(Texts.Name(good)));
+                Text("good-detail", pick, Texts.InStore(world.Stock(island, good), reserved));
+                if (!home && i > 0)
+                {
+                    Button("good-button", item, "Först", () => Run(new MoveImport(island, good, 0)));
+                }
+            }
+
+            int chosen = world.ReservationOf(island, _good);
+            var row = Container("row", _sheet);
+            Text("row-label", row, $"Reservera {Texts.Name(_good)}");
+            var stepper = Container("stepper", row);
+            Button("stepper-button", stepper, "−", () => Run(new SetReservation(island, _good, Math.Max((chosen - 1) / StockStep * StockStep, 0)))).SetEnabled(chosen > 0);
+            Text("stepper-value", stepper, chosen.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Button("stepper-button", stepper, "+", () => Run(new SetReservation(island, _good, Math.Min(((chosen / StockStep) + 1) * StockStep, capacity)))).SetEnabled(chosen < capacity);
         }
 
         /// <summary>
@@ -803,7 +923,7 @@ namespace Eirora.Client.UI
                 Text("sheet-text", _sheet, sailing
                     ? $"Skeppen tar hem varorna från {name}, {SeaRoute.UnitsPerGameDay} per dygn."
                     : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
-                Text("sheet-text", _sheet, Waiting(world, building.Island) is string goods
+                Text("sheet-text", _sheet, Waiting(world, building.Island, sailing) is string goods
                     ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
                     : sailing ? "Inget väntar på skeppen just nu." : "Lagret är tomt.");
                 SeaRouteUse(building.Island);
@@ -843,19 +963,23 @@ namespace Eirora.Client.UI
             foreach (var route in world.SeaRoutes)
             {
                 string island = Capital(Texts.IslandName(world, route.From));
-                Text("sheet-text", _sheet, Waiting(world, route.From) is string goods
+                Text("sheet-text", _sheet, Waiting(world, route.From, forShips: true) is string goods
                     ? $"{island}: {goods} väntar på skeppen."
                     : $"{island}: inget väntar på skeppen.");
                 SeaRouteUse(route.From);
             }
         }
 
-        /// <summary>The goods in an island's store, such as "12 fisk och 5 sten", or null when it is empty.</summary>
-        private static string? Waiting(World world, string island)
+        /// <summary>
+        /// The goods in an island's store, such as "12 fisk och 5 sten", or null when it is empty; for the ships only what
+        /// is not reserved, in the order they take it home (TASK-046).
+        /// </summary>
+        private static string? Waiting(World world, string island, bool forShips)
         {
-            var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
-                .Where(r => world.Stock(island, r) > 0)
-                .Select(r => $"{world.Stock(island, r)} {Texts.Name(r, world.Stock(island, r))}")
+            long Left(Resource r) => world.Stock(island, r) - (forShips ? world.ReservationOf(island, r) : 0);
+            var goods = (forShips ? world.ImportOrder(island) : Enum.GetValues(typeof(Resource)).Cast<Resource>())
+                .Where(r => Left(r) > 0)
+                .Select(r => $"{Left(r)} {Texts.Name(r, Left(r))}")
                 .ToList();
             return goods.Count == 0 ? null : Texts.List(goods);
         }

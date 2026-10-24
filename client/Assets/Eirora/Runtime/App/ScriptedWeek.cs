@@ -92,6 +92,29 @@ namespace Eirora.Client.App
         }
 
         /// <summary>
+        /// The player's stock rules, for the tour's shot of Nyön's store (TASK-046): stone from the vein shipped before the
+        /// wool, and wool reserved on Nyön. Returns the commands the world refused, which should be none.
+        /// </summary>
+        public static IReadOnlyList<string> SetStockRules(GameSession session)
+        {
+            var refused = new List<string>();
+            foreach (var command in new GameCommand[]
+            {
+                new MoveImport(PrototypeHome.Nyon, Resource.Wool, 0), new MoveImport(PrototypeHome.Nyon, Resource.Stone, 0),
+                new SetReservation(PrototypeHome.Nyon, Resource.Wool, 10),
+            })
+            {
+                var result = session.Apply(command);
+                if (!result.Accepted)
+                {
+                    refused.Add($"{Describe(command)} was refused ({result.Rejection}).");
+                }
+            }
+
+            return refused;
+        }
+
+        /// <summary>
         /// The road to the storehouse from the fishing hut at the rich water, first in the queue, for the tour's shots of
         /// roads and carriers (D-112). Returns the commands the world refused, which should be none.
         /// </summary>

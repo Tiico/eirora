@@ -86,7 +86,7 @@ public sealed class RoadsAreTilesTests
         Assert.Contains($"stock {PrototypeHome.Home} Stone {20 * Unit + (2 * Unit)}", migrated.Split('\n'));
 
         // Once built, the quarry's carriers walk the whole way on the road.
-        var read = World.Read(new Serialization.StateReader(migrated + "\n"), PrototypeHome.Map);
+        var read = World.Read(new Serialization.StateReader(Migrated(migrated, 8, RulesVersion.Current, PrototypeHome.Map) + "\n"), PrototypeHome.Map);
         Assert.Equal(3, read.TripFrom(vein).Steps);
         read.AdvanceTo(TestClock.At("2026-10-15 12:00", 2));
         Assert.Equal(tiles.Order(), read.Roads);
@@ -104,7 +104,7 @@ public sealed class RoadsAreTilesTests
         lines.Insert(last + 1, $"building Quarry {Tiles.M2.Q} {Tiles.M2.R} 1 1 1 0 0 0");
         lines.Insert(last + 2, $"building Storehouse {Tiles.E2.Q} {Tiles.E2.R} 1 0 0 0 0 0");
 
-        var read = World.Read(new Serialization.StateReader(new RoadsAreTiles().Migrate(string.Join('\n', lines), PrototypeHome.Map) + "\n"), PrototypeHome.Map);
+        var read = World.Read(new Serialization.StateReader(Migrated(string.Join('\n', lines), 7, RulesVersion.Current, PrototypeHome.Map) + "\n"), PrototypeHome.Map);
 
         Assert.Equal(Tiles.S, read.TripFrom(Tiles.M2).Depot);
         Assert.Equal(read.TripFrom(Tiles.M2).Steps - 1, read.Roads.Count);
@@ -153,7 +153,7 @@ public sealed class RoadsAreTilesTests
     public void AWorldWithoutRoadsMigratesToItself(bool archipelago)
     {
         var world = archipelago ? Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night) : World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string state = world.Fingerprint();
+        string state = StockRulesArriveTests.RulesEight(world.Fingerprint());
 
         Assert.Equal(state, new RoadsAreTiles().Migrate(RulesSeven(state), world.Map));
     }
@@ -165,7 +165,7 @@ public sealed class RoadsAreTilesTests
         string rulesSeven = RulesSeven(world.Fingerprint());
 
         Assert.Throws<FormatException>(() => new RoadsAreTiles().Migrate(rulesSeven, Archipelago.Map));
-        Assert.Throws<FormatException>(() => new RoadsAreTiles().Migrate(world.Fingerprint(), PrototypeHome.Map));
+        Assert.Throws<FormatException>(() => new RoadsAreTiles().Migrate(StockRulesArriveTests.RulesEight(world.Fingerprint()), PrototypeHome.Map));
     }
 
     /// <summary>
@@ -174,7 +174,7 @@ public sealed class RoadsAreTilesTests
     /// </summary>
     internal static string RulesSeven(string state) => string.Join(
         "\n",
-        state.Split('\n')
+        StockRulesArriveTests.RulesEight(state).Split('\n')
             .Where(line => !line.StartsWith("road ", StringComparison.Ordinal) && !line.StartsWith("held ", StringComparison.Ordinal))
             .Select(line =>
             {

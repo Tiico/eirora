@@ -15,9 +15,10 @@ namespace Eirora.Simulation.Tests;
 /// <remarks>
 /// Three in four commands are made to suit the world when they are applied (an affordable building on a site that takes
 /// it, a producing building that can still be upgraded, given a road to its depot, worked or paused, a tile that takes a
-/// road, a storehouse or a jetty to work or to cap the carriers of, a paused building to resume, a building and a place
-/// in the staffing order, a project that is not first in the queue, a tile at the fog's edge, self-care within the
-/// window), and three in four commands that would come
+/// road, a storehouse or a jetty to work or to cap the carriers of, a processing building's minimum stock, an island's
+/// reservation and import order, a paused building to resume, a building and a place in the staffing order, a project
+/// that is not first in the queue, a tile at the fog's edge, self-care within the window), and three in four commands
+/// that would come
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
@@ -186,13 +187,22 @@ internal sealed class Scenario
             case 5:
                 return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.Settlement.CanAfford(world.Content.Upgrade.Cost)) ?? site : site);
             case 6:
-                int road = random.Next(3);
+                int road = random.Next(6);
                 int cap = suited ? 1 + random.Next(Logistics.MostCarriers) : random.Next(-1, Logistics.MostCarriers + 2);
+
+                // The stock rules (TASK-046), from the same draws: an amount up to the store's capacity or past it, any
+                // resource, and a place in the import order or past it.
+                int units = suited ? pick % 61 : (pick % 400) - 50;
+                var resource = (Resource)(pick / 7 % Enum.GetValues<Resource>().Length);
+                int import = suited ? pick / 11 % Enum.GetValues<Resource>().Length : (pick / 11 % 12) - 2;
                 return world => road switch
                 {
                     0 => new BuildRoad(suited ? BuiltSite(world, pick, b => world.RoadToDepot(b.Tile).Count > 0) ?? site : site),
                     1 => new LayRoad(suited ? RoadSite(world, pick) ?? site : site),
-                    _ => new SetCarrierCap(suited ? DepotSite(world, pick, d => d.CarrierCap != cap) ?? site : site, cap),
+                    2 => new SetCarrierCap(suited ? DepotSite(world, pick, d => d.CarrierCap != cap) ?? site : site, cap),
+                    3 => new SetReserve(suited ? BuiltSite(world, pick, b => b.Held is not null && b.Reserve != units) ?? site : site, units),
+                    4 => new SetReservation(suited ? world.Islands[pick % world.Islands.Count] : "nowhere", resource, units),
+                    _ => new MoveImport(suited ? world.Islands.LastOrDefault(i => i != world.HomeIsland) ?? world.HomeIsland : world.HomeIsland, resource, import),
                 };
             case 7:
                 int which = random.Next(4);

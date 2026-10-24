@@ -194,6 +194,15 @@ namespace Eirora.Client.App
                 yield return Capture(client, folder, name);
             }
 
+            // Nyön's store with stone shipped first and wool reserved (TASK-046).
+            foreach (string refusal in ScriptedWeek.SetStockRules(session))
+            {
+                Debug.LogError(refusal);
+            }
+
+            client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f) + AboveTheSheet);
+            client.Hud.OpenStore(PrototypeHome.Nyon, Resource.Wool);
+            yield return Capture(client, folder, "24-store-nyon");
             client.Hud.Select(null);
 
             // The fog at the edge of the known, which Exploration lifts tile by tile (TASK-032).

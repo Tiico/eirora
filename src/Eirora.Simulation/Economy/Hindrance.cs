@@ -41,17 +41,18 @@ namespace Eirora.Simulation.Economy
     }
 
     /// <summary>
-    /// A raw material is not above the reserve that processing always leaves for building (LOG-06), so the building
-    /// processes less or nothing.
+    /// A raw material is not above what processing leaves in the store, the building's minimum stock or the island's
+    /// reservation (LOG-06, TASK-046), so the building processes less or nothing.
     /// </summary>
     public sealed class WaitingForInput : Hindrance
     {
-        internal WaitingForInput(Resource resource, long stock, int reserve, long missing, long lostPerHour)
+        internal WaitingForInput(Resource resource, long stock, int kept, KeptBy keptBy, long missing, long lostPerHour)
             : base(lostPerHour)
         {
             Resource = resource;
             Stock = stock;
-            Reserve = reserve;
+            Kept = kept;
+            KeptBy = keptBy;
             Missing = missing;
         }
 
@@ -60,11 +61,33 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whole units of it in the island's store.</summary>
         public long Stock { get; }
 
-        /// <summary>Whole units that processing leaves in the store (the minimum stock).</summary>
-        public int Reserve { get; }
+        /// <summary>Whole units that processing leaves in the store: the larger of its minimum stock and the reservation.</summary>
+        public int Kept { get; }
+
+        /// <summary>Which of the two keeps it, the minimum stock when they are the same.</summary>
+        public KeptBy KeptBy { get; }
 
         /// <summary>Whole units more it takes, above the reserve, to work a full hour.</summary>
         public long Missing { get; }
+    }
+
+    /// <summary>
+    /// The player has reserved a good on the island a sea route sails from, so the ships leave it there although they
+    /// have room for it (TASK-046).
+    /// </summary>
+    public sealed class Reserved : Hindrance
+    {
+        internal Reserved(Resource resource, int units, long lostPerHour)
+            : base(lostPerHour)
+        {
+            Resource = resource;
+            Units = units;
+        }
+
+        public Resource Resource { get; }
+
+        /// <summary>Whole units of it reserved on the island.</summary>
+        public int Units { get; }
     }
 
     /// <summary>The island's store has no room for more of the product; nothing is lost, it is simply not made (D-17).</summary>

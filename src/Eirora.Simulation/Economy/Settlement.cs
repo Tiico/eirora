@@ -27,7 +27,6 @@ namespace Eirora.Simulation.Economy
         private const long WorkPerVillagerPerTick = 250; // Thousandths of a villager-hour.
         private const int StoragePerStorehouse = 150;
         private const int StorageAtJetty = 150; // A jetty off the home island stores goods for the ship.
-        private const int ProcessingReserve = 20; // LOG-06 minimum stock left for building (D-44).
         private const int ComfortPerDawn = 2;
         private const int StartingHousing = 16;
         private const long ForestPerTile = World.TimberPerForest * Quantity.PerUnit;
@@ -574,13 +573,15 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
+            WriteStockRules(writer);
+
             // Buildings and projects keep their order: the staffing order and the queue. What the carriers have brought a
             // building follows it, one raw material a line.
             foreach (var b in _buildings)
             {
                 writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.WorkdayToday).Long(b.Ripe).Bool(b.Paused)
                     .Long(b.Carriers).Long(b.CarrierCap).Bool(b.CarriedFirst).Long(b.Waiting)
-                    .Bool(b.Depot is not null).Long(b.Depot?.Q ?? 0).Long(b.Depot?.R ?? 0);
+                    .Bool(b.Depot is not null).Long(b.Depot?.Q ?? 0).Long(b.Depot?.R ?? 0).Long(b.Reserve);
 
                 for (int resource = 0; b.Held is long[] held && resource < s_resourceCount; resource++)
                 {
@@ -659,6 +660,8 @@ namespace Eirora.Simulation.Economy
                 throw new FormatException($"The home island {settlement._home} has no store.");
             }
 
+            settlement.ReadStockRules(reader, map);
+
             while (reader.Next("building"))
             {
                 var kind = reader.Enum<BuildingKind>();
@@ -688,6 +691,7 @@ namespace Eirora.Simulation.Economy
                     Waiting = reader.Long(),
                 };
                 var depotTile = reader.Bool() ? settlement.TileOf(reader) : SkipTile(reader);
+                building.Reserve = reader.Int();
                 if (building.Paused && building.Staffed)
                 {
                     throw new FormatException($"The paused building on {tile} is staffed.");
@@ -713,6 +717,11 @@ namespace Eirora.Simulation.Economy
                 }
 
                 var recipe = content.For(kind).Recipe;
+                if (building.Reserve < 0 || (building.Reserve > 0 && (recipe is null || recipe.Inputs.Count == 0)))
+                {
+                    throw new FormatException($"{kind} on {tile} leaves {building.Reserve} of a raw material it does not use.");
+                }
+
                 if (depotTile is Hex depotAt)
                 {
                     building.Depot = recipe is not null && !IsDepot(kind) ? depotAt : throw new FormatException($"{kind} on {tile} belongs to no depot.");
@@ -1001,7 +1010,7 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Ships goods home over each sea route, up to its capacity (economy-v1.md, section 5): the routes in map order,
-        /// and on each the goods in their fixed order until the player sets import priorities (TASK-046).
+        /// and on each the goods in the island's import order, leaving what is reserved there (TASK-046).
         /// </summary>
         private void Ship()
         {
@@ -1016,10 +1025,13 @@ namespace Eirora.Simulation.Economy
 
                 var from = _stores[island];
                 long room = SeaRoutePerTick;
-                for (int r = 0; r < s_resourceCount && room > 0; r++)
+                var order = ShippingOrder(island);
+                _reserved.TryGetValue(island, out var reserved);
+                for (int i = 0; i < order.Length && room > 0; i++)
                 {
-                    long moved = Add(home, (Resource)r, Min(room, from[r]), capacity);
-                    from[r] -= moved;
+                    var resource = order[i];
+                    long moved = Add(home, resource, Min(room, Shippable(from, reserved, resource)), capacity);
+                    from[(int)resource] -= moved;
                     room -= moved;
                 }
             }
@@ -1172,6 +1184,7 @@ namespace Eirora.Simulation.Economy
             {
                 CarrierCap = IsDepot(kind) ? MostCarriers : 0,
                 Held = recipe is not null && recipe.Inputs.Count > 0 ? new long[s_resourceCount] : null,
+                Reserve = recipe is not null && recipe.Inputs.Count > 0 ? StockRules.StandardReserve : 0,
             };
             StoreOn(building.Island);
             _buildings.Add(building);

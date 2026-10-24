@@ -57,6 +57,21 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
+        public void TheTourSetsTheStockRulesWithoutARefusal()
+        {
+            var (session, clock) = Begin();
+            ScriptedWeek.Play(session, clock);
+            clock.Current = ScriptedWeek.At("2026-10-23 13:00");
+            session.CatchUp();
+
+            Assert.That(ScriptedWeek.SetStockRules(session), Is.Empty);
+
+            var world = session.World!;
+            Assert.That(world.ImportOrder(PrototypeHome.Nyon).Take(2), Is.EqualTo(new[] { Resource.Stone, Resource.Wool }), "Shot 24 shows stone shipped first.");
+            Assert.That(world.ReservationOf(PrototypeHome.Nyon, Resource.Wool), Is.EqualTo(10));
+        }
+
+        [Test]
         public void TheTourWeekHasABuildingStandingStillABottleneckCarriersAndARoadToShow()
         {
             var (session, clock) = Begin();

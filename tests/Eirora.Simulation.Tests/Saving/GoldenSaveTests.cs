@@ -93,11 +93,12 @@ public sealed class GoldenSaveTests
     /// Makes the golden save of the current version from a fixed scenario: from rules 7 on, a world built out on the
     /// archipelago with a store on each of three islands, two sea routes home with goods waiting, and paused buildings
     /// (TASK-044, TASK-045); from rules 8 on also with roads, goods waiting for the carriers, raw materials at the
-    /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051).
+    /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051);
+    /// from rules 9 on also with a minimum stock of the player's, reservations and an import order (TASK-046).
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(35);
+        var save = WithStockRules(BuiltOutWorld.GenerateSave(35));
         var world = save.World;
         Assert.Equal(2, world.SeaRoutes.Count);
         Assert.Contains(world.Buildings, b => b.Paused);
@@ -107,10 +108,43 @@ public sealed class GoldenSaveTests
         Assert.Contains(world.Buildings, b => b.Carriers > 1);
         Assert.Contains(world.Buildings, b => Logistics.IsDepot(b.Kind) && b.CarrierCap < Logistics.MostCarriers);
         Assert.Contains(world.Buildings, b => b.CarriedFirst);
+        Assert.Contains(world.Buildings, b => b.Held is not null && b.Reserve != StockRules.StandardReserve);
+        Assert.Contains(world.Islands, i => Enum.GetValues<Resource>().Any(r => world.ReservationOf(i, r) > 0));
+        Assert.Contains(world.Islands, i => !world.ImportOrder(i).SequenceEqual(Enum.GetValues<Resource>()));
 
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
         File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
+    }
+
+    /// <summary>
+    /// The save with the player's stock rules set while the villagers are awake (TASK-046): the first processing
+    /// building's minimum stock raised, timber reserved at home and wool on the island of the first sea route, and stone
+    /// shipped first from it, so that the golden save keeps all three in its state and its journal.
+    /// </summary>
+    private static Save WithStockRules(Save save)
+    {
+        while (save.World.Phase != Phase.Active)
+        {
+            var now = save.World.Now;
+            save.AdvanceTo(new TimeReading(now.UtcSeconds + 900, now.ZoneId, now.OffsetSeconds));
+        }
+
+        var world = save.World;
+        string away = world.SeaRoutes[0].From;
+        var processing = world.Buildings.First(b => b.Held is not null);
+        foreach (var (key, command) in new (string, GameCommand)[]
+        {
+            ("golden-reserve", new SetReserve(processing.Tile, 35)),
+            ("golden-timber", new SetReservation(world.HomeIsland, Resource.Timber, 30)),
+            ("golden-wool", new SetReservation(away, Resource.Wool, 10)),
+            ("golden-stone", new MoveImport(away, Resource.Stone, 0)),
+        })
+        {
+            Assert.True(save.Apply(key, command).Accepted, $"{key} was refused.");
+        }
+
+        return save;
     }
 
     /// <summary>The bytes of a checked-in golden save.</summary>

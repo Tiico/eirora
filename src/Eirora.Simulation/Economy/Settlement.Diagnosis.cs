@@ -116,14 +116,15 @@ namespace Eirora.Simulation.Economy
                 {
                     long stock = store[(int)input.Resource];
                     long held = building.Held![(int)input.Resource];
-                    long available = held + Max(stock - Quantity.Units(ProcessingReserve), 0);
+                    var (kept, by) = Leaves(building, input.Resource);
+                    long available = held + Max(stock - kept, 0);
                     long enough = available / input.PerProduct;
                     if (enough < full)
                     {
-                        // What a full hour at full pace takes above the reserve and what it holds, in whole units rounded up.
-                        long wanted = Quantity.Units(ProcessingReserve) + (input.PerProduct * full * Recipe.TicksPerHour) - stock - held;
+                        // What a full hour at full pace takes above what is kept and what it holds, in whole units rounded up.
+                        long wanted = kept + (input.PerProduct * full * Recipe.TicksPerHour) - stock - held;
                         hindrances.Add(new WaitingForInput(
-                            input.Resource, Quantity.Whole(stock), ProcessingReserve, (wanted + Quantity.PerUnit - 1) / Quantity.PerUnit, PerHour(full - enough)));
+                            input.Resource, Quantity.Whole(stock), (int)Quantity.Whole(kept), by, (wanted + Quantity.PerUnit - 1) / Quantity.PerUnit, PerHour(full - enough)));
                     }
                 }
             }
@@ -386,7 +387,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// The ships' next quarter hour on every sea route, as <see cref="Ship"/> does, after the islands' work: the routes
-        /// in map order, each sharing the room in the home island's store with those before it.
+        /// in map order, each sharing the room in the home island's store with those before it, and the goods in the
+        /// island's import order. What waits is what the ships may take; a reservation holds back what they had room for.
         /// </summary>
         private List<SeaRouteDiagnosis> DiagnoseSeaRoutes(Dictionary<string, long[]> stores)
         {
@@ -402,28 +404,45 @@ namespace Eirora.Simulation.Economy
 
                 var waiting = new List<(Resource, long)>();
                 var now = _stores[island];
-                for (int r = 0; r < s_resourceCount; r++)
+                var order = ImportOrder(island);
+                _reserved.TryGetValue(island, out var reserved);
+                foreach (var resource in order)
                 {
-                    if (Quantity.Whole(now[r]) > 0)
+                    long shippable = Quantity.Whole(Shippable(now, reserved, resource));
+                    if (shippable > 0)
                     {
-                        waiting.Add(((Resource)r, Quantity.Whole(now[r])));
+                        waiting.Add((resource, shippable));
                     }
                 }
 
                 var hindrances = new List<Hindrance>();
                 var from = stores[island];
                 long room = SeaRoutePerTick;
-                for (int r = 0; r < s_resourceCount && room > 0; r++)
+                for (int i = 0; i < order.Count && room > 0; i++)
                 {
-                    long wanted = Min(room, from[r]);
-                    long moved = Add(home, (Resource)r, wanted, capacity);
+                    var resource = order[i];
+                    long wanted = Min(room, Shippable(from, reserved, resource));
+                    long moved = Add(home, resource, wanted, capacity);
                     if (moved < wanted)
                     {
-                        hindrances.Add(new StoreFull((Resource)r, (int)Quantity.Whole(capacity), PerHour(wanted - moved)));
+                        hindrances.Add(new StoreFull(resource, (int)Quantity.Whole(capacity), PerHour(wanted - moved)));
                     }
 
-                    from[r] -= moved;
+                    from[(int)resource] -= moved;
                     room -= moved;
+                }
+
+                // What the ships would take besides, in the same order, were nothing reserved.
+                for (int i = 0; i < order.Count && room > 0; i++)
+                {
+                    var resource = order[i];
+                    long held = Min(from[(int)resource], Quantity.Units(ReservationOf(island, resource)));
+                    long more = Min(Min(room, held), Max(capacity - home[(int)resource], 0));
+                    if (more > 0)
+                    {
+                        hindrances.Add(new Reserved(resource, ReservationOf(island, resource), PerHour(more)));
+                        room -= more;
+                    }
                 }
 
                 routes.Add(new SeaRouteDiagnosis(new SeaRoute(island, _home), PerHour(SeaRoutePerTick), PerHour(SeaRoutePerTick - room), waiting, hindrances));
@@ -530,7 +549,7 @@ namespace Eirora.Simulation.Economy
             {
                 foreach (var input in recipe.Inputs)
                 {
-                    long available = building.Held![(int)input.Resource] + Max(store[(int)input.Resource] - Quantity.Units(ProcessingReserve), 0);
+                    long available = building.Held![(int)input.Resource] + Max(store[(int)input.Resource] - Leaves(building, input.Resource).Kept, 0);
                     full = Min(full, available / input.PerProduct);
                 }
 
@@ -594,6 +613,15 @@ namespace Eirora.Simulation.Economy
             {
                 copy._stores.Add(island, (long[])_stores[island].Clone());
                 copy._islands.Add(island);
+                if (_reserved.TryGetValue(island, out var reserved))
+                {
+                    copy._reserved.Add(island, (int[])reserved.Clone());
+                }
+
+                if (_imports.TryGetValue(island, out var order))
+                {
+                    copy._imports.Add(island, order);
+                }
             }
 
             foreach (var building in _buildings)

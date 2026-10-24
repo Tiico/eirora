@@ -265,7 +265,7 @@ EXPEDITION_HOURS = 32
 # Expeditionsmål i den ordning de hittas: (ö, Utforskning, aktiva timmar); hela ön visas.
 EXPEDITIONS = [("Nyön", EXPEDITION_COST, EXPEDITION_HOURS)]
 SEA_CAPACITY_PER_DAY = 40
-RESERVE = 20  # minimilager som förädling lämnar kvar (LOG-06), en gratis planeringsinställning
+RESERVE = 20  # minimilager som förädling lämnar kvar som standard (LOG-06), en gratis planeringsinställning per byggnad
 
 # --- Värld ----------------------------------------------------------------------
 
@@ -304,6 +304,7 @@ class Building:
     inp: float = 0.0     # med bärare: råvara som bärarna burit fram till förädlingen
     carriers: int = 0    # med bärare: förrådets eller bryggans bärare, den första är dess bemanning
     cap: int = MAX_CARRIERS  # spelarens tak för bärarna, gratis planering (D-23)
+    reserve: int = RESERVE   # förädlingens minimilager av sin råvara, gratis planering (LOG-06, TASK-046)
 
 
 @dataclass
@@ -334,6 +335,10 @@ class World:
     roads: set = field(default_factory=set)  # med bärare: rutor med väg
     carried_hours: float = 0.0
     carrier_hours: float = 0.0
+    # Spelarens lagerregler (LOG-06, TASK-046), gratis planering (D-23): reserverat per ö och vara, som sjövägen
+    # inte skeppar och förädlingen inte tar, och importprioriteten per sjöväg; utan den går varorna i fast ordning.
+    reserved: dict = field(default_factory=dict)  # ö -> {vara: enheter}
+    imports: dict = field(default_factory=dict)   # ö -> varorna i den ordning skeppen tar dem
 
     def __post_init__(self):
         self.forest = {p: FOREST_PER_TILE for p, t in TILES.items() if t.terrain == FOREST}
@@ -348,6 +353,12 @@ class World:
     def has(self, kind, island=None):
         return any(b.kind == kind and (island is None or TILES[b.tile].island == island)
                    for b in self.buildings)
+
+    def kept(self, island, res, b=None):
+        """Det förädlingen eller sjövägen lämnar kvar av en vara på en ö: reserveringen, och för förädlingen
+        det största av den och byggnadens minimilager (TASK-046)."""
+        reserved = self.reserved.get(island, {}).get(res, 0)
+        return max(reserved, b.reserve) if b is not None else reserved
 
     def housing(self):
         return START_HOUSING + sum(HOUSING.get(b.kind, 0) for b in self.buildings)
@@ -523,7 +534,7 @@ class World:
                     jobs.append((b.out / OUTPUT_BUFFER, "hämta", b, rate))
                 if b.kind in ("Sågverk", "Väveri") and b.staffed:
                     res = "timmer" if b.kind == "Sågverk" else "ull"
-                    want = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - RESERVE))
+                    want = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - self.kept(island, res, b)))
                     if want > 1e-9:
                         jobs.append((want / INPUT_BUFFER, "lämna", b, rate))
             jobs.sort(key=lambda j: -j[0])
@@ -538,7 +549,7 @@ class World:
                     store[res] += n
                 else:
                     res = "timmer" if b.kind == "Sågverk" else "ull"
-                    n = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - RESERVE), left * rate)
+                    n = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - self.kept(island, res, b)), left * rate)
                     store[res] -= n
                     b.inp += n
                 left -= n / rate
@@ -777,20 +788,20 @@ class World:
             elif b.kind == "Stenbrott":
                 self.add(out, "sten", 0.75 * tile.richness * k, cap)
             elif b.kind == "Sågverk":
-                n = min(1.0 * k, max(0.0, self.stock["timmer"] - RESERVE) / 2)
+                n = min(1.0 * k, max(0.0, self.stock["timmer"] - self.kept(HOME, "timmer", b)) / 2)
                 n = self.add(out, "plankor", n, cap)
                 self.stock["timmer"] -= 2 * n
             elif b.kind == "Väveri":
-                n = min(0.5 * k, max(0.0, self.stock["ull"] - RESERVE) / 2)
+                n = min(0.5 * k, max(0.0, self.stock["ull"] - self.kept(HOME, "ull", b)) / 2)
                 n = self.add(out, "tyg", n, cap)
                 self.stock["ull"] -= 2 * n
-        # Sjövägar till Hemön, en per ö med brygga i båda ändar.
+        # Sjövägar till Hemön, en per ö med brygga i båda ändar: varorna i spelarens ordning, utom det reserverade.
         for island, remote in self.remote_stock.items():
             if not (self.has("Brygga", island) and self.has("Brygga", HOME)):
                 continue
             room = SEA_CAPACITY_PER_DAY / ACTIVE_HOURS
-            for r in RESOURCES:
-                moved = self.add(self.stock, r, min(room, remote[r]), cap)
+            for r in self.imports.get(island, RESOURCES):
+                moved = self.add(self.stock, r, min(room, max(0.0, remote[r] - self.kept(island, r))), cap)
                 remote[r] -= moved
                 room -= moved
 
@@ -999,6 +1010,44 @@ def run(strategy, profile, carriers=False):
     return w
 
 
+def stock_rules():
+    """Spelarens lagerregler (LOG-06, TASK-046) på små världar med bärare: minimilagret på ett sågverk,
+    importprioriteten och reserveringen på sjövägen från Nyön. Raderna är acceptanskriterierna i #129."""
+    rows = []
+
+    # Ett sågverk intill förrådet, med minimilagret 40 och 45 timmer; inget annat gör timmer.
+    w = World(carriers=True)
+    sawmill = Building("Sågverk", coord("L3"), reserve=40)
+    w.buildings = [b for b in w.buildings if b.kind == "Förråd"] + [sawmill]
+    w.stock["timmer"] = 45
+    w.staff()
+    for _ in range(ACTIVE_HOURS):
+        w.hour(active=True)
+    rows.append(("Sågverk med minimilagret 40 och 45 timmer", f"förädlar {45 - w.stock['timmer'] - sawmill.inp:.0f} timmer på en dag "
+                 f"och lämnar {w.stock['timmer']:.0f}"))
+
+    def nyon(**rules):
+        w = World(carriers=True)
+        w.buildings += [Building("Brygga", coord("H1")), Building("Brygga", coord("N9"))]
+        w.remote_stock["Nyön"] = {r: 0.0 for r in RESOURCES} | {"sten": 10.0, "ull": 10.0, "timmer": 50.0}
+        for key, value in rules.items():
+            getattr(w, key)["Nyön"] = value
+        w.staff()
+        return w, w.remote_stock["Nyön"]
+
+    for order in (RESOURCES, ["ull"] + [r for r in RESOURCES if r != "ull"]):
+        w, remote = nyon(imports=order, reserved={"timmer": 50})
+        w.hour(active=True)
+        rows.append((f"Sjövägen med {order.index('sten') < order.index('ull') and 'sten före ull' or 'ull före sten'}",
+                     f"skeppar {10 - remote['sten']:.1f} sten och {10 - remote['ull']:.1f} ull den första timmen"))
+
+    w, remote = nyon(reserved={"timmer": 30})
+    for _ in range(ACTIVE_HOURS):
+        w.hour(active=True)
+    rows.append(("30 timmer reserverade på Nyön", f"skeppar {50 - remote['timmer']:.0f} av 50 timmer på en dag och lämnar {remote['timmer']:.0f}"))
+    return rows
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     runs = [
@@ -1039,6 +1088,11 @@ def main():
               f"| {100 * w.carried_hours / w.carrier_hours:.0f} % |")
         for line in w.log:
             print(f"<!-- {name}: {line} -->")
+    print("\nLagerregler (LOG-06, TASK-046)\n")
+    print("| Fall | Utfall |")
+    print("|---|---|")
+    for case, outcome in stock_rules():
+        print(f"| {case} | {outcome} |")
 
 
 if __name__ == "__main__":
