@@ -225,15 +225,17 @@ public sealed class QueueFirstUntilBuilt : DailyMove
 
 /// <summary>
 /// Pauses the buildings of a kind while the store holds enough of a resource, so that their villagers build instead,
-/// and resumes them when it holds less or on the run's last day (economy-v1.md, section 4.1).
+/// and resumes them when it holds less than <see cref="Resume"/> or on the run's last day (economy-v1.md, section 4.1).
+/// The gap between the two keeps a day's use from switching them off and on.
 /// </summary>
 public sealed class PauseWhileStocked : DailyMove
 {
-    public PauseWhileStocked(BuildingKind building, Resource resource, int enough)
+    public PauseWhileStocked(BuildingKind building, Resource resource, int enough, int resume)
     {
         Building = building;
         Resource = resource;
         Enough = enough;
+        Resume = resume;
     }
 
     public BuildingKind Building { get; }
@@ -242,15 +244,20 @@ public sealed class PauseWhileStocked : DailyMove
 
     public int Enough { get; }
 
-    public override string Name => $"pausa {Names.Of(Building)} vid {Enough} i lager";
+    public int Resume { get; }
+
+    public override string Name => $"pausa {Names.Of(Building)} vid {Enough} i lager till under {Resume}";
 
     internal override void Make(Turn turn)
     {
         var world = turn.World;
-        bool pause = world.Stock(Resource) >= Enough && turn.Day < turn.LastDay;
-        foreach (var building in world.Buildings.Where(b => b.Kind == Building && b.Paused != pause).ToList())
+        foreach (var building in world.Buildings.Where(b => b.Kind == Building).ToList())
         {
-            turn.Apply(pause ? new PauseBuilding(building.Tile) : new ResumeBuilding(building.Tile));
+            bool pause = world.Stock(Resource) >= (building.Paused ? Resume : Enough) && turn.Day < turn.LastDay;
+            if (building.Paused != pause)
+            {
+                turn.Apply(pause ? new PauseBuilding(building.Tile) : new ResumeBuilding(building.Tile));
+            }
         }
     }
 }

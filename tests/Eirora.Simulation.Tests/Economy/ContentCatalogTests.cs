@@ -49,7 +49,7 @@ public sealed class ContentCatalogTests
         var world = Built(Kiln, Spec(new Recipe(Resource.Stone, perHour: 1_000_000)));
         var shed = Built(Shed, Spec(recipe: null));
 
-        // Beside the storehouse, a unit an hour reaches the store, and the shed beside it makes nothing.
+        // Beside the storehouse, it makes a unit an hour, and the shed beside it makes nothing.
         Assert.Equal(Quantity.Units(2), TwoHours(world, Resource.Stone) - TwoHours(shed, Resource.Stone));
         Assert.True(Apply(world, new Upgrade(L1)).Accepted);
         Assert.Equal(Rejection.NoBuildingThere, Apply(shed, new Upgrade(L1)).Rejection);
@@ -61,13 +61,14 @@ public sealed class ContentCatalogTests
         var kiln = Spec(new Recipe(Resource.Planks, perHour: 1_000_000, inputs: [new(Resource.Timber, 1), new(Resource.Fish, 3)]));
         var world = Built(Kiln, kiln);
         var shed = Built(Shed, Spec(recipe: null));
-        var before = (Timber: world.Settlement.Stock(Resource.Timber) - shed.Settlement.Stock(Resource.Timber), Fish: world.Settlement.Stock(Resource.Fish) - shed.Settlement.Stock(Resource.Fish));
+        var before = (Timber: Everywhere(world, Resource.Timber) - Everywhere(shed, Resource.Timber), Fish: Everywhere(world, Resource.Fish) - Everywhere(shed, Resource.Fish));
 
         long made = TwoHours(world, Resource.Planks) - TwoHours(shed, Resource.Planks);
 
+        // The carriers have brought the raw materials since the morning, so it makes a plank an hour.
         Assert.Equal(Quantity.Units(2), made);
-        Assert.Equal(before.Timber - made, world.Settlement.Stock(Resource.Timber) - shed.Settlement.Stock(Resource.Timber));
-        Assert.Equal(before.Fish - (3 * made), world.Settlement.Stock(Resource.Fish) - shed.Settlement.Stock(Resource.Fish));
+        Assert.Equal(before.Timber - made, Everywhere(world, Resource.Timber) - Everywhere(shed, Resource.Timber));
+        Assert.Equal(before.Fish - (3 * made), Everywhere(world, Resource.Fish) - Everywhere(shed, Resource.Fish));
     }
 
     [Fact]
@@ -140,13 +141,19 @@ public sealed class ContentCatalogTests
         return world;
     }
 
-    /// <summary>How much of a resource the store gains from 10:00 to noon, in millionths.</summary>
+    /// <summary>How much of a resource the world gains from 10:00 to noon, in millionths, wherever it lies.</summary>
     private static long TwoHours(World world, Resource resource)
     {
-        long before = world.Settlement.Stock(resource);
+        long before = Everywhere(world, resource);
         world.AdvanceTo(At("2026-10-15 12:00", 2));
-        return world.Settlement.Stock(resource) - before;
+        return Everywhere(world, resource) - before;
     }
+
+    /// <summary>A resource in the store, waiting in the outboxes and held at the processing, in millionths (INV-R2).</summary>
+    private static long Everywhere(World world, Resource resource) =>
+        world.Settlement.Stock(resource)
+        + world.Buildings.Where(b => world.Content.For(b.Kind).Recipe?.Product == resource).Sum(b => b.Waiting)
+        + world.Buildings.Sum(b => b.Held?[(int)resource] ?? 0);
 
     private static CommandResult Apply(World world, GameCommand command) =>
         world.Apply($"cmd-{Interlocked.Increment(ref s_key)}", command);

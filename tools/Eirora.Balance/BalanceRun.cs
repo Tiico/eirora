@@ -1,4 +1,5 @@
 using Eirora.Simulation;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.Map;
@@ -78,17 +79,71 @@ public static class BalanceRun
             plan.Play(new Turn(world, day, spec.Days, plan, tally));
             invariants.AfterCommands(world);
             plan.Note(world, day);
-            for (int hour = 1; hour <= 24; hour++)
-            {
-                // The last hour stops a second short of the next dawn, so that the run ends before it.
-                long until = dawn + (hour * Hour) - (day == spec.Days && hour == 24 ? 1 : 0);
-                world.AdvanceTo(new TimeReading(until, Zone, 0));
-                invariants.Check(world, day);
-                plan.Note(world, day);
-            }
+            tally.DawnPowerLeft.Add(world.Available(Force.DawnPower));
+            PassTheDay(world, dawn, day == spec.Days, hours => plan.Note(world, day), () => invariants.Check(world, day));
+            tally.Values.Add(Measures.Value(world));
         }
 
         return new RunResult(spec, world, startValue, plan, tally, invariants.Hours);
+    }
+
+    /// <summary>
+    /// The same decisions as <paramref name="lower"/> made, played again with <paramref name="higher"/> self-care (D-34,
+    /// D-119; economy-v2.md, section 9): every command the bot gave, at the same dawn and in the same order, and the
+    /// Dawn Power the higher profile has beyond the lower one spent on workdays on the raw-material buildings that make
+    /// most. Exploration and Build Power beyond the lower profile's are saved, since they would take materials or land
+    /// from the decisions. Returns the development value at the end of each game day.
+    /// </summary>
+    public static IReadOnlyList<long> PlaySameDecisions(RunResult lower, SelfCareProfile higher)
+    {
+        ArgumentNullException.ThrowIfNull(lower);
+        ArgumentNullException.ThrowIfNull(higher);
+        var spec = lower.Spec;
+        var world = World.Create(spec.Map.Map, new TimeReading(InstallUtc, Zone, 0), Rest);
+        var values = new List<long>(spec.Days);
+        int key = 0;
+        long dawn = InstallUtc + (15 * 60);
+        world.AdvanceTo(new TimeReading(dawn, Zone, 0));
+        for (int day = 1; day <= spec.Days; day++, dawn += 24 * Hour)
+        {
+            higher.Record(world, day);
+            foreach (var (on, command) in lower.Decisions)
+            {
+                if (on == day && !world.Apply($"same-{++key}", command).Accepted)
+                {
+                    throw new InvalidOperationException($"With more self-care, {command.GetType().Name} on game day {day} was rejected.");
+                }
+            }
+
+            var sites = new Sites(world);
+            for (int spare = world.Available(Force.DawnPower) - lower.DawnPowerLeft[day - 1]; spare >= Workday.Cost; spare -= Workday.Cost)
+            {
+                // The raw-material building that delivers most, the first in map order among equals.
+                var raw = world.Buildings.Where(b => b.Staffed && !b.WorkdayToday && world.Content.For(b.Kind).Recipe is { Inputs.Count: 0 })
+                    .OrderByDescending(b => Measures.Delivered(world, sites, b.Kind, b.Tile)).ThenBy(b => b.Tile).FirstOrDefault();
+                if (raw is null || !world.Apply($"same-{++key}", new Workday(raw.Tile)).Accepted)
+                {
+                    break;
+                }
+            }
+
+            PassTheDay(world, dawn, day == spec.Days, _ => { }, () => { });
+            values.Add(Measures.Value(world));
+        }
+
+        return values;
+    }
+
+    /// <summary>The game day from its dawn an hour at a time; the last hour of the run stops a second short of the next dawn.</summary>
+    private static void PassTheDay(World world, long dawn, bool last, Action<int> note, Action check)
+    {
+        for (int hour = 1; hour <= 24; hour++)
+        {
+            long until = dawn + (hour * Hour) - (last && hour == 24 ? 1 : 0);
+            world.AdvanceTo(new TimeReading(until, Zone, 0));
+            check();
+            note(hour);
+        }
     }
 }
 
@@ -98,6 +153,9 @@ public sealed class RunResult
     internal RunResult(RunSpec spec, World world, long startValue, Plan plan, Tally tally, int hoursChecked)
     {
         Spec = spec;
+        Decisions = [.. tally.Decisions];
+        DawnPowerLeft = [.. tally.DawnPowerLeft];
+        Values = [.. tally.Values];
         Villagers = world.Villagers;
         Housing = world.Housing;
         Buildings = world.Buildings.Count;
@@ -121,6 +179,15 @@ public sealed class RunResult
     }
 
     public RunSpec Spec { get; }
+
+    /// <summary>Every command the bot gave that the world accepted, with the game day it gave it on, in order.</summary>
+    public IReadOnlyList<(int Day, GameCommand Command)> Decisions { get; }
+
+    /// <summary>The Dawn Power left once the bot had made each game day's decisions.</summary>
+    public IReadOnlyList<int> DawnPowerLeft { get; }
+
+    /// <summary>The development value at the end of each game day.</summary>
+    public IReadOnlyList<long> Values { get; }
 
     public int Villagers { get; }
 

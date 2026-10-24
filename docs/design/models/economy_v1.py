@@ -8,6 +8,8 @@ Detta är ett räkneark i kodform, inte spelets simulering: den riktiga simuleri
 skrivs i C# med heltal/fixed-point (INV-D3). Kör: python -I economy_v1.py
 """
 
+import heapq
+import math
 import sys
 from dataclasses import dataclass, field
 
@@ -272,6 +274,18 @@ FOREST_REGROWTH = 0.25     # timmer per timme och skogsruta
 WOODCUTTER_PER_TILE = 0.5  # timmer per timme och skogsruta som fälls
 WOODCUTTER_TILES = 2       # skogsrutor en skogshuggare fäller samtidigt
 
+# --- Bärare (D-107, D-109–D-112; ekonomi v2, avsnitt 7) ------------------------------
+# Från regelversion 8 bär förrådets och bryggans bärare varorna på land i stället för att
+# avståndet tar en del av produktionen (D-110). En värld räknar med dem när World(carriers=True);
+# utan dem räknar den som ekonomi v1 gjorde, vilket ekonomi v2:s migration och epok 1 bygger på.
+DEPOTS = ("Förråd", "Brygga")
+CARRIER_LOAD = 4          # enheter per vända
+STEP_HOURS = 0.25         # per steg över land
+ROAD_STEP_HOURS = 0.125   # per steg in på en ruta med väg
+MAX_CARRIERS = 4          # per förråd eller brygga
+OUTPUT_BUFFER = 8         # det som får vänta vid en byggnad; fullt stoppar produktionen
+INPUT_BUFFER = 4          # råvara som bärarna håller framme vid förädlingen
+
 
 def tag(p) -> str:
     return f"{p[0]},{p[1]}"
@@ -286,6 +300,10 @@ class Building:
     paused: bool = False  # spelaren har pausat den: obemannad, men nivå och mognad står kvar (TASK-044)
     road: bool = False
     buffer: float = 0.0  # långsam process: mognad säd eller ull som väntar på skörd
+    out: float = 0.0     # med bärare: utlager som väntar på bärarna
+    inp: float = 0.0     # med bärare: råvara som bärarna burit fram till förädlingen
+    carriers: int = 0    # med bärare: förrådets eller bryggans bärare, den första är dess bemanning
+    cap: int = MAX_CARRIERS  # spelarens tak för bärarna, gratis planering (D-23)
 
 
 @dataclass
@@ -312,11 +330,16 @@ class World:
     log: list = field(default_factory=list)
     credited: dict = field(default_factory=lambda: {"U": 0, "B": 0, "G": 0})
     spent: dict = field(default_factory=lambda: {"U": 0, "B": 0, "G": 0})
+    carriers: bool = False  # bärarna bär varorna på land (regelversion 8), i stället för avståndsklasser
+    roads: set = field(default_factory=set)  # med bärare: rutor med väg
+    carried_hours: float = 0.0
+    carrier_hours: float = 0.0
 
     def __post_init__(self):
         self.forest = {p: FOREST_PER_TILE for p, t in TILES.items() if t.terrain == FOREST}
         self.revealed = {p for p, t in TILES.items() if not t.hidden}
         self._distances = {}
+        self._times = {}
         for kind, tile in [("Förråd", "S"), ("Fiskebod", "K1"), ("Åker", "O1"), ("Skogshuggare", "F1")]:
             self.buildings.append(Building(kind, coord(tile)))
         self.staff()
@@ -334,7 +357,40 @@ class World:
                             if TILES[b.tile].island == island and b.kind in ("Förråd", "Brygga")))
 
     def factor(self, b):
-        return distance_factor(self.depot_distance(b.tile), b.road)
+        """Avståndsklassen; med bärare kostar avståndet bärartid i stället för produktion (D-110)."""
+        return 1.0 if self.carriers else distance_factor(self.depot_distance(b.tile), b.road)
+
+    def travel(self, tile):
+        """Timmar för en bärare från rutan till det bemannade förråd eller den brygga på ön som
+        bärarna når snabbast, och vilket; lika snabba avgörs av rutans ordning (Settlement.Walk).
+        Ett steg tar STEP_HOURS och ett steg in på en ruta med väg ROAD_STEP_HOURS. En fiskebod
+        på pålar tar sitt första steg i land."""
+        p = coord(tile)
+        island = TILES[p].island
+        depots = tuple(sorted(b.tile for b in self.buildings
+                              if b.kind in DEPOTS and b.carriers and TILES[b.tile].island == island))
+        key = (p, depots, len(self.roads))
+        if key not in self._times:
+            best, todo, found = {p: 0.0}, [(0.0, p)], (99.0, None)
+            while todo:
+                t, q = heapq.heappop(todo)
+                if t > best.get(q, 1e-9 + found[0]) or t > found[0]:
+                    if t > found[0]:
+                        break
+                    continue
+                if q in depots and q != p:
+                    # Of two equally fast depots the first in the map's order, row by row (Hex.CompareTo).
+                    if found[1] is None or (q[1], q[0]) < (found[1][1], found[1][0]):
+                        found = (t, q)
+                    continue
+                for n in neighbours(q):
+                    if n in TILES and TILES[n].island == island and TILES[n].terrain in LAND:
+                        nt = t + (ROAD_STEP_HOURS if n in self.roads else STEP_HOURS)
+                        if nt < best.get(n, 1e9):
+                            best[n] = nt
+                            heapq.heappush(todo, (nt, n))
+            self._times[key] = found
+        return self._times[key]
 
     def boost(self, b):
         """Avstånd × nivå × extraarbete: vad en byggnad ger mot en nivå 1-byggnad intill förrådet."""
@@ -377,16 +433,121 @@ class World:
         return STORAGE_PER_DEPOT * sum(1 for b in self.buildings if b.kind == "Förråd")
 
     def free_villagers(self):
-        return self.villagers - sum(SPECS[b.kind].staff for b in self.buildings if b.staffed)
+        return self.villagers - sum(b.carriers if self.carriers and b.kind in DEPOTS else SPECS[b.kind].staff
+                                    for b in self.buildings if b.staffed)
 
     def staff(self):
         """Bemanningsordningen (TASK-044): byborna fördelas i byggnadslistans ordning varje gång den
-        kan ändras. En pausad byggnad, och en som inte ryms, hoppas över; de som blir över bygger."""
-        free = self.villagers
+        kan ändras. En pausad byggnad, och en som inte ryms, hoppas över; de som blir över bygger.
+        Med bärare bemannas förrådet och bryggan av sin första bärare, och de bärare de tog utöver
+        den vid gryningen står kvar till nästa gryning, så ingen byggnad förlorar en bybo till dem (D-39)."""
+        free = self.villagers - (sum(b.carriers - 1 for b in self.buildings if b.carriers > 1) if self.carriers else 0)
         for b in self.buildings:
             need = SPECS[b.kind].staff
             b.staffed = bool(need) and not b.paused and free >= need
             free -= need if b.staffed else 0
+            if self.carriers and b.kind in DEPOTS:
+                b.carriers = 0 if not b.staffed else max(1, b.carriers)
+        self._times.clear()
+
+    def rate(self, b):
+        """Vad en bemannad byggnad gör per aktiv timme på sin nivå, utan extraarbete: (vara, mängd)."""
+        if not b.staffed:
+            return None, 0.0
+        k, richness = (1.5 if b.level == 2 else 1.0), TILES[b.tile].richness
+        return {
+            "Fiskebod": ("fisk", 1.25 * richness * k),
+            "Åker": ("säd", 0.5 * richness * k * 24 / ACTIVE_HOURS),
+            "Fårgård": ("ull", 0.4 * richness * k * 24 / ACTIVE_HOURS),
+            "Skogshuggare": ("timmer", k * self.woodcutter_rate(b.tile)),
+            "Stenbrott": ("sten", 0.75 * richness * k),
+            "Sågverk": ("plankor", 1.0 * k),
+            "Väveri": ("tyg", 0.5 * k),
+        }.get(b.kind, (None, 0.0))
+
+    def carrier_load(self):
+        """Bärartimmar som varje förråd och brygga behöver per aktiv timme för att allt ska nå fram."""
+        need = {}
+        for b in self.buildings:
+            res, n = self.rate(b)
+            t, depot = self.travel(b.tile)
+            if res is None or depot is None:
+                continue
+            units = n * 3 if b.kind in ("Sågverk", "Väveri") else n  # två enheter råvara per vara
+            need[depot] = need.get(depot, 0.0) + units * 2 * t / CARRIER_LOAD
+        return need
+
+    def hire_carriers(self):
+        """Vid gryningen tar varje förråd och brygga så många bärare som varorna kräver, en till taket,
+        av de lediga byborna, i bemanningsordningen, och släpper dem som inte behövs (D-109)."""
+        need = self.carrier_load()
+        for d in self.buildings:
+            if d.kind not in DEPOTS or not d.staffed:
+                continue
+            want = max(1, min(d.cap, math.ceil(need.get(d.tile, 0.0) - 1e-9)))
+            if want < d.carriers:
+                d.carriers = want
+            elif want > d.carriers:
+                d.carriers += max(0, min(want - d.carriers, self.free_villagers()))
+
+    def make(self, b, amount):
+        """Med bärare: lägger produktionen i byggnadens utlager; fullt utlager stoppar, inget går förlorat."""
+        amount = max(0.0, min(amount, OUTPUT_BUFFER - b.out))
+        b.out += amount
+        return amount
+
+    def carry_hour(self):
+        """Bärarna vid varje förråd och brygga tar först där det väntar mest: det fullaste utlagret eller
+        den förädling som har minst råvara kvar (D-111); det de inte hinner väntar vid byggnaden."""
+        cap = self.storage_cap()
+        served = {}
+        for b in self.buildings:
+            if b.kind in DEPOTS or b.kind not in PRODUCERS:
+                continue
+            t, depot = self.travel(b.tile)
+            if depot is not None:
+                served.setdefault(depot, []).append((b, t))
+        for depot in self.buildings:
+            if depot.kind not in DEPOTS or not depot.carriers:
+                continue
+            island = TILES[depot.tile].island
+            store = self.stock if island == HOME else self.remote_stock[island]
+            room = cap if island == HOME else STORAGE_PER_DEPOT * max(1, sum(
+                1 for b in self.buildings if b.kind in DEPOTS and TILES[b.tile].island == island))
+            hours = depot.carriers * (1.5 if (depot.kind, depot.tile) in self.boosted else 1.0)
+            self.carrier_hours += hours
+            jobs = []
+            for b, t in served.get(depot.tile, []):
+                rate = CARRIER_LOAD / (2 * t)
+                if b.out > 1e-9:
+                    jobs.append((b.out / OUTPUT_BUFFER, "hämta", b, rate))
+                if b.kind in ("Sågverk", "Väveri") and b.staffed:
+                    res = "timmer" if b.kind == "Sågverk" else "ull"
+                    want = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - RESERVE))
+                    if want > 1e-9:
+                        jobs.append((want / INPUT_BUFFER, "lämna", b, rate))
+            jobs.sort(key=lambda j: -j[0])
+            left = hours
+            for _, what, b, rate in jobs:
+                if left <= 1e-9:
+                    break
+                if what == "hämta":
+                    res = self.rate_resource(b)
+                    n = min(b.out, left * rate, max(0.0, room - store[res]))
+                    b.out -= n
+                    store[res] += n
+                else:
+                    res = "timmer" if b.kind == "Sågverk" else "ull"
+                    n = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - RESERVE), left * rate)
+                    store[res] -= n
+                    b.inp += n
+                left -= n / rate
+            self.carried_hours += hours - left
+
+    @staticmethod
+    def rate_resource(b):
+        return {"Fiskebod": "fisk", "Åker": "säd", "Fårgård": "ull", "Skogshuggare": "timmer",
+                "Stenbrott": "sten", "Sågverk": "plankor", "Väveri": "tyg"}[b.kind]
 
     def staffing_order(self):
         return [b for b in self.buildings if SPECS[b.kind].staff]
@@ -554,6 +715,8 @@ class World:
         growth = (1 if fed else 0) + (1 if comfort else 0)
         self.villagers = min(self.housing(), self.villagers + growth)
         self.staff()
+        if self.carriers:
+            self.hire_carriers()
 
     def hour(self, active):
         # Långsamma processer fortgår dygnet runt (INV-T5). Avstånd, nivå 2 och extraarbete
@@ -590,8 +753,11 @@ class World:
                 p.on_done()
                 self.staff()
         # Produktion.
+        if self.carriers:
+            self.produce_hour_carried()
+            self.carry_hour()
         cap = self.storage_cap()
-        for b in self.buildings:
+        for b in self.buildings if not self.carriers else []:
             if not b.staffed:
                 continue
             k = self.boost(b)
@@ -628,6 +794,27 @@ class World:
                 remote[r] -= moved
                 room -= moved
 
+    def produce_hour_carried(self):
+        """Med bärare: varje bemannad byggnad gör sitt i utlagret, förädlingen av det bärarna burit fram."""
+        for b in self.buildings:
+            if not b.staffed:
+                continue
+            k = self.boost(b)
+            tile = TILES[b.tile]
+            if b.kind == "Fiskebod":
+                self.make(b, 1.25 * tile.richness * k)
+            elif b.kind in ("Åker", "Fårgård"):
+                b.buffer -= self.make(b, min(b.buffer, 2.0 * k))
+            elif b.kind == "Skogshuggare":
+                felled = [n for n in self.woods(b.tile) if self.forest[n] > 0][:WOODCUTTER_TILES]
+                for n in felled:
+                    self.forest[n] -= self.make(b, min(WOODCUTTER_PER_TILE * TILES[n].richness * k, self.forest[n]))
+            elif b.kind == "Stenbrott":
+                self.make(b, 0.75 * tile.richness * k)
+            elif b.kind in ("Sågverk", "Väveri"):
+                n = self.make(b, min((1.0 if b.kind == "Sågverk" else 0.5) * k, b.inp / 2))
+                b.inp -= 2 * n
+
     @staticmethod
     def add(store, res, amount, cap):
         amount = max(0.0, min(amount, cap - store[res]))  # fullt lager stoppar, inget går förlorat
@@ -639,7 +826,19 @@ class World:
         return sum(WOODCUTTER_PER_TILE * TILES[n].richness for n in self.woods(p)[:WOODCUTTER_TILES])
 
     def daily_output(self):
-        """Effektiv produktionskapacitet per dag, viktad (balansmått)."""
+        """Effektiv produktionskapacitet per dag, viktad (balansmått); med bärare den andel
+        som bärarna hinner få fram (economy_v2.py, daily_output)."""
+        if self.carriers:
+            need = self.carrier_load()
+            share = {d.tile: min(1.0, d.carriers / need[d.tile]) if need.get(d.tile) else 1.0
+                     for d in self.buildings if d.kind in DEPOTS}
+            total = 0.0
+            for b in self.buildings:
+                res, n = self.rate(b)
+                depot = self.travel(b.tile)[1]
+                if res is not None and depot is not None:
+                    total += WEIGHT[res] * n * share[depot] * ACTIVE_HOURS
+            return total
         total = 0.0
         for b in self.buildings:
             if not b.staffed:
@@ -675,59 +874,85 @@ class World:
 
 # --- Strategier -------------------------------------------------------------------
 
+def survey_all(w):
+    """Kartlägger ett område om dagen, eller med bärare båda den första morgonen så snart
+    Utforskningen räcker, som balansbotarna gör (ekonomi v1, avsnitt 7.1)."""
+    w.survey()
+    if w.carriers:
+        w.survey()
+
+
+def sites(w, before, carried):
+    """Byggplatserna: med bärare de som balansbotarna väljer (ekonomi v1, avsnitt 7.1), där
+    byggnaderna står intill ett förråd eller en brygga vars bärare hinner med."""
+    return carried if w.carriers else before
+
+
 def strategy_land(w: World, day: int):
     """Närområdet: kartlägg Hemön, bygg ett produktionskluster kring stenådern och urskogen."""
-    w.survey()
-    w.build("Skogshuggare", "F3")
+    woodcutter, sawmill, first, second, third = sites(w, ("F3", "E2", "L1", "L2", "L3"), ("L1", "L3", "L2", "E2", "H1"))
+    survey_all(w)
+    w.build("Skogshuggare", woodcutter)
     w.build("Stenbrott", "M2")
     w.build("Förråd", "E1")
-    w.build("Sågverk", "E2")
-    w.build("Långhus", "L1")
+    w.build("Sågverk", sawmill)
+    w.build("Långhus", first)
     w.build("Fiskebod", "K2")
-    w.build("Långhus", "L2")
-    w.upgrade("Sågverk", "E2")
+    w.build("Långhus", second)
+    w.upgrade("Sågverk", sawmill)
     w.build("Åker", "O2")
-    w.build("Långhus", "L3")
+    w.build("Långhus", third)
     w.workday("Stenbrott", "M2")
-    w.workday("Sågverk", "E2")
+    w.workday("Sågverk", sawmill)
     w.rush()
 
 
 def strategy_land_ordered(w: World, day: int):
     """Närområdet med ordnad byggkö och bemanning: långhuset först i kön, och stenbrottet pausat
-    när 100 sten ligger i lager, så att dess bybor bygger i stället, tills sista dygnet (TASK-044)."""
+    när 100 sten ligger i lager, så att dess bybor bygger i stället, tills sista dygnet (TASK-044).
+    Med bärare står det pausat tills lagret är nere under 80, som hos balansbotarna, så att ett dygns
+    förbrukning inte slår av och på det."""
     strategy_land(w, day)
-    w.first("Långhus@" + tag(coord("L1")))
-    w.pause("Stenbrott", "M2", paused=w.stock["sten"] >= 100 and day < 6)
+    w.first("Långhus@" + tag(coord(sites(w, "L1", "L2"))))
+    quarry = next((b for b in w.buildings if b.kind == "Stenbrott"), None)
+    resume = 80 if w.carriers and quarry is not None and quarry.paused else 100
+    w.pause("Stenbrott", "M2", paused=w.stock["sten"] >= resume and day < 6)
 
 
 def strategy_sea(w: World, day: int):
-    """Havet: brygga, expedition till Nyön, ull och tyg för snabbare tillväxt."""
-    w.build("Brygga", "H1")
+    """Havet: brygga, expedition till Nyön, ull och tyg för snabbare tillväxt. Med bärare går
+    Nyöns brygga, fårgård och stenbrott före den första bostaden, som blir en stuga, som i ekonomi v2
+    (avsnitt 9), och balansbotarna gör likadant."""
+    jetty, sawmill, first, landing, weavery, second = sites(w, ("H1", "L3", "L1", "N9", "L2", "E1"), ("E1", "L2", "L3", "N0", "L1", "H1"))
+    w.build("Brygga", jetty)
     w.build("Skogshuggare", "E2")
-    w.build("Sågverk", "L3")
+    w.build("Sågverk", sawmill)
     w.expedition()
-    w.build("Långhus", "L1")
-    w.build("Brygga", "N9")
+    if not w.carriers:
+        w.build("Långhus", first)
+    w.build("Brygga", landing)
     w.build("Fårgård", "N1")
     w.build("Stenbrott", "N2")
-    w.build("Väveri", "L2")
-    w.build("Långhus", "E1")
-    w.workday("Sågverk", "L3")
+    if w.carriers:
+        w.build("Stuga", first)
+    w.build("Väveri", weavery)
+    w.build("Långhus", second)
+    w.workday("Sågverk", sawmill)
     w.workday("Fårgård", "N1")
     w.rush()
 
 
 def strategy_naive(w: World, day: int):
     """Naiv: bygger det första som går, där det går, utan att läsa kartan."""
-    w.build("Sågverk", "L1")
+    sawmill, first, second = sites(w, ("L1", "L2", "E1"), ("L2", "L1", (0, -2)))
+    w.build("Sågverk", sawmill)
     w.build("Stenbrott", "M3")
-    w.build("Långhus", "L2")
+    w.build("Långhus", first)
     w.build("Väveri", "L3")
     w.build("Fårgård", "P1")
     w.upgrade("Fiskebod", "K1")
     w.upgrade("Skogshuggare", "F1")
-    w.build("Långhus", "E1")
+    w.build("Långhus", second)
     w.upgrade("Åker", "O1")
     w.survey()
     w.workday("Fiskebod", "K1")
@@ -737,16 +962,17 @@ def strategy_naive(w: World, day: int):
 
 def strategy_no_training(w: World, day: int):
     """Utan träning: bara bostäder och produktion som inte kostar Styrka (D-43)."""
-    w.survey()
-    w.build("Skogshuggare", "F3")
+    woodcutter, first, second, third = sites(w, ("F3", "L1", "L2", "L3"), ("L1", "L2", "L3", (0, -2)))
+    survey_all(w)
+    w.build("Skogshuggare", woodcutter)
     w.build("Stenbrott", "M2")
-    w.build("Stuga", "L1")
+    w.build("Stuga", first)
     w.build("Fiskebod", "K2")
-    w.build("Stuga", "L2")
+    w.build("Stuga", second)
     w.build("Åker", "O2")
-    w.build("Stuga", "L3")
+    w.build("Stuga", third)
     w.workday("Stenbrott", "M2")
-    w.workday("Skogshuggare", "F3")
+    w.workday("Skogshuggare", woodcutter)
     w.rush()
 
 
@@ -756,8 +982,8 @@ def strategy_idle(w: World, day: int):
 
 # --- Körning ------------------------------------------------------------------------
 
-def run(strategy, profile):
-    w = World()
+def run(strategy, profile, carriers=False):
+    w = World(carriers=carriers)
     monotone = lambda: (w.villagers, len(w.buildings), sum(b.level for b in w.buildings),
                         len(w.revealed))
     for day in range(DAYS):
@@ -793,13 +1019,14 @@ def main():
         land = sum(TILES[p].terrain in LAND for p in tiles)
         print(f"| {island} | {land} | " + " | ".join(
             str(sum(k in uses(p) for p in tiles)) for k in kinds) + " |")
-    base = World().value()
+    base = World(carriers=True).value()
     print(f"\nStartvärde: {base:.0f}\n")
     print("| Körning | Profil | Bybor | Byggnader | Nivå 2 | Öar | Plankor | Sten | Tyg "
-          "| Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+          "| Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft "
+          "| Bärarnas tid |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for name, strat, profile in runs:
-        w = run(strat, profile)
+        w = run(strat, profile, carriers=True)
         s = w.snapshot()
         used = sum(w.spent.values())
         gain = w.value() - base
@@ -808,7 +1035,8 @@ def main():
               f"| {s['lager']['plankor']} | {s['lager']['sten']} | {s['lager']['tyg']} "
               f"| {w.daily_output():.0f} | {w.value():.0f} "
               f"| {w.spent['U']}/{w.spent['B']}/{w.spent['G']} "
-              f"| {w.forces['U']:.0f}/{w.forces['B']:.0f}/{w.forces['G']:.0f} | {per} |")
+              f"| {w.forces['U']:.0f}/{w.forces['B']:.0f}/{w.forces['G']:.0f} | {per} "
+              f"| {100 * w.carried_hours / w.carrier_hours:.0f} % |")
         for line in w.log:
             print(f"<!-- {name}: {line} -->")
 

@@ -1278,7 +1278,7 @@ def same_decisions(strategy, low, high, days):
     """Spelar strategin med den lägre profilen och sedan exakt samma beslut med den högre.
 
     Den högre profilen lägger det Ork den har utöver den lägre på extraarbete på de
-    råvarubyggnader som gör mest; ett extraarbete på förädlingen skulle ta råvara som besluten
+    råvarubyggnader som gör mest; att arbeta extra på förädlingen skulle ta råvara som besluten
     behöver. Utforskning och Styrka utöver den lägre sparas av samma skäl. Så prövas D-34:s andra halva utan att planerarens val
     skiljer körningarna åt: mer egenvård får aldrig ge en mindre värld.
     """

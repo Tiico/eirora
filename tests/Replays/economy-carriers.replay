@@ -1,0 +1,9 @@
+create 1791964800 Europe/Stockholm 7200 1380 480
+cmd lay-l2 lay 0 -1
+cmd quarry-m3 build Quarry -3 -1
+time 1791993600 Europe/Stockholm 7200
+cmd road-m3 road -3 -1
+cmd cap-s carriers 0 0 2
+time 1792044000 Europe/Stockholm 7200
+cmd workday-s workday 0 0
+cmd m3-first prioritize -3 -1 0

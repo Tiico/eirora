@@ -24,6 +24,7 @@ namespace Eirora.Client.Look
         private readonly MeshFilter _terrain;
         private readonly Dictionary<string, GameObject> _islands = new(System.StringComparer.Ordinal);
         private readonly MeshFilter _settlement;
+        private readonly MeshFilter _roads;
         private readonly MeshFilter _lights;
         private readonly MeshFilter _selection;
         private readonly MeshFilter _standingStill;
@@ -36,6 +37,7 @@ namespace Eirora.Client.Look
             _flat = flat;
             _looks = looks;
             _terrain = Create("Terrain", parent, flat);
+            _roads = Create("Roads", parent, flat);
             _settlement = Create("Settlement", parent, flat);
             _lights = Create("Lights", parent, glow);
             _lights.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -71,6 +73,7 @@ namespace Eirora.Client.Look
             var lights = new MeshBuilder();
             var occupied = new HashSet<Hex>(world.Buildings.Select(b => b.Tile));
             occupied.UnionWith(world.Projects.Select(p => p.Tile));
+            occupied.UnionWith(world.Roads); // A road cuts a clearing through the forest it crosses, as a building does.
 
             // Fog per tile from the world's state (TASK-032). An island an expedition has yet to find is not drawn at all,
             // so the fog never shows its outline; it is found whole, so one known tile shows it.
@@ -146,7 +149,9 @@ namespace Eirora.Client.Look
                 }
             }
 
+            Carriers(mesh, world, map, diagnostics);
             SeaRoutes(mesh, world);
+            Roads(world, map).WriteTo(_roads.sharedMesh);
             mesh.WriteTo(_settlement.sharedMesh);
             lights.WriteTo(_lights.sharedMesh);
             signs.WriteTo(_standingStill.sharedMesh);
@@ -235,6 +240,71 @@ namespace Eirora.Client.Look
                 Object.DestroyImmediate(thing);
             }
         }
+
+        /// <summary>
+        /// Every road, laid or in the queue, as a track to the roads and buildings beside it (D-112), in a mesh of its own
+        /// so that its triangles are counted with the map's (ADR-0010).
+        /// </summary>
+        private static MeshBuilder Roads(World world, IslandMap map)
+        {
+            var mesh = new MeshBuilder();
+            var planned = new HashSet<Hex>(world.Projects.Where(p => p.Kind == ProjectKind.Road).Select(p => p.Tile));
+            bool Leads(Hex hex) => world.HasRoad(hex) || planned.Contains(hex) || world.BuildingAt(hex) is not null;
+            foreach (var road in world.Roads.Concat(planned))
+            {
+                if (!map.Tiles.TryGetValue(road, out var terrain))
+                {
+                    continue;
+                }
+
+                var toward = Enumerable.Range(0, Hex.Directions).Select(road.Neighbour).Where(n => map.Tiles.ContainsKey(n) && Leads(n));
+                Models.Road(mesh, road, Mathf.Max(Models.Height(terrain), 0f), toward, planned.Contains(road) && !world.HasRoad(road));
+            }
+
+            return mesh;
+        }
+
+        /// <summary>
+        /// Each depot's carriers on their way while the villagers are awake (economy-v2.md, section 7): out to the
+        /// buildings where most waits and back with their load, a step of the way every few minutes of the game's clock.
+        /// </summary>
+        private static void Carriers(MeshBuilder mesh, World world, IslandMap map, Diagnostics? diagnostics)
+        {
+            if (diagnostics is null)
+            {
+                return;
+            }
+
+            int index = 0;
+            foreach (var depot in diagnostics.Depots)
+            {
+                var serves = depot.Serves.Where(b => b.WaitingUnits > 0 || b.Staffed).OrderByDescending(b => b.WaitingUnits).ThenBy(b => b.Tile).ToList();
+                for (int carrier = 0; carrier < depot.Depot.Carriers && serves.Count > 0; carrier++)
+                {
+                    var building = serves[carrier % serves.Count];
+                    var way = new List<Vector3> { depot.Depot.Tile.Center() };
+                    way.AddRange(world.WayToDepot(building.Tile).Reverse().Skip(1).Select(t => t.Center()));
+                    way.Add(Vector3.Lerp(way[way.Count - 1], building.Tile.Center(), 0.75f));
+                    float length = Length(way);
+                    if (length <= 0f)
+                    {
+                        continue;
+                    }
+
+                    // There and back, a tile's width every five minutes of the clock, the carriers of a depot spread over it.
+                    float minutes = (world.Now.UtcSeconds / 60 % 1440) + (carrier * 37);
+                    float walked = minutes / 5f * TileWidth % (2f * length);
+                    bool back = walked > length;
+                    var at = Along(way, back ? (2f * length) - walked : walked);
+                    float ground = map.Tiles.TryGetValue(HexLayout.FromWorld(at), out var terrain) ? Mathf.Max(Models.Height(terrain), 0f) : 0f;
+                    var aside = Vector3.Cross(Vector3.up, way[way.Count - 1] - way[0]).normalized * 0.06f;
+                    Models.Carrier(mesh, at + (Vector3.up * ground) + aside, index++, back);
+                }
+            }
+        }
+
+        /// <summary>The distance between two neighbouring hexes' centres.</summary>
+        private const float TileWidth = HexLayout.Size * 1.7320508f;
 
         /// <summary>
         /// The fairway of each sea route between its jetty and the home island's, with a ship on it, and the expedition's

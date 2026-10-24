@@ -40,6 +40,7 @@ namespace Eirora.Client.Tests
                 "Sågverk | 2 timmer → 1 planka/h | 15 timmer · 5 sten · 30 Styrka · 24 h arbete",
                 "Väveri | 2 ull → 1 tyg per 2 h | 10 plankor · 5 sten · 60 Styrka · 24 h arbete",
                 "Utkikstorn | 25 % mindre Utforskning | 10 sten · 40 Styrka · 12 h arbete",
+                "Lägg väg | – | 2 sten och 4 h arbete per ruta · bärarna går dubbelt så fort",
             }));
         }
 

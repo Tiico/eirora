@@ -27,7 +27,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void ASawmillWithoutTimberAboveTheReserveSaysItWaitsForTimberAndHowMuchIsMissing()
         {
-            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -37,29 +37,69 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
-        public void AFishingHutFourStepsFromTheStorehouseSaysHalfReachesItAndWhatARoadWouldGive()
+        public void AFarFishingHutWhoseCarriersCannotKeepUpSaysHowMuchReachesTheStoreAndWhatARoadWouldGive()
         {
-            var world = Morning();
-            var far = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
-                .First(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.DepotDistance(h) == 4);
-            world = Edited(world, null, $"building FishingHut {far.Q} {far.R} 1 1 0 0 0 0");
+            var (world, far) = BehindTheCarriers();
 
-            var sheet = SheetOf(world, far);
+            var sheet = SheetOf(world, far[0]);
 
-            // 1.25 fish an hour on plain water and 1.875 on rich water, of which half reaches the store.
-            string half = world.Map.RichnessAt(far) == 150 ? "0,94" : "0,63";
-            Assert.That(world.Map.RichnessAt(far), Is.EqualTo(100).Or.EqualTo(150));
-            Assert.That(sheet.Subtitle, Does.EndWith($"· går långsammare · {half} fisk/h"));
-            Assert.That(sheet.Texts.Single(), Does.StartWith("Hälften når fram, fyra steg till närmaste förråd. Ett förråd intill ger "));
-            Assert.That(sheet.Actions, Has.Some.Match("^Väg till förrådet \\| 8 sten och 16 h arbete · [0-9,]+ fisk/h i stället för [0-9,]+$"));
+            // It fishes at full pace; what does not reach the store waits at the hut (D-110).
+            Assert.That(sheet.Subtitle, Does.Contain("· går långsammare · "));
+            Assert.That(sheet.Texts.Single(), Does.Match("^Bärarna hinner inte: [0-9]+ % når fram\\. Fyra steg till förrådet\\. En väg ger [0-9,]+ fisk/h, en bärare till [0-9,]+ och ett förråd intill [0-9,]+\\.$"));
+            Assert.That(sheet.Actions, Has.Some.Match("^Väg till förrådet \\| [0-9]+ sten och [0-9]+ h arbete · [0-9,]+ fisk/h i stället för [0-9,]+$"));
             Assert.That(sheet.Marked, Is.False);
+        }
+
+        [Test]
+        public void TheStorehousesSheetShowsItsCarriersTheCapAndWhatWouldHelpThem()
+        {
+            var (world, _) = BehindTheCarriers();
+
+            var sheet = SheetOf(world, Hex.Origin);
+
+            Assert.That(sheet.Texts[0], Is.EqualTo("Rymmer 150 av varje vara. Bärarna hämtar det byggnaderna närmast gör."));
+            Assert.That(sheet.Texts[1], Does.Match("^En bärare\\. Byggnaderna behöver [0-9,]+ bärartimmar i timmen, så [0-9]+ % når fram och resten väntar vid byggnaderna\\.$"));
+            Assert.That(sheet.Texts[2], Does.Match("^Förrådet tar en bärare till vid gryningen, som ger \\+[0-9,]+ fisk/h(, \\+[0-9,]+ [a-zä]+/h)* och \\+[0-9,]+ [a-zä]+/h\\.$"));
+            Assert.That(sheet.Actions, Has.Some.Match("^Väg till fiskebod \\| [0-9]+ sten och [0-9]+ h arbete · \\+[0-9,]+ fisk/h"));
+            Assert.That(sheet.Actions, Has.Some.Match("^Förråd intill fiskebod \\| 10 timmer · 5 sten · 16 h arbete · \\+[0-9,]+ fisk/h"));
+            Assert.That(sheet.Actions, Has.Some.EqualTo("Arbeta extra | 30 Ork · bärarna bär hälften mer i dag"));
+            Assert.That(sheet.Stepper, Is.EqualTo("4 av 4"));
+        }
+
+        // Review of #166: a higher cap is taken up at dawn, and only by a free villager, so the advice says when it gives.
+        [TestCase(3, "vid gryningen")]
+        [TestCase(0, "när en bybo blir ledig")]
+        public void AtItsCapTheStorehouseSaysWhenOneMoreCarrierWouldGiveMore(int free, string when)
+        {
+            var (world, _) = BehindTheCarriers(free);
+            Assert.That(world.Apply("cap-1", new Simulation.Commands.SetCarrierCap(Hex.Origin, 1)).Accepted, Is.True);
+
+            var sheet = SheetOf(world, Hex.Origin);
+
+            Assert.That(sheet.Actions, Has.Some.Match($"^En bärare till \\| Höj taket · ingen kraft · \\+[0-9,]+ fisk/h.* {when}$"));
+        }
+
+        [Test]
+        public void TheCapOnTheCarriersIsSetOnTheStorehousesSheet()
+        {
+            var (world, _) = BehindTheCarriers();
+            var root = new VisualElement();
+            var played = new List<Simulation.Commands.GameCommand>();
+            var hud = new Hud(root, command => { played.Add(command); return world.Apply($"cap-{played.Count}", command); });
+            hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
+            hud.Select(Hex.Origin);
+
+            Press(root.Query<Button>(className: "stepper-button").ToList().First());
+
+            Assert.That(played.Single(), Is.TypeOf<Simulation.Commands.SetCarrierCap>());
+            Assert.That(world.BuildingAt(Hex.Origin)!.CarrierCap, Is.EqualTo(3));
         }
 
         [Test]
         public void ABuildingWithoutStaffIsMarkedOnTheIslandAndItsSheetSaysHowManyVillagersAreMissing()
         {
             // Eight villagers: seven run the start buildings, so one is free for a sawmill that takes two.
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -82,7 +122,8 @@ namespace Eirora.Client.Tests
         [Test]
         public void ASawmillThatProducesFullySaysOnePlankAnHourInTheSingular()
         {
-            var world = Edited(Morning(), "stock home Timber 100000000", "building Sawmill -1 0 1 1 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 100000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0");
+            world.AdvanceTo(At("2026-10-15 12:00")); // The carriers have brought it timber by noon.
 
             var sheet = SheetOf(world, s_beside);
 
@@ -92,7 +133,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void AHouseSaysNothingOfVillagersItNeverNeeds()
         {
-            var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0 0");
+            var world = Edited(Morning(), null, "building Longhouse -1 0 1 0 0 0 0 0 0 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -103,12 +144,12 @@ namespace Eirora.Client.Tests
         [Test]
         public void AStorehouseWithoutStaffStillStoresAndIsNotMarked()
         {
-            var world = Edited(Morning(), "settlement 7", "building Storehouse -1 0 1 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 7", "building Storehouse -1 0 1 0 0 0 0 0 4 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
             Assert.That(sheet.Subtitle, Is.EqualTo("Äng · väntar på bybor"));
-            Assert.That(sheet.Texts, Is.EqualTo(new[] { "Rymmer 150 av varje vara. Byggnader nära förrådet får fram mer." }));
+            Assert.That(sheet.Texts, Is.EqualTo(new[] { "Rymmer 150 av varje vara. Bärarna hämtar det byggnaderna närmast gör.", "Ingen bybo bär här ännu. Förrådet tar en bärare när en blir ledig." }));
             Assert.That(sheet.Marked, Is.False);
             Assert.That(sheet.Icon, Is.False);
         }
@@ -116,7 +157,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void APausedBuildingIsMarkedAndItsSheetSaysItIsPaused()
         {
-            var world = Edited(Morning(), null, "building Sawmill -1 0 1 0 0 0 0 1");
+            var world = Edited(Morning(), null, "building Sawmill -1 0 1 0 0 0 1 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -129,7 +170,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void WhileTheVillageRestsTheSheetSaysSoAndMarksNothingAsTheIslandDoes()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             var sheet = SheetOf(world, s_beside);
@@ -143,7 +184,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void NoBuildingIsMarkedWhileTheVillageRests()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             WithIsland(world, island => Assert.That(island.MarkedStandingStill, Is.Empty));
@@ -152,7 +193,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void TheReportPointsToTheIslandsBottleneckAndWhereAWorkdayEasesIt()
         {
-            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0");
+            var world = Edited(Morning(), "stock home Timber 18000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0");
             var root = new VisualElement();
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
@@ -196,7 +237,22 @@ namespace Eirora.Client.Tests
             Assert.That(root.Query<Button>(className: "action").ToList(), Is.Empty);
         }
 
-        private static (string Subtitle, string[] Texts, string[] Actions, bool Icon, bool Marked) SheetOf(World world, Hex tile)
+        /// <summary>
+        /// The start village with three fishing huts four steps out, more than its one carrier can keep up with, and sixteen
+        /// villagers, three of them free.
+        /// </summary>
+        private static (World World, Hex[] Far) BehindTheCarriers(int free = 3)
+        {
+            var world = Morning();
+            var far = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
+                .Where(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.TripFrom(h).Steps == 4)
+                .Take(3).ToArray();
+            world = Edited(world, $"settlement {13 + free}", string.Join("\n", far.Select(h => $"building FishingHut {h.Q} {h.R} 1 1 0 0 0 0 0 0 0 1 0 0")));
+            Assert.That(world.FreeVillagers, Is.EqualTo(free));
+            return (world, far);
+        }
+
+        private static (string Subtitle, string[] Texts, string[] Actions, bool Icon, bool Marked, string? Stepper) SheetOf(World world, Hex tile)
         {
             var root = new VisualElement();
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
@@ -209,7 +265,8 @@ namespace Eirora.Client.Tests
                 root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray(),
                 root.Query<Button>(className: "action").ToList().Select(a => $"{Label(a, "action-title")} | {Label(a, "action-cost")}").ToArray(),
                 root.Q(className: "standing-still") is not null,
-                marked);
+                marked,
+                root.Q<Label>(className: "stepper-value")?.text);
         }
 
         private static void WithIsland(World world, Action<IslandView> look)
@@ -241,7 +298,8 @@ namespace Eirora.Client.Tests
 
         /// <summary>
         /// The world with a line of its state replaced by one that begins the same way, such as a stock or the villagers,
-        /// and buildings added at the end of the line; read back from a snapshot, as a save is.
+        /// and buildings added at the end of the line; read back from a snapshot, as a save is. A snapshot restores only
+        /// the state it holds, so a building that makes something is written with its depot, the storehouse on 0 0.
         /// </summary>
         private static World Edited(World world, string? replace, string? buildings = null)
         {

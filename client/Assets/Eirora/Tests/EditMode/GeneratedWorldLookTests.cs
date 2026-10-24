@@ -85,21 +85,27 @@ namespace Eirora.Client.Tests
         }
 
         [Test]
-        public void TheLargestGeneratedMapStaysWithinTheTrianglesTheMapFormatPlannedFor()
+        public void TheLargestGeneratedMapStaysWithinTheTrianglesTheMapFormatPlannedForWithARoadOnEveryLandTile()
         {
-            // The map with the most land of fifty seeds; every map has the same disc (D-80), so land is what grows.
+            // The map with the most land of fifty seeds; every map has the same disc (D-80), so land is what grows. Roads
+            // lie on land, so a road on every land tile is the most the map can carry (D-112).
             var largest = Enumerable.Range(0, 50).Select(seed => s_generator.Generate((ulong)seed))
                 .OrderByDescending(m => Enumerable.Range(0, m.Disc.Count).Count(i => m.TerrainAt(m.Disc[i]).IsLand())).First();
-            var world = World.Create(largest, At("2026-10-14 14:00"), s_night);
+            var land = Enumerable.Range(0, largest.Disc.Count).Select(i => largest.Disc[i]).Where(h => largest.TerrainAt(h).IsLand()).ToList();
+            var world = EditedWorld.WithRoads(World.Create(largest, At("2026-10-14 14:00"), s_night), land);
+            Assert.That(world.Roads.Count, Is.EqualTo(land.Count));
 
             WithIsland(world, (parent, _) =>
             {
-                int terrain = parent.GetComponentsInChildren<MeshFilter>(includeInactive: true)
-                    .Where(f => f.name != "Settlement" && f.name != "Lights" && f.name != "Selection")
-                    .Sum(f => f.sharedMesh.triangles.Length / 3);
+                var filters = parent.GetComponentsInChildren<MeshFilter>(includeInactive: true)
+                    .Where(f => f.name != "Settlement" && f.name != "Lights" && f.name != "Selection" && f.name != "Standing still")
+                    .ToList();
+                int roads = filters.Single(f => f.name == "Roads").sharedMesh.triangles.Length / 3;
+                int map = filters.Sum(f => f.sharedMesh.triangles.Length / 3);
 
-                // ADR-0010: at most 1 801 tiles of 12–40 triangles, under 75 000 for the whole map.
-                Assert.That(terrain, Is.LessThan(75_000));
+                // ADR-0010: at most 1 801 tiles of 12–40 triangles, under 75 000 for the whole map, roads and all.
+                Assert.That(roads, Is.GreaterThan(4 * land.Count));
+                Assert.That(map, Is.LessThan(75_000));
             });
         }
 
@@ -139,9 +145,9 @@ namespace Eirora.Client.Tests
             }
         }
 
-        // Fingerprints of the prototype's world as drawn before TASK-033.
-        private const string PrototypeAtStart = "12457:3DF069A1CF8F5E4D";
-        private const string PrototypeWithNyon = "12498:BDCEAE6B6BC4C6F0";
+        // Fingerprints of the prototype's world as drawn before TASK-033, with the storehouse's carrier on its way (TASK-051).
+        private const string PrototypeAtStart = "12466:8C42ACF15F08FE31";
+        private const string PrototypeWithNyon = "12507:0E79300D3FEB1565";
 
         /// <summary>A fingerprint of every visible triangle and its colour, whatever mesh or order it is drawn in.</summary>
         internal static string Picture(World world)

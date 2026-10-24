@@ -84,7 +84,7 @@ public sealed class SimulationSnapshotTests
             new ForceCredited(4, Force.BuildPower, 5),
             new ForceWithdrawn(6, Force.DawnPower, 7),
             new VillagersMovedIn(8, 2),
-            new ProjectCompleted(9, ProjectKind.Road, BuildingKind.Quarry, new Hex(-3, -1)),
+            new ProjectCompleted(9, ProjectKind.Road, null, new Hex(-3, -1)),
             new TilesRevealed(10, [new Hex(3, -1), new Hex(-2, 0)]),
             new ExpeditionReturned(11, "nyon"),
             new FogLifted(12, -5, 3),

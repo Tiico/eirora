@@ -92,13 +92,21 @@ public sealed class GoldenSaveTests
     /// <summary>
     /// Makes the golden save of the current version from a fixed scenario: from rules 7 on, a world built out on the
     /// archipelago with a store on each of three islands, two sea routes home with goods waiting, and paused buildings
-    /// (TASK-044, TASK-045).
+    /// (TASK-044, TASK-045); from rules 8 on also with roads, goods waiting for the carriers, raw materials at the
+    /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051).
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(7);
-        Assert.Equal(2, save.World.SeaRoutes.Count);
-        Assert.Contains(save.World.Buildings, b => b.Paused);
+        var save = BuiltOutWorld.GenerateSave(35);
+        var world = save.World;
+        Assert.Equal(2, world.SeaRoutes.Count);
+        Assert.Contains(world.Buildings, b => b.Paused);
+        Assert.NotEmpty(world.Roads);
+        Assert.Contains(world.Buildings, b => b.Waiting > 0);
+        Assert.Contains(world.Buildings, b => b.Held?.Any(h => h > 0) == true);
+        Assert.Contains(world.Buildings, b => b.Carriers > 1);
+        Assert.Contains(world.Buildings, b => Logistics.IsDepot(b.Kind) && b.CarrierCap < Logistics.MostCarriers);
+        Assert.Contains(world.Buildings, b => b.CarriedFirst);
 
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());

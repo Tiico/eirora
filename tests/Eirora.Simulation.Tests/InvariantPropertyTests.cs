@@ -206,12 +206,12 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        Assert.Equal(14, accepted.Count); // Every kind of command.
+        Assert.Equal(16, accepted.Count); // Every kind of command.
         Assert.Superset(
             new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued },
             rejections);
         Assert.Superset(
-            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second" },
+            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second", "road", "held" },
             records);
         Assert.True(duplicates > 50, $"Only {duplicates} duplicates.");
     }

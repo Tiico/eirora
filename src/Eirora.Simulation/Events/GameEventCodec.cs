@@ -33,7 +33,14 @@ namespace Eirora.Simulation.Events
                     writer.Line("villagers-moved-in").Long(e.UtcSeconds).Long(e.Count);
                     break;
                 case ProjectCompleted e:
-                    writer.Line("project-completed").Long(e.UtcSeconds).Enum(e.Kind).Enum(e.Building).Long(e.Tile.Q).Long(e.Tile.R);
+                    // A road lies on a tile of its own and names no building.
+                    var line = writer.Line("project-completed").Long(e.UtcSeconds).Enum(e.Kind);
+                    if (e.Kind != ProjectKind.Road && e.Building is BuildingKind kind)
+                    {
+                        line.Enum(kind);
+                    }
+
+                    line.Long(e.Tile.Q).Long(e.Tile.R);
                     break;
                 case TilesRevealed e:
                     writer.Line("tiles-revealed").Long(e.UtcSeconds);
@@ -83,7 +90,10 @@ namespace Eirora.Simulation.Events
 
             if (reader.Next("project-completed"))
             {
-                return new ProjectCompleted(reader.Long(), reader.Enum<ProjectKind>(), reader.Enum<BuildingKind>(), new Hex(reader.Int(), reader.Int()));
+                long utc = reader.Long();
+                var kind = reader.Enum<ProjectKind>();
+                BuildingKind? building = kind == ProjectKind.Road ? null : reader.Enum<BuildingKind>();
+                return new ProjectCompleted(utc, kind, building, new Hex(reader.Int(), reader.Int()));
             }
 
             if (reader.Next("tiles-revealed"))
