@@ -59,7 +59,8 @@ namespace Eirora.Client.App
                 Debug.LogError(refusal);
             }
 
-            clock.Current = ScriptedWeek.At("2026-10-21 13:00");
+            // The seventh morning, while the sawmill waits for timber that the storehouse's one carrier has yet to bring.
+            clock.Current = ScriptedWeek.At("2026-10-21 10:00");
             session.CatchUp();
             client.Refresh();
             yield return Capture(client, folder, "02-day");
@@ -79,6 +80,12 @@ namespace Eirora.Client.App
                 client.Hud.Select(still.Building.Tile);
                 yield return Capture(client, folder, "04-standing-still");
                 client.Hud.Select(null);
+            }
+
+            // A road to the far fishing hut, laid by the time of shot 22 (TASK-051).
+            foreach (string refusal in ScriptedWeek.LayARoad(session))
+            {
+                Debug.LogError(refusal);
             }
 
             clock.Current = ScriptedWeek.At("2026-10-21 22:20");
@@ -151,13 +158,27 @@ namespace Eirora.Client.App
                 client.Hud.Select(null);
             }
 
-            if (diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is Simulation.Economy.LongWay)) is { } far)
+            if (diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is CarriersBehind)) is { } behind)
             {
-                client.Focus(far.Building.Tile.Center() + AboveTheSheet);
-                client.Hud.Select(far.Building.Tile);
-                yield return Capture(client, folder, "13-long-way");
+                client.Focus(behind.Building.Tile.Center() + AboveTheSheet);
+                client.Hud.Select(behind.Building.Tile);
+                yield return Capture(client, folder, "13-carriers-behind");
                 client.Hud.Select(null);
             }
+
+            // The carriers of the storehouse that cannot keep up, or else the first one's, and the player's cap on them, and
+            // the road laid to the far fishing hut (TASK-051).
+            var carrying = diagnosis.Buildings.FirstOrDefault(b => b.Hindrances.Any(h => h is CarriersBehind))?.Building.Depot ?? Hex.Origin;
+            client.Focus(carrying.Center() + AboveTheSheet);
+            client.Hud.Select(carrying);
+            yield return Capture(client, folder, "21-storehouse-carriers");
+            client.Hud.Select(null);
+            client.Focus(ScriptedWeek.FarFishingHut.Center() + new Vector3(1.4f, 0f, 0.6f));
+            yield return Capture(client, folder, "22-road");
+            client.Focus(ScriptedWeek.FarFishingHut.Center() + new Vector3(1.4f, 0f, 0.6f) + AboveTheSheet);
+            client.Hud.LayRoads();
+            yield return Capture(client, folder, "23-laying-roads");
+            client.Hud.Select(null);
 
             // Nyön, found by the expedition and joined by the sea route.
             client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f));

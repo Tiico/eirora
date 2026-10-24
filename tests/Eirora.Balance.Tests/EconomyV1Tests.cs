@@ -21,7 +21,9 @@ public sealed class EconomyV1Tests
         var model = Rows(ModelTable);
         Assert.Equal(s_week.Value.Count, model.Count);
 
-        // The tolerance of economy-v1.md, section 7.1: about one decision's worth.
+        // The tolerance of economy-v1.md, section 7.1: about one decision's worth, at least an upgrade of the sawmill,
+        // which gives 24 a game day and three days of it in the development value.
+        const long Upgrade = 24;
         foreach (var run in s_week.Value)
         {
             var bot = Row.Of(run);
@@ -30,8 +32,9 @@ public sealed class EconomyV1Tests
             Within(bot.Key, "byggnader", expected.Buildings, bot.Buildings, 1);
             Within(bot.Key, "öar", expected.Islands, bot.Islands, 0);
             Within(bot.Key, "sten i lager", expected.Stone, bot.Stone, 10);
-            Within(bot.Key, "dagsproduktion", expected.DailyOutput, bot.DailyOutput, expected.DailyOutput / 10);
-            Within(bot.Key, "utvecklingsvärde", expected.Value, bot.Value, expected.Value / 20);
+            Within(bot.Key, "dagsproduktion", expected.DailyOutput, bot.DailyOutput, Math.Max(expected.DailyOutput / 10, Upgrade));
+            long value = Math.Max(expected.Value / 20, 3 * Upgrade);
+            Within(bot.Key, "utvecklingsvärde", expected.Value, bot.Value, value);
             for (int force = 0; force < 3; force++)
             {
                 Within(bot.Key, "använd kraft", expected.Used[force], bot.Used[force], 60);
@@ -41,7 +44,10 @@ public sealed class EconomyV1Tests
             Assert.Equal(expected.PerForce is null, bot.PerForce is null);
             if (expected.PerForce is decimal perForce)
             {
-                Assert.True(Math.Abs(perForce - bot.PerForce!.Value) <= 0.07m, $"{bot.Key}: värde per använd kraft {bot.PerForce} against {perForce}.");
+                // The development value's tolerance over the forces used, in hundredths rounded up, and at least 0,07.
+                long used = expected.Used.Sum();
+                decimal tolerance = Math.Max(0.07m, Math.Ceiling(value * 100m / used) / 100m);
+                Assert.True(Math.Abs(perForce - bot.PerForce!.Value) <= tolerance, $"{bot.Key}: värde per använd kraft {bot.PerForce} against {perForce} ± {tolerance}.");
             }
         }
     }
@@ -68,6 +74,28 @@ public sealed class EconomyV1Tests
         Assert.All(
             s_week.Value.Where(r => r.Spec.Strategy == Strategy.Near || r.Spec.Strategy == Strategy.Sea),
             run => Assert.True(Row.Of(run).PerForce >= naive * 1.3m, $"{run.Spec.Strategy.Name}: {Row.Of(run).PerForce} against naive {naive}."));
+    }
+
+    // D-119 (economy-v2.md, section 9): with the same decisions, more self-care never gives a smaller world at the end of a
+    // week, and on a single game day at most 0.1 % smaller, which the carriers' order can cost. Four weeks, since under the
+    // caps the high profile's six Dawn Power a day more seldom reach a workday; it shows mostly in the balances.
+    [Theory]
+    [InlineData("near")]
+    [InlineData("near-ordered")]
+    [InlineData("sea")]
+    public void TheSameDecisionsWithMoreSelfCareNeverGiveASmallerWeek(string strategy)
+    {
+        var lower = BalanceRun.Play(new RunSpec(MapChoice.Prototype, Strategy.All.Single(s => s.Id == strategy), SelfCareProfile.Normal, 28));
+
+        var higher = BalanceRun.PlaySameDecisions(lower, SelfCareProfile.High);
+
+        Assert.Equal(lower.Values.Count, higher.Count);
+        for (int week = 7; week <= 28; week += 7)
+        {
+            Assert.True(higher[week - 1] >= lower.Values[week - 1], $"{strategy}: week {week / 7} ends at {higher[week - 1]} with more self-care, {lower.Values[week - 1]} without.");
+        }
+
+        Assert.All(lower.Values.Zip(higher), day => Assert.True(day.Second * 1000 >= day.First * 999, $"{strategy}: a day of {day.Second} with more self-care, {day.First} without."));
     }
 
     private static void Within(string key, string measure, long expected, long actual, long tolerance) =>

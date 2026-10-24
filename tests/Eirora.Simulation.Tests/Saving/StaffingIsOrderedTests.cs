@@ -19,10 +19,11 @@ public sealed class StaffingIsOrderedTests
         var builtBefore = before.Where(IsBuilding).ToList();
 
         var world = Save.Load(bytes).World;
-        var after = world.Fingerprint().Split('\n');
 
-        // The save keeps the contributions in a part of their own (D-101), which follows the world in the fingerprint.
-        // Rules 7 named the stores by the map's islands (IslandsFromTheMapTests), which keeps every amount.
+        // As far as rules 7, after which roads became tiles (RoadsAreTilesTests). Rules 7 named the stores by the map's
+        // islands (IslandsFromTheMapTests), which keeps every amount.
+        string state = string.Join('\n', before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)));
+        var after = new IslandsFromTheMap().Migrate(new StaffingIsOrdered().Migrate(state, world.Map), world.Map).Split('\n');
         var kept = before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)).Where(l => l.Length > 0 && !IsBuilding(l) && !IsStock(l)).ToList();
         Assert.Equal(kept, after.Where(l => !IsBuilding(l) && !IsStock(l)).Take(kept.Count));
         Assert.Equal(
@@ -39,7 +40,7 @@ public sealed class StaffingIsOrderedTests
     [Fact]
     public void OnlyTheBuildingsOfRulesFiveAreMigrated()
     {
-        string current = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night).Fingerprint();
+        string current = RoadsAreTilesTests.RulesSeven(World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night).Fingerprint());
 
         Assert.Equal(current, new StaffingIsOrdered().Migrate(RulesFive(current), PrototypeHome.Map));
         Assert.Throws<FormatException>(() => new StaffingIsOrdered().Migrate(current, PrototypeHome.Map));

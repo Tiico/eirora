@@ -92,6 +92,7 @@ namespace Eirora.Client.UI
             SelfCare,
             Report,
             Account,
+            Road,
         }
 
         /// <summary>The selected tile changed; the island marks it.</summary>
@@ -226,6 +227,13 @@ namespace Eirora.Client.UI
         /// </summary>
         public void Select(Hex? tile)
         {
+            // Laying roads, each tile tapped gets one, and the sheet stays open until the player is done (D-112).
+            if (_open == Sheet.Road && tile is Hex road && _world is not null)
+            {
+                LayRoad(_world, road);
+                return;
+            }
+
             if (tile is Hex hex && _world is not null && _world.UsesOf(hex) == TileUse.None && _world.BuildingAt(hex) is null
                 && !_world.Projects.Any(p => p.Tile == hex))
             {
@@ -257,8 +265,21 @@ namespace Eirora.Client.UI
             ShowSheet();
         }
 
-        /// <summary>Whether a tile lies under the fog, so that tapping it opens the fog's sheet.</summary>
-        public bool IsFogged(Hex hex) => _world is not null && !_world.IsKnown(hex);
+        /// <summary>Whether a tile lies under the fog, so that tapping it opens the fog's sheet; while laying roads none does.</summary>
+        public bool IsFogged(Hex hex) => _world is not null && !_world.IsKnown(hex) && _open != Sheet.Road;
+
+        /// <summary>Starts laying roads: every tile tapped next gets a road, tile by tile, until the player is done (D-112).</summary>
+        public void LayRoads()
+        {
+            _tile = null;
+            _fog = null;
+            _open = Sheet.Road;
+            SelectionChanged?.Invoke(null);
+            ShowSheet();
+        }
+
+        /// <summary>Whether the player is laying roads, so that a tap on the island lays one rather than opening a sheet.</summary>
+        public bool IsLayingRoads => _open == Sheet.Road;
 
         public void OpenSelfCare() => Open(Sheet.SelfCare);
 
@@ -424,6 +445,40 @@ namespace Eirora.Client.UI
                 case Sheet.Account:
                     AccountSheet();
                     break;
+                case Sheet.Road:
+                    RoadSheet(_world);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Laying roads (D-112): the island takes a road on each tile tapped, for 2 stone and 4 hours of work a tile; the
+        /// sheet says how much stone there is and closes when the player is done.
+        /// </summary>
+        private void RoadSheet(World world)
+        {
+            Text("sheet-title", _sheet, "Lägg väg");
+            Text("sheet-subtitle", _sheet, $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per bricka · {world.Stock(Resource.Stone)} sten i lager");
+            Text("sheet-text", _sheet, "Tryck på brickorna där vägen ska gå. Bärarna går dubbelt så fort på en väg, och den hjälper alla som går över den.");
+            AddAction("Klar", "Vägarna byggs i byggkön", true, () => Select(null));
+        }
+
+        private void LayRoad(World world, Hex tile)
+        {
+            var rejection = world.CheckRoad(tile);
+            if (rejection == Rejection.None && world.Stock(Resource.Stone) < Logistics.RoadStone)
+            {
+                Toast($"En väg kostar {Logistics.RoadStone} sten.");
+            }
+            else if (rejection == Rejection.None)
+            {
+                Run(new LayRoad(tile));
+                SelectionChanged?.Invoke(tile);
+                ShowSheet();
+            }
+            else
+            {
+                Toast(rejection == Rejection.AlreadyDone ? "Här finns redan en väg." : "Här kan ingen väg ligga.");
             }
         }
 
@@ -449,9 +504,9 @@ namespace Eirora.Client.UI
         private void TileSheet(World world, Hex tile)
         {
             var uses = world.UsesOf(tile);
-            string ground = Texts.Ground(world.Map, tile, uses);
+            string ground = Texts.Ground(world.Map, tile, uses) + (world.HasRoad(tile) ? " med väg" : string.Empty);
             var building = world.BuildingAt(tile);
-            var project = world.Projects.FirstOrDefault(p => p.Tile == tile && p.Kind == ProjectKind.Build);
+            var project = world.Projects.FirstOrDefault(p => p.Tile == tile && p.Kind is ProjectKind.Build or ProjectKind.Road);
             if (building is not null)
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
@@ -480,7 +535,7 @@ namespace Eirora.Client.UI
             if (project is not null)
             {
                 int place = IndexOf(world.Projects, project);
-                Text("sheet-title", _sheet, $"{Texts.Name(project.Building)} byggs");
+                Text("sheet-title", _sheet, project.Building is BuildingKind kind ? $"{Texts.Name(kind)} byggs" : "Väg byggs");
                 Text("sheet-subtitle", _sheet, $"{ground} · {Texts.WorkLeft(project)}");
                 Text("sheet-text", _sheet, place == 0
                     ? "Först i byggkön. Lediga bybor bygger här medan de är vakna."
@@ -514,9 +569,20 @@ namespace Eirora.Client.UI
                 AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
             }
 
+            // A road lies on any land, so it waits behind the fold with the buildings that any land takes.
+            bool road = world.CheckRoad(tile) == Rejection.None;
             if (folded)
             {
-                AddAction("Fler byggnader", Capital(Texts.List(anyLand.Select(k => Texts.Name(k).ToLowerInvariant()))), true, ShowMoreBuildings);
+                var more = anyLand.Select(k => Texts.Name(k).ToLowerInvariant()).Concat(road ? new[] { "väg" } : Array.Empty<string>());
+                AddAction("Fler byggnader", Capital(Texts.List(more)), true, ShowMoreBuildings);
+            }
+            else if (road)
+            {
+                AddAction("Lägg väg", $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per bricka · bärarna går dubbelt så fort", world.Stock(Resource.Stone) >= Logistics.RoadStone, () =>
+                {
+                    LayRoads();
+                    LayRoad(world, tile);
+                });
             }
 
             if (buildable.Count == 0 && (uses & TileUse.Crest) != 0)
@@ -535,6 +601,7 @@ namespace Eirora.Client.UI
             if (building.Kind == BuildingKind.Jetty)
             {
                 JettyActions(world, building);
+                CarrierActions(world, building);
                 return;
             }
 
@@ -543,6 +610,11 @@ namespace Eirora.Client.UI
                 if (Texts.Purpose(building.Kind, spec) is string purpose)
                 {
                     Text("sheet-text", _sheet, purpose);
+                }
+
+                if (Logistics.IsDepot(building.Kind))
+                {
+                    CarrierActions(world, building);
                 }
 
                 return;
@@ -562,15 +634,83 @@ namespace Eirora.Client.UI
                 AddAction("Uppgradera till nivå 2", Texts.Cost(world.Content.Upgrade), Affordable(world, world.Content.Upgrade), () => Run(new Upgrade(building.Tile)));
             }
 
-            int steps = world.DepotDistance(building.Tile);
-            if (!building.HasRoad && steps > 1 && steps < int.MaxValue
-                && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Road))
+            int tiles = world.RoadToDepot(building.Tile).Count;
+            if (tiles > 0)
             {
-                // What the road gives, from the diagnosis, beside what it costs (TASK-043).
-                string gives = diagnosis?.Hindrances.OfType<LongWay>().FirstOrDefault() is { } way && diagnosis.Product is Resource product
-                    ? Texts.RoadGives(way, product)
-                    : "mer når fram";
-                AddAction("Väg till förrådet", $"{2 * steps} sten och {4 * steps} h arbete · {gives}", world.Stock(Resource.Stone) >= 2 * steps, () => Run(new BuildRoad(building.Tile)));
+                // What the road gives, from the diagnosis, beside what it costs (TASK-043, D-112).
+                string gives = diagnosis?.Hindrances.OfType<CarriersBehind>().FirstOrDefault() is { } behind && diagnosis.Product is Resource product
+                    && behind.WithRoadPerHour > behind.PerHour
+                    ? Texts.RoadGives(behind, product)
+                    : "bärarna går dubbelt så fort";
+                AddAction("Väg till förrådet", $"{Logistics.RoadStone * tiles} sten och {Logistics.RoadHours * tiles} h arbete · {gives}",
+                    world.Stock(Resource.Stone) >= Logistics.RoadStone * tiles, () => Run(new BuildRoad(building.Tile)));
+            }
+        }
+
+        /// <summary>
+        /// A storehouse's or a jetty's carriers (economy-v2.md, section 7.1; D-109): how many it has and what its buildings'
+        /// goods need, the player's cap, which is free planning, and when they cannot keep up what one more carrier, a road
+        /// or a storehouse beside one of its buildings would give, and a workday that lets them carry half as much again.
+        /// </summary>
+        private void CarrierActions(World world, Building depot)
+        {
+            var carriers = _diagnostics?.DepotAt(depot.Tile);
+            Text("sheet-text", _sheet, carriers is null ? "Bärarna vilar med byborna." : Texts.Carriers(carriers));
+            var row = Container("row", _sheet);
+            Text("row-label", row, "Bärare som mest");
+            var stepper = Container("stepper", row);
+            Button("stepper-button", stepper, "−", () => Run(new SetCarrierCap(depot.Tile, depot.CarrierCap - 1))).SetEnabled(depot.CarrierCap > 1);
+            Text("stepper-value", stepper, $"{depot.CarrierCap} av {Logistics.MostCarriers}");
+            Button("stepper-button", stepper, "+", () => Run(new SetCarrierCap(depot.Tile, depot.CarrierCap + 1))).SetEnabled(depot.CarrierCap < Logistics.MostCarriers);
+
+            if (_diagnostics?.QueueStandsStill == true && depot.Carriers > 1)
+            {
+                Text("sheet-text", _sheet, "Byggkön står still: alla lediga bybor bär. Sänk taket, så bygger några av dem i stället.");
+            }
+
+            if (carriers is null || carriers.SharePercent >= 100)
+            {
+                return;
+            }
+
+            if (carriers.WithCarrier is { } more)
+            {
+                if (depot.CarrierCap <= depot.Carriers)
+                {
+                    // A higher cap is taken up at dawn, and only by a free villager.
+                    string when = carriers.VillagerFree ? "vid gryningen" : "när en bybo blir ledig";
+                    AddAction("En bärare till", $"Höj taket · ingen kraft · {Texts.Gains(more)} {when}", true, () => Run(new SetCarrierCap(depot.Tile, depot.CarrierCap + 1)));
+                }
+                else
+                {
+                    Text("sheet-text", _sheet, carriers.VillagerFree
+                        ? $"{Texts.Definite(depot.Kind)} tar en bärare till vid gryningen, som ger {Texts.Gains(more)}."
+                        : $"En bärare till ger {Texts.Gains(more)}, men ingen bybo är ledig. {Texts.Definite(depot.Kind)} tar en när en blir ledig.");
+                }
+            }
+
+            if (carriers.Road is { } road)
+            {
+                int tiles = road.Tiles.Count;
+                AddAction($"Väg till {Texts.Name(road.From.Kind).ToLowerInvariant()}", $"{Logistics.RoadStone * tiles} sten och {Logistics.RoadHours * tiles} h arbete · {Texts.Gains(road.Gains)}",
+                    world.Stock(Resource.Stone) >= Logistics.RoadStone * tiles, () => Run(new BuildRoad(road.From.Tile)));
+            }
+
+            if (carriers.Storehouse is { } storehouse)
+            {
+                var spec = world.Content.For(BuildingKind.Storehouse);
+                string staffed = carriers.VillagerFree ? string.Empty : " när en bybo blir ledig";
+                AddAction($"Förråd intill {Texts.Name(storehouse.Beside.Kind).ToLowerInvariant()}", $"{Texts.Cost(spec)} · {Texts.Gains(storehouse.Gains)}{staffed}",
+                    Affordable(world, spec), () => Run(new Build(BuildingKind.Storehouse, storehouse.Site)));
+            }
+
+            if (depot.Staffed && !depot.WorkdayToday)
+            {
+                AddAction("Dagsverke", $"{Workday.Cost} Gryningskraft · bärarna bär hälften mer i dag", world.Available(Force.DawnPower) >= Workday.Cost, () => Run(new Workday(depot.Tile)));
+            }
+            else if (depot.WorkdayToday)
+            {
+                Text("sheet-text", _sheet, "Dagsverke i dag: bärarna bär hälften mer.");
             }
         }
 

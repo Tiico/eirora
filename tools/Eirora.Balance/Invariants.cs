@@ -104,7 +104,7 @@ internal sealed class Invariants
             world.Housing,
             world.Buildings.Count,
             world.Buildings.Sum(b => b.Level),
-            world.Buildings.Count(b => b.HasRoad),
+            world.Roads.Count,
             known,
         ];
     }

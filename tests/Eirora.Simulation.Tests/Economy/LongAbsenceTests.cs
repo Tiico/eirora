@@ -15,7 +15,9 @@ namespace Eirora.Simulation.Tests.Economy;
 /// and an absence read in parts gives the same world as one read at once (INV-D4). The player's say over the work holds
 /// while they are away (TASK-044): paused buildings stay paused, the staffing order and the queue keep their order, and
 /// never fewer villagers are at work (INV-V2). Some worlds have a store on each of three islands and two sea routes
-/// home (TASK-045), whose shipping only moves goods between the stores.
+/// home (TASK-045), whose shipping only moves goods between the stores. The carriers only move goods between the
+/// buildings' outboxes, the raw materials held at the processing and the stores, never while the villagers rest
+/// (INV-R2, INV-T4; TASK-051), and the roads stay.
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -67,7 +69,7 @@ public sealed class LongAbsenceTests
             slowProcesses.Check(events, ticks);
 
             AssertBounds(parts); // INV-R1.
-            Stocks.Of(parts).AssertOnlyConsumedSince(was, parts.GameDay - dayWas, parts.Villagers, restingThroughout); // INV-R3, INV-T4.
+            Stocks.Of(parts).AssertOnlyConsumedSince(was, parts.GameDay - dayWas, parts.Villagers, restingThroughout); // INV-R2, INV-R3, INV-T4.
             Measures.Of(parts).AssertNotLowerThan(measuresWere); // INV-V1, INV-F6.
         }
 
@@ -96,8 +98,9 @@ public sealed class LongAbsenceTests
     [Fact]
     public void BuiltOutWorldsAreLeftWithWorkInFlight()
     {
+        // The carriers take villagers who would otherwise build, so the islands are reached later than before them.
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        for (int seed = 0; seed < 30; seed++)
+        for (int seed = 0; seed < 40; seed++)
         {
             var world = BuiltOutWorld.Generate(seed);
             void See(string what, bool when)
@@ -121,19 +124,26 @@ public sealed class LongAbsenceTests
             See("ripening", world.Buildings.Any(b => b.Kind == BuildingKind.SheepFarm && b.Ripe > 0) && world.Buildings.Any(b => b.Kind == BuildingKind.Field && b.Ripe > 0));
             See("workday", world.Buildings.Any(b => b.WorkdayToday));
             See("upgrade", world.Buildings.Any(b => b.Level == 2));
-            See("road", world.Buildings.Any(b => b.HasRoad));
+            See("road", world.Roads.Count > 0);
+            See("road in the queue", world.Projects.Any(p => p.Kind == ProjectKind.Road));
+            See("goods waiting for the carriers", world.Buildings.Any(b => b.Waiting > 0));
+            See("raw materials at the processing", world.Buildings.Any(b => b.Held?.Any(h => h > 0) == true));
+            See("several carriers", world.Buildings.Any(b => b.Carriers > 1));
+            See("carriers capped", world.Buildings.Any(b => Logistics.IsDepot(b.Kind) && b.CarrierCap < Logistics.MostCarriers));
+            See("carried first", world.Buildings.Any(b => b.CarriedFirst));
+            See("carriers behind", world.Diagnose().Depots.Any(d => d.SharePercent < 100));
             See("left resting", world.Phase == Phase.Resting);
             See("left active", world.Phase == Phase.Active);
             See("no free villagers", world.FreeVillagers == 0 && world.Projects.Count > 0);
         }
 
-        Assert.Superset(
-            new HashSet<string>(StringComparer.Ordinal)
-            {
-                "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "goods waiting for the ships", "paused", "paused off the home island",
-                "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
-            },
-            seen);
+        string[] wanted =
+        [
+            "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "goods waiting for the ships", "paused", "paused off the home island",
+            "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
+            "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
+        ];
+        Assert.Equal([], wanted.Where(w => !seen.Contains(w)).ToArray());
     }
 
     // INV-T5 is compared across dusk, where the villagers stop harvesting and the fields go on growing.
@@ -188,6 +198,20 @@ public sealed class LongAbsenceTests
             long capacity = Capacity(world, island);
             Assert.All(s_resources, r => Assert.InRange(world.Settlement.Stock(island, r), 0, capacity));
         }
+
+        // What waits at a building, the carriers' plan and the villagers they take (economy-v2.md, section 7; INV-V2).
+        foreach (var building in world.Buildings)
+        {
+            Assert.InRange(building.Waiting, 0, Quantity.Units(Logistics.OutboxUnits));
+            Assert.All(building.Held ?? [], held => Assert.InRange(held, 0, Quantity.Units(Logistics.InputUnits)));
+            if (Logistics.IsDepot(building.Kind))
+            {
+                Assert.InRange(building.CarrierCap, 1, Logistics.MostCarriers);
+                Assert.InRange(building.Carriers, building.Staffed ? 1 : 0, building.Staffed ? building.CarrierCap : 0);
+            }
+        }
+
+        Assert.InRange(world.FreeVillagers, 0, world.Villagers);
     }
 
     /// <summary>What an island's stores hold of each resource, in millionths (economy-v1.md, sections 2 and 5).</summary>
@@ -219,7 +243,7 @@ public sealed class LongAbsenceTests
             world.Housing,
             world.Buildings.Count,
             world.Buildings.Sum(b => b.Level),
-            world.Buildings.Count(b => b.HasRoad),
+            world.Roads.Count,
             Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i])),
             world.Settlement.SurveysDone,
             world.GameDay,
@@ -227,10 +251,17 @@ public sealed class LongAbsenceTests
             world.Projects.Count,
             world.Projects.Sum(p => p.WorkLeft),
             world.ExpeditionHoursLeft,
-            world.Villagers - world.FreeVillagers,
+            InBuildings(world),
             [.. world.StaffingOrder.Select(b => $"{b.Kind}@{b.Tile}")],
             [.. world.Buildings.Where(b => b.Paused).Select(b => $"{b.Kind}@{b.Tile}")],
             [.. world.Projects.Select(p => $"{p.Kind} {p.Building}@{p.Tile}")]);
+
+        /// <summary>
+        /// The villagers who staff a building, a depot's first carrier counted: the carriers it takes beyond that follow
+        /// the goods at each dawn and go back to building when the goods need fewer (D-109).
+        /// </summary>
+        private static int InBuildings(World world) =>
+            world.Buildings.Where(b => b.Staffed).Sum(b => Logistics.IsDepot(b.Kind) ? 1 : world.Content.For(b.Kind).Staff);
 
         public void AssertNotLowerThan(Measures earlier)
         {
@@ -258,18 +289,35 @@ public sealed class LongAbsenceTests
         }
     }
 
-    /// <summary>The stock of each resource on every island together, in millionths.</summary>
+    /// <summary>
+    /// The stock of each resource on every island together, in millionths, with what waits in the buildings' outboxes and
+    /// what the carriers have brought to the processing; and where each lies, to see that nothing moves during the rest.
+    /// </summary>
     private sealed class Stocks
     {
         private readonly long[] _total;
+        private readonly string _where;
 
-        private Stocks(long[] total) => _total = total;
+        private Stocks(long[] total, string where)
+        {
+            _total = total;
+            _where = where;
+        }
 
-        public static Stocks Of(World world) =>
-            new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r)))]);
+        public static Stocks Of(World world)
+        {
+            long Waiting(Resource r) => world.Buildings.Where(b => world.Content.For(b.Kind).Recipe?.Product == r).Sum(b => b.Waiting);
+            long Held(Resource r) => world.Buildings.Sum(b => b.Held?[(int)r] ?? 0);
+            string where = string.Join(
+                " ",
+                world.Islands.SelectMany(i => s_resources.Select(r => world.Settlement.Stock(i, r)))
+                    .Concat(world.Buildings.SelectMany(b => (b.Held ?? []).Prepend(b.Waiting))));
+            return new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r)) + Waiting(r) + Held(r))], where);
+        }
 
         /// <summary>
-        /// A store shrinks with time only by what recipes and basic needs consume (INV-R3): the sawmill takes two timber
+        /// A store shrinks with time only by what recipes and basic needs consume (INV-R3), and the carriers only move goods
+        /// between a building and a store (INV-R2): the sawmill takes two timber
         /// for a plank, the weavery two wool for a wadmal, and each dawn every villager eats one fish or grain and
         /// comfort takes two wadmal. The ships only move goods between the islands. Nothing changes while the villagers
         /// rest throughout (INV-T4).
@@ -279,7 +327,7 @@ public sealed class LongAbsenceTests
             long Change(Resource r) => _total[(int)r] - earlier._total[(int)r];
             if (restingThroughout)
             {
-                Assert.All(s_resources, r => Assert.Equal(0, Change(r)));
+                Assert.Equal(earlier._where, _where);
             }
 
             long wadmalMade = Change(Resource.Wadmal) + Quantity.Units(ComfortPerDawn * dawns);
@@ -296,10 +344,10 @@ public sealed class LongAbsenceTests
     /// INV-T5 read a tick at a time: fields, sheep and forests grow as much in a quarter hour of rest as in one of work.
     /// </summary>
     /// <remarks>
-    /// What a field or a sheep farm grows each tick is what ripened plus what reached a store, the weavery's wool
-    /// counted in its wadmal; it stays the same from one tick to the next until a dawn ends the workdays or a finished
-    /// project changes a level, a road or the way to a store. A forest tile grows back a quarter timber an hour until
-    /// full, whoever fells it.
+    /// What a field or a sheep farm grows each tick is what ripened plus what was harvested, waiting at the building, held
+    /// at the weavery or in a store, the weavery's wool counted in its wadmal; it stays the same from one tick to the next
+    /// until a dawn ends the workdays or a finished project changes a level. A forest tile grows back a quarter timber an
+    /// hour until full, whoever fells it.
     /// </remarks>
     private sealed class SlowProcesses(World world)
     {
@@ -350,7 +398,9 @@ public sealed class LongAbsenceTests
         private static (long Crops, long Forest, long ForestGrowth, int GameDay) Read(World w, WorldMap map)
         {
             var forestTiles = Enumerable.Range(0, map.Disc.Count).Select(i => map.Disc[i]).Where(h => map.TerrainAt(h) == Terrain.Forest).ToList();
-            long Total(Resource r) => w.Islands.Sum(i => w.Settlement.Stock(i, r));
+            long Total(Resource r) => w.Islands.Sum(i => w.Settlement.Stock(i, r))
+                + w.Buildings.Where(b => w.Content.For(b.Kind).Recipe?.Product == r).Sum(b => b.Waiting)
+                + w.Buildings.Sum(b => b.Held?[(int)r] ?? 0);
 
             long crops = w.Buildings.Where(b => b.Kind is BuildingKind.Field or BuildingKind.SheepFarm).Sum(b => b.Ripe)
                 + Total(Resource.Grain) + Total(Resource.Wool) + (2 * Total(Resource.Wadmal));

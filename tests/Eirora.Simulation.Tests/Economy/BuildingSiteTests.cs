@@ -159,24 +159,27 @@ public sealed class BuildingSiteTests
     }
 
     [Fact]
-    public void DistanceIsCountedInStepsOverLandSoTheBayMakesTheWayLonger()
+    public void TheWayIsCountedInStepsOverLandSoTheBayMakesItLonger()
     {
         // The fishing water east of the village lies three hexes from the storehouse, but the hut's carriers go ashore
-        // and round the water: four steps, so half its fish arrives (economy-v1.md, section 5).
+        // and round the water: four steps of 15 minutes each (economy-v2.md, section 7). The hut still fishes at full
+        // pace, and while the carriers keep up all of it reaches the store (D-110).
         var water = new Hex(3, 0);
         var world = Morning();
         Assert.Equal(3, water.DistanceTo(S));
-        Assert.Equal(4, world.DepotDistance(water));
-        Assert.Equal(1, world.DepotDistance(K1));
+        Assert.Equal((4, 4 * Logistics.StepTime, S), (world.TripFrom(water).Steps, world.TripFrom(water).Time, world.TripFrom(water).Depot));
+        Assert.Equal(1, world.TripFrom(K1).Steps);
         Assert.True(Apply(world, new Build(BuildingKind.FishingHut, water)).Accepted);
         world.AdvanceTo(At("2026-10-15 14:00", 2));
         Assert.True(world.BuildingAt(water)!.Staffed);
-        long before = world.Stock(Resource.Fish);
+        long Fish() => world.Settlement.Stock(Resource.Fish) + world.Buildings.Where(b => b.Kind == BuildingKind.FishingHut).Sum(b => b.Waiting);
+        long before = Fish();
 
         world.AdvanceTo(At("2026-10-15 22:00", 2));
 
-        // Eight hours: 1.25 fish an hour from the start hut and 0.625 from the far one.
-        Assert.Equal(15, world.Stock(Resource.Fish) - before);
+        // Eight hours of 1.25 fish an hour from each hut, nearly all of it in the store.
+        Assert.Equal(20 * Quantity.PerUnit, Fish() - before);
+        Assert.True(world.BuildingAt(water)!.Waiting <= Quantity.Units(1), $"{world.BuildingAt(water)!.Waiting} fish wait at the far hut.");
     }
 
     [Fact]
@@ -184,7 +187,7 @@ public sealed class BuildingSiteTests
     {
         var world = Morning();
 
-        Assert.Equal(int.MaxValue, world.DepotDistance(N1)); // No depot on Nyön yet.
+        Assert.False(world.TripFrom(N1).Reaches); // No depot on Nyön yet.
         Assert.Equal(PrototypeHome.Nyon, world.Settlement.IslandOf(N1));
         Assert.Equal(PrototypeHome.Home, world.Settlement.IslandOf(K1));
     }
