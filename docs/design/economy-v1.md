@@ -1,7 +1,7 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på brickor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037, TASK-044 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
+> **Ärende:** TASK-004, TASK-037, TASK-044, TASK-046 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`) · **Balansbotar:** [tools/Eirora.Balance](../../tools/Eirora.Balance) (TASK-048, avsnitt 7.1)
 
@@ -178,12 +178,37 @@ Resten av avsnittet beskriver ekonomi v1 som den var före regelversion 8.
 - En väg höjer avståndsklassen ett steg.
 - Ett förråd rymmer 150 av varje resurs.
   Fullt lager stoppar produktionen; inget går förlorat.
-- Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen.
+- Förädling lämnar ett **minimilager** av sin råvara, 20 tills spelaren ändrar det (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen; se [Lagerregler](#lagerregler).
 - Varje ö där spelaren har byggt har eget lager; öarna är kartans (TASK-045).
   En brygga utanför Hemön rymmer också 150 av varje resurs, så att varorna har någonstans att vänta på skeppen.
 - Varje ö med brygga får en egen sjöväg till Hemön när Hemön har en brygga.
-  Varje sjöväg för 40 enheter per spelardygn, delat mellan alla varor, i varornas fasta ordning tills spelaren får importprioritet (TASK-046).
+  Varje sjöväg för 40 enheter per spelardygn, delat mellan alla varor, i öns importprioritet och utom det som är reserverat där ([Lagerregler](#lagerregler)).
   Sjövägarna lastar av i kartans ordning när Hemöns lager bara rymmer en del.
+
+### Lagerregler
+
+Spelaren styr lagren med tre inställningar (LOG-06, P0 enligt D-44; TASK-046).
+Alla tre är gratis planering som inte kostar någon kraft men ändrar världen, så de nekas under vilan (D-23, INV-T3).
+De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-R1, INV-R2).
+
+- **Minimilager** per förädlingsbyggnad: hur mycket av råvaran som alltid blir kvar i öns lager, från 0 till det lagret rymmer.
+  Ett nytt sågverk eller väveri lämnar 20.
+  Bärarna bär bara fram råvara över minimilagret, så ett sågverk med minimilagret 40 och 45 timmer i lagret förädlar högst 5 timmer.
+- **Importprioritet** per sjöväg: i vilken ordning skeppen tar hem öns varor, till exempel sten före ull så att stenådern på Nyön inte trängs undan.
+  Utan spelarens ordning går varorna i sin fasta ordning: fisk, säd, timmer, plankor, sten, ull och tyg.
+  Ordningen kan sättas innan sjövägen öppnar.
+- **Reservering** per ö och vara: ett lager som skeppen inte tar hem och förädlingen inte tar, till exempel timmer på Nyön till byggen där.
+  Med 30 timmer reserverade på en ö lämnar sjövägen 30 timmer kvar där.
+  Byggen betalar ändå ur det reserverade, eftersom ett projekt betalas när det läggs i kön; reserveringen gäller lagret, och byborna äter som förut.
+
+Förädlingen lämnar det största av sitt minimilager och reserveringen på sin ö, så de två lägger sig inte på varandra.
+Diagnostiken säger vilket av dem som håller kvar råvaran, och en sjöväg som har plats över men lämnar varor för en reservering säger det också.
+Bärarna tar fortfarande först där det väntar mest, med spelarens prioritet först (D-111); minimilagret och reserveringen avgör bara hur mycket råvara som finns att bära fram.
+
+Inställningarna kom med regelversion 9.
+Migrationen dit ger varje sågverk och väveri minimilagret 20, sjövägarna den fasta ordningen och ingen reservering, så världen blir densamma (ADR-0006).
+Journaler från regelversion 8 spelas fortfarande upp, eftersom de saknar inställningarnas kommandon.
+Kalkylen räknar reglerna på små världar med bärare i tabellen *Lagerregler* sist i sin utskrift.
 
 ### Flaskhalsdiagnostik
 
@@ -195,7 +220,7 @@ Skälen är de som reglerna ovan ger, i den ordning de verkar:
 |---|---|---|
 | Pausad av spelaren | Står still | Att den är pausad och vad pausen kostar |
 | Bemanning saknas | Står still | Hur många bybor som saknas efter byggnaderna före den i bemanningen |
-| Råvaran är under minimilagret | Står still eller går långsammare | Vilken råvara och hur mycket som saknas för en timmes arbete i full takt |
+| Råvaran är under minimilagret eller reserveringen | Står still eller går långsammare | Vilken råvara, vilken av inställningarna som håller kvar den och hur mycket som saknas för en timmes arbete i full takt |
 | Skogen är fälld | Går långsammare eller står still | Hur många av skogsbrickorna som är fällda |
 | Lagret är fullt | Står still eller går långsammare | Vilken vara och hur mycket lagret rymmer |
 | Lång väg till förrådet | Går långsammare | Hur stor andel som når fram och vad en väg eller ett förråd intill skulle ge |
@@ -208,7 +233,7 @@ Ett sågverk som ändå saknar timmer får alltså ingen vinst av en väg, och d
 
 Byggkön ingår inte: en kvart då ett bygge blir klart kan ge en byggnad bybor, en nivå eller en väg innan den arbetar, och diagnostiken visar då vad byggnaderna gör som de står nu.
 
-Varje sjöväg visar hur stor del av sin kapacitet den använder och vad som väntar på ön den går från; sjövägarna delar på platsen i Hemöns lager i kartans ordning.
+Varje sjöväg visar hur stor del av sin kapacitet den använder, vad som väntar på ön den går från i importprioritetens ordning och när en reservering håller kvar varor som skeppen hade plats för; sjövägarna delar på platsen i Hemöns lager i kartans ordning.
 Varje ö får sin största flaskhals, skälet som kostar mest just nu, och när det är en råvara som saknas också var ett dagsverke gör mest nytta (avsnitt 6, beslut 3).
 En paus är spelarens eget val och blir aldrig öns flaskhals.
 Kartan markerar byggnader som står still med en skylt med två staplar medan byborna är vakna, så att formen och inte färgen bär det (UX-05).

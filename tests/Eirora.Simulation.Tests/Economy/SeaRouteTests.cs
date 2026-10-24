@@ -140,7 +140,7 @@ public sealed class SeaRouteTests
     /// as many storehouses on each as <paramref name="storehouses"/> says, and the goods <paramref name="stock"/> gives
     /// in whole units; the founding's other buildings are taken away. Written into its state.
     /// </summary>
-    private static World OnlyShips(
+    internal static World OnlyShips(
         Func<string, Resource, int> stock,
         int[]? storehouses = null,
         int secondOfDay = 7 * 3600,
@@ -179,7 +179,7 @@ public sealed class SeaRouteTests
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return Read(string.Join('\n', lines));
 
-        static string Line(BuildingKind kind, Hex tile) => $"building {kind} {tile.Q} {tile.R} 1 0 0 0 0 0 4 0 0 0 0 0";
+        static string Line(BuildingKind kind, Hex tile) => $"building {kind} {tile.Q} {tile.R} 1 0 0 0 0 0 4 0 0 0 0 0 0";
     }
 
     private static int Capacity(string island, int[] storehouses)

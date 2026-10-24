@@ -113,6 +113,9 @@ public sealed class FastForwardTests
                 // Fixed for the world.
                 "_map", "_home", "_founding", "_content",
 
+                // Set only by commands, which never run in a tick (TASK-046).
+                "_reserved", "_imports",
+
                 // Derived, or scratch for a single call.
                 "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_regrowing", "_jobs", "_before", "_after",
             ],
@@ -121,6 +124,9 @@ public sealed class FastForwardTests
                 "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
                 "<Carriers>k__BackingField", "<CarrierCap>k__BackingField", "<CarriedFirst>k__BackingField", "<Depot>k__BackingField", "<Waiting>k__BackingField", "<Held>k__BackingField",
                 "<Kind>k__BackingField", "<Tile>k__BackingField", "<Island>k__BackingField",
+
+                // Set only by a command, which never runs in a tick (TASK-046).
+                "<Reserve>k__BackingField",
             ],
             [typeof(Project)] = ["<WorkLeft>k__BackingField", "<Kind>k__BackingField", "<Building>k__BackingField", "<Tile>k__BackingField"],
 

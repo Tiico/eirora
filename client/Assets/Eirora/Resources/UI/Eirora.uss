@@ -288,6 +288,59 @@
     -unity-font-style: bold;
 }
 
+/* A good in an island's store, in the order the ships take them home, with a button to move it first (TASK-046). */
+.good {
+    flex-direction: row;
+    align-items: center;
+    margin: 5px 0;
+    padding: 10px 14px 10px 26px;
+    min-height: 92px;
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.10);
+    background-color: rgb(255, 252, 245);
+}
+
+/* The good whose reservation the stepper below sets. */
+.good-chosen {
+    border-color: rgb(43, 42, 51);
+}
+
+/* The good's name and stock, which choose it. */
+.good-pick {
+    flex-grow: 1;
+    flex-shrink: 1;
+    align-items: flex-start;
+    margin: 0;
+    padding: 0;
+    border-width: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.good-pick:hover,
+.good-pick:active {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.good-name {
+    font-size: 32px;
+    -unity-font-style: bold;
+    color: rgb(43, 42, 51);
+}
+
+.good-button {
+    flex-shrink: 0;
+    height: 68px;
+    margin: 0 0 0 20px;
+    padding: 0 30px;
+    border-radius: 34px;
+    border-width: 0;
+    background-color: rgba(43, 42, 51, 0.06);
+    color: rgb(43, 42, 51);
+    font-size: 29px;
+    -unity-font-style: bold;
+}
+
 .close {
     position: absolute;
     right: 18px;

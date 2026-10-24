@@ -205,11 +205,13 @@ internal static class BuiltOutWorld
         {
             < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
             4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
-            6 => (pick % 3) switch
+            6 => (pick % 6) switch
             {
                 0 => BuiltSite(world, pick, b => world.RoadToDepot(b.Tile).Count > 0) is Hex road ? new BuildRoad(road) : null,
                 1 => Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } free ? new LayRoad(free[pick % free.Count]) : null,
-                _ => world.Buildings.Where(b => Logistics.IsDepot(b.Kind)).ToList() is { Count: > 0 } depots ? new SetCarrierCap(depots[pick % depots.Count].Tile, 1 + (pick / 3 % Logistics.MostCarriers)) : null,
+                2 => world.Buildings.Where(b => Logistics.IsDepot(b.Kind)).ToList() is { Count: > 0 } depots ? new SetCarrierCap(depots[pick % depots.Count].Tile, 1 + (pick / 3 % Logistics.MostCarriers)) : null,
+                3 => BuiltSite(world, pick, b => b.Held is not null) is Hex processing ? new SetReserve(processing, pick / 6 % 9 * 5) : null,
+                _ => StockRule(world, pick),
             },
             7 => world.Buildings.Where(b => b.Staffed && !b.WorkdayToday && (world.Content.For(b.Kind).Produces || Logistics.IsDepot(b.Kind))).ToList() is { Count: > 0 } workers
                 ? new Workday(workers[pick % workers.Count].Tile)
@@ -219,6 +221,19 @@ internal static class BuiltOutWorld
             10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),
             _ => new Rush(),
         };
+    }
+
+    /// <summary>
+    /// A reservation on an island with a store or a resource moved in an island's import order (TASK-046), so that some
+    /// worlds keep timber on an island and ship stone before wool.
+    /// </summary>
+    private static GameCommand StockRule(World world, int pick)
+    {
+        var resource = (Resource)(pick / 6 % Enum.GetValues<Resource>().Length);
+        var away = world.Islands.Where(i => i != world.HomeIsland).ToList();
+        return pick % 6 == 5 && away.Count > 0
+            ? new MoveImport(away[pick / 7 % away.Count], resource, 0)
+            : new SetReservation(world.Islands[pick / 7 % world.Islands.Count], resource, 5 + (pick / 11 % 6 * 5));
     }
 
     /// <summary>A building that needs staff moved to another place in the staffing order, or none.</summary>

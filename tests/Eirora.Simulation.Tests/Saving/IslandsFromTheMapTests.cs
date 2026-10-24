@@ -82,7 +82,7 @@ public sealed class IslandsFromTheMapTests
         Assert.Equal(map.Islands.Select(i => i.Id).Where(i => i is Archipelago.Home or Archipelago.First or Archipelago.Second), stores.Select(s => s[1]).Distinct());
         Assert.All(stores.Where(s => s[1] == Archipelago.First), s => Assert.Equal("0", s[3]));
         Assert.Equal(Enum.GetValues<Resource>().Select(r => ((int)r + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)), stores.Where(s => s[1] == Archipelago.Second).Select(s => s[3]));
-        var reader = new StateReader(new RoadsAreTiles().Migrate(migrated, map));
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(migrated, 7, RulesVersion.Current, map));
         var read = World.Read(reader, map);
         reader.End();
         Assert.Equal(new[] { Archipelago.Home, Archipelago.First, Archipelago.Second }, read.Islands);

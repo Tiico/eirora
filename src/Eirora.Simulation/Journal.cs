@@ -28,6 +28,7 @@ namespace Eirora.Simulation
         private const string Header = "eirora-journal";
 
         private static readonly char[] s_lineBreak = { '\n' };
+        private static readonly char[] s_spaces = { ' ', '\n', '\r' };
 
         // The prototype journal's header and create line; empty for a journal that continues from a snapshot.
         private readonly string _start;
@@ -221,6 +222,9 @@ namespace Eirora.Simulation
             BuildRoad c => $"road {Text(c.Tile)}",
             LayRoad c => $"lay {Text(c.Tile)}",
             SetCarrierCap c => $"carriers {Text(c.Tile)} {Text(c.Cap)}",
+            SetReserve c => $"reserve {Text(c.Tile)} {Text(c.Units)}",
+            SetReservation c => $"reservation {Word(c.Island)} {c.Resource} {Text(c.Units)}",
+            MoveImport c => $"import {Word(c.Island)} {c.Resource} {Text(c.Place)}",
             Survey => "survey",
             Workday c => $"workday {Text(c.Tile)}",
             Rush => "rush",
@@ -242,6 +246,9 @@ namespace Eirora.Simulation
             "road" when f.Length == 5 => new BuildRoad(Tile(f, 3)),
             "lay" when f.Length == 5 => new LayRoad(Tile(f, 3)),
             "carriers" when f.Length == 6 => new SetCarrierCap(Tile(f, 3), Int(f[5])),
+            "reserve" when f.Length == 6 => new SetReserve(Tile(f, 3), Int(f[5])),
+            "reservation" when f.Length == 6 => new SetReservation(f[3], Enum<Resource>(f[4]), Int(f[5])),
+            "import" when f.Length == 6 => new MoveImport(f[3], Enum<Resource>(f[4]), Int(f[5])),
             "survey" when f.Length == 3 => new Survey(),
             "workday" when f.Length == 5 => new Workday(Tile(f, 3)),
             "rush" when f.Length == 3 => new Rush(),
@@ -288,5 +295,9 @@ namespace Eirora.Simulation
         private static string Text(long value) => value.ToString(CultureInfo.InvariantCulture);
 
         private static string Text(Hex tile) => $"{Text(tile.Q)} {Text(tile.R)}";
+
+        /// <summary>A map's id as one field of a line; a map's ids never hold spaces (WorldMapBuilder).</summary>
+        private static string Word(string id) =>
+            !string.IsNullOrEmpty(id) && id.IndexOfAny(s_spaces) < 0 ? id : throw new ArgumentException($"'{id}' cannot be journalled as an island.", nameof(id));
     }
 }

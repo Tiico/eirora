@@ -53,5 +53,8 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The building queue holds no such project.</summary>
         NotQueued,
+
+        /// <summary>The island has no store, or for an import order no ships sail home from it.</summary>
+        NoSuchIsland,
     }
 }

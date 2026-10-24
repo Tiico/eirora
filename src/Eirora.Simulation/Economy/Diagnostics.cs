@@ -179,10 +179,13 @@ namespace Eirora.Simulation.Economy
         /// <summary>The share of the capacity in use, in percent.</summary>
         public int UsedPercent => CapacityPerHour > 0 ? (int)(ShippedPerHour * 100 / CapacityPerHour) : 0;
 
-        /// <summary>Whole units waiting on the island the route sails from, by resource; only resources with any.</summary>
+        /// <summary>
+        /// Whole units waiting for the ships on the island the route sails from, in its import order: what is there but
+        /// the reservations, and only resources with any.
+        /// </summary>
         public IReadOnlyList<(Resource Resource, long Units)> Waiting { get; }
 
-        /// <summary>What keeps goods from reaching home, such as a full store there.</summary>
+        /// <summary>What keeps goods from reaching home, such as a full store there or a reservation on the island.</summary>
         public IReadOnlyList<Hindrance> Hindrances { get; }
     }
 

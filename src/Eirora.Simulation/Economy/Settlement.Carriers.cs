@@ -360,8 +360,9 @@ namespace Eirora.Simulation.Economy
         /// <summary>
         /// The carriers' quarter hour (D-111): each staffed depot in the staffing order, its carriers first where the
         /// player has put a building first and then where most waits, the fullest outbox or the processing with least of a
-        /// raw material left; a building's goods first, then its raw materials. A workday on the depot gives them 50 %
-        /// more time. What they cannot carry waits at the building (INV-R2).
+        /// raw material left; a building's goods first, then its raw materials, never below the building's minimum stock
+        /// or the island's reservation (TASK-046). A workday on the depot gives them 50 % more time. What they cannot carry
+        /// waits at the building (INV-R2).
         /// </summary>
         private void Carry()
         {
@@ -392,7 +393,7 @@ namespace Eirora.Simulation.Economy
                     {
                         foreach (var input in recipe.Inputs)
                         {
-                            long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Quantity.Units(ProcessingReserve));
+                            long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Kept(building, input.Resource).Kept);
                             if (wanted > 0)
                             {
                                 AddJob(new Job(building, input.Resource, wanted * OutboxUnits, trip));
@@ -414,7 +415,7 @@ namespace Eirora.Simulation.Economy
                     if (job.Input is Resource input)
                     {
                         var held = job.Building.Held!;
-                        moved = Min(Min(Quantity.Units(InputUnits) - held[(int)input], store[(int)input] - Quantity.Units(ProcessingReserve)), reach);
+                        moved = Min(Min(Quantity.Units(InputUnits) - held[(int)input], store[(int)input] - Kept(job.Building, input).Kept), reach);
                         if (moved <= 0)
                         {
                             continue;

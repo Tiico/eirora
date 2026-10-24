@@ -254,7 +254,7 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Den bär 40 enheter per spelardygn som i v1, delat mellan varorna och nu åt båda hållen.
   Först går det öns bosättning behöver för två dygn ut från hemön: mat till alla och kläder och dryck till de bostäder öns nivåer har.
   Sedan går öns varor hem, och ön behåller två dygns behov.
-  Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen.
+  Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen och hålla kvar varor på ön ([ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler)).
 - **Lagret.**
   Ett förråd rymmer 150 av varje resurs som i v1, och en brygga 50, så att en ö med bara en brygga har ett eget lager.
 
@@ -276,7 +276,7 @@ Havets strategi bygger därför Nyöns brygga före den första bostaden, så at
 - **En vända** är 4 enheter fram och tillbaka längs sökvägen över land.
   Ett steg tar 15 minuter, och 7,5 minuter in på en bricka med väg.
 - **Bärarna hämtar och lämnar.**
-  De hämtar det som väntar vid byggnaderna och bär råvara till förädlingen, som håller 4 enheter framme och aldrig tar förrådet under minimilagret på 20 (LOG-06).
+  De hämtar det som väntar vid byggnaderna och bär råvara till förädlingen, som håller 4 enheter framme och aldrig tar förrådet under sitt minimilager, 20 som standard, eller under öns reservering (LOG-06, TASK-046).
   De tar först där det väntar mest: det fullaste utlagret eller den förädling som har minst råvara kvar, och spelarens prioritet går före (D-111).
   Spelarens prioritet är ett uttryckligt läge, inte platsen i bemanningsordningen (förtydligande av D-111): en byggnad som spelaren flyttat upp där tar bärarna först, också när andra flyttas upp ovanför den.
   Flyttad ned igen tar de den där det väntar mest, och förråd och bryggor får aldrig läget.

@@ -62,6 +62,13 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public Hex? Depot { get; internal set; }
 
+        /// <summary>
+        /// Whole units of each raw material that the carriers always leave in the island's store for building (GLOSSARY:
+        /// Minimilager, LOG-06): 0 to what the store holds, <see cref="StockRules.StandardReserve"/> when it is built; free
+        /// planning (D-23). 0 for a building without raw materials.
+        /// </summary>
+        public int Reserve { get; internal set; }
+
         /// <summary>Whole units of its product waiting for the carriers in its outbox (economy-v2.md, section 7).</summary>
         public long WaitingUnits => Quantity.Whole(Waiting);
 
@@ -90,6 +97,7 @@ namespace Eirora.Simulation.Economy
             CarrierCap = CarrierCap,
             CarriedFirst = CarriedFirst,
             Depot = Depot,
+            Reserve = Reserve,
             Ripe = Ripe,
             Waiting = Waiting,
             Held = (long[]?)Held?.Clone(),

@@ -106,11 +106,19 @@ Bybor som ett förråd eller en brygga anställer själv vid gryningen, en till 
 _Avoid_: transportör, kärra (som term)
 
 **Minimilager** (`Reserve`):
-En gratis planeringsinställning som anger hur mycket av en råvara förädlingen alltid lämnar kvar.
+En gratis planeringsinställning per förädlingsbyggnad som anger hur mycket av dess råvara som alltid blir kvar i öns lager, 20 som standard (LOG-06).
 _Avoid_: buffert, spärr
 
+**Reservering** (`Reservation`):
+En gratis planeringsinställning per ö och vara som anger ett lager som skeppen inte tar hem och förädlingen inte tar; byggen betalar ändå ur det (LOG-06).
+_Avoid_: spärr, låsning
+
+**Importprioritet** (`ImportOrder`):
+Den ordning skeppen tar hem en ös varor i på sjövägen, som spelaren ordnar gratis; utan spelarens ordning går varorna i sin fasta ordning (LOG-06).
+_Avoid_: kö (om varorna), lastordning
+
 **Flaskhals** (`Bottleneck`):
-Det som just nu håller tillbaka en byggnad eller en ö mest: en paus, bemanning som saknas, råvara under minimilagret, fälld skog, fullt lager, inget bemannat förråd eller bärare som inte hinner; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
+Det som just nu håller tillbaka en byggnad eller en ö mest: en paus, bemanning som saknas, råvara under minimilagret eller reserveringen, fälld skog, fullt lager, inget bemannat förråd eller bärare som inte hinner; flaskhalsdiagnostiken läser den ur världen utan att ändra den och visar vad en väg, ett förråd eller fler bärare skulle ge (CIV-05, LOG-03, D-107).
 _Avoid_: blockering, stopp (som term)
 
 **Långsam process** (`SlowProcess`):
