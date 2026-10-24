@@ -98,6 +98,27 @@ public sealed class BalanceRunTests
         }
     }
 
+    // Moving a building by demolishing it and building it again costs half its materials and all its force (D-108), so it
+    // pays only what the better site gives (economy-v1.md, section 3.2; TASK-047): the start woodcutter moved to the
+    // richest forest gains at most a fifth over Närområdet in four weeks, on the prototype's map and on twelve generated
+    // ones, and the bot keeps the invariants with the demolition between two checks.
+    [Fact]
+    public void MovingABuildingByDemolishingItPaysAtMostWhatTheBetterSiteGives()
+    {
+        var maps = new[] { MapChoice.Prototype }.Concat(Enumerable.Range(0, 12).Select(seed => MapChoice.Generated((ulong)seed)));
+        foreach (var map in maps)
+        {
+            var near = BalanceRun.Play(new RunSpec(map, Strategy.Near, SelfCareProfile.Normal, 28));
+            var moved = BalanceRun.Play(new RunSpec(map, Strategy.NearMoved, SelfCareProfile.Normal, 28));
+
+            string name = map.Seed is ulong seed ? $"seed {seed}" : "the prototype";
+            Assert.True(moved.PlanFinishedOn is not null, $"{name}: moving is stuck on {string.Join(", ", moved.GoalsPending)}.");
+            Assert.Contains(moved.Decisions, d => d.Command is Simulation.Commands.Demolish);
+            Assert.Equal(28 * 24, moved.HoursChecked);
+            Assert.True(moved.Values[^1] * 5 <= near.Values[^1] * 6, $"{name}: moving ends at {moved.Values[^1]} against {near.Values[^1]}.");
+        }
+    }
+
     [Fact]
     public void TheDevelopmentValueStartsWhereTheModelsDoes()
     {

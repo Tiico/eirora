@@ -10,8 +10,9 @@ namespace Eirora.Balance;
 /// are never negative (INV-F1) and never decrease with time alone (INV-F6).
 /// </summary>
 /// <remarks>
-/// Only commands spend forces, and the bots send them at dawn, between two checks; <see cref="AfterCommands"/> takes the
-/// forces as they stand after them, so that the next check sees only what time did.
+/// Only commands spend forces and demolish buildings (D-38), and the bots send them at dawn, between two checks;
+/// <see cref="AfterCommands"/> takes the forces and the measures as they stand after them, so that the next check sees
+/// only what time did.
 /// </remarks>
 internal sealed class Invariants
 {
@@ -33,8 +34,12 @@ internal sealed class Invariants
     /// <summary>Hours checked so far.</summary>
     public int Hours { get; private set; }
 
-    /// <summary>Takes the forces as the commands just sent left them.</summary>
-    public void AfterCommands(World world) => _forces = Forces(world);
+    /// <summary>Takes the forces and the measures as the commands just sent left them.</summary>
+    public void AfterCommands(World world)
+    {
+        _forces = Forces(world);
+        _previous = Monotone(world);
+    }
 
     /// <exception cref="InvariantViolationException">Something decayed or left its bounds.</exception>
     public void Check(World world, int day)

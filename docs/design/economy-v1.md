@@ -154,6 +154,13 @@ Det kom med regelversion 9 (TASK-047).
 
 Kalkylen har regeln i `World.demolition` och `World.demolish`.
 
+**Att flytta en byggnad lönar sig bara med vad den bättre platsen ger.**
+Balansbotarnas *Närområdet, flyttad* spelar Närområdet men river startbyns huggarkoja när kartläggningen hittat den rikaste skogen och bygger den igen där, för 3 timmer netto och 8 timmars arbete.
+På prototypens karta ligger flytten 6 % över Närområdet efter en vecka men lika efter fyra, eftersom Närområdet ändå bygger en huggarkoja vid den rikaste skogen.
+På tolv genererade kartor slutar flytten efter fyra veckor i median 7 % och som mest 15 % över Närområdet, och på fyra av dem lika eller under, eftersom startbyns huggarkoja där står på slät mark intill skogen och inte vid den rikaste.
+Flytten är alltså ett engångslyft för en illa placerad byggnad, inte en strategi att upprepa.
+Testet `MovingABuildingByDemolishingItPaysAtMostWhatTheBetterSiteGives` håller vinsten under en femtedel, så att en regeländring som gör flytten mer lönsam syns.
+
 ## 4. Bybor, basbehov och vila
 
 - Varje bybo äter 1 mat per spelardygn vid gryningen, fisk först och sedan säd.
