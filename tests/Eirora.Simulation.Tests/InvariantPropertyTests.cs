@@ -126,7 +126,8 @@ public sealed class InvariantPropertyTests
         return world.Fingerprint() == scenario.Run().Fingerprint();
     }
 
-    // Checked after every step: INV-D7, INV-D8, INV-R1, INV-V1, INV-V2, INV-F1 and one building to a tile.
+    // Checked after every step: INV-D7, INV-D8, INV-R1, INV-V1, INV-V2, INV-F1 and one building to a tile. Only the
+    // building a demolition took away is less than before (D-38).
     [Property(MaxTest = 50)]
     public void EveryStepKeepsTheWorldsInvariants(int seed)
     {
@@ -139,11 +140,14 @@ public sealed class InvariantPropertyTests
             var was = Measures.Of(world);
             if (input is Scenario.Command command)
             {
-                var result = world.Apply(command.Key, command.For(world));
+                var made = command.For(world);
+                var result = world.Apply(command.Key, made);
                 if (!result.Accepted)
                 {
                     Assert.Equal(before, world.Fingerprint()); // INV-D7.
                 }
+
+                Measures.Of(world).AssertNotLowerThan(was, result.Accepted && made is Demolish demolish ? demolish.Tile : null); // INV-V1.
             }
             else
             {
@@ -206,13 +210,13 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        Assert.Equal(16, accepted.Count); // Every kind of command.
-        Assert.Superset(
-            new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued },
-            rejections);
-        Assert.Superset(
-            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second", "road", "held" },
-            records);
+        Assert.Equal(17, accepted.Count); // Every kind of command.
+        Rejection[] wantedRejections =
+            [Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued, Rejection.LastStorehouse];
+        Assert.Equal([], wantedRejections.Except(rejections));
+        string[] wantedRecords =
+            ["cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-second", "road", "held", "building-demolished"];
+        Assert.Equal([], wantedRecords.Except(records));
         Assert.True(duplicates > 50, $"Only {duplicates} duplicates.");
     }
 
@@ -227,20 +231,24 @@ public sealed class InvariantPropertyTests
         _ => 0,
     });
 
-    private sealed record Measures(long UtcSeconds, int Villagers, int Buildings, int Levels, int Revealed)
+    /// <summary>What never decreases (INV-V1): the villagers, each building and its level, and the known tiles.</summary>
+    private sealed record Measures(long UtcSeconds, int Villagers, IReadOnlyDictionary<Hex, (BuildingKind Kind, int Level)> Buildings, int Revealed)
     {
         public static Measures Of(World world) => new(
             world.Now.UtcSeconds,
             world.Villagers,
-            world.Buildings.Count,
-            world.Buildings.Sum(b => b.Level),
+            world.Buildings.ToDictionary(b => b.Tile, b => (b.Kind, b.Level)),
             Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i])));
 
-        public void AssertNotLowerThan(Measures earlier)
+        /// <summary>Nothing is lower than <paramref name="earlier"/>, but for the building demolished on <paramref name="demolished"/>.</summary>
+        public void AssertNotLowerThan(Measures earlier, Hex? demolished = null)
         {
             Assert.True(Villagers >= earlier.Villagers);
-            Assert.True(Buildings >= earlier.Buildings);
-            Assert.True(Levels >= earlier.Levels);
+            Assert.All(earlier.Buildings.Where(b => b.Key != demolished), b =>
+            {
+                Assert.True(Buildings.TryGetValue(b.Key, out var now) && now.Kind == b.Value.Kind, $"The {b.Value.Kind} on {b.Key} is gone.");
+                Assert.True(now.Level >= b.Value.Level);
+            });
             Assert.True(Revealed >= earlier.Revealed);
         }
     }

@@ -92,6 +92,21 @@ namespace Eirora.Simulation.Events
         public Hex Tile { get; }
     }
 
+    /// <summary>The player demolished a building (D-38): the tile is free and half its materials came back (D-108).</summary>
+    public sealed class BuildingDemolished : GameEvent
+    {
+        public BuildingDemolished(long utcSeconds, BuildingKind building, Hex tile)
+            : base(utcSeconds)
+        {
+            Building = building;
+            Tile = tile;
+        }
+
+        public BuildingKind Building { get; }
+
+        public Hex Tile { get; }
+    }
+
     /// <summary>Surveying lifted the fog from these tiles (MAP-04).</summary>
     public sealed class TilesRevealed : GameEvent
     {

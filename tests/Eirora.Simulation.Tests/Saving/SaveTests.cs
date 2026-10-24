@@ -113,7 +113,7 @@ public sealed class SaveTests
         int current = line == "rules" ? RulesVersion.Current : ContentVersion.Current;
         string text = Encoding.UTF8.GetString(PlayedSave().ToBytes());
 
-        string newer = Reseal(text.Replace($"\n{line} {current}\n", $"\n{line} {current + 1}\n", StringComparison.Ordinal));
+        string newer = Reseal(text, change: record => record.Replace($"\n{line} {current}\n", $"\n{line} {current + 1}\n", StringComparison.Ordinal));
 
         Assert.Throws<SavedByNewerVersionException>(() => Save.Load(Encoding.UTF8.GetBytes(newer)));
     }
@@ -221,7 +221,11 @@ public sealed class SaveTests
     }
 
     /// <summary>Gives a hand-changed save a matching hash, and its snapshots too.</summary>
-    private static string Reseal(string save, int format = Save.FormatVersion)
+    /// <summary>
+    /// A save framed again after <paramref name="change"/> has changed its records' text, each record's length and each
+    /// snapshot's hash written for its new text, so that only the change is wrong.
+    /// </summary>
+    private static string Reseal(string save, int format = Save.FormatVersion, Func<string, string>? change = null)
     {
         int bodyStart = save.IndexOf('\n', save.IndexOf('\n') + 1) + 1;
         string body = save[bodyStart..];
@@ -232,7 +236,7 @@ public sealed class SaveTests
             int lineEnd = body.IndexOf('\n', at);
             var fields = body[at..lineEnd].Split(' ');
             int length = int.Parse(fields[1], CultureInfo.InvariantCulture);
-            string text = body.Substring(lineEnd + 1, length);
+            string text = change is null ? body.Substring(lineEnd + 1, length) : change(body.Substring(lineEnd + 1, length));
             if (text.StartsWith("eirora-snapshot", StringComparison.Ordinal))
             {
                 var lines = text.Split('\n');

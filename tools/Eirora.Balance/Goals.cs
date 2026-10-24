@@ -1,6 +1,7 @@
 using Eirora.Simulation;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Forces;
 using Eirora.Simulation.Map;
 
 namespace Eirora.Balance;
@@ -127,6 +128,53 @@ public sealed class BuildOne : Goal
         Where.ExpeditionIsland => [sites.ExpeditionIsland],
         _ => [sites.ExpeditionIsland, sites.Home],
     };
+}
+
+/// <summary>
+/// Moves the home island's first building of a kind to where <see cref="Placement"/> chooses, by demolishing it and
+/// building it again there at the same dawn once the materials and Build Power for the new one are at hand (D-38, D-108):
+/// half the old one's materials come back and no force. Done once it stands, or is queued, where the placement chooses.
+/// </summary>
+public sealed class MoveOne : Goal
+{
+    public MoveOne(BuildingKind building, Placement placement)
+    {
+        Building = building;
+        Placement = placement;
+    }
+
+    public BuildingKind Building { get; }
+
+    public Placement Placement { get; }
+
+    public override string Name => $"flytta {Names.Of(Building)}";
+
+    internal override GoalStatus Pursue(Turn turn)
+    {
+        var world = turn.World;
+        string home = turn.Sites.Home;
+        var free = turn.Sites.Free(Building, home).Where(tile => world.CheckBuild(Building, tile) == Rejection.None).ToList();
+        if (free.Count == 0)
+        {
+            return turn.MayReveal(home) ? GoalStatus.Pending : GoalStatus.Skipped;
+        }
+
+        var site = Placements.Choose(Placement, Building, free, turn.Sites, world.Map.Start);
+        var spec = world.Content.For(Building);
+        bool affordable = spec.Cost.All(c => world.Stock(home, c.Key) >= c.Value) && world.Available(Force.BuildPower) >= spec.BuildPower;
+        if (!affordable)
+        {
+            return GoalStatus.Pending;
+        }
+
+        // Demolished at an earlier dawn but not built again, as when the build was refused: it is built now.
+        if (world.Buildings.FirstOrDefault(b => b.Kind == Building && b.Island == home) is { } old && !turn.Apply(new Demolish(old.Tile)).Accepted)
+        {
+            return GoalStatus.Pending;
+        }
+
+        return turn.Apply(new Build(Building, site)).Accepted ? GoalStatus.Done : GoalStatus.Pending;
+    }
 }
 
 /// <summary>Upgrades the building of a kind that yields the most, once one stands.</summary>

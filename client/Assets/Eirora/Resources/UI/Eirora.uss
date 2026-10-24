@@ -301,6 +301,25 @@
     color: rgb(43, 42, 51);
 }
 
+/* Demolition beside the close button on a building's sheet, so that it makes no sheet taller (TASK-047). */
+.sheet-demolish {
+    position: absolute;
+    right: 106px;
+    top: 14px;
+    height: 76px;
+    padding: 0 28px;
+    border-radius: 38px;
+    font-size: 30px;
+    -unity-font-style: bold;
+    background-color: rgba(43, 42, 51, 0.06);
+    border-width: 0;
+    color: rgb(180, 71, 58);
+}
+
+.sheet-demolish:active {
+    background-color: rgba(43, 42, 51, 0.12);
+}
+
 .night {
     background-color: rgba(16, 24, 48, 0.86);
     border-color: rgba(255, 210, 122, 0.25);

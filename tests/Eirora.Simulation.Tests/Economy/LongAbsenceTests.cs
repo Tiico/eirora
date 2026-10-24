@@ -17,7 +17,8 @@ namespace Eirora.Simulation.Tests.Economy;
 /// never fewer villagers are at work (INV-V2). Some worlds have a store on each of three islands and two sea routes
 /// home (TASK-045), whose shipping only moves goods between the stores. The carriers only move goods between the
 /// buildings' outboxes, the raw materials held at the processing and the stores, never while the villagers rest
-/// (INV-R2, INV-T4; TASK-051), and the roads stay.
+/// (INV-R2, INV-T4; TASK-051), and the roads stay. Some worlds were left just after a demolition, now and then with
+/// more villagers than room, who all stay while the village waits for room to grow (D-38, D-39; TASK-047).
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -135,6 +136,8 @@ public sealed class LongAbsenceTests
             See("left resting", world.Phase == Phase.Resting);
             See("left active", world.Phase == Phase.Active);
             See("no free villagers", world.FreeVillagers == 0 && world.Projects.Count > 0);
+            See("demolished", world.Fingerprint().Contains("\nbuilding-demolished ", StringComparison.Ordinal));
+            See("more villagers than room", world.Villagers > world.Housing);
         }
 
         string[] wanted =
@@ -142,6 +145,7 @@ public sealed class LongAbsenceTests
             "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "goods waiting for the ships", "paused", "paused off the home island",
             "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
             "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
+            "demolished", "more villagers than room",
         ];
         Assert.Equal([], wanted.Where(w => !seen.Contains(w)).ToArray());
     }

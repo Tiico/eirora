@@ -1,0 +1,945 @@
+eirora-save 3
+sha256 ca39845bae010c1636778a7b2ceec328a7cf4b7ed329206fcc34956c6ba1690d
+map 6206
+eirora-map 1
+radius 24
+source procedural
+generator procedural-archipelago 1
+seed ffffffffffffffff
+start 0 0
+island home 0 0
+island first 16 -11
+island second -18 9
+island skerry-1 11 -19
+island skerry-2 3 -9
+island skerry-3 -3 15
+island skerry-4 -5 -11
+island skerry-5 5 -8
+island skerry-6 -11 9
+island skerry-7 -17 4
+island skerry-8 -8 4
+island skerry-9 -2 12
+island skerry-10 2 11
+island skerry-11 -8 8
+island skerry-12 8 -9
+row -24 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -23 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -22 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -21 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -20 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -19 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 S1 B2 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -18 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -17 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -16 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -15 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -14 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 D0
+row -13 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 M5:200 B2 S1 D0 D0 D0 D0 D0
+row -12 D0 D0 D0 D0 D0 D0 S1 B2 F3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 P3:200 S1 G3 B2 S1 D0 D0 D0 D0 D0
+row -11 D0 D0 D0 D0 D0 D0 D0 S1 F3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 S1 G3 G3 B2 S1 D0 D0 D0 D0 D0 D0
+row -10 D0 D0 D0 D0 D0 D0 D0 D0 S1 M4 S1 D0 S1 D0 D0 D0 D0 S1 S1 D0 D0 S1 M4 F3 S1 D0 D0 D0 S1 B2 G3 S1 D0 D0 D0 D0 D0 D0 D0
+row -9 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 S1 S1 S1 D0 D0 S1 B2 S1 S1 S1 S1 B2 F3 S1 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0
+row -8 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 D0 D0 D0 S1 S1 S1 B2 S1 S1 F3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -7 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 D0 D0 D0 S1 S1 S1 S1 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -6 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 G3 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -5 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 B2 G3 G3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -4 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 G3 G3 G3 M5 B2 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -3 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 B2 G3 F4 F3 B2 B2 B2 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -2 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 M4 G3 M6 G3 G3 F3 M4 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row -1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 G3 G3 A4 F4 F4 G3 G3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 B2 G3 G4 A4 F4 F3 M4 M4 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 B2 G3 G4 A4 G3 F3 F3 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 2 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 B2 B2 G3 G3 M5 A3 B2 F3 M4 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 3 D0 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 D0 D0 S1 S1 S1 S1 S1 F3 F3 P3 P3 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 4 D0 D0 D0 D0 D0 D0 S1 B2 G3 S1 D0 D0 D0 D0 D0 S1 F3 S1 D0 S1 G3 G3 F3 P3 M4 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 5 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 D0 S1 S1 B2 S1 S1 M4 S1 S1 B2 B2 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 6 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 S1 S1 S1 S1 D0 S1 S1 D0 S1 S1 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 D0 D0 D0 D0 D0 D0
+row 7 D0 D0 D0 D0 D0 S1 G3 B2 S1 D0 D0 D0 D0 S1 D0 S1 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 D0 D0 D0 D0 D0 D0
+row 8 D0 D0 D0 D0 S1 F3:150 F3:150 F3:150 S1 D0 D0 D0 D0 S1 S1 S1 B2 G3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 D0 D0 D0 D0 D0 D0
+row 9 D0 D0 D0 S1 B2 A3:150 G3 G3 S1 D0 D0 D0 S1 B2 S1 S1 M4 S1 S1 S1 D0 D0 D0 D0 D0 D0 S1 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 10 D0 D0 D0 S1 G3 B2 B2 G3 S1 D0 D0 D0 S1 S1 D0 S1 S1 D0 D0 S1 S1 D0 S1 S1 S1 S1 B2 F3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 11 D0 D0 D0 S1 G3 S1:150 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 M4 B2 S1 S1 M4 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 12 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 G3 M4 G3 S1 S1 G3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 13 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 S1 S1 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 14 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 15 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 F3 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 16 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 B2 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 17 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 18 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 19 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 20 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 S1 S1 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 21 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 22 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 23 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+row 24 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
+latest 3962
+eirora-snapshot 1
+rules 9
+content 1
+time 1799138376
+state-sha256 c34ced5f17a8eaaed189b73156188a113c3302091c97ce18d7e607483de4bb9d
+map 641fc6a76e80571e133d523dd2a771e9f17aed8f2ae438b94e4e310326341e0e
+cycle 1799138376 America/New_York -14400 Resting 61 1320 570
+created 1793815200
+day-start 53 1798371000
+day-start 54 1798457400
+day-start 55 1798543800
+day-start 56 1798630200
+day-start 57 1798716600
+day-start 58 1798803000
+day-start 59 1798889400
+day-start 60 1798975800
+day-start 61 1799062200
+rest 1799134200 America/New_York -14400
+force Exploration 3770 3
+force BuildPower 10 46
+force DawnPower 1680 18
+settlement 44 2 0
+stock home Fish 36250000
+stock home Grain 450000000
+stock home Timber 19500000
+stock home Planks 42687500
+stock home Stone 369812500
+stock home Wool 95083334
+stock home Wadmal 2416657
+stock first Fish 0
+stock first Grain 0
+stock first Timber 0
+stock first Planks 0
+stock first Stone 52437500
+stock first Wool 0
+stock first Wadmal 0
+stock second Fish 0
+stock second Grain 0
+stock second Timber 0
+stock second Planks 0
+stock second Stone 0
+stock second Wool 0
+stock second Wadmal 0
+building FishingHut -2 -1 1 0 0 0 1 0 0 0 0 1 0 0
+building Woodcutter 0 -2 1 0 0 0 1 0 0 1 0 1 0 0
+building Field 1 -1 1 1 0 460218826 0 0 0 0 8000000 1 0 0
+building Longhouse -1 -1 1 0 0 0 0 0 0 0 0 0 0 0
+building Sawmill -2 2 1 0 0 0 1 0 0 0 0 1 0 0
+held Timber 375000
+building Quarry 2 -4 1 0 0 0 1 0 0 0 0 1 0 0
+building Field 0 1 1 0 0 138250040 1 0 0 0 0 1 0 0
+building Jetty 0 3 1 1 0 0 0 1 3 0 0 0 0 0
+building Field 0 2 2 1 0 360625000 0 0 0 0 8000000 1 1 2
+building Storehouse 1 2 1 1 0 0 0 1 4 0 0 0 0 0
+building Jetty -17 10 1 1 0 0 0 1 4 0 0 0 0 0
+building Cottage 1 -5 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -17 9 1 0 0 0 0 0 0 0 0 0 0 0
+building Storehouse 0 0 1 1 0 0 0 2 4 0 0 0 0 0
+building Storehouse -19 9 1 1 0 0 0 1 4 0 0 0 0 0
+building Field 1 0 1 1 0 250624884 0 0 0 0 8000000 1 0 0
+building Storehouse -18 8 1 1 0 0 0 1 2 0 0 0 0 0
+building Lookout 3 -1 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -20 11 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -18 10 1 0 0 0 0 0 0 0 0 0 0 0
+building FishingHut -16 7 1 0 0 0 1 0 0 0 0 1 -18 8
+building Lookout -5 2 1 0 0 0 0 0 0 0 0 0 0 0
+building Cottage -19 8 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -20 10 1 0 0 0 0 0 0 0 0 0 0 0
+building Woodcutter -2 3 1 1 0 0 0 0 0 0 0 1 0 3
+building Lookout -20 9 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 0 -1 1 0 0 0 0 0 0 0 0 0 0 0
+building Quarry 3 2 1 1 0 0 0 0 0 0 187500 1 1 2
+building Cottage 1 1 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -18 9 1 0 0 0 0 0 0 0 0 0 0 0
+building Jetty 17 -11 1 1 0 0 0 1 4 0 0 0 0 0
+building Lookout -17 8 1 0 0 0 0 0 0 0 0 0 0 0
+building Quarry 17 -13 1 1 1 0 0 0 0 0 0 1 17 -11
+building Storehouse -19 10 1 1 0 0 0 1 4 0 0 0 0 0
+building Lookout 15 -10 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -18 7 1 0 0 0 0 0 0 0 0 0 0 0
+building FishingHut 18 -11 1 1 0 0 0 0 0 0 0 1 17 -11
+building FishingHut -16 10 1 1 0 0 0 0 0 0 0 1 -17 10
+building Sawmill 1 -4 1 1 0 0 0 0 0 0 0 1 0 0
+building Storehouse -4 2 1 1 0 0 0 1 4 0 0 0 0 0
+building SheepFarm -1 3 1 1 0 2700000 0 0 0 0 0 1 0 3
+building Cottage 17 -12 1 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 4 -3 1 0 0 0 0 0 0 0 0 0 0 0
+building Jetty 2 2 1 1 0 0 0 1 4 0 0 0 0 0
+building Weavery 4 -1 1 1 0 0 0 0 0 0 583343 1 1 2
+held Wool 3916666
+building Weavery 2 0 1 1 0 0 0 0 0 0 0 1 0 0
+held Wool 4000000
+building Lookout -1 -4 1 0 0 0 0 0 0 0 0 0 0 0
+project Build Lookout -1 1 1250
+road 0 -1
+road -2 0
+road -1 0
+fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000380000000f80000000fc00000003e000000007800000000700000000000000000c0000000003c000000000fc000000000ff8000000003fe0000000007fc0000000007fc0000000007fe000000000ffe000000001ffc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+contributions 12974
+of c34ced5f17a8eaaed189b73156188a113c3302091c97ce18d7e607483de4bb9d
+selfcare -2 Steps Verified 19627
+selfcare -1 Sleep SelfReported 103
+selfcare 23 Steps SelfReported 17281
+selfcare 33 Steps Verified 27102
+selfcare 33 Workouts Verified 3
+selfcare 33 Sleep Verified 500
+selfcare 34 Steps Verified 36294
+selfcare 34 Workouts Verified 2
+selfcare 34 Sleep Verified 509
+selfcare 35 Steps Verified 16534
+selfcare 35 Workouts Verified 3
+selfcare 35 Sleep Verified 490
+selfcare 36 Steps Verified 37847
+selfcare 36 Workouts Verified 3
+selfcare 36 Sleep Verified 391
+selfcare 37 Steps Verified 28054
+selfcare 37 Workouts Verified 3
+selfcare 37 Sleep Verified 413
+selfcare 38 Steps Verified 21212
+selfcare 38 Workouts Verified 3
+selfcare 38 Sleep Verified 477
+selfcare 39 Steps Verified 34179
+selfcare 39 Workouts Verified 1
+selfcare 39 Sleep Verified 510
+selfcare 40 Steps Verified 40609
+selfcare 40 Workouts Verified 1
+selfcare 40 Sleep Verified 425
+selfcare 41 Steps Verified 21537
+selfcare 41 Workouts Verified 2
+selfcare 41 Sleep Verified 530
+selfcare 42 Steps Verified 26198
+selfcare 42 Workouts Verified 3
+selfcare 42 Sleep Verified 521
+selfcare 43 Steps Verified 31798
+selfcare 43 Workouts Verified 2
+selfcare 43 Sleep Verified 381
+selfcare 44 Steps Verified 34527
+selfcare 44 Workouts Verified 2
+selfcare 44 Sleep Verified 361
+selfcare 45 Steps Verified 46301
+selfcare 45 Workouts Verified 1
+selfcare 45 Sleep Verified 382
+selfcare 46 Steps Verified 42607
+selfcare 46 Workouts Verified 3
+selfcare 46 Sleep Verified 409
+selfcare 47 Steps Verified 32496
+selfcare 47 Workouts Verified 1
+selfcare 47 Sleep Verified 452
+selfcare 48 Steps Verified 27313
+selfcare 48 Workouts Verified 2
+selfcare 48 Sleep Verified 447
+selfcare 49 Steps Verified 23785
+selfcare 49 Workouts Verified 3
+selfcare 49 Sleep Verified 449
+selfcare 50 Steps Verified 46424
+selfcare 50 Workouts Verified 1
+selfcare 50 Sleep Verified 484
+selfcare 51 Steps Verified 44128
+selfcare 51 Workouts Verified 1
+selfcare 51 Sleep Verified 389
+credited -2 Steps 109
+credited -1 Sleep 53
+credited 0 Sleep 40
+credited 1 Sleep 40
+credited 2 Sleep 40
+credited 3 Sleep 40
+credited 4 Sleep 40
+credited 5 Sleep 40
+credited 6 Sleep 40
+credited 7 Sleep 40
+credited 8 Sleep 40
+credited 9 Sleep 40
+credited 10 Sleep 40
+credited 11 Sleep 40
+credited 12 Sleep 40
+credited 13 Sleep 40
+credited 14 Sleep 40
+credited 15 Sleep 40
+credited 16 Sleep 40
+credited 17 Sleep 40
+credited 18 Sleep 40
+credited 19 Sleep 40
+credited 20 Sleep 40
+credited 21 Sleep 40
+credited 22 Sleep 40
+credited 23 Steps 106
+credited 23 Sleep 40
+credited 24 Sleep 40
+credited 25 Sleep 40
+credited 26 Sleep 40
+credited 27 Sleep 40
+credited 28 Sleep 40
+credited 29 Sleep 40
+credited 30 Sleep 40
+credited 31 Sleep 40
+credited 32 Sleep 40
+credited 33 Steps 110
+credited 33 Workouts 270
+credited 33 Sleep 98
+credited 34 Steps 110
+credited 34 Workouts 75
+credited 34 Sleep 98
+credited 35 Steps 105
+credited 35 Workouts 0
+credited 35 Sleep 98
+credited 36 Steps 110
+credited 36 Workouts 0
+credited 36 Sleep 92
+credited 37 Steps 110
+credited 37 Workouts 0
+credited 37 Sleep 95
+credited 38 Steps 110
+credited 38 Workouts 0
+credited 38 Sleep 97
+credited 39 Steps 110
+credited 39 Workouts 0
+credited 39 Sleep 99
+credited 40 Steps 110
+credited 40 Workouts 270
+credited 40 Sleep 96
+credited 41 Steps 110
+credited 41 Workouts 75
+credited 41 Sleep 99
+credited 42 Steps 110
+credited 42 Workouts 0
+credited 42 Sleep 99
+credited 43 Steps 110
+credited 43 Workouts 0
+credited 43 Sleep 90
+credited 44 Steps 110
+credited 44 Workouts 0
+credited 44 Sleep 88
+credited 45 Steps 110
+credited 45 Workouts 0
+credited 45 Sleep 90
+credited 46 Steps 110
+credited 46 Workouts 0
+credited 46 Sleep 94
+credited 47 Steps 110
+credited 47 Workouts 270
+credited 47 Sleep 97
+credited 48 Steps 110
+credited 48 Workouts 75
+credited 48 Sleep 96
+credited 49 Steps 110
+credited 49 Workouts 0
+credited 49 Sleep 96
+credited 50 Steps 110
+credited 50 Workouts 0
+credited 50 Sleep 98
+credited 51 Steps 110
+credited 51 Workouts 0
+credited 51 Sleep 91
+credited 52 Sleep 40
+credited 53 Sleep 40
+credited 54 Sleep 40
+credited 55 Sleep 40
+credited 56 Sleep 40
+credited 57 Sleep 40
+credited 58 Sleep 40
+credited 59 Sleep 40
+credited 60 Sleep 40
+credited 61 Sleep 40
+gained -2 Steps 218
+gained -1 Sleep 106
+gained 1 Sleep 80
+gained 2 Sleep 80
+gained 3 Sleep 80
+gained 4 Sleep 80
+gained 5 Sleep 80
+gained 6 Sleep 77
+gained 7 Sleep 40
+gained 8 Sleep 40
+gained 9 Sleep 40
+gained 10 Sleep 40
+gained 11 Sleep 40
+gained 12 Sleep 40
+gained 13 Sleep 40
+gained 14 Sleep 40
+gained 15 Sleep 40
+gained 16 Sleep 40
+gained 17 Sleep 40
+gained 18 Sleep 40
+gained 19 Sleep 40
+gained 20 Sleep 40
+gained 21 Sleep 40
+gained 22 Sleep 40
+gained 23 Steps 212
+gained 23 Sleep 17
+gained 24 Sleep 40
+gained 25 Sleep 20
+gained 26 Sleep 0
+gained 27 Sleep 0
+gained 28 Sleep 0
+gained 29 Sleep 0
+gained 30 Sleep 0
+gained 31 Sleep 0
+gained 32 Sleep 0
+gained 33 Steps 220
+gained 33 Workouts 540
+gained 33 Sleep 0
+gained 34 Steps 220
+gained 34 Workouts 150
+gained 34 Sleep 0
+gained 35 Steps 150
+gained 35 Sleep 60
+gained 36 Steps 110
+gained 36 Sleep 0
+gained 37 Steps 220
+gained 37 Sleep 80
+gained 38 Steps 165
+gained 38 Sleep 80
+gained 39 Steps 110
+gained 39 Sleep 0
+gained 40 Steps 110
+gained 40 Workouts 540
+gained 40 Sleep 96
+gained 41 Steps 110
+gained 41 Workouts 150
+gained 41 Sleep 99
+gained 42 Steps 110
+gained 42 Sleep 99
+gained 43 Steps 110
+gained 43 Sleep 26
+gained 44 Steps 110
+gained 44 Sleep 0
+gained 45 Steps 85
+gained 45 Sleep 0
+gained 46 Steps 0
+gained 46 Sleep 40
+gained 47 Steps 0
+gained 47 Workouts 540
+gained 47 Sleep 0
+gained 48 Steps 0
+gained 48 Workouts 150
+gained 48 Sleep 0
+gained 49 Steps 0
+gained 49 Sleep 60
+gained 50 Steps 0
+gained 50 Sleep 0
+gained 51 Steps 0
+gained 51 Sleep 40
+gained 52 Sleep 0
+gained 53 Sleep 0
+gained 54 Sleep 0
+gained 55 Sleep 0
+gained 56 Sleep 0
+gained 57 Sleep 0
+gained 58 Sleep 0
+gained 59 Sleep 0
+gained 60 Sleep 0
+gained 61 Sleep 0
+spends-at-credit -2 Steps 0
+spends-at-credit -1 Sleep 1
+spends-at-credit 1 Sleep 1
+spends-at-credit 2 Sleep 1
+spends-at-credit 3 Sleep 1
+spends-at-credit 4 Sleep 1
+spends-at-credit 5 Sleep 1
+spends-at-credit 6 Sleep 1
+spends-at-credit 7 Sleep 1
+spends-at-credit 8 Sleep 1
+spends-at-credit 9 Sleep 1
+spends-at-credit 10 Sleep 1
+spends-at-credit 11 Sleep 1
+spends-at-credit 12 Sleep 1
+spends-at-credit 13 Sleep 1
+spends-at-credit 14 Sleep 1
+spends-at-credit 15 Sleep 1
+spends-at-credit 16 Sleep 1
+spends-at-credit 17 Sleep 1
+spends-at-credit 18 Sleep 1
+spends-at-credit 19 Sleep 1
+spends-at-credit 20 Sleep 1
+spends-at-credit 21 Sleep 2
+spends-at-credit 22 Sleep 2
+spends-at-credit 23 Steps 2
+spends-at-credit 23 Sleep 2
+spends-at-credit 24 Sleep 3
+spends-at-credit 25 Sleep 3
+spends-at-credit 26 Sleep 3
+spends-at-credit 27 Sleep 3
+spends-at-credit 28 Sleep 3
+spends-at-credit 29 Sleep 3
+spends-at-credit 30 Sleep 3
+spends-at-credit 31 Sleep 3
+spends-at-credit 32 Sleep 3
+spends-at-credit 33 Steps 2
+spends-at-credit 33 Workouts 1
+spends-at-credit 33 Sleep 3
+spends-at-credit 34 Steps 2
+spends-at-credit 34 Workouts 5
+spends-at-credit 34 Sleep 3
+spends-at-credit 35 Steps 2
+spends-at-credit 35 Sleep 4
+spends-at-credit 36 Steps 2
+spends-at-credit 36 Sleep 4
+spends-at-credit 37 Steps 3
+spends-at-credit 37 Sleep 6
+spends-at-credit 38 Steps 3
+spends-at-credit 38 Sleep 8
+spends-at-credit 39 Steps 3
+spends-at-credit 39 Sleep 8
+spends-at-credit 40 Steps 3
+spends-at-credit 40 Workouts 17
+spends-at-credit 40 Sleep 10
+spends-at-credit 41 Steps 3
+spends-at-credit 41 Workouts 19
+spends-at-credit 41 Sleep 13
+spends-at-credit 42 Steps 3
+spends-at-credit 42 Sleep 14
+spends-at-credit 43 Steps 3
+spends-at-credit 43 Sleep 14
+spends-at-credit 44 Steps 3
+spends-at-credit 44 Sleep 14
+spends-at-credit 45 Steps 3
+spends-at-credit 45 Sleep 14
+spends-at-credit 46 Steps 3
+spends-at-credit 46 Sleep 15
+spends-at-credit 47 Steps 3
+spends-at-credit 47 Workouts 30
+spends-at-credit 47 Sleep 15
+spends-at-credit 48 Steps 3
+spends-at-credit 48 Workouts 33
+spends-at-credit 48 Sleep 15
+spends-at-credit 49 Steps 3
+spends-at-credit 49 Sleep 16
+spends-at-credit 50 Steps 3
+spends-at-credit 50 Sleep 16
+spends-at-credit 51 Steps 3
+spends-at-credit 51 Sleep 17
+spends-at-credit 52 Sleep 17
+spends-at-credit 53 Sleep 17
+spends-at-credit 54 Sleep 17
+spends-at-credit 55 Sleep 17
+spends-at-credit 56 Sleep 17
+spends-at-credit 57 Sleep 17
+spends-at-credit 58 Sleep 17
+spends-at-credit 59 Sleep 17
+spends-at-credit 60 Sleep 17
+spends-at-credit 61 Sleep 17
+command k0 1
+force-credited 1793815200 Exploration 109
+command k1 0
+command k10 0
+command k11 0
+command k12 1
+tiles-revealed 1795566684 0 2 2 -7
+command k13 0
+command k15 1
+force-credited 1795807813 Exploration 106
+command k16 0
+command k2 0
+command k22 0
+command k5 1
+force-credited 1794010893 DawnPower 53
+command k9 1
+tiles-revealed 1795566684 5 -2 4 -2 3 1
+command out-0 1
+force-credited 1796658206 Exploration 110
+command out-1 1
+force-credited 1796658206 BuildPower 270
+command out-10 1
+force-credited 1796735928 BuildPower 75
+command out-100 0
+command out-101 1
+force-credited 1797774701 Exploration 0
+command out-102 0
+command out-103 1
+force-credited 1797774701 DawnPower 0
+command out-104 0
+command out-105 0
+command out-106 0
+command out-108 0
+command out-11 1
+force-credited 1796735928 DawnPower 0
+command out-110 1
+force-credited 1797862151 Exploration 0
+command out-111 1
+force-credited 1797862151 BuildPower 270
+command out-112 1
+force-credited 1797862151 DawnPower 0
+command out-113 0
+command out-114 0
+command out-116 0
+command out-117 1
+force-credited 1797950231 Exploration 0
+command out-118 1
+force-credited 1797950231 BuildPower 75
+command out-119 1
+force-credited 1797950231 DawnPower 0
+command out-12 0
+command out-120 0
+command out-121 0
+command out-122 0
+command out-123 0
+command out-125 1
+force-credited 1798026503 Exploration 0
+command out-126 0
+command out-127 1
+force-credited 1798026503 DawnPower 10
+command out-128 0
+command out-129 0
+command out-13 0
+command out-130 0
+command out-132 0
+command out-133 0
+command out-134 0
+command out-135 1
+force-credited 1798122899 Exploration 0
+command out-136 0
+command out-137 1
+force-credited 1798122899 DawnPower 0
+command out-138 0
+command out-139 0
+command out-14 0
+command out-140 0
+command out-141 1
+force-credited 1798203315 Exploration 0
+command out-142 0
+command out-143 1
+force-credited 1798203315 DawnPower 0
+command out-144 0
+command out-145 0
+command out-146 0
+command out-147 0
+command out-148 0
+command out-149 0
+command out-15 1
+force-credited 1796825908 Exploration 75
+command out-150 0
+command out-151 0
+command out-153 0
+command out-154 1
+building-demolished 1799086553 Cottage -17 7
+command out-16 0
+command out-17 1
+force-credited 1796825908 DawnPower 10
+command out-18 0
+command out-19 0
+command out-2 1
+force-credited 1796658206 DawnPower 0
+command out-20 0
+command out-21 0
+command out-22 1
+force-credited 1796917018 Exploration 55
+command out-23 0
+command out-24 1
+force-credited 1796917018 DawnPower 0
+command out-25 0
+command out-26 0
+command out-28 0
+command out-29 0
+command out-3 0
+command out-31 0
+command out-32 1
+force-credited 1796997264 Exploration 110
+command out-33 0
+command out-34 1
+force-credited 1796997264 DawnPower 20
+command out-35 0
+command out-36 0
+command out-37 0
+command out-38 0
+command out-39 0
+command out-4 0
+command out-40 1
+force-credited 1797076657 Exploration 82
+command out-41 0
+command out-42 1
+force-credited 1797076657 DawnPower 20
+command out-43 0
+command out-44 0
+command out-45 0
+command out-46 1
+force-credited 1797168633 Exploration 55
+command out-47 0
+command out-48 1
+force-credited 1797168633 DawnPower 0
+command out-49 0
+command out-5 0
+command out-50 0
+command out-51 0
+command out-52 0
+command out-53 0
+command out-54 0
+command out-56 1
+force-credited 1797262066 Exploration 55
+command out-57 1
+force-credited 1797262066 BuildPower 270
+command out-58 1
+force-credited 1797262066 DawnPower 28
+command out-59 0
+command out-60 0
+command out-61 0
+command out-62 0
+command out-63 0
+command out-65 1
+force-credited 1797350486 Exploration 55
+command out-66 1
+force-credited 1797350486 BuildPower 75
+command out-67 1
+force-credited 1797350486 DawnPower 29
+command out-68 0
+command out-7 0
+command out-70 0
+command out-73 1
+force-credited 1797431134 Exploration 55
+command out-74 0
+command out-75 1
+force-credited 1797431134 DawnPower 30
+command out-76 0
+command out-77 0
+command out-8 0
+command out-80 1
+force-credited 1797512875 Exploration 55
+command out-81 0
+command out-82 1
+force-credited 1797512875 DawnPower 0
+command out-83 0
+command out-84 0
+command out-85 0
+command out-86 1
+force-credited 1797608199 Exploration 55
+command out-87 0
+command out-88 1
+force-credited 1797608199 DawnPower 0
+command out-89 0
+command out-9 1
+force-credited 1796735928 Exploration 110
+command out-90 0
+command out-91 0
+command out-93 0
+command out-94 1
+force-credited 1797681323 Exploration 43
+command out-95 0
+command out-96 1
+force-credited 1797681323 DawnPower 0
+command out-97 0
+command out-98 0
+command out-99 0
+start 1212
+eirora-snapshot 1
+rules 9
+content 1
+time 1793815200
+state-sha256 8a2ee81f5ed6b115b88e5a5d1f0ecb822ec89f68387f0d4a03abf2dab6864ece
+map 641fc6a76e80571e133d523dd2a771e9f17aed8f2ae438b94e4e310326341e0e
+cycle 1793815200 Europe/Stockholm 3600 Active 0 300 390
+created 1793815200
+day-start 0 1793746800
+force Exploration 200 0
+force BuildPower 200 0
+force DawnPower 80 0
+settlement 12 0 0
+stock home Fish 30000000
+stock home Grain 0
+stock home Timber 40000000
+stock home Planks 20000000
+stock home Stone 20000000
+stock home Wool 0
+stock home Wadmal 0
+building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0
+building FishingHut -2 -1 1 1 0 0 0 0 0 0 0 1 0 0
+building Field 1 -1 1 1 0 0 0 0 0 0 0 1 0 0
+building Woodcutter 0 -2 1 1 0 0 0 0 0 0 0 1 0 0
+fog 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000003c000000000fc000000000ff8000000003fe0000000007e40000000007fc0000000007fe000000000ff6000000001fbc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+credited 0 Sleep 40
+inputs 6716
+cmd k0 selfcare -2 Steps Verified 19627
+cmd k1 workday -2 -1
+cmd k2 build Longhouse -1 -1
+cmd k3 workday 1 -1
+time 1794010893 Europe/Stockholm 3600
+cmd k5 selfcare -1 Sleep SelfReported 103
+time 1794028261 Europe/Stockholm 3600
+time 1795016467 America/New_York -18000
+time 1795566684 America/New_York -18000
+cmd k9 survey
+cmd k10 schedule 1320 570
+cmd k11 road -2 -1
+cmd k12 survey
+cmd k13 workday 1 -1
+cmd k12 selfcare 17 Workouts Verified 0
+time 1795575973 America/New_York -18000
+cmd k16 prioritize 0 0 1
+time 1795583492 Europe/Stockholm 7200
+time 1795595242 Europe/Stockholm 7200
+cmd k9 schedule 135 330
+time 1795807813 America/New_York -14400
+cmd k15 selfcare 23 Steps SelfReported 17281
+cmd k22 workday 0 -2
+cmd k23 selfcare 16 Sleep SelfReported 461
+time 1796583859 America/New_York -14400
+cmd k1 schedule 300 390
+time 1796658206 America/New_York -14400
+cmd out-0 selfcare 33 Steps Verified 27102
+cmd out-1 selfcare 33 Workouts Verified 3
+cmd out-2 selfcare 33 Sleep Verified 500
+cmd out-3 build Sawmill -2 2
+cmd out-4 build Quarry 2 -4
+cmd out-5 build Field 1 0
+cmd out-6 upgrade 0 -2
+cmd out-7 build Field 0 1
+cmd out-8 prioritize 0 -2 2
+time 1796735928 America/New_York -14400
+cmd out-9 selfcare 34 Steps Verified 36294
+cmd out-10 selfcare 34 Workouts Verified 2
+cmd out-11 selfcare 34 Sleep Verified 509
+cmd out-12 pause -2 2
+cmd out-13 workday 1 -1
+cmd out-14 build Field 0 2
+time 1796825908 America/New_York -14400
+cmd out-15 selfcare 35 Steps Verified 16534
+cmd out-16 selfcare 35 Workouts Verified 3
+cmd out-17 selfcare 35 Sleep Verified 490
+cmd out-18 build Jetty 0 3
+cmd out-19 build Storehouse 1 2
+cmd out-20 road 0 -2
+cmd out-21 resume -2 2
+time 1796917018 America/New_York -14400
+cmd out-22 selfcare 36 Steps Verified 37847
+cmd out-23 selfcare 36 Workouts Verified 3
+cmd out-24 selfcare 36 Sleep Verified 391
+cmd out-25 expedition
+cmd out-26 build Jetty -17 10
+cmd out-27 survey
+cmd out-28 build Cottage 1 -5
+cmd out-29 rush
+cmd out-30 survey
+cmd out-31 rush
+time 1796997264 America/New_York -14400
+cmd out-32 selfcare 37 Steps Verified 28054
+cmd out-33 selfcare 37 Workouts Verified 3
+cmd out-34 selfcare 37 Sleep Verified 413
+cmd out-35 build Lookout -17 9
+cmd out-36 upgrade 0 2
+cmd out-37 build Storehouse -19 9
+cmd out-38 rush
+cmd out-39 rush
+time 1797076657 America/New_York -14400
+cmd out-40 selfcare 38 Steps Verified 21212
+cmd out-41 selfcare 38 Workouts Verified 3
+cmd out-42 selfcare 38 Sleep Verified 477
+cmd out-43 build Storehouse -18 8
+cmd out-44 build Lookout 3 -1
+cmd out-45 prioritize 0 3 8
+time 1797168633 America/New_York -14400
+cmd out-46 selfcare 39 Steps Verified 34179
+cmd out-47 selfcare 39 Workouts Verified 1
+cmd out-48 selfcare 39 Sleep Verified 510
+cmd out-49 build Cottage -17 7
+cmd out-50 build Lookout -20 11
+cmd out-51 prioritize 0 0 11
+cmd out-52 workday -17 10
+cmd out-53 carriers -18 8 2
+cmd out-54 workday -19 9
+cmd out-55 survey
+time 1797262066 America/New_York -14400
+cmd out-56 selfcare 40 Steps Verified 40609
+cmd out-57 selfcare 40 Workouts Verified 1
+cmd out-58 selfcare 40 Sleep Verified 425
+cmd out-59 workday 2 -4
+cmd out-60 build Lookout -18 10
+cmd out-61 build FishingHut -16 7
+cmd out-62 rush
+cmd out-63 workday 1 2
+cmd out-64 upgrade 1 -1
+time 1797350486 America/New_York -14400
+cmd out-65 selfcare 41 Steps Verified 21537
+cmd out-66 selfcare 41 Workouts Verified 2
+cmd out-67 selfcare 41 Sleep Verified 530
+cmd out-68 build Lookout -5 2
+cmd out-69 survey
+cmd out-70 rush
+cmd out-71 survey
+cmd out-72 upgrade 2 -4
+time 1797431134 America/New_York -14400
+cmd out-73 selfcare 42 Steps Verified 26198
+cmd out-74 selfcare 42 Workouts Verified 3
+cmd out-75 selfcare 42 Sleep Verified 521
+cmd out-76 build Cottage -19 8
+cmd out-77 build Lookout -20 10
+cmd out-78 upgrade -2 -1
+cmd out-79 upgrade -2 -1
+time 1797512875 America/New_York -14400
+cmd out-80 selfcare 43 Steps Verified 31798
+cmd out-81 selfcare 43 Workouts Verified 2
+cmd out-82 selfcare 43 Sleep Verified 381
+cmd out-83 build Lookout -20 9
+cmd out-84 build Woodcutter -2 3
+cmd out-85 first Build -2 3
+time 1797608199 America/New_York -14400
+cmd out-86 selfcare 44 Steps Verified 34527
+cmd out-87 selfcare 44 Workouts Verified 2
+cmd out-88 selfcare 44 Sleep Verified 361
+cmd out-89 build Quarry 3 2
+cmd out-90 build Lookout 0 -1
+cmd out-91 prioritize 1 0 12
+cmd out-92 survey
+cmd out-93 first Build 0 -1
+time 1797681323 America/New_York -14400
+cmd out-94 selfcare 45 Steps Verified 46301
+cmd out-95 selfcare 45 Workouts Verified 1
+cmd out-96 selfcare 45 Sleep Verified 382
+cmd out-97 build Cottage 1 1
+cmd out-98 build Lookout -18 9
+cmd out-99 pause 2 -4
+cmd out-100 rush
+time 1797774701 America/New_York -14400
+cmd out-101 selfcare 46 Steps Verified 42607
+cmd out-102 selfcare 46 Workouts Verified 3
+cmd out-103 selfcare 46 Sleep Verified 409
+cmd out-104 build Jetty 17 -11
+cmd out-105 build Lookout -17 8
+cmd out-106 pause 0 1
+cmd out-107 survey
+cmd out-108 resume 0 1
+cmd out-109 survey
+time 1797862151 America/New_York -14400
+cmd out-110 selfcare 47 Steps Verified 32496
+cmd out-111 selfcare 47 Workouts Verified 1
+cmd out-112 selfcare 47 Sleep Verified 452
+cmd out-113 build Quarry 17 -13
+cmd out-114 build Storehouse -19 10
+cmd out-115 upgrade 0 -2
+cmd out-116 build Lookout 15 -10
+time 1797950231 America/New_York -14400
+cmd out-117 selfcare 48 Steps Verified 27313
+cmd out-118 selfcare 48 Workouts Verified 2
+cmd out-119 selfcare 48 Sleep Verified 447
+cmd out-120 pause -2 2
+cmd out-121 workday 17 -11
+cmd out-122 carriers 0 3 3
+cmd out-123 build Lookout -18 7
+cmd out-124 survey
+time 1798026503 America/New_York -14400
+cmd out-125 selfcare 49 Steps Verified 23785
+cmd out-126 selfcare 49 Workouts Verified 3
+cmd out-127 selfcare 49 Sleep Verified 449
+cmd out-128 pause -2 -1
+cmd out-129 pause 0 1
+cmd out-130 build FishingHut 18 -11
+cmd out-131 upgrade -2 2
+cmd out-132 build FishingHut -16 10
+cmd out-133 build Sawmill 1 -4
+cmd out-134 pause -16 7
+time 1798122899 America/New_York -14400
+cmd out-135 selfcare 50 Steps Verified 46424
+cmd out-136 selfcare 50 Workouts Verified 1
+cmd out-137 selfcare 50 Sleep Verified 484
+cmd out-138 build Storehouse -4 2
+cmd out-139 rush
+cmd out-140 build SheepFarm -1 3
+time 1798203315 America/New_York -14400
+cmd out-141 selfcare 51 Steps Verified 44128
+cmd out-142 selfcare 51 Workouts Verified 1
+cmd out-143 selfcare 51 Sleep Verified 389
+cmd out-144 build Cottage 17 -12
+cmd out-145 build Lookout 4 -3
+cmd out-146 pause 0 -2
+time 1799086553 America/New_York -14400
+cmd out-147 build Jetty 2 2
+cmd out-148 build Weavery 4 -1
+cmd out-149 build Weavery 2 0
+cmd out-150 build Lookout -1 -4
+cmd out-151 build Lookout -1 1
+cmd out-152 build Lookout -1 -3
+cmd out-153 workday 17 -13
+cmd out-154 demolish -17 7
+time 1799138376 America/New_York -14400

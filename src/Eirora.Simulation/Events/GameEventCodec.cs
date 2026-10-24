@@ -42,6 +42,9 @@ namespace Eirora.Simulation.Events
 
                     line.Long(e.Tile.Q).Long(e.Tile.R);
                     break;
+                case BuildingDemolished e:
+                    writer.Line("building-demolished").Long(e.UtcSeconds).Enum(e.Building).Long(e.Tile.Q).Long(e.Tile.R);
+                    break;
                 case TilesRevealed e:
                     writer.Line("tiles-revealed").Long(e.UtcSeconds);
                     foreach (var tile in e.Tiles)
@@ -94,6 +97,11 @@ namespace Eirora.Simulation.Events
                 var kind = reader.Enum<ProjectKind>();
                 BuildingKind? building = kind == ProjectKind.Road ? null : reader.Enum<BuildingKind>();
                 return new ProjectCompleted(utc, kind, building, new Hex(reader.Int(), reader.Int()));
+            }
+
+            if (reader.Next("building-demolished"))
+            {
+                return new BuildingDemolished(reader.Long(), reader.Enum<BuildingKind>(), new Hex(reader.Int(), reader.Int()));
             }
 
             if (reader.Next("tiles-revealed"))

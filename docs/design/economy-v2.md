@@ -524,3 +524,11 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
 - **D-118 (F10):** avvikelserna från dagens första vecka godtas: bärarna i introduktion 2 med flaskhalsen som diagnos, bönderna dygn 7 för den som satsar på tillväxt, och Nyön som egen bosättning i introduktion 6.
 - **D-119 (F11):** D-34:s andra halva gäller över veckor.
   Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter 0,07 % (avsnitt 9).
+
+Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.
+
+- **D-128:** ett förråd eller en brygga nekas rivning bara när öns varor inte ryms i det lager som blir kvar; den del av återbetalningen som inte ryms visas och förloras.
+- **D-129:** Hemöns sista förråd kan inte rivas.
+- **D-130:** en uppgradering räknas till det byggnaden kostade, också en som står i byggkön.
+- **D-131:** startbyns byggnader ger tillbaka hälften av katalogens kostnad.
+- **D-132:** säd och ull som vuxit men inte skördats följer med åkern eller fårgården.
