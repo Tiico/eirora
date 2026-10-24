@@ -45,6 +45,7 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
 
 - Spelaren spelar utan konto och utan att något om hen finns på servern (ACC-04).
   Kontot skapas vid första inloggningen, och då laddas den lokala världen upp som kontots molnsparning.
+  _Ändrat 2026-10-23 (#154, TASK-060): först när spelaren svarat på frågan om bidragsdelen; se Bidragen i molnsparningen._
 - Inloggning sker med Sign in with Apple eller Google på båda plattformarna, så att en värld kan flytta mellan Android och iOS.
   På iOS kräver App Store-riktlinje 4.8 Sign in with Apple när Google erbjuds; på Android körs Sign in with Apple som webbflöde med ett Services ID.
 - Klienten lämnar Apples eller Googles ID-token till `Eirora.Server`, som kontrollerar signatur, `iss`, `aud`, `exp` och nonce mot leverantörens nycklar och utfärdar egna token via OpenIddict.
@@ -99,6 +100,17 @@ Egna konton med enbart federerad inloggning ger minst personuppgifter, all konto
   _Ändrat 2026-10-22 (#108, del 1): en ny telefon utan nyckeln frågar först efter den (från den gamla telefonen eller som återställningskod) och börjar en ny epok bara när spelaren väljer att fortsätta utan._
 - Chiffertexten är fortfarande personuppgifter av särskild kategori enligt GDPR, eftersom den hör till ett känt konto.
   Krypteringen är en skyddsåtgärd i DPIA:n (artikel 32), och ett dataintrång som bara rör den kräver inte att spelarna underrättas (artikel 34.3 a); radering sker genom att raderna tas bort och backuperna går ut.
+  _Ändrat 2026-10-23 (#154, TASK-060): bidragsdelen lagras bara med spelarens uttryckliga samtycke (artikel 9.2 a).
+  Före den första uppladdningen frågar appen, i ordlistans termer och med två likvärdiga svar, och laddar inte upp något förrän spelaren svarat.
+  Svaret sparas på kontot via `/api/account/contribution-consent` som en egen rad per svar i `ContributionConsents`, med frågans version (`ContributionConsent.CurrentVersion`) och serverns tidpunkt, så att det går att visa vad spelaren godkänt; raderna går med kontot.
+  Utan samtycke är molnsparningen bara världsdelen: uppladdningen har ingen bidragsdel och nyckelepok 0, molnsparningens nyckelepok står kvar, och servern svarar 409 på en uppladdning vars delar inte stämmer med svaret eller som kommer innan spelaren svarat.
+  Ett nej eller en återkallelse under Konto raderar bidragsdelen och de låsta bidragsdelarna i samma transaktion, under kontots radlås.
+  Ett nej frågas aldrig igen av sig självt (HLT-12); ett ja till en äldre version av frågan frågas igen av appen, men servern tar emot bidragsdelar under det tills spelaren svarat, så en ändring som måste stoppa äldre appar kräver en lägsta version på servern.
+  Ett nej sparas på telefonen innan det skickas och skickas före allt annat tills servern har det, så att ingen bidragsdel laddas upp efter att spelaren sagt nej, också över en omstart eller ett serverfel.
+  Utan bidragsdel finns inga journaler att slå ihop.
+  En telefon där inget spelats sedan den senast synkade (lika många godtagna kommandon, `World.AcceptedCommands`, som i `CloudSyncState`) tar molnets nyare världsdel utan att fråga och lägger sin egen åt sidan; antalet sparas bara när telefonens värld är molnets version, så en ö som spelaren valt att behålla räknas inte som orörd förrän den nått servern; en telefon där spelaren gjort något sedan dess låter spelaren välja ö, och en ny telefon hämtar världsdelen med dagarna hittills stängda, som utan nyckeln (D-101), men utan att fråga efter nyckeln.
+  Befintliga konton har inget svar: en bidragsdel som redan laddats upp ligger kvar tills spelaren svarat, och ett nej raderar den.
+  En server med samtycket kan inte rullas tillbaka till en version utan det när något konto sagt nej, eftersom den äldre servern inte läser en molnsparning utan bidragsdel._
 
 ## Hemligheter och miljöer
 

@@ -18,7 +18,7 @@ public sealed class DeletionTests(ServerFixture fixture)
     {
         using var api = _server.CreateApi();
         var google = _server.Providers.SignIn(LoginProviders.Google);
-        var tokens = await api.SignInAsync(google);
+        var tokens = await api.SignInWithConsentAsync(google);
         var refreshed = await api.RefreshAsync(tokens.Refresh);
         var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
         await api.UploadCloudSaveAsync(tokens.Access, TestSaves.Upload(baseVersion: 0, keyEpoch: 1));
@@ -34,6 +34,7 @@ public sealed class DeletionTests(ServerFixture fixture)
         Assert.False(await db.AccountLogins.AnyAsync(l => l.AccountId == accountId || l.Subject == google.Subject, TestContext.Current.CancellationToken));
         Assert.False(await db.CloudSaves.AnyAsync(s => s.AccountId == accountId, TestContext.Current.CancellationToken));
         Assert.False(await db.LockedContributions.AnyAsync(l => l.AccountId == accountId, TestContext.Current.CancellationToken));
+        Assert.False(await db.ContributionConsents.AnyAsync(c => c.AccountId == accountId, TestContext.Current.CancellationToken));
         Assert.False(await db.KeyTransfers.AnyAsync(t => t.AccountId == accountId, TestContext.Current.CancellationToken));
         Assert.False(await db.Set<OpenIddictEntityFrameworkCoreToken<Guid>>().AnyAsync(t => t.Subject == subject, TestContext.Current.CancellationToken));
         Assert.False(await db.Set<OpenIddictEntityFrameworkCoreAuthorization<Guid>>().AnyAsync(a => a.Subject == subject, TestContext.Current.CancellationToken));

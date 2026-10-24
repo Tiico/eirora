@@ -28,5 +28,12 @@ namespace Eirora.CloudSaving
 
         /// <summary>The player chose the cloud's world over the phone's.</summary>
         CloudChosen,
+
+        /// <summary>
+        /// Nothing was played on the device since the cloud save version it was based on, and the cloud's world without a
+        /// contribution part is newer (TASK-060): the cloud's world replaces it, and the device's is kept aside, since it
+        /// holds self-care per game day that the world part alone does not.
+        /// </summary>
+        FastForwarded,
     }
 }

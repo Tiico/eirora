@@ -15,9 +15,18 @@ namespace Eirora.CloudSaving
 
         /// <summary>
         /// <c>PUT</c>: the new version, or <see cref="StoreStatus.Conflict"/> with the current one when the upload was
-        /// based on another version or an older key epoch.
+        /// based on another version or an older key epoch, or its parts do not match the player's consent.
         /// </summary>
         Task<StoreReply<CloudSaveVersion>> UploadAsync(CloudSaveUpload upload);
+
+        /// <summary><c>GET /api/account/contribution-consent</c>: the player's answer about the contribution part (TASK-060).</summary>
+        Task<StoreReply<ContributionConsent>> GetConsentAsync();
+
+        /// <summary>
+        /// <c>PUT /api/account/contribution-consent</c>: keeps the player's answer; a decline deletes the contribution part
+        /// and the locked ones on the server.
+        /// </summary>
+        Task<StoreReply<ContributionConsent>> AnswerConsentAsync(ContributionConsentAnswer answer);
     }
 
     public enum StoreStatus
@@ -28,7 +37,10 @@ namespace Eirora.CloudSaving
         /// <summary>The account has no cloud save.</summary>
         NotFound,
 
-        /// <summary>The upload was based on another version or an older key epoch; the reply holds the current version.</summary>
+        /// <summary>
+        /// The upload was based on another version or an older key epoch, or did not match the player's consent; the reply
+        /// holds the current version.
+        /// </summary>
         Conflict,
 
         /// <summary>The server did not take the upload: wrong format or too large.</summary>

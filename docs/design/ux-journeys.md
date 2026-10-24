@@ -208,6 +208,49 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
 - Rå hälsodata lämnar aldrig telefonen (HLT-10).
   Molnsparningen innehåller bidrag per dag, end-to-end-krypterade så att servern aldrig kan läsa dem (D-57).
 
+### Egenvården på kontot
+
+Ett kort mitt på skärmen när kontot inte svarat än, första gången appen ska ladda upp molnsparningen: vid inloggningen, eller vid nästa start för ett konto från före frågan (TASK-060).
+Inget laddas upp förrän spelaren svarat, och ön på telefonen påverkas inte.
+
+```text
+┌──────────────────────────────────────────────┐
+│  Egenvården på kontot?                       │
+│                                              │
+│  Din ö sparas på kontot så att den kan följa │
+│  med till en ny telefon: kartan, byn och     │
+│  krafternas saldon. Den sparas vad du än     │
+│  svarar här.                                 │
+│                                              │
+│  Din egenvård kan sparas där också: hur      │
+│  mycket du gjort varje dag, vad det gav ön   │
+│  och spelets journal. Den krypteras på       │
+│  telefonen med en nyckel som bara dina       │
+│  enheter har, så servern kan aldrig läsa     │
+│  den.                                        │
+│                                              │
+│  Med den följer egenvården med till en ny    │
+│  telefon. Utan den stannar egenvården här,   │
+│  och spelet fungerar precis som vanligt.     │
+│                                              │
+│  Egenvården räknas som uppgifter om hälsa,   │
+│  så den sparas bara om du säger ja. Du kan   │
+│  ändra dig under Konto.                      │
+│                                              │
+│  [ Ja, spara den ]       [ Nej tack ]        │
+└──────────────────────────────────────────────┘
+```
+
+- **Ja:** bidragsdelen laddas upp med nästa uppladdning, krypterad (D-57).
+- **Nej tack:** bara världsdelen laddas upp, utan kommentar utöver en kort bekräftelse, och frågan kommer aldrig tillbaka av sig själv (HLT-12).
+- **Kontot har redan en bidragsdel från före frågan:** kortet säger också *Kontot har redan egenvård sparad från tidigare. Svarar du nej raderas den från servern.*
+- Under *Konto* står *Sluta spara egenvården på kontot* efter ett ja, och också innan telefonen hört kontots svar, till exempel efter en start utan uppkoppling, och *Spara egenvården på kontot* efter ett nej.
+  Att sluta frågar en gång till, med två likvärdiga svar, eftersom bidragsdelen då raderas från servern; egenvården finns kvar på telefonen.
+- Bekräftelsen efter ett svar visas först när servern svarat.
+  Når ett nej inte fram stannar det på telefonen, också över en omstart, och skickas vid nästa synk; under tiden laddas ingen egenvård upp, och Konto säger det.
+- **Två telefoner utan samtycke:** en telefon där inget spelats sedan den senast synkade tar kontots nyare ö utan att fråga, med *Välkommen tillbaka till din ö* och att dagarna hittills räknas som vilodagar.
+  Har spelaren gjort något på båda får hen välja ö, eftersom öarna inte kan slås ihop utan bidragsdelen.
+
 ### Gränsfall
 
 - **Ingen egenvård alls, ingen sensor eller ingen förmåga att gå:** hela turen går att genomföra på startkrafterna; inget steg kräver data (princip 6, AC-04).
@@ -220,6 +263,8 @@ Texten gäller Android; på iOS står HealthKit i stället (M6).
   Kommandon som redan godkänts står kvar och körs inte igen (INV-D6).
 - **Reducerad rörelse:** kameraflykten i steg 3 och nattoningen i steg 10 ersätts av mjuka övertoningar.
 - **Befintligt konto på ny telefon:** turen hoppas över; världen och de krypterade bidragen hämtas från molnsparningen (ACC-01, D-57) och spelaren möts av *Välkommen tillbaka till din ö.*, och därefter som i resa 2.
+  Har kontot sagt nej till att spara egenvården hämtas bara världen, dagarna hittills räknas som vilodagar, och välkomnandet säger det: *Välkommen tillbaka till din ö. Egenvården sparas inte på kontot, så dagarna hittills räknas som vilodagar.*
+  Den nya telefonen frågar inte om samtycket igen, eftersom svaret är kontots.
 
 ### Verifierar
 

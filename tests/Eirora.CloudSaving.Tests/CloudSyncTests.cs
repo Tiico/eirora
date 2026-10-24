@@ -30,7 +30,7 @@ public sealed class CloudSyncTests
         Assert.Equal(1, phone.Storage.Key(s_account)!.Epoch);
         Assert.Equal((1L, 1), (phone.Storage.State(s_account)!.Version, phone.Storage.State(s_account)!.KeyEpoch));
         Assert.Equal(phone.Save.ToParts().World, store.Current.World);
-        Assert.Null(ContributionCipher.Open(ContributionKey.Generate(1), s_account, 1, store.Current.Contributions));
+        Assert.Null(ContributionCipher.Open(ContributionKey.Generate(1), s_account, 1, store.Current.Contributions!));
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class CloudSyncTests
         var phone = new Device(store, PlayedSave());
         await phone.Sync.ReconcileAsync(s_account);
 
-        byte[]? opened = ContributionCipher.Open(phone.Storage.Key(s_account)!, s_account, 1, store.Current!.Contributions);
+        byte[]? opened = ContributionCipher.Open(phone.Storage.Key(s_account)!, s_account, 1, store.Current!.Contributions!);
 
         Assert.Equal(phone.Save.ToParts().Contributions, opened);
     }
@@ -106,7 +106,7 @@ public sealed class CloudSyncTests
         Assert.Equal(2, fresh.Storage.Key(s_account)!.Epoch);
         Assert.Equal((2L, 2), (store.Current!.Version, store.Current.KeyEpoch));
         Assert.Equal([1], store.Locked.Select(l => l.KeyEpoch));
-        Assert.NotNull(ContributionCipher.Open(fresh.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions));
+        Assert.NotNull(ContributionCipher.Open(fresh.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions!));
     }
 
     [Fact]
@@ -273,7 +273,7 @@ public sealed class CloudSyncTests
         var store = new FakeCloudSaveStore();
         var phone = new Device(store, PlayedSave());
         await phone.Sync.ReconcileAsync(s_account);
-        var tampered = (byte[])store.Current!.Contributions.Clone();
+        var tampered = (byte[])store.Current!.Contributions!.Clone();
         tampered[^1] ^= 0x01;
         store.Current = new Contracts.CloudSave(store.Current.Version, store.Current.KeyEpoch, store.Current.World, tampered, store.Current.SavedAt);
         Advance(phone.Save, Hour);
@@ -289,7 +289,7 @@ public sealed class CloudSyncTests
         Assert.Equal(phone.Save.ToParts().World, store.Current.World);
         Assert.Equal((2L, 2), (store.Current.Version, store.Current.KeyEpoch));
         Assert.Equal([1], store.Locked.Select(l => l.KeyEpoch));
-        Assert.NotNull(ContributionCipher.Open(phone.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions));
+        Assert.NotNull(ContributionCipher.Open(phone.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions!));
     }
 
     [Fact]
@@ -333,7 +333,7 @@ public sealed class CloudSyncTests
         Assert.Empty(fresh.World.Replacements);
         Assert.Equal((2L, 2), (store.Current!.Version, store.Current.KeyEpoch));
         Assert.Equal(fresh.Save.ToParts().World, store.Current.World);
-        Assert.NotNull(ContributionCipher.Open(fresh.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions));
+        Assert.NotNull(ContributionCipher.Open(fresh.Storage.Key(s_account)!, s_account, 2, store.Current.Contributions!));
     }
 
     [Theory]
@@ -446,7 +446,7 @@ public sealed class CloudSyncTests
         await sameStorage.Sync.ReconcileAsync(other);
 
         Assert.NotEqual(phone.Storage.Key(s_account)!.ToText(), phone.Storage.Key(other)!.ToText());
-        Assert.Null(ContributionCipher.Open(phone.Storage.Key(s_account)!, other, 1, otherStore.Current!.Contributions));
+        Assert.Null(ContributionCipher.Open(phone.Storage.Key(s_account)!, other, 1, otherStore.Current!.Contributions!));
     }
 
     // A key from a recovery code or a transfer is kept only when it is the cloud save's: a stale code, or any other key,

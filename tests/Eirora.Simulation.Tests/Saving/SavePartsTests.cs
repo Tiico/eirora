@@ -43,6 +43,24 @@ public sealed class SavePartsTests
             && Save.Load(loaded.ToBytes()).World.Fingerprint() == save.World.Fingerprint();
     }
 
+    // A device tells by the count whether the player did anything since it last synced (TASK-060).
+    [Fact]
+    public void OnlyAcceptedCommandsCountAndTheWorldPartAloneStartsAtZero()
+    {
+        var save = Save.Begin(new TimeReading(1_780_304_400, "Europe/Stockholm", 7200), new RestSchedule(23 * 60, 8 * 60));
+        int atStart = save.World.AcceptedCommands;
+        var reading = save.World.Now;
+        save.AdvanceTo(new TimeReading(reading.UtcSeconds + 7200, reading.ZoneId, reading.OffsetSeconds));
+        int afterTime = save.World.AcceptedCommands;
+
+        Assert.True(save.Apply("steps", new RecordSelfCare(save.World.GameDay, Habit.Steps, ContributionSource.Verified, 6_000)).Accepted);
+        save.Apply("steps", new RecordSelfCare(save.World.GameDay, Habit.Steps, ContributionSource.Verified, 6_000));
+
+        Assert.Equal((0, 0, 1), (atStart, afterTime, save.World.AcceptedCommands));
+        Assert.Equal(1, Save.FromParts(save.ToParts().World, save.ToParts().Contributions).World.AcceptedCommands);
+        Assert.Equal(0, Save.FromParts(save.ToParts().World, null).World.AcceptedCommands);
+    }
+
     [Fact]
     public void TheWholeSaveSplitsIntoTheSameParts()
     {

@@ -52,6 +52,13 @@ namespace Eirora.Simulation
 
         public TimeReading Now => Cycle.Now;
 
+        /// <summary>
+        /// How many commands the world has accepted, one per idempotency key (INV-D6). Time passing adds none, and it only
+        /// grows, so a device can tell whether the player did anything since a moment it remembers (TASK-060). The keys
+        /// are kept with the contributions, so a world from its world part alone starts at 0.
+        /// </summary>
+        public int AcceptedCommands => _results.Count;
+
         public RestSchedule RestSchedule => Cycle.Schedule;
 
         /// <summary>A schedule change waiting for its 24 hours to pass, if any (INV-T7).</summary>

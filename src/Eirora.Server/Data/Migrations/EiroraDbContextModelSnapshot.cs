@@ -66,7 +66,6 @@ namespace Eirora.Server.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<byte[]>("Contributions")
-                        .IsRequired()
                         .HasColumnType("bytea");
 
                     b.Property<int>("KeyEpoch")
@@ -85,6 +84,33 @@ namespace Eirora.Server.Data.Migrations
                     b.HasKey("AccountId");
 
                     b.ToTable("CloudSaves");
+                });
+
+            modelBuilder.Entity("Eirora.Server.CloudSaves.StoredContributionConsent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AnsweredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Given")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "Id");
+
+                    b.ToTable("ContributionConsents");
                 });
 
             modelBuilder.Entity("Eirora.Server.CloudSaves.StoredLockedContributions", b =>
@@ -381,6 +407,15 @@ namespace Eirora.Server.Data.Migrations
                     b.HasOne("Eirora.Server.Accounts.Account", null)
                         .WithOne()
                         .HasForeignKey("Eirora.Server.CloudSaves.StoredCloudSave", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Eirora.Server.CloudSaves.StoredContributionConsent", b =>
+                {
+                    b.HasOne("Eirora.Server.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

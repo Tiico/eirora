@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Eirora.Server.Data;
 
 /// <summary>
-/// The server's database: accounts, their cloud saves and key transfers, redeemed provider tokens and OpenIddict's token
+/// The server's database: accounts, their cloud saves, consents and key transfers, redeemed provider tokens and OpenIddict's token
 /// entries (ADR-0008).
 /// </summary>
 public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) : DbContext(options)
@@ -19,6 +19,8 @@ public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) :
     public DbSet<StoredCloudSave> CloudSaves => Set<StoredCloudSave>();
 
     public DbSet<StoredLockedContributions> LockedContributions => Set<StoredLockedContributions>();
+
+    public DbSet<StoredContributionConsent> ContributionConsents => Set<StoredContributionConsent>();
 
     public DbSet<StoredKeyTransfer> KeyTransfers => Set<StoredKeyTransfer>();
 
@@ -52,6 +54,13 @@ public sealed class EiroraDbContext(DbContextOptions<EiroraDbContext> options) :
             locked.HasKey(l => new { l.AccountId, l.KeyEpoch });
             locked.HasOne<Account>().WithMany().HasForeignKey(l => l.AccountId).OnDelete(DeleteBehavior.Cascade);
             locked.HasIndex(l => l.LockedAt);
+        });
+
+        modelBuilder.Entity<StoredContributionConsent>(consent =>
+        {
+            consent.HasKey(c => c.Id);
+            consent.HasOne<Account>().WithMany().HasForeignKey(c => c.AccountId).OnDelete(DeleteBehavior.Cascade);
+            consent.HasIndex(c => new { c.AccountId, c.Id });
         });
 
         modelBuilder.Entity<StoredKeyTransfer>(transfer =>

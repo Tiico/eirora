@@ -56,9 +56,40 @@ public sealed class HttpCloudSaveStore(HttpClient http, string accessToken) : IC
         }
     }
 
-    private HttpRequestMessage Request(HttpMethod method)
+    public async Task<StoreReply<ContributionConsent>> GetConsentAsync()
     {
-        var request = new HttpRequestMessage(method, new Uri("/api/account/cloud-save", UriKind.Relative));
+        using var request = Request(HttpMethod.Get, "/api/account/contribution-consent");
+        return await ConsentAsync(request);
+    }
+
+    public async Task<StoreReply<ContributionConsent>> AnswerConsentAsync(ContributionConsentAnswer answer)
+    {
+        using var request = Request(HttpMethod.Put, "/api/account/contribution-consent");
+        request.Content = JsonContent.Create(answer);
+        return await ConsentAsync(request);
+    }
+
+    private async Task<StoreReply<ContributionConsent>> ConsentAsync(HttpRequestMessage request)
+    {
+        try
+        {
+            using var response = await http.SendAsync(request, Cancel);
+            return response.StatusCode switch
+            {
+                HttpStatusCode.OK => new StoreReply<ContributionConsent>(StoreStatus.Ok, await response.Content.ReadFromJsonAsync<ContributionConsent>(Cancel)),
+                HttpStatusCode.Unauthorized => new StoreReply<ContributionConsent>(StoreStatus.SignedOut),
+                _ => new StoreReply<ContributionConsent>(StoreStatus.Failed),
+            };
+        }
+        catch (HttpRequestException)
+        {
+            return new StoreReply<ContributionConsent>(StoreStatus.Offline);
+        }
+    }
+
+    private HttpRequestMessage Request(HttpMethod method, string path = "/api/account/cloud-save")
+    {
+        var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         return request;
     }
