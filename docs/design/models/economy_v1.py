@@ -688,6 +688,51 @@ class World:
         self.projects.insert(0, p)
         return True
 
+    def demolition(self, kind, tile):
+        """Vad en rivning ger tillbaka (D-38, D-108, avsnitt 3.2), eller None när den nekas.
+
+        Hälften av materialet, uppgraderingen medräknad, avrundat nedåt per resurs, till öns lager så långt det
+        rymmer; ingen kraft. Varorna i byggnadens utlager och den råvara som burits fram går först till lagret och
+        måste rymmas i det lager som blir kvar (INV-R1, INV-R2), och Hemöns sista förråd står kvar.
+        """
+        p = coord(tile)
+        b = next((b for b in self.buildings if b.kind == kind and b.tile == p), None)
+        if b is None:
+            return None
+        island = TILES[p].island
+        rest = [o for o in self.buildings if o is not b]
+        if island == HOME:
+            if kind == "Förråd" and not any(o.kind == "Förråd" and TILES[o.tile].island == HOME for o in rest):
+                return None
+            store, cap = self.stock, STORAGE_PER_DEPOT * sum(1 for o in rest if o.kind == "Förråd")
+        else:
+            store = self.remote_stock[island]
+            cap = STORAGE_PER_DEPOT * max(1, sum(1 for o in rest if o.kind in DEPOTS and TILES[o.tile].island == island))
+        goods = dict.fromkeys(RESOURCES, 0.0)
+        if b.kind in PRODUCERS:
+            goods[self.rate_resource(b)] += b.out
+        if b.kind in ("Sågverk", "Väveri"):
+            goods["timmer" if b.kind == "Sågverk" else "ull"] += b.inp
+        if any(store[r] + goods[r] > cap + 1e-9 for r in RESOURCES):
+            return None
+        upgrades = b.level - 1 + self.pending(f"Uppgradera {kind}@{tag(p)}")
+        refund = {r: (SPECS[kind].cost.get(r, 0) + upgrades * UPGRADE.cost.get(r, 0)) // 2 for r in RESOURCES}
+        returned = {r: min(n, int(cap - store[r] - goods[r] + 1e-9)) for r, n in refund.items()}
+        return b, store, goods, returned
+
+    def demolish(self, kind, tile):
+        """Riv en byggnad: brickan blir ledig, dess bybor och bärare blir lediga och en uppgradering i kön följer med."""
+        found = self.demolition(kind, tile)
+        if found is None:
+            return False
+        b, store, goods, returned = found
+        for r in RESOURCES:
+            store[r] += goods[r] + returned[r]
+        self.buildings.remove(b)
+        self.projects = [p for p in self.projects if p.label != f"Uppgradera {kind}@{tag(b.tile)}"]
+        self.staff()
+        return True
+
     def rush(self):
         if not self.projects or not self.spend("G", DAWN_RUSH_COST):
             return False

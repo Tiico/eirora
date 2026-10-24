@@ -53,5 +53,14 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The building queue holds no such project.</summary>
         NotQueued,
+
+        /// <summary>
+        /// The island's goods would not fit in its store once the building is gone (INV-R1, INV-R2): some must be used or
+        /// shipped first.
+        /// </summary>
+        NoRoomInStore,
+
+        /// <summary>The home island's last storehouse, whose store everything is paid from, cannot be demolished.</summary>
+        LastStorehouse,
     }
 }

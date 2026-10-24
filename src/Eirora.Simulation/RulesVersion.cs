@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 8;
+        public const int Current = 9;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -20,7 +20,9 @@ namespace Eirora.Simulation
         /// island its own store and sea route (TASK-045): a journal from rules 6 that built beside a second island off
         /// the home island, which shared Nyön's store and jetty then, would replay to another world. Rules 8 let carriers
         /// carry the goods on land and lay roads tile by tile (TASK-051): distance costs the carriers' time instead of a
-        /// share of the production, so a journal from rules 7 would replay to another world too.
+        /// share of the production, so a journal from rules 7 would replay to another world too. Rules 9 added demolition
+        /// (TASK-047), a command and an event that older rules cannot read, and changed nothing that a journal from rules 8
+        /// can hold, so such a journal still replays to the same world.
         /// </summary>
         public const int ReplaysJournalsFrom = 8;
     }

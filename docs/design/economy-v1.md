@@ -123,6 +123,37 @@ Det som i dag är kuliss blir riktig terräng, och det märks:
 - Hemön har bara två åkerbrickor och en betesbricka, så maten kommer från fiskevattnet.
 - Hemön har två berg att bryta sten i: stenådern och ett vanligt berg intill krönet, på det som prototypen ritade som strand (D-95).
 
+### 3.2 Rivning
+
+Rivning är ett uttryckligt kommando med bekräftelse och det enda sättet något i världen kan minska (D-38).
+Det kom med regelversion 9 (TASK-047).
+
+- En riven byggnad ger tillbaka hälften av materialet den kostade, avrundat nedåt per resurs, till öns lager (D-108).
+  Ett sågverk som kostade 15 timmer och 5 sten ger alltså tillbaka 7 timmer och 2 sten.
+- Uppgraderingen räknas till det byggnaden kostade, också en uppgradering som fortfarande står i byggkön.
+  En uppgradering i kön följer med byggnaden, och det arbete den redan fått går förlorat.
+- Kraft återbetalas aldrig (INV-F5), så att riva och bygga om kostar halva materialet och hela kraften.
+- Brickan blir ledig.
+  Skog, åker eller bete under byggnaden går att använda igen, och en huggarkoja intill fäller skogen på brickan.
+- Byborna som arbetade där och ett förråds eller en bryggas bärare blir lediga och bygger.
+  Byggnader som ett rivet förråd eller en riven brygga betjänade får det förråd eller den brygga som bärarna nu når snabbast.
+- Varorna som väntar vid byggnaden, i utlagret eller framburna till förädlingen, går till öns lager, så att rivningen inte förstör några varor (INV-R2).
+  Säd eller ull som vuxit på en åker eller fårgård men inte skördats är ännu inga varor och följer med byggnaden; bekräftelsen säger hur mycket.
+- Öns varor måste rymmas i det lager som blir kvar efter rivningen (INV-R1).
+  Ett förråd eller en brygga som lagrar varor kan därför bara rivas när öns lager ryms i resten; annars nekas kommandot, och bekräftelsen säger hur mycket av varje resurs som måste användas eller skeppas först.
+- Återbetalningen går in i det utrymme som blir kvar, i hela enheter.
+  Det som inte ryms kommer inte tillbaka, och bekräftelsen visar före rivningen hur mycket som kommer tillbaka och vad som inte gör det, så att inget försvinner utan att spelaren sett det.
+- Hemöns sista förråd kan inte rivas, eftersom allt betalas ur Hemöns lager och ingenting annars skulle kunna byggas igen (INV-R4).
+- Bostäder kan rivas även om byborna då blir fler än bostäderna.
+  Ingen bybo försvinner, men byn växer inte förrän det finns plats (D-39).
+- Ett lager står kvar på sin ö även när öns sista byggnad är riven.
+- Rivning är spelpåverkande och nekas under vilan (INV-T3).
+- Ett nekat kommando ändrar ingenting (INV-D7).
+- Migrationen till regelversion 9 ändrar ingenting i sparningen, och journaler från regelversion 8 spelas upp till samma värld.
+  Regelversionen höjs ändå, så att en äldre version avvisar en sparning eller journal med en rivning i stället för att misslyckas med att läsa den (ADR-0006).
+
+Kalkylen har regeln i `World.demolition` och `World.demolish`.
+
 ## 4. Bybor, basbehov och vila
 
 - Varje bybo äter 1 mat per spelardygn vid gryningen, fisk först och sedan säd.

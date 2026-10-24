@@ -16,8 +16,8 @@ namespace Eirora.Simulation.Tests;
 /// Three in four commands are made to suit the world when they are applied (an affordable building on a site that takes
 /// it, a producing building that can still be upgraded, given a road to its depot, worked or paused, a tile that takes a
 /// road, a storehouse or a jetty to work or to cap the carriers of, a paused building to resume, a building and a place
-/// in the staffing order, a project that is not first in the queue, a tile at the fog's edge, self-care within the
-/// window), and three in four commands that would come
+/// in the staffing order, a project that is not first in the queue, a building to demolish, a tile at the fog's edge,
+/// self-care within the window), and three in four commands that would come
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
@@ -167,7 +167,7 @@ internal sealed class Scenario
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
         var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
-        switch (random.Next(11))
+        switch (random.Next(12))
         {
             case 0 or 1 or 2:
                 int back = suited ? random.Next(RecordSelfCare.DaysBack) : random.Next(-1, RecordSelfCare.DaysBack + 1);
@@ -219,11 +219,13 @@ internal sealed class Scenario
                     1 => new ResumeBuilding(suited ? BuiltSite(world, pick, b => b.Paused) ?? site : site),
                     2 => suited && world.StaffingOrder.Count > 1
                         ? new Prioritize(world.StaffingOrder[pick % world.StaffingOrder.Count].Tile, place % world.StaffingOrder.Count)
-                        : new Prioritize(site, place),
+                        : new Prioritize(world.StaffingOrder.Count > 0 && pick % 2 == 0 ? world.StaffingOrder[pick % world.StaffingOrder.Count].Tile : site, place),
                     _ => suited && world.Projects.Count > 1
                         ? new QueueFirst(world.Projects[1 + (pick % (world.Projects.Count - 1))].Kind, world.Projects[1 + (pick % (world.Projects.Count - 1))].Tile)
                         : new QueueFirst(project, site),
                 };
+            case 10:
+                return world => new Demolish(suited && world.Buildings.Count > 0 ? world.Buildings[pick % world.Buildings.Count].Tile : site);
             default:
                 var change = new RestSchedule(random.Next(96) * 15, (5 * 60) + (random.Next(13) * 30));
                 return _ => new ChangeRestSchedule(change);

@@ -89,6 +89,11 @@ _Avoid_: prioritetslista, kö (om bemanningen)
 En byggnad som spelaren har pausat: den bemannas inte och dess bybor bygger, men nivå och lager står kvar tills den återupptas (D-39).
 _Avoid_: avstängd, riven
 
+**Rivning** (`Demolish`):
+Det uttryckliga kommandot som tar bort en byggnad, med bekräftelse; det enda sättet något i världen kan minska (D-38).
+Hälften av materialet kommer tillbaka till öns lager så långt det rymmer, aldrig kraft (D-108).
+_Avoid_: nedmontering, borttagning
+
 **Byggkö** (`Projects`):
 Byggen, uppgraderingar och vägar som väntar på de lediga bybornas arbete, i den ordning de får det; spelaren kan flytta ett projekt först (TASK-044).
 _Avoid_: bygglista, order
