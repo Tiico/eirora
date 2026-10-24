@@ -40,6 +40,7 @@ namespace Eirora.Client.Tests
                 "Sågverk | 2 timmer → 1 plank/h | 15 timmer · 5 sten · 30 Byggkraft · 24 h arbete",
                 "Väveri | 2 ull → 1 vadmal per 2 h | 10 plank · 5 sten · 60 Byggkraft · 24 h arbete",
                 "Utkiksvarde | 25 % mindre Utforskning | 10 sten · 40 Byggkraft · 12 h arbete",
+                "Lägg väg | – | 2 sten och 4 h arbete per bricka · bärarna går dubbelt så fort",
             }));
         }
 

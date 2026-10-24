@@ -35,6 +35,7 @@ public sealed class ReplayCorpusTests
         ("economy-near", () => Week(Near)),
         ("economy-sea", () => Week(Sea)),
         ("economy-staffing", Staffing),
+        ("economy-carriers", Carriers),
         ("time-daylight-saving-and-travel", DaylightSavingAndTravel),
         ("epoch-fog-towards-nyon", FogTowardsNyon),
     ];
@@ -191,7 +192,7 @@ public sealed class ReplayCorpusTests
             3 => [("sawmill-e2", new Build(BuildingKind.Sawmill, Tiles.E2)), ("rush", new Rush())],
             4 => [("longhouse-l1", new Build(BuildingKind.Longhouse, Tiles.L1)), ("workday-e2", new Workday(Tiles.E2))],
             5 => [("fishing-k2", new Build(BuildingKind.FishingHut, Tiles.K2))],
-            _ => [("field-o2", new Build(BuildingKind.Field, Tiles.O2)), ("road-f3", new BuildRoad(Tiles.F3))],
+            _ => [("field-o2", new Build(BuildingKind.Field, Tiles.O2)), ("road-k2", new BuildRoad(Tiles.K2))],
         };
 
         foreach (var (key, command) in plan)
@@ -218,6 +219,23 @@ public sealed class ReplayCorpusTests
         {
             journal.Apply($"{key}-{day}", command);
         }
+    }
+
+    // Economy v2, section 7 (TASK-051): a road laid on a tile and one to the storehouse, the storehouse's carriers capped,
+    // given a workday, and the quarry put first for them.
+    private static Journal Carriers()
+    {
+        var journal = Journal.Start(At("2026-10-14 10:00", 2), s_night);
+        journal.Apply("lay-l2", new LayRoad(Tiles.L2));
+        journal.Apply("quarry-m3", new Build(BuildingKind.Quarry, Tiles.M3));
+        journal.AdvanceTo(At("2026-10-14 18:00", 2));
+        journal.Apply("road-m3", new BuildRoad(Tiles.M3));
+        journal.Apply("cap-s", new SetCarrierCap(Tiles.S, 2));
+        journal.AdvanceTo(At("2026-10-15 08:00", 2));
+        journal.Apply("workday-s", new Workday(Tiles.S));
+        journal.Apply("m3-first", new Prioritize(Tiles.M3, 0));
+        journal.AdvanceTo(At("2026-10-16 12:00", 2));
+        return journal;
     }
 
     // Economy v1, section 4 (TASK-044): the quarry staffed first, the fishing hut paused overnight and a cottage moved

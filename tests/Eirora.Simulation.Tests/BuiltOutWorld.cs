@@ -167,7 +167,7 @@ internal static class BuiltOutWorld
         int pick = random.Next(int.MaxValue);
         var settlement = world.Settlement;
         bool building = world.Projects.Count < 4;
-        int staffAfterQueue = world.FreeVillagers - world.Projects.Where(p => p.Kind == ProjectKind.Build).Sum(p => world.Content.For(p.Building).Staff);
+        int staffAfterQueue = world.FreeVillagers - world.Projects.Where(p => p.Kind == ProjectKind.Build).Sum(p => world.Content.For(p.Building!.Value).Staff);
         bool Staffable((BuildingKind Kind, Hex Site) c) => world.Content.For(c.Kind).Staff == 0 || staffAfterQueue - world.Content.For(c.Kind).Staff >= 2;
         bool Wanting(BuildingKind kind, string island) =>
             building && !settlement.HasBuilt(kind, island) && !world.Projects.Any(p => p.Building == kind && settlement.IslandOf(p.Tile) == island);
@@ -205,8 +205,15 @@ internal static class BuiltOutWorld
         {
             < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
             4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
-            6 => BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue) is Hex road ? new BuildRoad(road) : null,
-            7 => BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday) is Hex worked ? new Workday(worked) : null,
+            6 => (pick % 3) switch
+            {
+                0 => BuiltSite(world, pick, b => world.RoadToDepot(b.Tile).Count > 0) is Hex road ? new BuildRoad(road) : null,
+                1 => Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } free ? new LayRoad(free[pick % free.Count]) : null,
+                _ => world.Buildings.Where(b => Logistics.IsDepot(b.Kind)).ToList() is { Count: > 0 } depots ? new SetCarrierCap(depots[pick % depots.Count].Tile, 1 + (pick / 3 % Logistics.MostCarriers)) : null,
+            },
+            7 => world.Buildings.Where(b => b.Staffed && !b.WorkdayToday && (world.Content.For(b.Kind).Produces || Logistics.IsDepot(b.Kind))).ToList() is { Count: > 0 } workers
+                ? new Workday(workers[pick % workers.Count].Tile)
+                : null,
             8 => new Survey(),
             9 => BuiltSite(world, pick, _ => true) is Hex tile ? (world.BuildingAt(tile)!.Paused ? new ResumeBuilding(tile) : new PauseBuilding(tile)) : null,
             10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),

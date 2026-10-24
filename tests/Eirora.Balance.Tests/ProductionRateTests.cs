@@ -9,9 +9,9 @@ namespace Eirora.Balance.Tests;
 /// <summary>
 /// The yields the bots measure and place buildings by (<see cref="Sites.DailyYield"/>, <see cref="Measures.Delivered"/>)
 /// against what the simulation actually produces: for each recipe in the content catalog, at a level and a distance from
-/// the store, one game day's gain in store equals what the bots say the producers of that resource deliver. The bots read
-/// the rates from the catalog, so this holds their reading of it, and the distance and level steps they cannot read, to
-/// the simulation.
+/// the store, one game day's gain equals what the bots say the producers of that resource deliver. The bots read the rates
+/// from the catalog, so this holds their reading of it, and the level steps and the carriers' share they cannot read, to
+/// the simulation. The gain counts what waits for the carriers at the buildings and at the processing (INV-R2).
 /// </summary>
 /// <remarks>
 /// A day runs from just before one dawn to just before the next, so it holds every waking quarter hour once; what the
@@ -26,8 +26,8 @@ public sealed class ProductionRateTests
 
     private static readonly Hex s_village = new(0, 0);
     private static readonly Hex s_startFishingHut = new(1, 0);
-    private static readonly Hex s_plainMountain = new(-3, -1); // Four steps from the store: half reaches it.
-    private static readonly Hex s_pasture = new(-2, -1); // Two steps: three quarters.
+    private static readonly Hex s_plainMountain = new(-3, -1); // Four steps from the store.
+    private static readonly Hex s_pasture = new(-2, -1); // Two steps.
     private static readonly Hex s_nextToTheStore = new(-1, 0);
 
     private static readonly BuildingKind[] s_measured =
@@ -52,7 +52,7 @@ public sealed class ProductionRateTests
         var village = new Village();
         village.Dawn(1);
         village.Apply(new Upgrade(s_startFishingHut));
-        village.Apply(new Build(BuildingKind.FishingHut, village.FishingWaterThreeQuartersAway()));
+        village.Apply(new Build(BuildingKind.FishingHut, village.FishingWaterTwoOrThreeStepsAway()));
 
         village.AssertDayGain(2, Resource.Fish, buildings: 2);
     }
@@ -121,13 +121,13 @@ public sealed class ProductionRateTests
             Assert.True(result.Accepted, $"{command.GetType().Name} was rejected: {result.Rejection}.");
         }
 
-        /// <summary>A free fishing water tile two or three steps from the store, from where three quarters reach it.</summary>
-        public Hex FishingWaterThreeQuartersAway()
+        /// <summary>A free fishing water tile two or three steps from the store.</summary>
+        public Hex FishingWaterTwoOrThreeStepsAway()
         {
             for (int i = 0; i < _world.Map.Disc.Count; i++)
             {
                 var tile = _world.Map.Disc[i];
-                if ((_world.UsesOf(tile) & TileUse.FishingWater) != 0 && _world.BuildingAt(tile) is null && _world.DepotDistance(tile) is 2 or 3)
+                if ((_world.UsesOf(tile) & TileUse.FishingWater) != 0 && _world.BuildingAt(tile) is null && _world.TripFrom(tile).Steps is 2 or 3)
                 {
                     return tile;
                 }
@@ -172,7 +172,10 @@ public sealed class ProductionRateTests
         }
 
         /// <summary>Stock at home in millionths, finer than the whole units the world shows.</summary>
-        private long Stock(Resource resource) => _world.Settlement.Stock(resource);
+        private long Stock(Resource resource) =>
+            _world.Settlement.Stock(resource)
+            + _world.Buildings.Where(b => _world.Content.For(b.Kind).Recipe?.Product == resource).Sum(b => b.Waiting)
+            + _world.Buildings.Sum(b => b.Held?[(int)resource] ?? 0);
 
         private static long DawnOf(int day) => FirstDawn + ((day - 1) * Day);
 

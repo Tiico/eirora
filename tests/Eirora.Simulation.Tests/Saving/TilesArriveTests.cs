@@ -22,7 +22,7 @@ public sealed class TilesArriveTests
     {
         var world = NewWorld();
         Assert.True(world.Apply("cottage", new Build(BuildingKind.Cottage, L1)).Accepted);
-        string state = StaffingIsOrderedTests.RulesFive(world.Fingerprint());
+        string state = StaffingIsOrderedTests.RulesFive(RoadsAreTilesTests.RulesSeven(world.Fingerprint()));
 
         string migrated = new TilesArrive().Migrate(RulesThree(state, FullForests), PrototypeHome.Map);
 
@@ -35,7 +35,7 @@ public sealed class TilesArriveTests
     public void AFelledForestSiteLeavesItsShareOfTimberOnItsOwnTile()
     {
         // The old-growth forest counted four tiles and had half its timber left: 20 on each.
-        string state = StaffingIsOrderedTests.RulesFive(NewWorld().Fingerprint());
+        string state = StaffingIsOrderedTests.RulesFive(RoadsAreTilesTests.RulesSeven(NewWorld().Fingerprint()));
 
         string migrated = new TilesArrive().Migrate(RulesThree(state, "forest F1 10000000\nforest F2 120000000\nforest F3 80000000\n"), PrototypeHome.Map);
 
@@ -95,7 +95,7 @@ public sealed class TilesArriveTests
     private static World NewWorld() => World.Create(At("2026-10-14 14:00", 2), Night);
 
     /// <summary>A new world's state as rules 6 wrote it, with its stores on Home and Nyon (IslandsFromTheMapTests).</summary>
-    private static string RulesSix(World world) => IslandsFromTheMapTests.RulesSix(world.Fingerprint(), world);
+    private static string RulesSix(World world) => IslandsFromTheMapTests.RulesSix(RoadsAreTilesTests.RulesSeven(world.Fingerprint()), world);
 
     // Acceptance, on a world a player could have saved: the golden save from rules 3 keeps every building, road and
     // lifted tile, and every balance.
@@ -106,7 +106,10 @@ public sealed class TilesArriveTests
         var before = SaveSections.Text(System.Text.Encoding.UTF8.GetString(bytes), "latest").Split('\n');
         Assert.Contains("rules 3", before);
 
-        var after = Save.Load(bytes).World.Fingerprint().Split('\n');
+        // As far as rules 7, after which roads became tiles (RoadsAreTilesTests).
+        var map = Save.Load(bytes).World.Map;
+        string state = string.Join('\n', before.SkipWhile(line => !line.StartsWith("map ", StringComparison.Ordinal)));
+        var after = RoadsAreTilesTests.Migrated(state, 3, 7, map).Split('\n');
 
         // Everything but the records that named sites, and the stores that rules 6 named by the map's islands
         // (IslandsFromTheMapTests), is the same, line for line.

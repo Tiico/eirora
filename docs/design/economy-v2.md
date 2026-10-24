@@ -270,13 +270,16 @@ Havets strategi bygger därför Nyöns brygga före den första bostaden, så at
   Förrådet tar också byggarna om det behöver dem, så byggkön kan stå still tills bosättningen växt; diagnostiken säger då *Byggkön står still: alla lediga bybor bär*, så att spelaren kan sänka taket.
   Förrådet tar aldrig en bybo från en annan byggnad: bemanningen är klibbig, så en byggnad som är bemannad förblir det, och en ny byggnad eller ett nytt förråd tar bara lediga bybor (D-39).
 - **Varje byggnad hör till det bemannade förråd eller den bemannade brygga som bärarna når snabbast på sin ö.**
-  Ett förråd utan bärare tar inte över några byggnader, så ett nytt förråd kan aldrig minska det som når fram (D-39).
-  Ett förråd till i ett kluster tar alltså över byggnaderna runt sig när det fått sin bärare.
+  Byggnaderna byter förråd bara vid gryningen, när förråden också anställer sina bärare, och ett förråd utan bärare tar inte över några byggnader.
+  Ett nytt förråd eller en ny väg kan alltså aldrig minska det som når fram samma dygn (D-39).
+  Ett förråd till i ett kluster tar över byggnaderna runt sig vid gryningen efter att det fått sin bärare.
 - **En vända** är 4 enheter fram och tillbaka längs sökvägen över land.
   Ett steg tar 15 minuter, och 7,5 minuter in på en bricka med väg.
 - **Bärarna hämtar och lämnar.**
   De hämtar det som väntar vid byggnaderna och bär råvara till förädlingen, som håller 4 enheter framme och aldrig tar förrådet under minimilagret på 20 (LOG-06).
   De tar först där det väntar mest: det fullaste utlagret eller den förädling som har minst råvara kvar, och spelarens prioritet går före (D-111).
+  Spelarens prioritet är ett uttryckligt läge, inte platsen i bemanningsordningen (förtydligande av D-111): en byggnad som spelaren flyttat upp där tar bärarna först, också när andra flyttas upp ovanför den.
+  Flyttad ned igen tar de den där det väntar mest, och förråd och bryggor får aldrig läget.
   Byggmaterial betalas när bygget läggs i kön, som i v1, och bärs inte.
 - **Inget går förlorat.**
   Det bärarna inte hinner med väntar i byggnadens utlager, som rymmer 8 enheter; när det är fullt stannar byggnaden (INV-R2).
@@ -458,12 +461,15 @@ Ekonomi v2 kommer i flera skivor, och varje skiva som ändrar ett utfall höjer 
    Det som inte ryms i en ös lager skeppas hem i migrationen.
    Det som inte heller ryms där väntar vid öns förråd eller brygga och flyttas in i lagret när det finns plats, så att inget lager är över sin kapacitet (INV-R1).
 4. **Vägar.**
-   En väg till en byggnad blir vägbrickor längs sökvägen till närmaste förråd.
-   Stenen för vägsteg som inte längre behövs, 2 sten per väg, läggs tillbaka i lagret.
+   En väg till en byggnad blir vägbrickor längs sökvägen till närmaste bemannade förråd eller brygga, eller till närmaste förråd när inget bemannat nås.
+   Stenen för varje betalt vägsteg som inte blir en ny bricka läggs tillbaka i lagret, 2 sten per steg: det sista steget in i förrådet och brickor som en annan väg redan har.
+   Varje byggnad hör sedan till det bemannade förråd som bärarna når snabbast på vägarna.
 5. **Bärare.**
    Förrådens och bryggornas bemanning blir en bärare var, och vid nästa gryning tar de fler om varorna kräver det.
 6. **Upplåsningen börjar där världen står:** en värld med 20 bybor har steg 1 direkt, och introduktionerna kommer en per spelardygn.
-7. **Byggkön står kvar** med det arbete som är kvar; en väg i kön blir vägbrickor när den blir klar.
+7. **Byggkön står kvar** med det arbete som är kvar.
+   En väg i kön blir ett vägprojekt på varje bricka längs sökvägen som inte redan har väg, lagd eller i kön, och de delar på arbetet som var kvar, högst en brickas 4 timmar var.
+   Stenen för stegen som inte blir någon bricka går tillbaka som i punkt 4.
 
 Journaler från föregående regelversion spelas inte upp, eftersom de skulle ge en annan värld än den spelaren byggde, som vid regelversion 4 och 5.
 Bärarnas tillstånd, vägnätet, det som väntar vid förråden och bosättningarnas köer ska tas med i framspolningens jämförelse ([invariants.md, INV-V4](./invariants.md)).
@@ -506,6 +512,7 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
   Kalkylen räknar alternativen: bärare för hand ger den naiva strategin 0,46 i värde per kraft i stället för 0,65, och att lämna två byggare åt kön ger Närområdet 0,96 i stället för 1,13.
 - **D-110 (F2):** avståndet kostar bärartid i stället för produktion, och avståndsklasserna försvinner; avståndsdelen av D-103 ersätts.
 - **D-111 (F3):** bärarna tar först där det väntar mest, och spelarens prioritet från TASK-044 går före.
+  Förtydligat i TASK-051: prioriteten är ett uttryckligt läge, så bara en byggnad som spelaren flyttat upp i bemanningsordningen tar bärarna först, och resten tas där mest väntar.
 - **D-112 (F4):** vägar läggs bricka för bricka, med genvägen *Väg till förrådet*.
 - **D-113 (F5), det enda tillägget till D-106:** lediga bybor får bygga på öar som sjövägen förbinder med deras, eftersom att bygga inte är att bemanna.
   I övrigt gäller D-106: inga nybyggare, högst en flytt per gryning i hela världen, och byggmaterial från hemön tar plats på sjövägen.

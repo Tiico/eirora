@@ -179,7 +179,7 @@ public sealed class SeaRouteTests
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return Read(string.Join('\n', lines));
 
-        static string Line(BuildingKind kind, Hex tile) => $"building {kind} {tile.Q} {tile.R} 1 0 0 0 0 0";
+        static string Line(BuildingKind kind, Hex tile) => $"building {kind} {tile.Q} {tile.R} 1 0 0 0 0 0 4 0 0 0 0 0";
     }
 
     private static int Capacity(string island, int[] storehouses)

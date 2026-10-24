@@ -92,7 +92,9 @@ public sealed class BalanceRunTests
         for (int i = 0; i < world.Map.Disc.Count; i++)
         {
             var tile = world.Map.Disc[i];
-            Assert.True(world.DepotDistance(tile) == sites.StepsTo(tile, steps), $"{tile}: {sites.StepsTo(tile, steps)} steps, but the world counts {world.DepotDistance(tile)}.");
+            var trip = world.TripFrom(tile);
+            int counted = trip.Reaches ? trip.Steps : sites.PlannedDepots().Contains(tile) ? 0 : int.MaxValue;
+            Assert.True(counted == sites.StepsTo(tile, steps), $"{tile}: {sites.StepsTo(tile, steps)} steps, but the world's carriers walk {counted}.");
         }
     }
 

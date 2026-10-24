@@ -14,9 +14,10 @@ namespace Eirora.Simulation.Tests;
 /// </summary>
 /// <remarks>
 /// Three in four commands are made to suit the world when they are applied (an affordable building on a site that takes
-/// it, a producing building that can still be upgraded, given a road, worked or paused, a paused building to resume, a
-/// building and a place in the staffing order, a project that is not first in the queue, a tile at the fog's edge,
-/// self-care within the window), and three in four commands that would come
+/// it, a producing building that can still be upgraded, given a road to its depot, worked or paused, a tile that takes a
+/// road, a storehouse or a jetty to work or to cap the carriers of, a paused building to resume, a building and a place
+/// in the staffing order, a project that is not first in the queue, a tile at the fog's edge, self-care within the
+/// window), and three in four commands that would come
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
@@ -185,7 +186,14 @@ internal sealed class Scenario
             case 5:
                 return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.Settlement.CanAfford(world.Content.Upgrade.Cost)) ?? site : site);
             case 6:
-                return world => new BuildRoad(suited ? BuiltSite(world, pick, b => !b.HasRoad && world.DepotDistance(b.Tile) is > 1 and < int.MaxValue && !world.Settlement.IsQueued(b.Tile, ProjectKind.Road)) ?? site : site);
+                int road = random.Next(3);
+                int cap = suited ? 1 + random.Next(Logistics.MostCarriers) : random.Next(-1, Logistics.MostCarriers + 2);
+                return world => road switch
+                {
+                    0 => new BuildRoad(suited ? BuiltSite(world, pick, b => world.RoadToDepot(b.Tile).Count > 0) ?? site : site),
+                    1 => new LayRoad(suited ? RoadSite(world, pick) ?? site : site),
+                    _ => new SetCarrierCap(suited ? DepotSite(world, pick, d => d.CarrierCap != cap) ?? site : site, cap),
+                };
             case 7:
                 int which = random.Next(4);
                 // Around Hemön and out to Nyön, and now and then off the map.
@@ -199,7 +207,8 @@ internal sealed class Scenario
                     _ => new Rush(),
                 };
             case 8:
-                return world => new Workday(suited ? BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday) ?? site : site);
+                bool depot = random.Next(4) == 0;
+                return world => new Workday(suited ? (depot ? DepotSite(world, pick, d => d.Staffed && !d.WorkdayToday) : BuiltSite(world, pick, b => b.Staffed && !b.WorkdayToday)) ?? site : site);
             case 9:
                 int work = random.Next(4);
                 int place = random.Next(-1, 13);
@@ -236,6 +245,20 @@ internal sealed class Scenario
     {
         var edge = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i]).Where(world.CanLiftFog).ToList();
         return edge.Count > 0 ? edge[pick % edge.Count] : null;
+    }
+
+    /// <summary>One of the tiles a road can be laid on now, or none.</summary>
+    private static Hex? RoadSite(World world, int pick)
+    {
+        var free = SitesOf(world).Where(tile => world.CheckRoad(tile) == Rejection.None).ToList();
+        return free.Count > 0 ? free[pick % free.Count] : null;
+    }
+
+    /// <summary>The tile of one of the world's storehouses and jetties that <paramref name="can"/> take the command, or none.</summary>
+    private static Hex? DepotSite(World world, int pick, Func<Building, bool> can)
+    {
+        var depots = world.Buildings.Where(b => Logistics.IsDepot(b.Kind) && can(b)).ToList();
+        return depots.Count > 0 ? depots[pick % depots.Count].Tile : null;
     }
 
     /// <summary>The tile of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>

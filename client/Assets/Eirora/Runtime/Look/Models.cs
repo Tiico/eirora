@@ -81,6 +81,37 @@ namespace Eirora.Client.Look
             mesh.Cone(c + new Vector3(-0.4f * size, 0f, -0.2f * size), 0.45f * size, 0.35f * height, 6, Color.Lerp(colour, Color.white, 0.15f), 1.3f);
         }
 
+        /// <summary>Half a road's width, the track a carrier walks.</summary>
+        public const float RoadHalfWidth = 0.15f;
+
+        /// <summary>
+        /// A road on a tile (D-112): a patch of trodden earth at its centre and a track to the middle of each side that
+        /// <paramref name="toward"/> leads to, a road or a building beside it. One still in the queue is drawn pale.
+        /// </summary>
+        public static void Road(MeshBuilder mesh, Hex hex, float ground, System.Collections.Generic.IEnumerable<Hex> toward, bool planned)
+        {
+            var colour = planned ? Color.Lerp(Palette.Road, Palette.Birch, 0.55f) : Palette.Road;
+            var c = hex.Center() + (Vector3.up * (ground + 0.012f));
+            var patch = hex.Corners(c.y, 0.22f);
+            mesh.Polygon(colour, patch);
+            foreach (var near in toward)
+            {
+                var edge = Vector3.Lerp(hex.Center(), near.Center(), 0.5f) + (Vector3.up * c.y);
+                var side = Vector3.Cross(edge - c, Vector3.up).normalized * RoadHalfWidth;
+                mesh.Polygon(colour, c - side, c + side, edge + side, edge - side);
+            }
+        }
+
+        /// <summary>A carrier on the way: a villager, with a sack on the back when bringing goods to the store.</summary>
+        public static void Carrier(MeshBuilder mesh, Vector3 p, int index, bool laden)
+        {
+            Villager(mesh, p, index);
+            if (laden)
+            {
+                mesh.Box(p + new Vector3(0f, 0.11f, 0.05f), new Vector3(0.08f, 0.07f, 0.06f), 0f, Palette.Wool, Color.Lerp(Palette.Wool, Palette.Wood, 0.35f));
+            }
+        }
+
         /// <summary>A small cone figure; villagers are work groups, shown as a few figures by day.</summary>
         public static void Villager(MeshBuilder mesh, Vector3 p, int index)
         {
