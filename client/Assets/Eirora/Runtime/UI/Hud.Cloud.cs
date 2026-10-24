@@ -152,11 +152,11 @@ namespace Eirora.Client.UI
         {
             Text(titleClass, parent, "Egenvården på kontot?");
             Text("sheet-text", parent, "Din ö sparas på kontot så att den kan följa med till en ny telefon: kartan, byn och krafternas saldon. Den sparas vad du än svarar här.");
-            Text("sheet-text", parent, "Din egenvård kan sparas där också, i en egen bidragsdel: summorna per spelardygn, vad varje spelardygn gav ön och spelets journal. Den krypteras på telefonen med en nyckel som bara dina enheter har, så servern kan aldrig läsa den.");
+            Text("sheet-text", parent, "Din egenvård kan sparas där också: hur mycket du gjort varje dag, vad det gav ön och spelets journal. Den krypteras på telefonen med en nyckel som bara dina enheter har, så servern kan aldrig läsa den.");
             Text("sheet-text", parent, "Med den följer egenvården med till en ny telefon. Utan den stannar egenvården här, och spelet fungerar precis som vanligt.");
             if (contributionsOnAccount)
             {
-                Text("sheet-text", parent, "Kontot har redan en bidragsdel från tidigare. Svarar du nej raderas den från servern.");
+                Text("sheet-text", parent, "Kontot har redan egenvård sparad från tidigare. Svarar du nej raderas den från servern.");
             }
 
             Text("sheet-text", parent, "Egenvården räknas som uppgifter om hälsa, så den sparas bara om du säger ja. Du kan ändra dig under Konto.");
@@ -240,7 +240,7 @@ namespace Eirora.Client.UI
         private void ConsentWithdrawalSheet(CloudSaveSync cloud)
         {
             Text("sheet-title", _sheet, "Sluta spara egenvården på kontot?");
-            Text("sheet-text", _sheet, "Bidragsdelen raderas från servern, också låsta bidragsdelar från tidigare nyckelepoker. Din egenvård finns kvar på telefonen.");
+            Text("sheet-text", _sheet, "Egenvården raderas från servern, också gammal egenvård som servern sparat undan. Den finns kvar på telefonen.");
             Text("sheet-text", _sheet, "Din ö sparas på kontot som förut. En ny telefon får ön utan egenvården hittills.");
             var choices = Container("bar", _sheet);
             Button("button", choices, "Sluta spara", () =>
@@ -298,7 +298,7 @@ namespace Eirora.Client.UI
             Text("sheet-text", card, $"Kontot har redan en ö{CloudWorld(choice)}. Den här telefonen har en annan ö.");
             if (choice.CloudWithoutContributions)
             {
-                Text("sheet-text", card, "Egenvården sparas inte på kontot, så öarna kan inte slås ihop. Hämtar du kontots ö räknas dagarna hittills som vilodagar, och bidragen räknas igen från nästa spelardygn.");
+                Text("sheet-text", card, "Egenvården sparas inte på kontot, så öarna kan inte slås ihop. Hämtar du kontots ö räknas dagarna hittills som vilodagar, och egenvården räknas igen från nästa gryning.");
             }
 
             if (choice.ContributionsUnreadable)

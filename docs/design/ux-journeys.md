@@ -222,9 +222,10 @@ Inget laddas upp förrän spelaren svarat, och ön på telefonen påverkas inte.
 │  krafternas saldon. Den sparas vad du än     │
 │  svarar här.                                 │
 │                                              │
-│  Egenvården per spelardygn kan sparas där    │
-│  också, i en egen bidragsdel. Den krypteras  │
-│  på telefonen med en nyckel som bara dina    │
+│  Din egenvård kan sparas där också: hur      │
+│  mycket du gjort varje dag, vad det gav ön   │
+│  och spelets journal. Den krypteras på       │
+│  telefonen med en nyckel som bara dina       │
 │  enheter har, så servern kan aldrig läsa     │
 │  den.                                        │
 │                                              │
@@ -242,7 +243,7 @@ Inget laddas upp förrän spelaren svarat, och ön på telefonen påverkas inte.
 
 - **Ja:** bidragsdelen laddas upp med nästa uppladdning, krypterad (D-57).
 - **Nej tack:** bara världsdelen laddas upp, utan kommentar utöver en kort bekräftelse, och frågan kommer aldrig tillbaka av sig själv (HLT-12).
-- **Kontot har redan en bidragsdel från före frågan:** kortet säger också *Kontot har redan en bidragsdel från tidigare. Svarar du nej raderas den från servern.*
+- **Kontot har redan en bidragsdel från före frågan:** kortet säger också *Kontot har redan egenvård sparad från tidigare. Svarar du nej raderas den från servern.*
 - Under *Konto* står *Sluta spara egenvården på kontot* efter ett ja, och också innan telefonen hört kontots svar, till exempel efter en start utan uppkoppling, och *Spara egenvården på kontot* efter ett nej.
   Att sluta frågar en gång till, med två likvärdiga svar, eftersom bidragsdelen då raderas från servern; egenvården finns kvar på telefonen.
 - Bekräftelsen efter ett svar visas först när servern svarat.
