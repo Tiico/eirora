@@ -43,20 +43,20 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels(), Does.Contain("Minimilager"));
             Assert.That(Labels(), Does.Contain("20 timmer"));
-            Assert.That(Labels(), Does.Contain("Sågverket lämnar alltid 20 timmer i lagret till byggen."));
+            Assert.That(Labels(), Does.Contain("Sparas till byggen"));
 
-            Press(Stepper("+"));
+            Press(Stepper("Minimilager", "+"));
             Assert.That(_game.World!.BuildingAt(ScriptedWeek.Sawmill)!.Reserve, Is.EqualTo(25));
             Assert.That(Labels(), Does.Contain("25 timmer"));
 
             for (int i = 0; i < 5; i++)
             {
-                Press(Stepper("−"));
+                Press(Stepper("Minimilager", "−"));
             }
 
             Assert.That(_game.World!.BuildingAt(ScriptedWeek.Sawmill)!.Reserve, Is.EqualTo(0));
-            Assert.That(Stepper("−").enabledSelf, Is.False);
-            Assert.That(Labels(), Does.Contain("Sågverket tar allt timmer som finns i lagret."));
+            Assert.That(Stepper("Minimilager", "−").enabledSelf, Is.False);
+            Assert.That(Labels(), Does.Contain("Sågverket tar allt"));
         }
 
         [Test]
@@ -66,7 +66,7 @@ namespace Eirora.Client.Tests
 
             _hud.Select(ScriptedWeek.Sawmill);
 
-            Assert.That(Labels(), Does.Contain("Hemön har 30 timmer reserverade, så sågverket lämnar 30 i lagret."));
+            Assert.That(Labels(), Does.Contain("30 reserverade på Hemön går före"));
         }
 
         [Test]
@@ -76,7 +76,7 @@ namespace Eirora.Client.Tests
             Press(Action("Lagret på Nyön"));
 
             Assert.That(Labels(), Does.Contain("Lagret på Nyön"));
-            Assert.That(Goods(), Is.EqualTo(new[] { "Fisk", "Säd", "Timmer", "Plank", "Sten", "Ull", "Vadmal" }));
+            Assert.That(Goods(), Is.EqualTo(System.Enum.GetValues(typeof(Resource)).Cast<Resource>().Select(r => Capital(Texts.Name(r))).ToArray()));
             Assert.That(_root.Query<Button>(className: "good-button").ToList(), Has.Count.EqualTo(6)); // All but the first.
 
             Press(First("Ull"));
@@ -88,23 +88,26 @@ namespace Eirora.Client.Tests
         [Test]
         public void NyonsStoreReservesTheChosenGoodAndTheShipsLeaveIt()
         {
+            // The good that waits most on Nyön at the end of the tour's week.
             var world = _game.World!;
+            var good = System.Enum.GetValues(typeof(Resource)).Cast<Resource>().OrderByDescending(r => world.Stock(PrototypeHome.Nyon, r)).First();
+            long stock = world.Stock(PrototypeHome.Nyon, good);
+            Assert.That(stock, Is.GreaterThan(10), "Too little waits on Nyön at the end of the tour's week.");
+            string name = Texts.Name(good);
             _hud.OpenStore(PrototypeHome.Nyon);
-            Press(Pick("Sten"));
-            Assert.That(Labels(), Does.Contain("Reservera sten"));
+            Press(Pick(Capital(name)));
+            Assert.That(Labels(), Does.Contain($"Reservera {name}"));
 
-            Press(Stepper("+"));
-            Press(Stepper("+"));
+            Press(Stepper($"Reservera {name}", "+"));
+            Press(Stepper($"Reservera {name}", "+"));
 
-            Assert.That(world.ReservationOf(PrototypeHome.Nyon, Resource.Stone), Is.EqualTo(10));
-            Assert.That(_root.Query(className: "good-chosen").ToList().Single().Q<Label>(className: "good-name").text, Is.EqualTo("Sten"));
-            Assert.That(Labels(), Does.Contain(Texts.InStore(world.Stock(PrototypeHome.Nyon, Resource.Stone), 10)));
+            Assert.That(world.ReservationOf(PrototypeHome.Nyon, good), Is.EqualTo(10));
+            Assert.That(_root.Query(className: "good-chosen").ToList().Single().Q<Label>(className: "good-name").text, Is.EqualTo(Capital(name)));
+            Assert.That(Labels(), Does.Contain(Texts.InStore(stock, 10)));
 
             // What is reserved does not wait for the ships.
             _hud.Select(Jetty(PrototypeHome.Nyon));
-            long stone = world.Stock(PrototypeHome.Nyon, Resource.Stone);
-            Assert.That(stone, Is.GreaterThan(0), "No stone waits on Nyön at the end of the tour's week.");
-            Assert.That(Labels().Single(l => l.StartsWith("Väntar på skeppen: ") || l == "Inget väntar på skeppen just nu."), Does.Not.Contain($"{stone} sten"));
+            Assert.That(Labels(), Does.Contain($"Väntar på skeppen: {Texts.List(Waiting(world))}."));
         }
 
         [Test]
@@ -139,7 +142,17 @@ namespace Eirora.Client.Tests
         private Button Action(string title) =>
             _root.Query<Button>(className: "action").ToList().Single(b => b.Q<Label>(className: "action-title").text == title);
 
-        private Button Stepper(string text) => _root.Query<Button>(className: "stepper-button").ToList().Single(b => b.text == text);
+        /// <summary>The stepper button of the row with <paramref name="label"/>.</summary>
+        private Button Stepper(string label, string text) =>
+            _root.Query(className: "row").ToList().Single(r => r.Query<Label>().ToList().Any(l => l.text == label))
+                .Query<Button>(className: "stepper-button").ToList().Single(b => b.text == text);
+
+        /// <summary>What waits for the ships on Nyön, as the jetty lists it: in the ships' order, without what is reserved.</summary>
+        private static string[] Waiting(Simulation.World world) => world.ImportOrder(PrototypeHome.Nyon)
+            .Select(r => (Resource: r, Left: world.Stock(PrototypeHome.Nyon, r) - world.ReservationOf(PrototypeHome.Nyon, r)))
+            .Where(g => g.Left > 0)
+            .Select(g => $"{g.Left} {Texts.Name(g.Resource)}")
+            .ToArray();
 
         private Button Pick(string good) =>
             _root.Query<Button>(className: "good-pick").ToList().Single(b => b.Q<Label>(className: "good-name").text == good);
@@ -151,6 +164,8 @@ namespace Eirora.Client.Tests
 
         private Hex Jetty(string island) =>
             _game.World!.Buildings.First(b => b.Kind == BuildingKind.Jetty && b.Island == island).Tile;
+
+        private static string Capital(string text) => char.ToUpperInvariant(text[0]) + text.Substring(1);
 
         private string[] Labels() => _root.Query<Label>().ToList().Select(l => l.text).ToArray();
     }

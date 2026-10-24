@@ -81,10 +81,13 @@ namespace Eirora.Simulation.Economy
             return reserved > processing.Reserve ? (Quantity.Units(reserved), KeptBy.Reservation) : (Quantity.Units(processing.Reserve), KeptBy.Reserve);
         }
 
-        /// <summary>Millionths of a unit of a resource in an island's store that the ships may take: all but its reservation.</summary>
-        private long Shippable(string island, long[] store, Resource resource)
+        /// <summary>
+        /// Millionths of a unit of a resource in an island's store that the ships may take: all but what is
+        /// <paramref name="reserved"/> there, the island's reservations or null when it has none.
+        /// </summary>
+        private static long Shippable(long[] store, int[]? reserved, Resource resource)
         {
-            long left = store[(int)resource] - Quantity.Units(ReservationOf(island, resource));
+            long left = store[(int)resource] - (reserved is null ? 0 : Quantity.Units(reserved[(int)resource]));
             return left > 0 ? left : 0;
         }
 

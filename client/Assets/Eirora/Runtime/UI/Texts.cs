@@ -440,13 +440,13 @@ namespace Eirora.Client.UI
         };
 
         /// <summary>
-        /// What a processing building leaves of its raw material, below its minimum stock on its sheet (TASK-046): the
-        /// island's reservation when it keeps more.
+        /// What a processing building's minimum stock keeps, under its name on its sheet (TASK-046): building material, or
+        /// the island's reservation when that keeps more.
         /// </summary>
-        public static string Reserve(Building building, Resource input, int reserved, string island) =>
-            reserved > building.Reserve ? $"{island} har {reserved} {Name(input)} reserverade, så {Definite(building.Kind).ToLowerInvariant()} lämnar {reserved} i lagret."
-            : building.Reserve == 0 ? $"{Definite(building.Kind)} tar allt {Name(input)} som finns i lagret."
-            : $"{Definite(building.Kind)} lämnar alltid {building.Reserve} {Name(input)} i lagret till byggen.";
+        public static string Reserve(Building building, int reserved, string island) =>
+            reserved > building.Reserve ? $"{reserved} reserverade på {island} går före"
+            : building.Reserve == 0 ? $"{Definite(building.Kind)} tar allt"
+            : "Sparas till byggen";
 
         /// <summary>What an island's store holds of a good and what is reserved, such as "12 i lagret, 10 reserverade".</summary>
         public static string InStore(long stock, int reserved) =>

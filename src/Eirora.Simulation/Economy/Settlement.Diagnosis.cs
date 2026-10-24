@@ -405,9 +405,10 @@ namespace Eirora.Simulation.Economy
                 var waiting = new List<(Resource, long)>();
                 var now = _stores[island];
                 var order = ImportOrder(island);
+                _reserved.TryGetValue(island, out var reserved);
                 foreach (var resource in order)
                 {
-                    long shippable = Quantity.Whole(Shippable(island, now, resource));
+                    long shippable = Quantity.Whole(Shippable(now, reserved, resource));
                     if (shippable > 0)
                     {
                         waiting.Add((resource, shippable));
@@ -420,7 +421,7 @@ namespace Eirora.Simulation.Economy
                 for (int i = 0; i < order.Count && room > 0; i++)
                 {
                     var resource = order[i];
-                    long wanted = Min(room, Shippable(island, from, resource));
+                    long wanted = Min(room, Shippable(from, reserved, resource));
                     long moved = Add(home, resource, wanted, capacity);
                     if (moved < wanted)
                     {

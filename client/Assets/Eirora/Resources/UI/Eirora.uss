@@ -401,6 +401,17 @@
     flex-grow: 1;
 }
 
+/* A row's name with a line under it, such as what the minimum stock keeps (TASK-046). */
+.row-title {
+    font-size: 34px;
+}
+
+.row-detail {
+    font-size: 27px;
+    color: rgb(104, 101, 117);
+    white-space: normal;
+}
+
 .stepper {
     flex-direction: row;
     align-items: center;

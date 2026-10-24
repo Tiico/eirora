@@ -685,12 +685,13 @@ namespace Eirora.Client.UI
         {
             int reserve = building.Reserve, capacity = world.StorageUnits(building.Island);
             var row = Container("row", _sheet);
-            Text("row-label", row, "Minimilager");
+            var label = Container("row-label", row);
+            Text("row-title", label, "Minimilager");
+            Text("row-detail", label, Texts.Reserve(building, world.ReservationOf(building.Island, input), Texts.IslandName(world, building.Island)));
             var stepper = Container("stepper", row);
             Button("stepper-button", stepper, "−", () => Run(new SetReserve(building.Tile, Math.Max((reserve - 1) / StockStep * StockStep, 0)))).SetEnabled(reserve > 0);
             Text("stepper-value", stepper, $"{reserve} {Texts.Name(input)}");
             Button("stepper-button", stepper, "+", () => Run(new SetReserve(building.Tile, Math.Min(((reserve / StockStep) + 1) * StockStep, capacity)))).SetEnabled(reserve < capacity);
-            Text("sheet-text", _sheet, Texts.Reserve(building, input, world.ReservationOf(building.Island, input), Texts.IslandName(world, building.Island)));
         }
 
         /// <summary>The way from a storehouse or a jetty to its island's store sheet, and from the home island's jetty to each route's.</summary>
