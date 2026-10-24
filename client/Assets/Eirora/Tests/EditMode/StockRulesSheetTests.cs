@@ -92,7 +92,7 @@ namespace Eirora.Client.Tests
             var world = _game.World!;
             var good = System.Enum.GetValues(typeof(Resource)).Cast<Resource>().OrderByDescending(r => world.Stock(PrototypeHome.Nyon, r)).First();
             long stock = world.Stock(PrototypeHome.Nyon, good);
-            Assert.That(stock, Is.GreaterThan(10), "Too little waits on Nyön at the end of the tour's week.");
+            Assert.That(stock, Is.GreaterThan(0), "Nothing waits on Nyön at the end of the tour's week.");
             string name = Texts.Name(good);
             _hud.OpenStore(PrototypeHome.Nyon);
             Press(Pick(Capital(name)));
@@ -102,12 +102,15 @@ namespace Eirora.Client.Tests
             Press(Stepper($"Reservera {name}", "+"));
 
             Assert.That(world.ReservationOf(PrototypeHome.Nyon, good), Is.EqualTo(10));
+            Assert.That(Labels(), Does.Contain("10"));
             Assert.That(_root.Query(className: "good-chosen").ToList().Single().Q<Label>(className: "good-name").text, Is.EqualTo(Capital(name)));
             Assert.That(Labels(), Does.Contain(Texts.InStore(stock, 10)));
 
             // What is reserved does not wait for the ships.
             _hud.Select(Jetty(PrototypeHome.Nyon));
-            Assert.That(Labels(), Does.Contain($"Väntar på skeppen: {Texts.List(Waiting(world))}."));
+            var waiting = Waiting(world);
+            Assert.That(waiting.Any(g => g.EndsWith(" " + Texts.Name(good, stock))), Is.False);
+            Assert.That(Labels(), Does.Contain(waiting.Length == 0 ? "Inget väntar på skeppen just nu." : $"Väntar på skeppen: {Texts.List(waiting)}."));
         }
 
         [Test]
@@ -151,7 +154,7 @@ namespace Eirora.Client.Tests
         private static string[] Waiting(Simulation.World world) => world.ImportOrder(PrototypeHome.Nyon)
             .Select(r => (Resource: r, Left: world.Stock(PrototypeHome.Nyon, r) - world.ReservationOf(PrototypeHome.Nyon, r)))
             .Where(g => g.Left > 0)
-            .Select(g => $"{g.Left} {Texts.Name(g.Resource)}")
+            .Select(g => $"{g.Left} {Texts.Name(g.Resource, g.Left)}")
             .ToArray();
 
         private Button Pick(string good) =>

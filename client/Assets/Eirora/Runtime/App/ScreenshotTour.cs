@@ -189,7 +189,8 @@ namespace Eirora.Client.App
                 Debug.LogError(refusal);
             }
 
-            client.Hud.OpenStore(PrototypeHome.Nyon);
+            client.Focus(PrototypeHome.NyonCentre.Center() + new Vector3(0.9f, 0f, -0.4f) + AboveTheSheet);
+            client.Hud.OpenStore(PrototypeHome.Nyon, Resource.Wool);
             yield return Capture(client, folder, "24-store-nyon");
             client.Hud.Select(null);
 

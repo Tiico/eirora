@@ -286,14 +286,14 @@ namespace Eirora.Client.UI
 
         /// <summary>
         /// Opens an island's store (TASK-046): what each good holds, what is reserved and the order the ships take the goods
-        /// home in, with the good first in that order chosen.
+        /// home in, with <paramref name="good"/> chosen, or the first in that order.
         /// </summary>
-        public void OpenStore(string island)
+        public void OpenStore(string island, Resource? good = null)
         {
             _tile = null;
             _fog = null;
             _store = island;
-            _good = _world?.ImportOrder(island)[0] ?? default;
+            _good = good ?? _world?.ImportOrder(island)[0] ?? default;
             _open = Sheet.Store;
             SelectionChanged?.Invoke(null);
             ShowSheet();
@@ -749,7 +749,7 @@ namespace Eirora.Client.UI
                     ShowSheet();
                 });
                 Text("good-name", pick, Capital(Texts.Name(good)));
-                Text("queue-detail", pick, Texts.InStore(world.Stock(island, good), reserved));
+                Text("good-detail", pick, Texts.InStore(world.Stock(island, good), reserved));
                 if (!home && i > 0)
                 {
                     Button("good-button", item, "Först", () => Run(new MoveImport(island, good, 0)));

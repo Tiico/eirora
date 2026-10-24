@@ -122,7 +122,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void ASawmillThatProducesFullySaysOnePlankAnHourInTheSingular()
         {
-            var world = Edited(Morning(), "stock home Timber 100000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0");
+            var world = Edited(Morning(), "stock home Timber 100000000", "building Sawmill -1 0 1 1 0 0 0 0 0 0 0 1 0 0 20");
             world.AdvanceTo(At("2026-10-15 12:00")); // The carriers have brought it timber by noon.
 
             var sheet = SheetOf(world, s_beside);
