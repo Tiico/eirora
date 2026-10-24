@@ -1,7 +1,7 @@
 # Ekonomi v2
 
 > **Status:** [BESLUTAT] v2.3, delfrågorna avgjorda som D-109–D-119  
-> **Ärende:** TASK-058 (#145) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
+> **Ärende:** TASK-058 (#145) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-125–D-127, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi v1:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Epok 1:** [epoch-1.md](./epoch-1.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v2.py](./models/economy_v2.py) (`python -I economy_v2.py`)
 
@@ -254,7 +254,7 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Den bär 40 enheter per dag som i v1, delat mellan varorna och nu åt båda hållen.
   Först går det öns bosättning behöver för två dygn ut från hemön: mat till alla och kläder och dryck till de bostäder öns nivåer har.
   Sedan går öns varor hem, och ön behåller två dygns behov.
-  Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen och hålla kvar varor på ön ([ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler)).
+  Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen för varorna hem och hålla kvar varor på ön; skulden och maten ut går som förut (D-126, D-127, [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler)).
 - **Lagret.**
   Ett förråd rymmer 150 av varje resurs som i v1, och en brygga 50, så att en ö med bara en brygga har ett eget lager.
 
@@ -523,4 +523,10 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
 - **D-117 (F9):** varvet kräver Styrka och har ingen handkraft.
 - **D-118 (F10):** avvikelserna från dagens första vecka godtas: bärarna i introduktion 2 med flaskhalsen som diagnos, bönderna dygn 7 för den som satsar på tillväxt, och Nyön som egen bosättning i introduktion 6.
 - **D-119 (F11):** D-34:s andra halva gäller över veckor.
+
+Lagerreglerna i TASK-046 (#129) avgjordes efter v2.3 och står i [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler):
+
+- **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
+- **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
+- **D-127:** reserveringen hindrar bara skeppning hemåt och förädling, inte byggmaterial och mat som skeppas ut till öarna.
   Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter 0,07 % (avsnitt 9).

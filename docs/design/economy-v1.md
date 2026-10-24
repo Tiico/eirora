@@ -1,7 +1,7 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på rutor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037, TASK-044, TASK-046 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107  
+> **Ärende:** TASK-004, TASK-037, TASK-044, TASK-046 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107, D-125–D-127  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`) · **Balansbotar:** [tools/Eirora.Balance](../../tools/Eirora.Balance) (TASK-048, avsnitt 7.1)
 
@@ -195,13 +195,13 @@ De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-
   Ett nytt sågverk eller väveri lämnar 20.
   Bärarna bär bara fram råvara över minimilagret, så ett sågverk med minimilagret 40 och 45 timmer i lagret förädlar högst 5 timmer.
 - **Importprioritet** per sjöväg: i vilken ordning skeppen tar hem öns varor, till exempel sten före ull så att stenådern på Nyön inte trängs undan.
-  Utan spelarens ordning går varorna i sin fasta ordning: fisk, säd, timmer, plankor, sten, ull och tyg.
+  Spelaren ordnar alla varor, och utan spelarens ordning går de i sin fasta ordning: fisk, säd, timmer, plankor, sten, ull och tyg (D-126).
   Ordningen kan sättas innan sjövägen öppnar.
 - **Reservering** per ö och vara: ett lager som skeppen inte tar hem och förädlingen inte tar, till exempel timmer på Nyön till byggen där.
   Med 30 timmer reserverade på en ö lämnar sjövägen 30 timmer kvar där.
-  Byggen betalar ändå ur det reserverade, eftersom ett projekt betalas när det läggs i kön; reserveringen gäller lagret, och byborna äter som förut.
+  Byggen betalar ändå ur det reserverade, eftersom ett projekt betalas när det läggs i kön; reserveringen gäller lagret, och byborna äter som förut (D-127).
 
-Förädlingen lämnar det största av sitt minimilager och reserveringen på sin ö, så de två lägger sig inte på varandra.
+Förädlingen lämnar det största av sitt minimilager och reserveringen på sin ö, så de två lägger sig inte på varandra (D-125).
 Diagnostiken säger vilket av dem som håller kvar råvaran, och en sjöväg som har plats över men lämnar varor för en reservering säger det också.
 Bärarna tar fortfarande först där det väntar mest, med spelarens prioritet först (D-111); minimilagret och reserveringen avgör bara hur mycket råvara som finns att bära fram.
 

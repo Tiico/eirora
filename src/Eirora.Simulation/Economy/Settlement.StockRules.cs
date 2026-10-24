@@ -75,7 +75,7 @@ namespace Eirora.Simulation.Economy
         /// Millionths of a unit of a raw material that the carriers leave in the store of a processing building's island:
         /// the larger of its minimum stock and the island's reservation, and which of them that is.
         /// </summary>
-        private (long Kept, KeptBy By) Kept(Building processing, Resource input)
+        private (long Kept, KeptBy By) Leaves(Building processing, Resource input)
         {
             int reserved = ReservationOf(processing.Island, input);
             return reserved > processing.Reserve ? (Quantity.Units(reserved), KeptBy.Reservation) : (Quantity.Units(processing.Reserve), KeptBy.Reserve);

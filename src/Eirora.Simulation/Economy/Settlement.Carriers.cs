@@ -393,7 +393,7 @@ namespace Eirora.Simulation.Economy
                     {
                         foreach (var input in recipe.Inputs)
                         {
-                            long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Kept(building, input.Resource).Kept);
+                            long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Leaves(building, input.Resource).Kept);
                             if (wanted > 0)
                             {
                                 AddJob(new Job(building, input.Resource, wanted * OutboxUnits, trip));
@@ -415,7 +415,7 @@ namespace Eirora.Simulation.Economy
                     if (job.Input is Resource input)
                     {
                         var held = job.Building.Held!;
-                        moved = Min(Min(Quantity.Units(InputUnits) - held[(int)input], store[(int)input] - Kept(job.Building, input).Kept), reach);
+                        moved = Min(Min(Quantity.Units(InputUnits) - held[(int)input], store[(int)input] - Leaves(job.Building, input).Kept), reach);
                         if (moved <= 0)
                         {
                             continue;

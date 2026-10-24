@@ -116,7 +116,7 @@ namespace Eirora.Simulation.Economy
                 {
                     long stock = store[(int)input.Resource];
                     long held = building.Held![(int)input.Resource];
-                    var (kept, by) = Kept(building, input.Resource);
+                    var (kept, by) = Leaves(building, input.Resource);
                     long available = held + Max(stock - kept, 0);
                     long enough = available / input.PerProduct;
                     if (enough < full)
@@ -549,7 +549,7 @@ namespace Eirora.Simulation.Economy
             {
                 foreach (var input in recipe.Inputs)
                 {
-                    long available = building.Held![(int)input.Resource] + Max(store[(int)input.Resource] - Kept(building, input.Resource).Kept, 0);
+                    long available = building.Held![(int)input.Resource] + Max(store[(int)input.Resource] - Leaves(building, input.Resource).Kept, 0);
                     full = Min(full, available / input.PerProduct);
                 }
 
