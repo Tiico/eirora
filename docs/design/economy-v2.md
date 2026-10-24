@@ -1,7 +1,7 @@
 # Ekonomi v2
 
-> **Status:** [BESLUTAT] v2.3, delfrågorna avgjorda som D-109–D-119  
-> **Ärende:** TASK-058 (#145) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
+> **Status:** [BESLUTAT] v2.4, delfrågorna avgjorda som D-109–D-119 och bosättningarnas frågor i TASK-050 som D-121–D-124  
+> **Ärende:** TASK-058 (#145), TASK-050 (#133) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-124, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi v1:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Epok 1:** [epoch-1.md](./epoch-1.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v2.py](./models/economy_v2.py) (`python -I economy_v2.py`)
 
@@ -58,13 +58,14 @@ Sedan sker det här, i den här ordningen; stegen 1–4 i varje bosättning för
    En mätt bosättning får en torpare till om det finns plats i torparnas bostäder.
    Får också en andra torpare plats, och finns det 2 kläder utöver det nivåerna behöver till nästa gryning, förbrukas de och ger en torpare till; det är v1:s komfort med tyg.
    I v1 förbrukas tyget även när den andra torparen inte får plats; v2 gör inte så.
-5. **Flytt.**
-   En ledig torpare flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder (avsnitt 6).
-6. **Bemanning.**
-   Byggnaderna bemannas i ordningen ovan.
+5. **Bemanning.**
+   Förråden släpper de bärare som deras varor inte längre behöver, och sedan bemannas byggnaderna i ordningen ovan, varje ö med sina egna bybor.
+6. **Flytt.**
+   En ledig bybo flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder (avsnitt 6, D-124), och byggnaderna bemannas igen.
 7. **Bärare.**
-   Varje förråd tar så många bärare som varorna kräver av de lediga torparna (avsnitt 7).
-   Flytten går före, så en torpare som flyttar blir inte bärare samma gryning.
+   Varje förråd tar så många bärare som varorna kräver av sin ös lediga torpare, efter flytten (avsnitt 7).
+   Flytten går före, så en bybo som flyttar blir inte bärare på sin gamla ö samma gryning.
+   Kalkylen flyttar före bemanningen och släpper bärarna först i det här steget; det ändrar bara vilken gryning något sker.
 8. **Upplåsning.**
    Ett steg vars villkor nu är uppfyllt låses upp; byborna stiger till den nya nivån tidigast nästa gryning.
 
@@ -199,7 +200,7 @@ De andra strategierna i avsnitt 9 möter de här systemen första veckan:
 | Körning | System som möter spelaren, med första dygnet |
 |---|---|
 | Närområdet | Dimman (dygn 1), Förädling och minimilager (dygn 3), Bärarna hinner inte (dygn 4) |
-| Havet | Expedition (dygn 1), Förädling och minimilager (dygn 1), Sjöväg och ny bosättning (dygn 5) |
+| Havet | Expedition (dygn 1), Förädling och minimilager (dygn 1), Sjöväg och ny bosättning (dygn 4) |
 | Bygden | Dimman (dygn 1), Förädling och minimilager (dygn 4), Bönder (dygn 7) |
 | Naiv | Dimman (dygn 1), Förädling och minimilager (dygn 1) |
 | Utan träning | Dimman (dygn 1) |
@@ -236,17 +237,23 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
 ## 6. Bosättningar
 
 - **En bosättning anläggs** av det första förrådet eller den första bryggan på en ö (D-106).
-  Byggnaden har 4 bostäder för torpare, och byborna kommer genom flytten; inga nybyggare följer med.
+  Byggnaden har 4 bostäder för torpare, och byborna kommer genom flytten; inga nybyggare följer med, och en tom bosättning växer inte av sig själv (D-121).
 - **Egna bybor, bostäder och lager.**
-  Byborna bemannar bara byggnader på sin ö och äter ur sin ös lager.
+  Byborna bemannar bara byggnader på sin ö, bär bara för dess förråd och bryggor och äter ur sin ös lager.
   Varje bosättning har egna nivåer, och nivåernas behov tas ur dess eget lager.
 - **Flytt.**
   Vid gryningen flyttar högst en bybo i hela världen (D-106).
-  Det är en ledig torpare, och den flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder, från den förbundna bosättning som har flest lediga.
+  Den flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder, från den förbundna bosättning som har flest lediga.
+  Lediga bybor av alla nivåer får flytta till en bosättning som ännu inte har några bybor, så att en ny ö aldrig väntar på en torpare när bara bönder och hantverkare är lediga: den som flyttar är en ledig bybo av den lägsta nivå som har plats, och den behåller sin nivå (D-124, D-39).
+  Till en bosättning som redan har bybor flyttar bara torpare, som i D-106.
+  En bonde eller hantverkare på en ö utan bostäder för sin nivå bor i en torparbostad tills öns egna finns; den torparbostaden räknas som upptagen, så öns torpare växer inte in i den.
   Bara lediga bybor flyttar, så ingen byggnad blir obemannad av att någon flyttar (D-39).
+  Bara färdiga byggnader räknas, så en byggnad i byggkön lockar inga bybor förrän den står klar (D-123).
 - **Byggandet.**
   Lediga bybor bygger på kön på sin egen ö och på öar som sjövägen förbinder med deras, men bor och arbetar kvar hemma (D-113).
   På en ö som ännu saknar bosättning, där den första bryggan byggs, bygger hemöns bybor, eftersom expeditionen har nått dit.
+  Byggarna seglar från hemön, så den måste ha en brygga innan något kan byggas på andra öar (D-122).
+  Varje bygge i kön får arbete av de bybor som når det och som byggena före det inte har tagit, så ett bygge på en ö väntar inte på ett bygge på en annan, och ett bygge vars arbete redan är gjort står färdigt utan att vänta på dem.
 - **Byggmaterialet.**
   Bygget betalas ur öns lager när det räcker, annars ur hemöns.
   Material från hemön tar plats på sjövägen: de närmaste dygnens kapacitet går först åt till det, så att taket på 40 gäller åt båda hållen (D-106, D-113).
@@ -257,16 +264,18 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen.
 - **Lagret.**
   Ett förråd rymmer 150 av varje resurs som i v1, och en brygga 50, så att en ö med bara en brygga har ett eget lager.
+- **Före nivåerna.**
+  Regelversion 9 (TASK-050) har bosättningarna men ännu inte nivåerna, så komforten från v1 gäller per bosättning: 2 tyg ur öns eget lager ger en bybo till, tills nivåerna kommer i TASK-061 (#156).
 
-I de sex veckorna i avsnitt 10 växer Nyön till 18–20 bybor, och i alla sex körningar med Nyön stiger 6–12 av dem till bönder med kläder från hemön; ön har bara sex landrutor, så mer ryms inte.
+I de sex veckorna i avsnitt 10 växer Nyön till 16–18 bybor, och i fyra av sex körningar med Nyön stiger 6 av dem till bönder med kläder från hemön; ön har bara sex landrutor, så mer ryms inte.
 D-106 gör havet långsammare än i v1, eftersom Nyöns byggnader inte längre kan bemannas från hemön.
-Havets strategi bygger därför Nyöns brygga före den första bostaden, så att Nyön tidigt har bostäder dit lediga bybor kan flytta; med v1:s ordning blir Havet 19 % sämre första veckan.
+Havets strategi bygger därför Nyöns brygga före den första bostaden, så att Nyön tidigt har bostäder dit lediga bybor kan flytta, och låter hemöns väveri och långhus vänta tills bryggan ligger i kön, så att Nyön anläggs ett dygn tidigare (D-121); med v1:s ordning blir Havet 32 % sämre första veckan.
 
 ## 7. Bärare och vägar
 
 - **Bärarna är bybor vid förråden och bryggorna** (D-109).
   Varje förråd och brygga har minst en och högst fyra.
-  Vid gryningen tar förrådet så många som varorna kräver av de lediga torparna, upp till spelarens tak, och släpper dem som inte behövs; taket är gratis planering (D-23).
+  Vid gryningen tar förrådet så många som varorna kräver av sin ös lediga torpare, efter flytten, upp till spelarens tak, och släpper dem som inte behövs; taket är gratis planering (D-23).
   Förrådet tar också byggarna om det behöver dem, så byggkön kan stå still tills bosättningen växt; diagnostiken säger då *Byggkön står still: alla lediga bybor bär*, så att spelaren kan sänka taket.
   Förrådet tar aldrig en bybo från en annan byggnad: bemanningen är klibbig, så en byggnad som är bemannad förblir det, och en ny byggnad eller ett nytt förråd tar bara lediga bybor (D-39).
 - **Varje byggnad hör till det bemannade förråd eller den bemannade brygga som bärarna når snabbast på sin ö.**
@@ -352,6 +361,8 @@ Första veckan följer varje strategi sin egen plan.
 
 - **Närområdet:** som i v1, kartlägger Hemön två gånger och bygger ett kluster kring stenådern och urskogen med ett andra förråd, sågverk, tre långhus och fiskebod vid det rika vattnet.
 - **Havet:** som i v1, men Nyöns brygga, fårgård och stenbrott går före den första bostaden, som blir en stuga (avsnitt 6).
+  Väveriet och långhuset väntar tills Nyöns brygga ligger i kön, och Orken går till att skynda på bygget två gånger om dagen i stället för att arbeta extra på fårgården.
+  Hemöns få lediga bybor och skyndandet går då till bryggan, som blir klar dygn 4, och Nyöns bybor kommer en per gryning från dygn 5 (D-121).
 - **Bygden** (ny): kartlägger närområdet, bygger fårgård och stenbrott vid västra berget med ett förråd emellan, sågverk och väveri, stugor och ett långhus, och klär byborna så att de växer med två om dagen.
   Den når 20 bybor dygn 7 och börjar på bönderna.
 
@@ -360,21 +371,23 @@ Som jämförelse körs samma **naiva** strategi med **hög** egenvård som i v1.
 | Körning | Egenvård | Bybor | Nivåer T/B/H | Byggnader | Bosättningar | Plankor | Sten | Bärarnas last | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 19/0/0 | 11 | 1 | 47 | 210 | 72 % | 228 | 1 407 | 180/260/440 | 461/110/229 | 1,13 |
-| Havet | måttlig | 21 | 21/0/0 | 12 | 2 | 42 | 29 | 29 % | 246 | 1 284 | 250/210/360 | 426/160/260 | 1,07 |
+| Havet | måttlig | 22 | 22/0/0 | 12 | 2 | 42 | 29 | 32 % | 246 | 1 297 | 250/210/340 | 426/160/304 | 1,11 |
 | Bygden | måttlig | 20 | 20/0/0 | 12 | 1 | 2 | 67 | 54 % | 207 | 1 237 | 180/150/470 | 461/220/214 | 1,03 |
 | Naiv | hög | 19 | 19/0/0 | 10 | 1 | 3 | 54 | 69 % | 211 | 1 173 | 180/360/630 | 520/85/96 | 0,65 |
 | Utan träning | utan träning | 19 | 19/0/0 | 11 | 1 | 16 | 150 | 66 % | 156 | 1 162 | 180/0/480 | 461/100/204 | 1,14 |
 | Ingen spelare | ingen | 16 | 16/0/0 | 4 | 1 | 20 | 20 | 37 % | 48 | 584 | 0/0/0 | 100/100/310 | – |
 | Ingen spelare | måttlig | 16 | 16/0/0 | 4 | 1 | 20 | 20 | 37 % | 48 | 584 | 0/0/0 | 551/370/492 | – |
 
-*Utvecklingsvärde* är v1:s balansmått med nivåerna inräknade: torpare × 15, bönder × 25 och hantverkare × 40, plus halva värdet av lagren och det som väntar vid byggnaderna och förråden, plus tre dygns produktion.
+*Utvecklingsvärde* är v1:s balansmått med nivåerna inräknade: torpare × 15, bönder × 25 och hantverkare × 40, plus halva värdet av lagren, av det som väntar vid byggnaderna och förråden och av knarrarna, räknade till vad de kostade, plus tre dygns produktion.
 *Dagsproduktion* är produktionskapaciteten per dag med den andel som bärarna hinner få fram.
 *Bärarnas last* är den andel av bärarnas tid som gick åt under veckan.
 Startvärdet är 409, som i v1.
 
 **Olika men jämbördiga.**
 Närområdet slutar med ett stenlager och ett kluster som bärarna hinner med, Havet med två bosättningar, flest bybor och högst dagsproduktion, och Bygden med 20 bybor och bönderna upplåsta.
-Utvecklingsvärdena skiljer sig med 12 %, mot 9 % i v1, och värdet per använd kraft med 9 %.
+Utvecklingsvärdena skiljer sig med 14 %, mot 12 % i v1, och värdet per använd kraft med 10 %.
+Havet är jämbördigt första veckan men svagare vecka 6, med 5 409 mot Närområdets 6 132 och Bygdens 6 511 (avsnitt 10), eftersom alla strategier delar samma planerare från vecka 2.
+Så får det vara tills scenarierna i #136 har visat lägen där Havet vinner.
 
 **Strategin hinner ikapp (D-34).**
 Den naiva strategin med hög egenvård får 0,65 i värde per använd kraft, och den sämsta genomtänkta 1,03: 1,58 gånger, där [forces.md](./forces.md) kräver minst 1,3.
@@ -393,17 +406,16 @@ Den höga profilen lägger det Ork den har utöver den måttliga på extraarbete
 
 | Strategi | Utvecklingsvärde måttlig/hög dygn 7 | Dygn 14 | Dygn 28 | Dygn 42 | Sämsta dygnet | Dygn under måttlig |
 |---|---|---|---|---|---|---|
-| Närområdet | 1 407 / 1 407 | 2 250 / 2 250 | 4 601 / 4 610 | 5 824 / 5 834 | +0 % | 0 av 42 |
-| Havet | 1 284 / 1 284 | 1 908 / 1 913 | 3 983 / 3 987 | 5 464 / 5 464 | +0 % | 0 av 42 |
-| Bygden | 1 237 / 1 243 | 2 409 / 2 421 | 4 848 / 4 884 | 6 421 / 6 429 | Dygn 36: −0,07 % | 6 av 42 |
+| Närområdet | 1 407 / 1 407 | 2 250 / 2 250 | 4 504 / 4 514 | 6 132 / 6 142 | ±0 % | 0 av 42 |
+| Havet | 1 297 / 1 297 | 2 069 / 2 069 | 4 173 / 4 173 | 5 409 / 5 409 | +0 % | 0 av 42 |
+| Bygden | 1 237 / 1 243 | 2 409 / 2 421 | 4 860 / 4 896 | 6 511 / 6 511 | ±0 % | 0 av 42 |
 
 Mer egenvård syns alltså mest i saldot och i epokens tempo ([epok 1, avsnitt 5](./epoch-1.md#5-tempo)), och lite i världen genom extraarbetet.
-Vid varje veckas slut är världen med hög egenvård minst lika stor som med måttlig.
-I Bygden är den ändå något mindre i 6 dygn, som mest 0,07 %.
-Orsaken är bärarna: att arbeta extra fyller en råvarubyggnads utlager snabbare, bärarna hämtar där det väntar mest, och annat väntar längre, så att till exempel en komfortbybo kommer ett dygn senare.
-D-119 godtar det: D-34 gäller över veckor, och kalkylen stoppar om en vecka slutar mindre eller om ett enskilt dygn blir mer än 0,1 % mindre.
-Spärren ligger strax över de 0,07 % som kalkylen mäter, så att en regeländring som förvärrar dippen syns.
-Med råvaran till förädlingen först, i stället för D-111, blir dippen större: som mest 0,82 %.
+Vid varje veckas slut är världen med hög egenvård minst lika stor som med måttlig, och med D-121–D-124 är den inte mindre något dygn heller.
+Bärarnas ordning kan ändå göra den något mindre: att arbeta extra fyller en råvarubyggnads utlager snabbare, bärarna hämtar där det väntar mest, och annat väntar längre, så att till exempel en komfortbybo kommer ett dygn senare.
+D-119 godtar det: D-34 gäller över veckor, och kalkylen stoppar om en vecka slutar mindre eller om ett enskilt dygn blir mer än 0,1 % mindre, så att en regeländring som skapar en dipp syns.
+Före D-121–D-124 mätte kalkylen som mest 0,07 %, och med råvaran till förädlingen först, i stället för D-111, 0,82 %; nu mäter den ingen dipp med någon av dem.
+Ett varv börjar en knarr så fort materialet finns, så med mer egenvård kan knarren komma ett dygn tidigare; därför räknas knarrarna till vad de kostade, annars hade det sett ut som en mindre värld.
 
 ## 10. Sex veckor
 
@@ -413,27 +425,28 @@ Planeraren lämnar alltid två lediga bybor som bygger och uppgraderar bara av m
 
 | Körning | Egenvård | Bönder | Hantverkare | Sjöfart | Bärarna hinner inte | Bybor | Hemön T/B/H | Nyön T/B/H | Byggnader | Utvecklingsvärde vecka 2/4/6 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Närområdet | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 1 | 79 | 37/10/14 | 12/6/0 | 42 | 2 250 / 4 601 / 5 824 |
-| Havet | måttlig | vecka 2 | vecka 4 | vecka 5 | vecka 6 | 83 | 33/10/22 | 12/6/0 | 39 | 1 908 / 3 983 / 5 464 |
-| Bygden | måttlig | vecka 1 | vecka 2 | vecka 3 | vecka 3 | 105 | 33/16/38 | 12/6/0 | 51 | 2 409 / 4 848 / 6 421 |
-| Turen | måttlig | vecka 2 | vecka 2 | vecka 4 | vecka 3 | 84 | 16/16/34 | 12/6/0 | 45 | 2 544 / 4 502 / 5 296 |
-| Turen | manuell | vecka 2 | vecka 3 | vecka 5 | vecka 4 | 86 | 26/14/26 | 8/12/0 | 45 | 2 095 / 4 263 / 5 454 |
+| Närområdet | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 1 | 82 | 40/8/16 | 12/6/0 | 45 | 2 250 / 4 504 / 6 132 |
+| Havet | måttlig | vecka 2 | vecka 4 | vecka 4 | vecka 5 | 86 | 32/14/22 | 12/6/0 | 41 | 2 069 / 4 173 / 5 409 |
+| Bygden | måttlig | vecka 1 | vecka 2 | vecka 3 | vecka 3 | 104 | 31/15/40 | 12/6/0 | 52 | 2 409 / 4 860 / 6 511 |
+| Turen | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 3 | 95 | 19/16/44 | 16/0/0 | 46 | 2 369 / 4 480 / 5 559 |
+| Turen | manuell | vecka 2 | vecka 3 | vecka 4 | vecka 4 | 87 | 15/16/40 | 16/0/0 | 45 | 1 925 / 4 428 / 5 526 |
 | Naiv | hög | vecka 2 | – | – | – | 32 | 32/0/0 | – | 10 | 1 592 / 1 940 / 2 230 |
 | Utan träning | utan träning | vecka 2 | vecka 3 | – | vecka 5 | 74 | 30/12/32 | – | 40 | 1 353 / 3 093 / 3 955 |
-| Havet | hög | vecka 2 | vecka 4 | vecka 5 | vecka 6 | 84 | 32/10/24 | 12/6/0 | 40 | 1 913 / 3 993 / 5 502 |
+| Havet | hög | vecka 2 | vecka 3 | vecka 4 | vecka 5 | 86 | 32/14/22 | 12/6/0 | 41 | 2 074 / 4 240 / 5 427 |
 | Ingen spelare | ingen | – | – | – | – | 16 | 16/0/0 | – | 4 | 643 / 671 / 671 |
 
-- **Upplåsningen sprids över epokens första halva:** bönder vecka 1–2, hantverkare vecka 2–4 och sjöfarten vecka 3–5.
-- **Enbart manuell inmatning ligger en vecka efter normal** för hantverkarna och sjöfarten.
+- **Upplåsningen sprids över epokens första halva:** bönder vecka 1–2, hantverkare vecka 2–4 och sjöfarten vecka 3–4.
+- **Enbart manuell inmatning når hantverkarna och sjöfarten samma vecka som normal**, men med ett lägre utvecklingsvärde de första veckorna.
 - **Nyön får en egen bosättning med egna nivåer.**
-  Den växer till 18–20 bybor, och med kläder från hemön stiger 6–12 av dem till bönder; flytten, öns behov och sjövägen åt båda hållen räknas alltså.
+  Den växer till 16–18 bybor, och med kläder från hemön stiger 6 av dem till bönder i fyra av körningarna; flytten, öns behov och sjövägen åt båda hållen räknas alltså.
+  Där Nyön anläggs först vecka 3 är hemöns lediga bönder, så Nyöns första bybo blir en bonde som bor i en torparbostad tills Nyön har en bondgård; efter den flyttar bara torpare dit (D-124).
 - **Utan träning nås alla tre nivåerna**, med garveri, bryggeri, bigård, mjöderi och stugor.
   Sjöfarten kräver en sjöväg, och utan Styrka kommer bryggan med handkraft efter 7 dagar (D-65), som kalkylen inte räknar.
 - **Den naiva strategin står still på 32 bybor**, eftersom den aldrig bygger fler bostäder; det visar bara att planen tar slut.
 - **Långa körningar säger lite om vilken strategi som är bäst,** eftersom alla följer samma planerare från vecka 2.
   Det prövar balansbotarna i TASK-053 (#136) med egna strategier och kartor.
 - **Byarna blir större än i dag.**
-  Med nivåernas tätare bostäder når strategierna 74–105 bybor vecka 6, mot 72 vid dygn 45 i [epok 1:s tempo](./epoch-1.md#vecka-då-spelaren-når-varje-steg).
+  Med nivåernas tätare bostäder når strategierna 74–104 bybor vecka 6, mot 72 vid dygn 45 i [epok 1:s tempo](./epoch-1.md#vecka-då-spelaren-når-varje-steg).
   Elden kräver 50 bybor, så epokens tempo kan bli snabbare; det prövas i TASK-054 (#137) med epokens kalkyl ovanpå ekonomi v2.
 
 ## 11. Utan egenvård
@@ -481,14 +494,16 @@ Kalkylen migrerar fyra världar efter sju dygn i v1 och spelar sju dygn till i v
 | Närområdet | 19 | 11 | 1 | 0 | 0 | 0 | 27 | 18 | 2 227 |
 | Närområdet med väg till fiskeboden | 19 | 11 | 1 | 2 | 2 | 0 | 27 | 19 | 2 200 |
 | Havet | 20 | 12 | 2 | 0 | 0 | 0 | 37 | 20 | 2 090 |
-| Havet med fulla lager | 20 | 12 | 2 | 0 | 0 | 20 | 38 | 20 | 2 312 |
+| Havet med fulla lager | 20 | 12 | 2 | 0 | 0 | 20 | 38 | 20 | 2 287 |
 
 I alla fyra är byborna, byggnaderna, nivåerna, krafterna och den upptäckta kartan desamma före och efter, ingen vara har försvunnit och inget lager är över sin kapacitet; kalkylen stoppar annars.
 
 ## 13. Lärdomar och risker
 
 1. **En bosättning per ö gör havet långsammare.**
-   Havet behövde en ny byggordning för att hålla jämna steg, och byggarna från hemön (D-113) är det som håller havet levande; utan dem får Havet 0,85 i värde per kraft i stället för 1,07.
+   Havet behövde en ny byggordning för att hålla jämna steg, och byggarna från hemön (D-113) håller havet levande; utan dem får Havet 1,06 i värde per kraft i stället för 1,11.
+   Med D-121 växer Nyön först när byborna har flyttat dit, en per gryning, så Havet låter hemöns väveri och långhus vänta tills Nyöns brygga ligger i kön; utan det blir Havet 16 % sämre första veckan.
+   Vecka 6 ligger Havet ändå 12–17 % under Närområdet och Bygden, mot 6–15 % före D-121, eftersom alla följer samma planerare från vecka 2 (avsnitt 10).
 2. **Bärarna gör folk ännu knappare.**
    Varje bärare är en byggare mindre, och utan lediga bybor är vägen den enda åtgärd som hjälper.
 3. **Bärarnas ordning kan ta tillbaka en del av extraarbetet.**
@@ -516,11 +531,22 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
 - **D-112 (F4):** vägar läggs ruta för ruta, med genvägen *Väg till förrådet*.
 - **D-113 (F5), det enda tillägget till D-106:** lediga bybor får bygga på öar som sjövägen förbinder med deras, eftersom att bygga inte är att bemanna.
   I övrigt gäller D-106: inga nybyggare, högst en flytt per gryning i hela världen, och byggmaterial från hemön tar plats på sjövägen.
-  Med D-106 utan tillägget får Havet 0,85 i stället för 1,07, och med byggmaterialet utanför sjövägen 1,09.
+  Med D-106 utan tillägget får Havet 1,06 i stället för 1,11, och med byggmaterialet utanför sjövägen också 1,11.
 - **D-114 (F6):** upplåsningen gäller hela världen.
 - **D-115 (F7):** ett uppfyllt behov ger bara tillväxt och att stiga en nivå.
 - **D-116 (F8):** hantverkare bygger dubbelt så fort och bemannar varvet.
 - **D-117 (F9):** varvet kräver Styrka och har ingen handkraft.
 - **D-118 (F10):** avvikelserna från dagens första vecka godtas: bärarna i introduktion 2 med flaskhalsen som diagnos, bönderna dygn 7 för den som satsar på tillväxt, och Nyön som egen bosättning i introduktion 6.
 - **D-119 (F11):** D-34:s andra halva gäller över veckor.
-  Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter 0,07 % (avsnitt 9).
+  Med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut, och ett enskilt dygn får vara högst 0,1 % mindre; kalkylen mäter ingen dipp sedan D-121–D-124 (avsnitt 9).
+
+Produktägarens svar på frågorna i TASK-050 (PR #164):
+
+- **D-121:** en tom bosättning växer inte av sig själv; byborna kommer bara genom flytten.
+- **D-122:** hemön måste ha en brygga innan något kan byggas på andra öar, eftersom byggarna seglar därifrån.
+- **D-123:** flytten väntar på färdiga byggnader; en byggnad i byggkön lockar inga bybor förrän den står klar.
+- **D-124:** lediga bybor av alla nivåer får flytta till en bosättning som ännu inte har några bybor och behåller sin nivå; därefter flyttar bara torpare dit, och en bonde eller hantverkare bor i en torparbostad tills öns bostäder för dess nivå finns (avsnitt 6).
+  Produktägaren förtydligade räckvidden 2026-10-24.
+  Utan det får Närområdet och Bygden aldrig någon bybo på Nyön, eftersom hemöns lediga bybor från vecka 2 är bönder och hantverkare.
+- Komforten med tyg gäller per bosättning, med 2 tyg ur öns eget lager, tills nivåerna kommer (avsnitt 6).
+- Nyöns egna bybor visas på bryggans blad och i rapporten; introduktion 6 byggs med introduktionssystemet i M5 ([ROADMAP](../../ROADMAP.md), M5 punkt 4).

@@ -63,13 +63,56 @@ namespace Eirora.Simulation.Events
         public int Amount { get; }
     }
 
-    /// <summary>Villagers moved in because they were fed and there was room (economy-v1.md, section 4).</summary>
+    /// <summary>Villagers moved in to a settlement because they were fed and there was room (economy-v1.md, section 4).</summary>
     public sealed class VillagersMovedIn : GameEvent
     {
-        public VillagersMovedIn(long utcSeconds, int count)
-            : base(utcSeconds) => Count = count;
+        public VillagersMovedIn(long utcSeconds, int count, string island)
+            : base(utcSeconds)
+        {
+            Count = count;
+            Island = island;
+        }
 
         public int Count { get; }
+
+        /// <summary>The map's id of the settlement's island.</summary>
+        public string Island { get; }
+    }
+
+    /// <summary>
+    /// A free villager moved over a sea route to a settlement whose buildings lacked villagers (D-106; economy-v2.md,
+    /// section 6).
+    /// </summary>
+    public sealed class VillagerMoved : GameEvent
+    {
+        public VillagerMoved(long utcSeconds, string from, string to)
+            : base(utcSeconds)
+        {
+            From = from;
+            To = to;
+        }
+
+        /// <summary>The map's id of the island the villager left.</summary>
+        public string From { get; }
+
+        /// <summary>The map's id of the island the villager moved to.</summary>
+        public string To { get; }
+    }
+
+    /// <summary>
+    /// The first jetty on an island off the home island was finished, so the island has a settlement of its own, with
+    /// housing and no villagers until they move there over the sea route (D-106, D-121).
+    /// </summary>
+    public sealed class SettlementFounded : GameEvent
+    {
+        public SettlementFounded(long utcSeconds, string island)
+            : base(utcSeconds)
+        {
+            Island = island;
+        }
+
+        /// <summary>The map's id of the settlement's island.</summary>
+        public string Island { get; }
     }
 
     /// <summary>A building, upgrade or road in the queue was finished.</summary>
