@@ -8,10 +8,10 @@ namespace Eirora.Simulation.Forces
         /// <summary>From steps; drives expeditions and lifts the fog (Utforskning).</summary>
         Exploration,
 
-        /// <summary>From workouts; drives large builds and upgrades (Byggkraft).</summary>
+        /// <summary>From workouts; drives large builds and upgrades (Styrka).</summary>
         BuildPower,
 
-        /// <summary>From sleep duration; drives the morning's planning moves (Gryningskraft).</summary>
+        /// <summary>From sleep duration; drives the morning's planning moves (Ork).</summary>
         DawnPower,
     }
 }

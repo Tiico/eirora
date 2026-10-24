@@ -24,16 +24,16 @@ Inom en värld har varje ö med brygga en egen sjöväg till hemön, med egen ka
 _Avoid_: handelsrutt (när förbindelsen i sig avses)
 
 **Karta** (`WorldMap`):
-En världs oföränderliga hexskiva med brickor och öar, skapad en gång när världen skapas och sparad hel ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)).
+En världs oföränderliga hexskiva med rutor och öar, skapad en gång när världen skapas och sparad hel ([ADR-0010](./docs/adr/0010-world-map-format-and-generator-version.md)).
 Det som förändras på kartan under spelet, som dimma, skog och byggnader, är världens tillstånd.
 _Avoid_: värld (när bara kartan avses), seed
 
-**Bricka** (`HexTile`):
-En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landbricka är en möjlig byggplats (D-79).
-_Avoid_: ruta, cell, plats
+**Ruta** (`HexTile`):
+En hexagon på kartan med axiala koordinater, terräng, höjd och rikedom; varje landruta är en möjlig byggplats (D-79).
+_Avoid_: bricka, cell, plats
 
 **Byggplats**:
-En bricka som uppfyller en byggnads krav (`TileUse`), till exempel skog, berg, fiskevatten eller hamnläge; vad brickan duger till följer av terräng, höjd och grannar och sparas inte (D-79).
+En ruta som uppfyller en byggnads krav (`TileUse`), till exempel skog, berg, fiskevatten eller hamnläge; vad rutan duger till följer av terräng, höjd och grannar och sparas inte (D-79).
 Skog räknas bara när det finns upptäckt skog att fälla, så att byggvyn aldrig avslöjar dimman (D-93).
 _Avoid_: plats (som namngiven plats), tomt
 
@@ -42,13 +42,13 @@ Grunt vatten intill land, där fiskeboden står på pålar (D-88).
 _Avoid_: fiskeplats, kust
 
 **Hamnläge** (`HarborSpot`):
-En landbricka utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas och skepp lägga till (D-89).
+En landruta utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas och skepp lägga till (D-89).
 [Kartvalideringen](./docs/design/map-validation.md), och därmed generator v1, räknar bara stränder, som alltid är hamnlägen.
 _Avoid_: hamnplats, kaj, strand (som krav)
 
-**Krön** (`Crest`):
-Startöns enda högsta bricka, där Vårdkasen byggs och som inte bär något annat (D-92); delar två brickor toppen finns inget krön.
-_Avoid_: topp, högsta punkt, berg
+**Topp** (`Crest`):
+Startöns enda högsta ruta, där Vårdkasen byggs och som inte bär något annat (D-92); delar två rutor den högsta höjden finns ingen topp.
+_Avoid_: krön, högsta punkt, berg
 
 **Generator** (`WorldGenerator`):
 Det som skapar en karta, av en källtyp och med en fast generatorversion.
@@ -68,7 +68,7 @@ _Avoid_: kartkontroll
 
 **Dimma** (`Fog`):
 Det som täcker de delar av kartan som ännu inte är utforskade; den lyfts med Utforskning och kommer aldrig tillbaka.
-Den hör till världens tillstånd bricka för bricka, inte till kartan; kartläggningar och expeditioner lyfter den också (D-96, D-97).
+Den hör till världens tillstånd ruta för ruta, inte till kartan; kartläggningar och expeditioner lyfter den också (D-96, D-97).
 _Avoid_: fog of war, mörker
 
 ## Civilisation och ekonomi
@@ -94,7 +94,7 @@ Byggen, uppgraderingar och vägar som väntar på de lediga bybornas arbete, i d
 _Avoid_: bygglista, order
 
 **Basbehov** (`BasicNeed`):
-Det behov som alla befolkningsnivåer har, mat, en per bybo och spelardygn; brist stoppar bara tillväxt, aldrig något som redan finns.
+Det behov som alla befolkningsnivåer har, mat, en per bybo och dag; brist stoppar bara tillväxt, aldrig något som redan finns.
 _Avoid_: hunger, underhåll
 
 **Förråd** (`Depot`):
@@ -118,7 +118,7 @@ En naturlig förändring i världen som fortgår även under vilan, till exempel
 _Avoid_: passiv produktion
 
 **Handkraft** (`HandBuild`):
-Att bygga något som annars kostar Byggkraft utan kraft, på en fast tid, så att en bortvald vana aldrig blockerar milstolpen.
+Att bygga något som annars kostar Styrka utan kraft, på en fast tid, så att en bortvald vana aldrig blockerar milstolpen.
 _Avoid_: gratisbygge, långsamt läge
 
 **Runsten** (`RuneStone`):
@@ -142,7 +142,7 @@ Den tredje befolkningsnivån i epok 1, som bönder stiger till när de också f�
 _Avoid_: mästare, borgare
 
 **Behov** (`Need`):
-Det en befolkningsnivå förbrukar varje spelardygn, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
+Det en befolkningsnivå förbrukar varje dag, mat (basbehovet), kläder eller dryck, och som kan uppfyllas utan krafter med minst två varor ur kedjor som börjar på olika mark (INV-R4).
 _Avoid_: krav, efterfrågan, hunger
 
 **Upplåsning** (`Unlock`):
@@ -154,7 +154,7 @@ Det som väntar vid en byggnad på att bärarna ska hämta det; när utlagret ä
 _Avoid_: buffert, kö (om varorna)
 
 **Väg** (`Road`):
-En bricka där bärarna går dubbelt så fort; vägar läggs bricka för bricka och hjälper alla bärare som går över dem (D-112).
+En ruta där bärarna går dubbelt så fort; vägar läggs ruta för ruta och hjälper alla bärare som går över dem (D-112).
 _Avoid_: stig, gata
 
 **Knarr** (`Knarr`):
@@ -179,34 +179,34 @@ _Avoid_: energi, valuta, poäng
 Kraften från rörelse/steg; driver expeditioner och lyfter dimman.
 _Avoid_: stegpoäng
 
-**Byggkraft** (`BuildPower`):
+**Styrka** (`BuildPower`):
 Kraften från träningspass; driver större byggprojekt och uppgraderingar.
-_Avoid_: träningspoäng, arbetskraft
+_Avoid_: Byggkraft, träningspoäng, arbetskraft
 
-**Gryningskraft** (`DawnPower`):
+**Ork** (`DawnPower`):
 Kraften från sömnlängd; ger bybornas energi och morgonens planeringsdrag.
-_Avoid_: sömnpoäng, vilobonus
+_Avoid_: Gryningskraft, sömnpoäng, vilobonus
 
 **Grundande** (`Founding`):
-Det en ny värld börjar med på sin karta: startbyns byggnader, kartläggningarnas dolda brickor och ön som den första expeditionen hittar.
+Det en ny värld börjar med på sin karta: startbyns byggnader, kartläggningarnas dolda rutor och ön som den första expeditionen hittar.
 Det följer av kartan och sparas aldrig; prototypens karta har sitt handgjorda grundande och en genererad karta får ett efter samma regel.
 _Avoid_: startplan, spawn
 
 **Kartläggning** (`Survey`):
-En handling som kostar Utforskning och lyfter dimman från utvalda brickor nära bosättningen.
+En handling som kostar Utforskning och lyfter dimman från utvalda rutor nära bosättningen.
 _Avoid_: scouting, spaning
 
 **Expedition** (`Expedition`):
 En resa från en brygga som kostar Utforskning och efter en tid hittar en ny ö.
 _Avoid_: uppdrag, quest
 
-**Dagsverke** (`Workday`):
-En handling som kostar Gryningskraft och låter en byggnad producera mer under ett spelardygn.
-_Avoid_: boost, buff
+**Arbeta extra** (`Workday`):
+En handling som kostar Ork och låter en byggnad producera mer under dagen; i löptext *extraarbete*.
+_Avoid_: dagsverke, övertid, boost, buff
 
-**Rusta** (`Rush`):
-En handling som kostar Gryningskraft och lägger extra arbetstimmar på det första bygget i kön.
-_Avoid_: snabba upp, skippa
+**Skynda på** (`Rush`):
+En handling som kostar Ork och lägger extra arbetstimmar på det första bygget i kön.
+_Avoid_: rusta, snabba upp, skippa
 
 **Bidrag** (`Contribution`):
 En registrerad mängd egenvård för ett tidsintervall som omvandlas till kraft.
@@ -230,33 +230,34 @@ _Avoid_: fusk, overifierat, manuell data
 
 ## Dygnscykel
 
-**Viloperiod** (`RestPeriod`):
+**Vilotid** (`RestPeriod`):
 Spelarens återkommande, självvalda dagliga period om 6–10 timmar då byborna sover.
-_Avoid_: natt, sovtid, offlinetid
+_Avoid_: viloperiod, natt, sovtid, offlinetid
 
 **Vilolås** (`RestLock`):
-Regeln att inga spelpåverkande handlingar kan utföras under viloperioden.
+Regeln att inga spelpåverkande handlingar kan utföras under vilotiden.
 _Avoid_: nattlås, sömnlås, paus
 
 **Gryning** (`Dawn`):
-Övergången när viloperioden slutar och världen öppnar igen.
+Övergången när vilotiden slutar och världen öppnar igen.
 _Avoid_: upplåsning, reset
 
 **Nattvy** (`NightView`):
-Det spelaren ser under viloperioden: den sovande världen, när den öppnar och vilka långsamma processer som pågår.
+Det spelaren ser under vilotiden: den sovande världen, när den öppnar och vilka långsamma processer som pågår.
 _Avoid_: låsskärm, pausmeny
 
 **Morgonnotis** (`MorningNotification`):
-Den valfria, tysta notisen vid gryningen när något nytt har hänt i världen; högst en per spelardygn.
+Den valfria, tysta notisen vid gryningen när något nytt har hänt i världen; högst en per dag.
 _Avoid_: påminnelse, push
 
-**Spelardygn** (`GameDay`):
+**Dag** (`GameDay`):
 Tiden från en gryning till nästa; enheten som krafter räknas per.
-_Avoid_: dag, kalenderdygn (när spelardygnet avses)
+När det behöver skiljas från kalenderdygnet heter det dag i spelet.
+_Avoid_: spelardygn, kalenderdygn (när dagen i spelet avses)
 
 **Frånvaro** (`Absence`):
 Tiden då spelaren inte öppnar spelet; världen spolas fram till klockan när spelaren kommer tillbaka och är minst lika utvecklad som förut, hur länge frånvaron än varade (INV-V4).
-Kvartar där bara långsamma processer rör sig, under viloperioden eller när byborna inte har något att göra, räknas i ett steg.
+Kvartar där bara långsamma processer rör sig, under vilotiden eller när byborna inte har något att göra, räknas i ett steg.
 _Avoid_: offlinetid, paus, inaktivitet
 
 ## Simulering
@@ -266,11 +267,11 @@ En handling som spelaren begär i världen; det valideras och godkänns eller ne
 _Avoid_: order, action, klick
 
 **Spelpåverkande kommando** (`GameplayCommand`):
-Ett kommando som ändrar världen, till exempel att bygga, starta en expedition eller handla; nekas under viloperioden.
+Ett kommando som ändrar världen, till exempel att bygga, starta en expedition eller handla; nekas under vilotiden.
 _Avoid_: aktiv handling
 
 **Administrativt kommando** (`AdministrativeCommand`):
-Ett kommando som rör konto, integritet, tillgänglighet, hjälp, radering, viloschema eller registrering av egenvård; tillåts även under viloperioden (D-54).
+Ett kommando som rör konto, integritet, tillgänglighet, hjälp, radering, viloschema eller registrering av egenvård; tillåts även under vilotiden (D-54).
 _Avoid_: inställning (när kommandot avses)
 
 **Händelse** (`GameEvent`):
@@ -278,7 +279,7 @@ Ett faktum om en förändring som har skett i världen; tillståndet är summan 
 _Avoid_: logg, notis
 
 **Grundnivå** (`Baseline`):
-Den neutrala mängd Gryningskraft som ges när sömndata saknas; ingen inloggad sömn ger mindre.
+Den neutrala mängd Ork som ges när sömndata saknas; ingen inloggad sömn ger mindre.
 _Avoid_: minimum, straffnivå
 
 **Regelversion** (`RulesVersion`):
@@ -336,7 +337,7 @@ Det som avslutar en epok och som spelaren ser i världen när det nås; i epok 1
 _Avoid_: bossnivå, slutmål, achievement
 
 **Vårdkase** (`Beacon`):
-Signalelden på Hemöns krön som byggs i tre etapper och vars tändning är epok 1:s milstolpe.
+Signalelden på Hemöns topp som byggs i tre etapper och vars tändning är epok 1:s milstolpe.
 _Avoid_: fyr, monument
 
 **Forskning** (`Research`):
@@ -344,7 +345,7 @@ Steg för steg i en inriktning som öppnar nya strategier; kostar varor och tid,
 _Avoid_: teknikträd, uppgradering (när forskning avses)
 
 **Introduktion** (`Introduction`):
-Det korta ögonblick då ett nytt system visas för första gången, när spelaren når dess förutsättning; högst en per spelardygn.
+Det korta ögonblick då ett nytt system visas för första gången, när spelaren når dess förutsättning; högst en per dag.
 _Avoid_: tutorial, uppdrag, quest
 
 **Guidad tur** (`GuidedTour`):
@@ -370,15 +371,15 @@ Kontots kopia av världens sparning på servern, uppdelad i en världsdel och en
 _Avoid_: backup, synk
 
 **Världsdel** (`Save.ToParts().World`):
-Den del av sparningen som servern kan läsa: kartan och senaste snapshoten utom det som hålls per spelardygn; den räcker för att världen ska fortsätta.
+Den del av sparningen som servern kan läsa: kartan och senaste snapshoten utom det som hålls per dag; den räcker för att världen ska fortsätta.
 _Avoid_: grunddata, publik del
 
 **Bidragsdel** (`Save.ToParts().Contributions`):
-Den del av sparningen som krypteras på enheten: egenvården och krediteringen per spelardygn, de använda idempotensnycklarna, segmentens start och journalerna (D-100).
+Den del av sparningen som krypteras på enheten: egenvården och krediteringen per dag, de använda idempotensnycklarna, segmentens start och journalerna (D-100).
 _Avoid_: hälsodata (som aldrig lämnar telefonen), krypterad backup
 
 **Bidragsnyckel** (`ContributionKey`):
-Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per spelardygn; förloras den går bidragshistoriken förlorad, aldrig världen.
+Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per dag; förloras den går bidragshistoriken förlorad, aldrig världen.
 _Avoid_: lösenord, återställningskod (som är en av nyckelns kopior)
 
 **Nyckelepok** (`CloudSave.KeyEpoch`):
@@ -424,7 +425,7 @@ _Avoid_: monument (som generell term), raid
 Processbegrepp för hur prototypen spelas och utvärderas; de har inga kodnamn.
 
 **Prototypdagbok**:
-Produktägarens korta dagliga anteckningar om hur det var att spela prototypen, en kommentar per spelardygn i ett GitHub-ärende per vecka; innehåller aldrig hälsodata.
+Produktägarens korta dagliga anteckningar om hur det var att spela prototypen, en kommentar per dag i ett GitHub-ärende per vecka; innehåller aldrig hälsodata.
 _Avoid_: speltestlogg, journal, hälsodagbok
 
 **Veckogenomgång**:

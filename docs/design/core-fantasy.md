@@ -35,12 +35,12 @@ Tre egenskaper gör att besluten väger tyngre än mängden:
    Avtagande avkastning och mjuka tak (HLT-05) gör att en extra timme sömn eller tiotusen extra steg ger allt mindre.
    Ett bra beslut, till exempel en hamn som öppnar en sjöväg, fortsätter däremot att ge avkastning varje dag i världens ekonomi.
 2. **Krafterna är olika slags makt, inte en valuta** (princip 5).
-   Utforskning svarar på *var*, Byggkraft på *vad* och Gryningskraft på *hur väl i dag*.
+   Utforskning svarar på *var*, Styrka på *vad* och Ork på *hur väl i dag*.
    De kan inte växlas mot varandra, så pusslet är att få dem att samverka.
-   En spelare med mycket Utforskning men lite Byggkraft hittar öar som ännu inte går att exploatera, och måste välja vilka fynd som får vänta.
+   En spelare med mycket Utforskning men lite Styrka hittar öar som ännu inte går att exploatera, och måste välja vilka fynd som får vänta.
 3. **Ekonomin är rumslig och sammankopplad.**
    Samma byggnad är värd olika mycket beroende på var den står, vad den ligger nära och om varorna når fram (CIV-02, LOG-02).
-   Därför ger samma Byggkraft helt olika utfall hos två spelare.
+   Därför ger samma Styrka helt olika utfall hos två spelare.
 
 **Designmål (D-34):** inom normalt spann av egenvård ska skillnaden mellan ett genomtänkt och ett slarvigt beslut vara större än skillnaden mellan en låg och en hög egenvårdsdag.
 Mer egenvård ska ändå alltid synas i världen när strategin är densamma, annars dör spegeln.
@@ -52,9 +52,9 @@ Inget av besluten nedan avgörs av hur mycket egenvård spelaren har haft; mäng
 | # | Beslut | Avvägning | Varför mängden inte avgör |
 |---|---|---|---|
 | 1 | **Vart Utforskning riktas** | En lång expedition mot en ny ö (stor möjlighet, lång horisont) *eller* kartläggning av närområdet (säkra resurser nu) | Rätt svar beror på vad världen saknar, inte på hur mycket Utforskning som finns |
-| 2 | **Vad Byggkraft läggs på** | Produktion (ett sågverk), infrastruktur (en hamn eller väg) eller gruppens gemensamma bygge | Tillväxt nu, tillväxt senare eller tillväxt tillsammans är tre olika strategier |
+| 2 | **Vad Styrka läggs på** | Produktion (ett sågverk), infrastruktur (en hamn eller väg) eller gruppens gemensamma bygge | Tillväxt nu, tillväxt senare eller tillväxt tillsammans är tre olika strategier |
 | 3 | **Var det byggs** | Nära råvaran, nära bosättningen eller nära kusten | Placering och närhet avgör värdet; fel plats kostar varje dag |
-| 4 | **Hur Gryningskraften används på morgonen** | Vilken flaskhals som ska lösas i dag; vilken arbetsgrupp bland byborna som prioriteras | Det är ett diagnosbeslut: spelaren måste läsa sin ekonomi |
+| 4 | **Hur Orken används på morgonen** | Vilken flaskhals som ska lösas i dag; vilken arbetsgrupp bland byborna som prioriteras | Det är ett diagnosbeslut: spelaren måste läsa sin ekonomi |
 | 5 | **Vilken forskningsinriktning som följs** | Produktion, sjöfart/logistik eller kartläggning/kultur (RES-01) | Forskning ändrar vad krafterna är värda, inte hur många de är |
 | 6 | **Hur världen specialiseras och knyts ihop** | Vilken ö gör vad, vilka sjövägar som prioriteras | Planering är alltid gratis (D-23); här kan även en spelare utan egenvård i dag göra stor skillnad |
 
@@ -72,7 +72,7 @@ Tillsammans blir det ett dygn med fast form:
 
 - **Dag:** livet levs; bidragen samlas i bakgrunden.
 - **Kväll eller morgon, 2–5 minuter:** rapporten läses, krafterna riktas, ett par tunga beslut fattas.
-- **Viloperiod:** byborna sover, långsamma processer fortgår, inga kommandon.
+- **Vilotid:** byborna sover, långsamma processer fortgår, inga kommandon.
 - **Gryning:** världen visar vad besluten och egenvården gav.
 
 Vilolåset och den korta sessionen gör strategin starkare, inte svagare.

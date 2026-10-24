@@ -82,7 +82,7 @@ namespace Eirora.Client.Tests
             hud.Select(s_meadow);
             hud.ShowMoreBuildings(); // The meadow by the forest takes a woodcutter first; a road waits behind the fold.
             var lay = root.Query<Button>(className: "action").ToList().Single(a => Label(a, "action-title") == "Lägg väg");
-            Assert.That(Label(lay, "action-cost"), Is.EqualTo("2 sten och 4 h arbete per bricka · bärarna går dubbelt så fort"));
+            Assert.That(Label(lay, "action-cost"), Is.EqualTo("2 sten och 4 h arbete per ruta · bärarna går dubbelt så fort"));
 
             Press(lay);
             Assert.That(hud.IsLayingRoads, Is.True);
