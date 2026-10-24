@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Reflection;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
@@ -11,34 +10,30 @@ namespace Eirora.Simulation.Tests.Economy;
 
 /// <summary>
 /// Fast-forwarding a long absence (TASK-049): the quarter hours where only the slow processes move are grown at once,
-/// which gives the same world as reading every quarter hour, and a year away is caught up within the time a cold start
-/// on the weakest target phone can spare (performance-budgets.md).
+/// which gives the same world as reading every quarter hour, and a year away skips enough of them. The time a year takes,
+/// against what a cold start on the weakest target phone can spare, is measured in FastForwardBenchmarks
+/// (performance-budgets.md): timed here, the tests would fail on a busy machine (#170).
 /// </summary>
 /// <remarks>
 /// Every world is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a simpler one.
 /// Play a failing case again with the replay FsCheck prints, <c>[Property(Replay = "(…)")]</c>, or with
 /// <c>BuiltOutWorld.Generate(seed)</c> for the seed it reports.
 /// </remarks>
-[Collection(nameof(TimedAlone))]
 public sealed class FastForwardTests
 {
     private const long Hour = 3600;
-    private const long Year = 365 * 24 * Hour;
+    private const long Day = 24 * Hour;
+    private const long Year = 365 * Day;
 
     /// <summary>
-    /// The most a year away may take to fast-forward here, in the slowest of the built-out worlds.
+    /// The most of the quarter hours the villagers are awake that a year away may work one by one, together in the
+    /// built-out worlds; in the rest only the slow processes move, so they are skipped.
     /// </summary>
     /// <remarks>
-    /// The floor phone, a Galaxy A06 (Helio G85), has five seconds for a cold start, of which catching up may take one;
-    /// Unity's own start takes most of the rest. Its cores score a quarter to a fifth of a CI runner's or a developer
-    /// laptop's in single-threaded benchmarks, and IL2CPP runs this code somewhat slower than .NET, so one second there
-    /// is about 150 ms here. Unoptimized code (Debug) runs about three times slower.
+    /// On 24 October 2026 the six worlds worked 81 % of them (108 005 of 133 590). With the skip broken they work every
+    /// one, as the year scene's world does anyway: its expedition and its queue change something every quarter hour.
     /// </remarks>
-#if DEBUG
-    private const int MostMilliseconds = 3 * 150;
-#else
-    private const int MostMilliseconds = 150;
-#endif
+    private const double MostWorkedShare = 0.9;
 
     // The world the measurement scene year catches up on the phone, as a save the client loads from its resources.
     private static readonly string s_yearScene = Repository.PathTo("client", "Assets", "Eirora", "Resources", "Measurement", "AYearAway.bytes");
@@ -146,23 +141,30 @@ public sealed class FastForwardTests
         Assert.True(world.SeaRoutes.Count > 0 || world.ExpeditionHoursLeft > 0, "The year scene's world has neither the sea route nor an expedition at sea.");
     }
 
+    // Counted, the work is the same on every machine however busy it is, and a regression in the skip is caught where
+    // a timing would also fail for a busy machine (#170). What a worked quarter hour costs is timed in
+    // FastForwardBenchmarks.
     [Fact]
-    public void AYearAwayIsCaughtUpInTime()
+    public void AYearAwaySkipsTheQuarterHoursWhereOnlyTheSlowProcessesMove()
     {
-        var worlds = Enumerable.Range(0, 6).Select(BuiltOutWorld.Generate).ToList();
-        var scene = YearSceneWorld();
-        AdvanceAYear(Copy(worlds[0]), DeviceReadings); // Compiles the simulation before it is timed.
+        var years = Enumerable.Range(0, 6).Select(BuiltOutWorld.Generate).Select(world =>
+        {
+            long awake = Year / Day * world.ActiveTicks;
+            int buildings = world.Buildings.Count;
+            long before = world.QuarterHoursWorked;
+            foreach (var reading in DeviceReadings(world))
+            {
+                world.AdvanceTo(reading);
+            }
 
-        // The best of three, since a shared machine only ever slows a run down, and the processor time is read coarsely.
-        double Best(World world, Func<World, IReadOnlyList<TimeReading>> readings) =>
-            Enumerable.Range(0, 3).Min(_ => AdvanceAYear(Copy(world), readings));
-        var slowest = worlds.Select(world => (World: world, Milliseconds: Best(world, DeviceReadings))).MaxBy(timed => timed.Milliseconds);
-        double sceneMilliseconds = Best(scene, SceneReading);
+            return (Awake: awake, Worked: world.QuarterHoursWorked - before, Buildings: buildings);
+        }).ToList();
+        string worked = string.Join(", ", years.Select(year => $"{year.Worked} of {year.Awake} with {year.Buildings} buildings"));
 
+        Assert.All(years, year => Assert.InRange(year.Worked, 0, year.Awake));
         Assert.True(
-            slowest.Milliseconds <= MostMilliseconds,
-            $"A year away took {slowest.Milliseconds:F0} ms to fast-forward with {slowest.World.Buildings.Count} buildings, more than {MostMilliseconds} ms.");
-        Assert.True(sceneMilliseconds <= MostMilliseconds, $"A year away took {sceneMilliseconds:F0} ms in the year scene's world, more than {MostMilliseconds} ms.");
+            years.Sum(year => year.Worked) <= MostWorkedShare * years.Sum(year => year.Awake),
+            $"A year away worked more than {MostWorkedShare:P0} of the quarter hours the villagers are awake: {worked}.");
     }
 
     /// <summary>
@@ -189,10 +191,6 @@ public sealed class FastForwardTests
     /// <summary>A year as the phone's clock reads it, split where the offset changes.</summary>
     private static List<TimeReading> DeviceReadings(World world) =>
         TestClock.Readings(world.Now.ZoneId, world.Now.UtcSeconds, world.Now.UtcSeconds + Year).ToList();
-
-    /// <summary>A year in one reading, as the year scene's fixed clock gives it (MeasurementScene).</summary>
-    private static List<TimeReading> SceneReading(World world) =>
-        [new TimeReading(world.Now.UtcSeconds + Year, world.Now.ZoneId, world.Now.OffsetSeconds)];
 
     /// <summary>
     /// <paramref name="world"/> with most of its stores filled to their capacity or, in one case of two, an expedition at
@@ -247,29 +245,7 @@ public sealed class FastForwardTests
         return readings;
     }
 
-    /// <summary>
-    /// The processor time a year away takes to fast-forward, in milliseconds: the work itself, which a busy machine
-    /// does not stretch the way it stretches the wall clock.
-    /// </summary>
-    private static double AdvanceAYear(World world, Func<World, IReadOnlyList<TimeReading>> readingsOf)
-    {
-        var readings = readingsOf(world);
-        using var process = Process.GetCurrentProcess();
-        var before = process.TotalProcessorTime;
-        foreach (var reading in readings)
-        {
-            world.AdvanceTo(reading);
-        }
-
-        process.Refresh();
-        return (process.TotalProcessorTime - before).TotalMilliseconds;
-    }
-
     private static World Copy(World world) =>
         SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(world.Map);
 }
-
-/// <summary>Times the fast-forward alone, after the tests that run in parallel.</summary>
-[CollectionDefinition(nameof(TimedAlone), DisableParallelization = true)]
-public sealed class TimedAlone;
 

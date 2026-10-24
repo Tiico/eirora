@@ -51,8 +51,9 @@ Varningar är fel, och `dotnet restore` underkänner paket med kända sårbarhet
 Byggutdata hamnar i `artifacts/`.
 
 Prestandan i simuleringen mäts med BenchmarkDotNet i `benchmarks/`.
-CI bygger mätningarna men kör dem inte, eftersom tider på delade maskiner varierar för mycket för att underkänna ett bygge.
-Kör dem i Release när koden de mäter ändras:
+Tider på delade maskiner varierar för mycket för att underkänna ett bygge, så CI bygger mätningarna men låter dem aldrig underkänna det.
+Framspolningen av ett års frånvaro körs i ett eget jobb i .NET-workflowen, som skriver tiden mot budgeten i körningens sammanfattning och varnar när den går över.
+Kör mätningarna i Release när koden de mäter ändras:
 
 ```bash
 dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --filter '*'
@@ -61,10 +62,12 @@ dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --fil
 | Mätning | Budget på en utvecklardator | Senast uppmätt |
 |---|---|---|
 | Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
-| Ett års frånvaro i den långsammaste av sex utbyggda världar och i mätscenens värld (`FastForwardTests`, i testsviten) | Högst 150 ms processortid | 35 ms (M1 Pro, .NET 10) |
+| Ett års frånvaro i mätscenens värld (`FastForwardBenchmarks`) | Högst 150 ms | MEASURED |
 
 Budgetarna på telefonen sätts i TASK-024.
-Framspolningen av ett års frånvaro mäts i stället i testsviten, i processortid som en delad maskin inte drar ut, mot en gräns som är räknad från den svagaste målenheten ([mätbudgetar](./design/performance-budgets.md#2-budgetar)).
+Gränsen för framspolningen är räknad från den svagaste målenheten ([mätbudgetar](./design/performance-budgets.md#2-budgetar)).
+Testsviten mäter ingen tid, eftersom en tid faller när maskinen är belastad (#170).
+I stället räknar `FastForwardTests` hur många av de vakna kvartarna ett år arbetar en i taget, vilket blir detsamma på varje maskin, och underkänner bygget när hoppet över kvartar där bara långsamma processer rör sig slutar fungera.
 Testprojektet kompilerar varje metod optimerad direkt, utan tiered compilation, som IL2CPP gör på telefonen.
 
 Unity-testerna (EditMode) körs headless:

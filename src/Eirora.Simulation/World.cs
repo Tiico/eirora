@@ -34,6 +34,13 @@ namespace Eirora.Simulation
         private int _growing;
         private bool _idleUntilDawn;
 
+        /// <summary>
+        /// The quarter hours whose work this world has played one by one since it was made or read; the rest only grew
+        /// the slow processes. What fast-forwarding an absence costs, counted the same on every machine (TASK-049); not
+        /// state, so a copy starts from nought.
+        /// </summary>
+        internal long QuarterHoursWorked { get; private set; }
+
         private World(WorldMap map, DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
         {
             Map = map;
@@ -280,6 +287,7 @@ namespace Eirora.Simulation
                 {
                     Grow();
                     _idleUntilDawn = !_settlement.Tick(tick, _events);
+                    QuarterHoursWorked++;
                 }
 
                 tick += Settlement.TickSeconds;

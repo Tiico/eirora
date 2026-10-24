@@ -76,7 +76,7 @@ Pröva resultatet mot telefonens nivå, till exempel referensnivån för en Pixe
 tools/device-measurements/measure.sh budget measurements/year-1/results.tsv --tier reference
 ```
 
-Testet `FastForwardTests.AYearAwayIsCaughtUpInTime` spolar fram samma värld headless med samma avläsning och håller den inom en gräns som är räknad från golvet, se [målenheter och mätbudgetar](./performance-budgets.md#2-budgetar).
+Mätningen `FastForwardBenchmarks` i `benchmarks/` spolar fram samma värld headless med samma avläsning, mot en gräns som är räknad från golvet, se [målenheter och mätbudgetar](./performance-budgets.md#2-budgetar).
 Den 23 oktober 2026 tog det 34 ms processortid på en M1 Pro (.NET 10, Release).
 Kvoten mellan `catch_up_median_ms` på telefonen och den siffran visar alltså hur mycket långsammare telefonen och IL2CPP är, och hur gränsen står sig.
 
