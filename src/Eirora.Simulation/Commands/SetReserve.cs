@@ -5,8 +5,9 @@ namespace Eirora.Simulation.Commands
 {
     /// <summary>
     /// Sets how many whole units of each raw material a processing building leaves in its island's store for building,
-    /// from 0 to what the store holds (GLOSSARY: Minimilager, LOG-06). The carriers bring it raw materials only above
-    /// this and above the island's reservation from the next quarter hour. Free of forces, like all planning (D-23).
+    /// from 0 to what the store holds, or lower than it is when a demolition has left it above that (GLOSSARY:
+    /// Minimilager, LOG-06). The carriers bring it raw materials only above this and above the island's reservation from
+    /// the next quarter hour. Free of forces, like all planning (D-23).
     /// </summary>
     public sealed class SetReserve : GameCommand
     {
@@ -32,7 +33,8 @@ namespace Eirora.Simulation.Commands
                 return Rejection.NoBuildingThere;
             }
 
-            if (Units < 0 || Units > settlement.StorageUnits(building.Island))
+            // A demolition can leave it above what the store holds; it can always be lowered, never raised above that.
+            if (Units < 0 || (Units > settlement.StorageUnits(building.Island) && Units > building.Reserve))
             {
                 return Rejection.AmountOutOfRange;
             }

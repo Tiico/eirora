@@ -59,6 +59,34 @@ namespace Eirora.Client.Tests
             Assert.That(Labels(), Does.Contain("Sågverket tar allt"));
         }
 
+        // Review of #167: a demolition (TASK-047) can leave the minimum stock above what the store holds; "−" brings it down
+        // to that at once, and from there a step at a time.
+        [Test]
+        public void TheMinimumStockAboveTheStoreAfterADemolitionComesDownToTheStore()
+        {
+            var tile = ScriptedWeek.Sawmill;
+            var world = EditedWorld.Edit(_game.World!, lines =>
+            {
+                int at = lines.FindIndex(l => l.StartsWith($"building Sawmill {tile.Q} {tile.R} ", System.StringComparison.Ordinal));
+                lines[at] = lines[at].Substring(0, lines[at].LastIndexOf(' ')) + " 400";
+            });
+            int capacity = world.StorageUnits(world.HomeIsland);
+            Assert.That(capacity, Is.LessThan(400));
+            int key = 0;
+            var hud = new Hud(_root = new VisualElement(), command => world.Apply($"reserve-{key++}", command));
+            hud.Show(world, System.Array.Empty<Simulation.Events.GameEvent>());
+            hud.Select(tile);
+            Assert.That(Labels(), Does.Contain("400 timmer"));
+            Assert.That(Stepper("Minimilager", "+").enabledSelf, Is.False);
+
+            Press(Stepper("Minimilager", "−"));
+            Assert.That(world.BuildingAt(tile)!.Reserve, Is.EqualTo(capacity));
+
+            hud.Show(world, System.Array.Empty<Simulation.Events.GameEvent>());
+            Press(Stepper("Minimilager", "−"));
+            Assert.That(world.BuildingAt(tile)!.Reserve, Is.EqualTo(capacity - 5));
+        }
+
         [Test]
         public void TheSawmillsSheetSaysWhenTheIslandsReservationKeepsMore()
         {

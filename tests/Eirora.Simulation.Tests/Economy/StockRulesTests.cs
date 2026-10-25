@@ -233,6 +233,29 @@ public sealed class StockRulesTests
         Assert.Equal(journal.World.Fingerprint(), Journal.Load(journal.ToText()).World.Fingerprint());
     }
 
+    // Review of #167: a demolition (TASK-047) can leave a setting above what the store holds; it stays, and the player can
+    // always lower it, but never raise it above the store.
+    [Fact]
+    public void ASettingAboveTheStoreAfterADemolitionCanBeLoweredButNotRaised()
+    {
+        var storehouse = new Hex(2, -2);
+        var world = CarriersTests.Edited(Morning(), "building Storehouse 2 -2 1 1 0 0 0 1 4 0 0 0 0 0 0\nbuilding Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0 20", villagers: Morning().Villagers + 1);
+        Assert.Equal(300, world.StorageUnits(world.HomeIsland));
+        Assert.True(Apply(world, new SetReserve(L1, 200)).Accepted);
+        Assert.True(Apply(world, new SetReservation(world.HomeIsland, Resource.Stone, 250)).Accepted);
+
+        Assert.True(Apply(world, new Demolish(storehouse)).Accepted);
+        Assert.Equal(150, world.StorageUnits(world.HomeIsland));
+        Assert.Equal((200, 250), (world.BuildingAt(L1)!.Reserve, world.ReservationOf(world.HomeIsland, Resource.Stone)));
+
+        Assert.True(Apply(world, new SetReserve(L1, 195)).Accepted);
+        Assert.Equal(Rejection.AmountOutOfRange, Apply(world, new SetReserve(L1, 196)).Rejection);
+        Assert.True(Apply(world, new SetReservation(world.HomeIsland, Resource.Stone, 245)).Accepted);
+        Assert.Equal(Rejection.AmountOutOfRange, Apply(world, new SetReservation(world.HomeIsland, Resource.Stone, 246)).Rejection);
+        Assert.True(Apply(world, new SetReserve(L1, 150)).Accepted);
+        Assert.Equal(Rejection.AmountOutOfRange, Apply(world, new SetReserve(L1, 151)).Rejection);
+    }
+
     [Fact]
     public void AnImportOrderNeedsAPlaceInTheOrderAndMovedBackToTheFixedOrderIsNoLongerWritten()
     {

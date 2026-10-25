@@ -3,7 +3,8 @@ using Eirora.Simulation.Economy;
 namespace Eirora.Simulation.Commands
 {
     /// <summary>
-    /// Reserves whole units of a resource on an island, from 0 to what its store holds (GLOSSARY: Reservering, LOG-06):
+    /// Reserves whole units of a resource on an island, from 0 to what its store holds, or lower than it is when a
+    /// demolition has left it above that (GLOSSARY: Reservering, LOG-06):
     /// the ships leave that much there and processing does not take it, but building still pays from it, since what a
     /// project costs is paid when it is queued. Free of forces, like all planning (D-23).
     /// </summary>
@@ -36,7 +37,8 @@ namespace Eirora.Simulation.Commands
                 return Rejection.NoSuchIsland;
             }
 
-            if (Units < 0 || Units > settlement.StorageUnits(Island))
+            // A demolition can leave it above what the store holds; it can always be lowered, never raised above that.
+            if (Units < 0 || (Units > settlement.StorageUnits(Island) && Units > settlement.ReservationOf(Island, Resource)))
             {
                 return Rejection.AmountOutOfRange;
             }

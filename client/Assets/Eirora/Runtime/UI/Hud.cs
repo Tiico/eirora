@@ -704,10 +704,19 @@ namespace Eirora.Client.UI
             Text("row-title", label, "Minimilager");
             Text("row-detail", label, Texts.Reserve(building, world.ReservationOf(building.Island, input), Texts.IslandName(world, building.Island)));
             var stepper = Container("stepper", row);
-            Button("stepper-button", stepper, "−", () => Run(new SetReserve(building.Tile, Math.Max((reserve - 1) / StockStep * StockStep, 0)))).SetEnabled(reserve > 0);
+            Button("stepper-button", stepper, "−", () => Run(new SetReserve(building.Tile, Lower(reserve, capacity)))).SetEnabled(reserve > 0);
             Text("stepper-value", stepper, $"{reserve} {Texts.Name(input)}");
-            Button("stepper-button", stepper, "+", () => Run(new SetReserve(building.Tile, Math.Min(((reserve / StockStep) + 1) * StockStep, capacity)))).SetEnabled(reserve < capacity);
+            Button("stepper-button", stepper, "+", () => Run(new SetReserve(building.Tile, Raise(reserve, capacity)))).SetEnabled(reserve < capacity);
         }
+
+        /// <summary>
+        /// A minimum stock or a reservation one step lower: to the next multiple of <see cref="StockStep"/> below, or to what
+        /// the store holds when a demolition has left it above that (TASK-046, TASK-047).
+        /// </summary>
+        private static int Lower(int units, int capacity) => units > capacity ? capacity : Math.Max((units - 1) / StockStep * StockStep, 0);
+
+        /// <summary>A minimum stock or a reservation one step higher: to the next multiple of <see cref="StockStep"/>, at most what the store holds.</summary>
+        private static int Raise(int units, int capacity) => Math.Min(((units / StockStep) + 1) * StockStep, capacity);
 
         /// <summary>The way from a storehouse or a jetty to its island's store sheet, and from the home island's jetty to each route's.</summary>
         private void StoreActions(World world, Building depot)
@@ -775,9 +784,9 @@ namespace Eirora.Client.UI
             var row = Container("row", _sheet);
             Text("row-label", row, $"Reservera {Texts.Name(_good)}");
             var stepper = Container("stepper", row);
-            Button("stepper-button", stepper, "−", () => Run(new SetReservation(island, _good, Math.Max((chosen - 1) / StockStep * StockStep, 0)))).SetEnabled(chosen > 0);
+            Button("stepper-button", stepper, "−", () => Run(new SetReservation(island, _good, Lower(chosen, capacity)))).SetEnabled(chosen > 0);
             Text("stepper-value", stepper, chosen.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            Button("stepper-button", stepper, "+", () => Run(new SetReservation(island, _good, Math.Min(((chosen / StockStep) + 1) * StockStep, capacity)))).SetEnabled(chosen < capacity);
+            Button("stepper-button", stepper, "+", () => Run(new SetReservation(island, _good, Raise(chosen, capacity)))).SetEnabled(chosen < capacity);
         }
 
         /// <summary>
