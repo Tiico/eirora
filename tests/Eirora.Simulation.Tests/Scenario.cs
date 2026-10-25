@@ -63,12 +63,16 @@ internal sealed class Scenario
     /// Whether the player's stock rules are among the commands (TASK-046); <see cref="BuiltOutWorld"/> leaves them out and
     /// sets them itself, so that its worlds are drawn as they were before the rules.
     /// </param>
-    public static Scenario Generate(int seed, int length = 60, bool archipelago = false, bool stockRules = true)
+    /// <param name="lastStep">
+    /// The last unlocked step whose buildings the commands build (TASK-061); 0 for a world that the rules before the
+    /// population tiers could have had, as the migrations' tests write it back to them.
+    /// </param>
+    public static Scenario Generate(int seed, int length = 60, bool archipelago = false, bool stockRules = true, int lastStep = int.MaxValue)
     {
         var random = new Random(seed);
         var install = new TimeReading(At("2026-01-01 00:00", 1).UtcSeconds + (random.Next(360 * 24) * Hour), Stockholm, 3600 * (1 + random.Next(2)));
         var schedule = new RestSchedule(random.Next(96) * 15, (6 * 60) + (random.Next(9) * 30));
-        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k", stockRules));
+        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k", stockRules, lastStep));
     }
 
     /// <summary>
@@ -78,7 +82,7 @@ internal sealed class Scenario
     public static IReadOnlyList<Input> Continue(int seed, World world, string device, int length = 20) =>
         Play(new Random(seed), SimulationSnapshot.Take(world).Restore(world.Map), length, device);
 
-    private static List<Input> Play(Random random, World world, int length, string keyPrefix, bool stockRules = true)
+    private static List<Input> Play(Random random, World world, int length, string keyPrefix, bool stockRules = true, int lastStep = int.MaxValue)
     {
         var inputs = new List<Input>(length);
         long utc = world.Now.UtcSeconds;
@@ -112,7 +116,7 @@ internal sealed class Scenario
 
                 // Now and then a key is sent again, as a client does after a crash or a retry.
                 string key = i > 0 && random.Next(100) < 15 ? $"{keyPrefix}{random.Next(i)}" : $"{keyPrefix}{i}";
-                Add(new Command(key, Maker(random, stockRules)));
+                Add(new Command(key, Maker(random, stockRules, lastStep)));
             }
         }
 
@@ -145,6 +149,9 @@ internal sealed class Scenario
     private static World Start(TimeReading install, RestSchedule schedule, bool archipelago) =>
         archipelago ? Archipelago.Create(install, schedule) : World.Create(install, schedule);
 
+    /// <summary>Every kind of building that belongs to <paramref name="lastStep"/> or an earlier unlocked step, in their order.</summary>
+    internal static BuildingKind[] Kinds(int lastStep) => [.. s_buildings.Where(k => ContentCatalog.Current.For(k).Step <= lastStep)];
+
     /// <summary>Where a suited building is sought: the islands that can be built on and their waters.</summary>
     internal static IReadOnlyList<Hex> SitesOf(World world) => world.Map.Hash == Archipelago.Map.Hash ? Archipelago.Sites : s_sites;
 
@@ -167,8 +174,9 @@ internal sealed class Scenario
 
     // Commands are made against the world when applied, so that they can suit it; everything random is drawn here, so
     // a scenario is the same whichever world it is applied to.
-    private static Func<World, GameCommand> Maker(Random random, bool stockRules)
+    private static Func<World, GameCommand> Maker(Random random, bool stockRules, int lastStep)
     {
+        var buildings = Kinds(lastStep);
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
         var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
@@ -186,9 +194,9 @@ internal sealed class Scenario
                 };
                 return world => new RecordSelfCare(world.GameDay - back, habit, source, total);
             case 3 or 4:
-                var building = s_buildings[random.Next(s_buildings.Length)];
+                var building = buildings[random.Next(buildings.Length)];
                 bool away = (pick >> 16) % 3 == 0; // From a draw already made, so that the other draws stay as they were.
-                return world => suited && FreeSite(world, pick, away) is { } free ? new Build(free.Kind, free.Site) : new Build(building, site);
+                return world => suited && FreeSite(world, pick, away, buildings) is { } free ? new Build(free.Kind, free.Site) : new Build(building, site);
             case 5:
                 return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.CanAfford(world.Content.Upgrade.Cost, b.Tile)) ?? site : site);
             case 6:
@@ -252,10 +260,10 @@ internal sealed class Scenario
     /// off the home island, whose settlement's villagers then have to move there and whose materials may take room on
     /// the sea route (TASK-050).
     /// </summary>
-    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, bool away)
+    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, bool away, BuildingKind[] buildings)
     {
         var free = SitesOf(world)
-            .SelectMany(tile => s_buildings.Select(k => (Kind: k, Site: tile)))
+            .SelectMany(tile => buildings.Select(k => (Kind: k, Site: tile)))
             .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site))
             .ToList();
         var offHome = free.Where(c => world.Settlement.IslandOf(c.Site) != world.HomeIsland).ToList();

@@ -19,6 +19,7 @@ namespace Eirora.Simulation.Tests.Saving;
 public sealed class SettlementsPerIslandTests
 {
     private static readonly Resource[] s_resources = Enum.GetValues<Resource>();
+    private static readonly Resource[] s_rulesEight = PopulationTiersArriveTests.RulesElevenResources;
 
     // Acceptance, on a world a player could have saved: the golden save from rules 8, with stores on three islands,
     // carriers, roads and goods in the outboxes, migrated and played on; and the one from rules 7 through the whole
@@ -47,7 +48,7 @@ public sealed class SettlementsPerIslandTests
     [Property(MaxTest = 24)]
     public void EveryVillagerBuildingAndGoodBelongsToASettlementAfterMigrating(int seed)
     {
-        var built = BuiltOutWorld.Generate(seed);
+        var built = BuiltOutWorld.BeforeTiers(seed).World;
         string rulesEight = RulesEight(built.Fingerprint());
 
         var reader = new StateReader(RoadsAreTilesTests.Migrated(rulesEight, 8, RulesVersion.Current, built.Map));
@@ -71,7 +72,7 @@ public sealed class SettlementsPerIslandTests
         world.AdvanceTo(TestClock.At("2026-10-15 09:00", 2));
         string state = world.Fingerprint().Replace(
             "\nstock home Wadmal 0",
-            $"\nstock home Wadmal 0\n{string.Concat(s_resources.Select(r => $"stock second {r} {(r == Resource.Timber ? 120 : r == Resource.Planks ? 40 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
+            $"\nstock home Wadmal 0\n{string.Concat(s_rulesEight.Select(r => $"stock second {r} {(r == Resource.Timber ? 120 : r == Resource.Planks ? 40 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
             StringComparison.Ordinal);
         state = Edit(state, "stock home Timber ", $"stock home Timber {140 * Quantity.PerUnit}");
         int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
@@ -82,7 +83,7 @@ public sealed class SettlementsPerIslandTests
 
         // The jetty's and the sawmill's villagers moved with them, and the store on the second island keeps 50 of each.
         // The other 70 timber wait, and the planks fit.
-        Assert.Contains($"settlement home {world.Villagers - 3}\nsettlement second 3\n", migrated, StringComparison.Ordinal);
+        Assert.Contains($"settlement home {world.Villagers - 3} 0\nsettlement second 3 0\n", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Timber {50 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock home Timber {140 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Planks {40 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
@@ -113,7 +114,7 @@ public sealed class SettlementsPerIslandTests
         world.AdvanceTo(TestClock.At("2026-10-15 09:00", 2));
         string state = world.Fingerprint().Replace(
             "\nstock home Wadmal 0",
-            $"\nstock home Wadmal 0\n{string.Concat(s_resources.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
+            $"\nstock home Wadmal 0\n{string.Concat(s_rulesEight.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
             StringComparison.Ordinal);
         int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
         state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing, carriers: 3)}");
@@ -148,7 +149,7 @@ public sealed class SettlementsPerIslandTests
         var land = map.Features.LandOf(Archipelago.Second).Where(h => h != landing && (map.Features.UsesOf(h) & TileUse.Land) != 0).ToList();
         string state = world.Fingerprint().Replace(
             "\nstock home Wadmal 0",
-            $"\nstock home Wadmal 0\n{string.Concat(s_resources.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
+            $"\nstock home Wadmal 0\n{string.Concat(s_rulesEight.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
             StringComparison.Ordinal);
         int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
         state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing)}\nbuilding Sawmill {land[0].Q} {land[0].R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R} 20\nbuilding Weavery {land[1].Q} {land[1].R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R} 20");

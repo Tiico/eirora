@@ -19,9 +19,9 @@ public sealed class IslandsFromTheMapTests
 
     /// <summary>
     /// The golden save <c>sea-route-3-rules-6</c> is a built-out world with the sea route from Nyön, written by the rules 6
-    /// code; its <c>.week</c> file is that code's world a week later, with the stores named by this migration. A later
-    /// rules version that changes the week writes the file again in the change that bumps the rules, so the review sees
-    /// what changed (ADR-0006).
+    /// code; its <c>.week</c> file is that code's world a week later, with the stores named by this migration, and since
+    /// rules 12 changed the week (TASK-061) the current rules' week. A later rules version that changes the week writes
+    /// the file again in the change that bumps the rules, so the review sees what changed (ADR-0006).
     /// </summary>
     [Fact]
     public void AWorldWithNyonGivesTheSameWeekAsUnderRulesSixApartFromTheIslandIds()
@@ -55,7 +55,7 @@ public sealed class IslandsFromTheMapTests
     [InlineData(8)]
     public void ARulesSixStateOnThePrototypesMapGetsTheStoresOfHemonAndNyon(int seed)
     {
-        var world = BuiltOutWorld.GenerateSave(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
+        var world = BuiltOutWorld.BeforeTiers(seed, (BuiltOutWorld.SelfCare)(seed % 3), archipelago: false).World;
         string state = RoadsAreTilesTests.RulesSeven(world.Fingerprint());
 
         Assert.Equal(state, new IslandsFromTheMap().Migrate(RulesSix(state, world), PrototypeHome.Map));
@@ -107,8 +107,8 @@ public sealed class IslandsFromTheMapTests
                 var tile = b.Kind == "Jetty" ? map.Features.LandOf(b.Island).First(map.Features.IsHarborSpot) : map.Features.LandOf(b.Island).Where(t => !map.Features.IsHarborSpot(t)).ElementAt(i);
                 return $"building {b.Kind} {tile.Q} {tile.R} 1 0 0 0 0 0";
             }));
-        string nyon = string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
-        string rulesSix = RulesSix(string.Join('\n', lines), world).Replace(string.Concat(Enum.GetValues<Resource>().Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
+        string nyon = string.Concat(PopulationTiersArriveTests.RulesElevenResources.Select(r => $"stock Nyon {r} {(int)r + 1}\n"));
+        string rulesSix = RulesSix(string.Join('\n', lines), world).Replace(string.Concat(PopulationTiersArriveTests.RulesElevenResources.Select(r => $"stock Nyon {r} 0\n")), nyon, StringComparison.Ordinal);
         return new IslandsFromTheMap().Migrate(rulesSix, map);
     }
 
@@ -116,7 +116,7 @@ public sealed class IslandsFromTheMapTests
     private static string NyonsIsland(string migrated)
     {
         var holding = migrated.Split('\n').Where(l => l.StartsWith("stock ", StringComparison.Ordinal) && !l.EndsWith(" 0", StringComparison.Ordinal)).Select(l => l.Split(' ')).ToList();
-        Assert.Equal(Enum.GetValues<Resource>().Select(r => ((int)r + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)), holding.Where(s => s[1] != Archipelago.Home).Select(s => s[3]));
+        Assert.Equal(PopulationTiersArriveTests.RulesElevenResources.Select(r => ((int)r + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)), holding.Where(s => s[1] != Archipelago.Home).Select(s => s[3]));
         return holding.Select(s => s[1]).Distinct().Single(i => i != Archipelago.Home);
     }
 
@@ -153,7 +153,7 @@ public sealed class IslandsFromTheMapTests
         var lines = state.Split('\n').ToList();
         int at = lines.FindIndex(l => l.StartsWith("stock ", StringComparison.Ordinal));
         string Store(string name, string? island) =>
-            string.Join('\n', Enum.GetValues<Resource>().Select(r => $"stock {name} {r} {(island is null ? 0 : world.Settlement.Stock(island, r))}"));
+            string.Join('\n', PopulationTiersArriveTests.RulesElevenResources.Select(r => $"stock {name} {r} {(island is null ? 0 : world.Settlement.Stock(island, r))}"));
         lines.RemoveAll(l => l.StartsWith("stock ", StringComparison.Ordinal));
         lines.Insert(at, Store("Home", world.HomeIsland) + "\n" + Store("Nyon", off.Count == 1 ? off[0] : null));
         return string.Join('\n', lines);

@@ -8,9 +8,11 @@ namespace Eirora.Simulation.Economy
     /// rate. Level 2 and a workday scale every recipe; a full outbox stops it and nothing is lost (D-17, INV-R2).
     /// </summary>
     /// <remarks>
-    /// A recipe is one of four kinds. It gathers from its own tile; it processes raw materials and leaves the reserve
-    /// (LOG-06); it is a slow process that grows day and night and is harvested in the active hours (INV-T5); or it
-    /// fells the forest around it, which grows back (the forest is a rule of its own).
+    /// A recipe is one of five kinds. It gathers from its own tile; it processes raw materials and leaves the reserve
+    /// (LOG-06); it is a slow process that grows day and night and is harvested in the active hours (INV-T5); it
+    /// fells the forest around it, which grows back (the forest is a rule of its own); or it hunts in the forest around
+    /// it, which hunting does not fell, sharing each tile evenly with the other lodges that reach it (economy-v2.md,
+    /// section 4).
     /// </remarks>
     public sealed class Recipe
     {
@@ -25,7 +27,8 @@ namespace Eirora.Simulation.Economy
             bool richness = false,
             IReadOnlyList<Ingredient>? inputs = null,
             long growsPerHour = 0,
-            int forestTiles = 0)
+            int forestTiles = 0,
+            int huntTiles = 0)
         {
             Product = product;
             PerHour = perHour;
@@ -34,16 +37,17 @@ namespace Eirora.Simulation.Economy
             Inputs = Array.AsReadOnly(_inputs);
             GrowsPerHour = growsPerHour;
             ForestTiles = forestTiles;
+            HuntTiles = huntTiles;
 
-            if (perHour <= 0 || perHour % TicksPerHour != 0 || growsPerHour < 0 || growsPerHour % TicksPerHour != 0 || forestTiles < 0)
+            if (perHour <= 0 || perHour % TicksPerHour != 0 || growsPerHour < 0 || growsPerHour % TicksPerHour != 0 || forestTiles < 0 || huntTiles < 0)
             {
                 throw new ArgumentException("A rate is positive millionths an hour that split evenly into quarter hours.");
             }
 
-            int kinds = (Inputs.Count > 0 ? 1 : 0) + (growsPerHour > 0 ? 1 : 0) + (forestTiles > 0 ? 1 : 0);
+            int kinds = (Inputs.Count > 0 ? 1 : 0) + (growsPerHour > 0 ? 1 : 0) + (forestTiles > 0 ? 1 : 0) + (huntTiles > 0 ? 1 : 0);
             if (kinds > 1)
             {
-                throw new ArgumentException("A recipe processes, grows or fells, never more than one of them.");
+                throw new ArgumentException("A recipe processes, grows, fells or hunts, never more than one of them.");
             }
 
             // Processing checks the reserve of each raw material on its own and before the product is added, so a raw
@@ -69,7 +73,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Millionths of a unit of the product an active hour at level 1 and without a workday: what a
-        /// slow process harvests at most, and what a woodcutter fells from each forest tile.
+        /// slow process harvests at most, what a woodcutter fells from each forest tile and what a hunting lodge hunts on
+        /// each forest tile it has to itself.
         /// </summary>
         public long PerHour { get; }
 
@@ -93,6 +98,9 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>How many forest tiles it fells at once, the richest it reaches with timber left; 0 for any other recipe.</summary>
         public int ForestTiles { get; }
+
+        /// <summary>How many forest tiles it hunts on, the richest it reaches; 0 for any other recipe.</summary>
+        public int HuntTiles { get; }
 
         public bool IsSlowProcess => GrowsPerHour > 0;
 

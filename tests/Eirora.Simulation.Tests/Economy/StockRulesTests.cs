@@ -266,7 +266,7 @@ public sealed class StockRulesTests
         Assert.Equal(Rejection.AlreadyDone, Apply(world, new MoveImport(Archipelago.First, Resource.Fish, 0)).Rejection);
 
         Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, 0)).Accepted);
-        Assert.Contains($"imports {Archipelago.First} Stone Fish Grain Timber Planks Wool Wadmal", world.Fingerprint().Split('\n'));
+        Assert.Contains($"imports {Archipelago.First} Stone Fish Grain Timber Planks Wool Wadmal Game Hide", world.Fingerprint().Split('\n'));
 
         Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, (int)Resource.Stone)).Accepted);
         Assert.Equal(Enum.GetValues<Resource>(), world.ImportOrder(Archipelago.First));
@@ -292,7 +292,7 @@ public sealed class StockRulesTests
 
         var lines = world.Fingerprint().Split('\n');
         Assert.Equal(
-            [$"reserved {Archipelago.Home} Fish 5", $"reserved {Archipelago.Home} Timber 30", $"reserved {Archipelago.Second} Wool 15", $"imports {Archipelago.Second} Fish Wool Grain Timber Planks Stone Wadmal"],
+            [$"reserved {Archipelago.Home} Fish 5", $"reserved {Archipelago.Home} Timber 30", $"reserved {Archipelago.Second} Wool 15", $"imports {Archipelago.Second} Fish Wool Grain Timber Planks Stone Wadmal Game Hide"],
             lines.Where(l => l.StartsWith("reserved ", StringComparison.Ordinal) || l.StartsWith("imports ", StringComparison.Ordinal)));
         var reader = new StateReader(world.Fingerprint());
         var read = World.Read(reader, world.Map);
@@ -307,9 +307,9 @@ public sealed class StockRulesTests
     [InlineData("reserved nowhere Timber 5")] // An island without a store.
     [InlineData("reserved home Timber 5\nreserved home Timber 6")] // Twice.
     [InlineData("reserved home Stone 5\nreserved home Timber 6")] // Out of order.
-    [InlineData("imports home Stone Fish Grain Timber Planks Wool Wadmal")] // Nothing ships home from home.
-    [InlineData("imports first Fish Grain Timber Planks Stone Wool Wadmal")] // The fixed order is not written.
-    [InlineData("imports first Stone Stone Grain Timber Planks Wool Wadmal")] // Not every resource.
+    [InlineData("imports home Stone Fish Grain Timber Planks Wool Wadmal Game Hide")] // Nothing ships home from home.
+    [InlineData("imports first Fish Grain Timber Planks Stone Wool Wadmal Game Hide")] // The fixed order is not written.
+    [InlineData("imports first Stone Stone Grain Timber Planks Wool Wadmal Game Hide")] // Not every resource.
     public void AStateWithRulesThatCannotBeIsRefused(string rules)
     {
         var world = SeaRouteTests.OnlyShips((_, _) => 0);
@@ -351,7 +351,7 @@ public sealed class StockRulesTests
     private static World WithFishOnFirst(int villagers, int fish)
     {
         var lines = SeaRouteTests.OnlyShips((_, _) => 0).Fingerprint().Split('\n').Select(line =>
-            line == $"settlement {Archipelago.First} 1" ? $"settlement {Archipelago.First} {villagers}"
+            line == $"settlement {Archipelago.First} 1 0" ? $"settlement {Archipelago.First} {villagers} 0"
             : line.StartsWith($"stock {Archipelago.First} Fish ", StringComparison.Ordinal) ? $"stock {Archipelago.First} Fish {fish * Unit}"
             : line);
         var reader = new StateReader(string.Join('\n', lines));

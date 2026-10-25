@@ -20,8 +20,11 @@ internal sealed class Sites
     /// <summary>The bots' waking hours a game day, outside the rest they keep.</summary>
     public static readonly int ActiveHours = 24 - (BalanceRun.Rest.DurationMinutes / 60);
 
-    /// <summary>Weights of the development value (economy_v1.py, WEIGHT), indexed by <see cref="Resource"/>.</summary>
-    public static readonly int[] Weights = [1, 1, 1, 3, 2, 2, 6];
+    /// <summary>
+    /// Weights of the development value (economy_v1.py and economy_v2.py, WEIGHT), indexed by <see cref="Resource"/>:
+    /// game and hide as the second model weighs them.
+    /// </summary>
+    public static readonly int[] Weights = [1, 1, 1, 3, 2, 2, 6, 1, 6];
 
     private readonly World _world;
     private readonly WorldMap _map;
@@ -265,10 +268,21 @@ internal sealed class Sites
             return Woods(tile, planning).Take(recipe.ForestTiles).Sum(wood => DailyYieldOfWood(recipe, wood));
         }
 
+        // Hunting fells nothing: each forest tile is shared evenly with the other lodges that hunt on it (economy-v2.md,
+        // section 4).
+        if (recipe.HuntTiles > 0)
+        {
+            return Woods(tile, planning).Take(recipe.HuntTiles).Sum(wood => DailyYieldOfWood(recipe, wood) / Hunters(recipe, wood, tile, planning));
+        }
+
         long perHour = recipe.IsSlowProcess ? recipe.GrowsPerHour : recipe.PerHour;
         long richness = recipe.Richness ? _map.RichnessAt(tile) : 100;
         return Weights[(int)recipe.Product] * (perHour * richness / 100) * (recipe.IsSlowProcess ? 24 : ActiveHours);
     }
+
+    /// <summary>The hunting lodges that hunt on a forest tile, a lodge on <paramref name="tile"/> among them.</summary>
+    private int Hunters(Recipe recipe, Hex wood, Hex tile, bool planning) =>
+        1 + _world.Buildings.Count(b => b.Tile != tile && RecipeOf(b.Kind) is { HuntTiles: > 0 } hunting && Woods(b.Tile, planning).Take(hunting.HuntTiles).Contains(wood));
 
     /// <summary>What a building of this kind makes, or null when it makes nothing.</summary>
     public Recipe? RecipeOf(BuildingKind kind) => _world.Content.For(kind).Recipe;

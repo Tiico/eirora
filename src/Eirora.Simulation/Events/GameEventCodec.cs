@@ -32,6 +32,12 @@ namespace Eirora.Simulation.Events
                 case VillagersMovedIn e:
                     writer.Line("villagers-moved-in").Long(e.UtcSeconds).Long(e.Count).Text(e.Island);
                     break;
+                case VillagersRose e:
+                    writer.Line("villagers-rose").Long(e.UtcSeconds).Long(e.Count).Enum(e.Tier).Text(e.Island);
+                    break;
+                case StepUnlocked e:
+                    writer.Line("step-unlocked").Long(e.UtcSeconds).Long(e.Step);
+                    break;
                 case VillagerMoved e:
                     writer.Line("villager-moved").Long(e.UtcSeconds).Text(e.From).Text(e.To);
                     break;
@@ -95,6 +101,16 @@ namespace Eirora.Simulation.Events
             if (reader.Next("villagers-moved-in"))
             {
                 return new VillagersMovedIn(reader.Long(), reader.Int(), reader.Text());
+            }
+
+            if (reader.Next("villagers-rose"))
+            {
+                return new VillagersRose(reader.Long(), reader.Int(), reader.Enum<PopulationTier>(), reader.Text());
+            }
+
+            if (reader.Next("step-unlocked"))
+            {
+                return new StepUnlocked(reader.Long(), reader.Int());
             }
 
             if (reader.Next("villager-moved"))

@@ -13,8 +13,8 @@ day-start 72 1786576500
 force Exploration 312 2
 force BuildPower 1680 4
 force DawnPower 6800 0
-economy 2 0
-settlement home 24
+economy 2 0 1
+settlement home 24 0
 stock home Fish 150000000
 stock home Grain 150000000
 stock home Timber 150000000
@@ -22,6 +22,8 @@ stock home Planks 10000000
 stock home Stone 3000000
 stock home Wool 0
 stock home Wadmal 0
+stock home Game 0
+stock home Hide 0
 building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0 0
 building FishingHut 1 0 2 1 0 0 0 0 0 0 0 1 0 0 0
 building Field 0 1 1 1 0 729625000 0 0 0 0 0 1 0 0 0

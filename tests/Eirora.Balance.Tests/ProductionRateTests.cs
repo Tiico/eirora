@@ -29,11 +29,12 @@ public sealed class ProductionRateTests
     private static readonly Hex s_plainMountain = new(-3, -1); // Four steps from the store.
     private static readonly Hex s_pasture = new(-2, -1); // Two steps.
     private static readonly Hex s_nextToTheStore = new(-1, 0);
+    private static readonly Hex s_forestNextToTheStore = new(0, -1); // Reaches the start woodcutter's second tile.
 
     private static readonly BuildingKind[] s_measured =
     [
         BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.Quarry, BuildingKind.SheepFarm,
-        BuildingKind.Sawmill, BuildingKind.Weavery,
+        BuildingKind.Sawmill, BuildingKind.Weavery, BuildingKind.HuntingLodge, BuildingKind.Tannery,
     ];
 
     [Fact]
@@ -105,11 +106,50 @@ public sealed class ProductionRateTests
         village.AssertDayGain(11, Resource.Wadmal, buildings: 1);
     }
 
+    // Step 1's game and hide (TASK-061): a lodge next to the store hunts the forest it reaches, and a tannery makes hide of
+    // the game once it has piled up, leaving none of it.
+    [Fact]
+    public void GameFromAHuntingLodgeNextToTheStore()
+    {
+        var village = new Village(farmers: true);
+        village.Dawn(1);
+        village.Apply(new Build(BuildingKind.HuntingLodge, s_forestNextToTheStore));
+
+        village.AssertDayGain(2, Resource.Game, buildings: 1);
+    }
+
+    [Fact]
+    public void HideOnceGameHasPiledUp()
+    {
+        var village = new Village(farmers: true);
+        village.Dawn(1);
+        village.Apply(new Build(BuildingKind.HuntingLodge, s_forestNextToTheStore));
+        village.Dawn(6);
+        village.Apply(new Build(BuildingKind.Tannery, s_nextToTheStore));
+        village.Dawn(7);
+        village.Apply(new SetReserve(s_nextToTheStore, 0));
+
+        village.AssertDayGain(8, Resource.Hide, buildings: 1);
+    }
+
     /// <summary>A world on the prototype's map without self-care, played day by day as <see cref="BalanceRun"/> plays it.</summary>
     private sealed class Village
     {
-        private readonly World _world = World.Create(PrototypeHome.Map, new TimeReading(BalanceRun.InstallUtc, BalanceRun.Zone, 0), BalanceRun.Rest);
+        private readonly World _world;
         private int _key;
+
+        /// <param name="farmers">Whether the world has reached step 1, Farmers, as a world of 20 villagers would (TASK-061).</param>
+        public Village(bool farmers = false)
+        {
+            _world = World.Create(PrototypeHome.Map, new TimeReading(BalanceRun.InstallUtc, BalanceRun.Zone, 0), BalanceRun.Rest);
+            if (farmers)
+            {
+                var lines = _world.Fingerprint().TrimEnd('\n').Split('\n');
+                int economy = Array.FindIndex(lines, l => l.StartsWith("economy ", StringComparison.Ordinal));
+                lines[economy] = $"{lines[economy][..lines[economy].LastIndexOf(' ')]} 1";
+                _world = World.Read(new Eirora.Simulation.Serialization.StateReader(string.Join('\n', lines) + "\n"), PrototypeHome.Map);
+            }
+        }
 
         private static long FirstDawn => BalanceRun.InstallUtc + (15 * 60);
 
@@ -155,20 +195,24 @@ public sealed class ProductionRateTests
                 $"{resource}: the world gained {gained} millionths in a day, the bots count {expected}.");
         }
 
-        /// <summary>What the villagers will eat, and use for comfort, of a resource at the coming dawn (economy-v1.md, section 4).</summary>
+        /// <summary>
+        /// What the villagers will eat, and use for comfort, of a resource at the coming dawn, as the simulation takes it
+        /// from the good there is most of (economy-v2.md, section 2): comfort only when a second crofter fits.
+        /// </summary>
         private long UsedAtDawn(Resource resource)
         {
+            var home = _world.SettlementOn(_world.HomeIsland)!;
+            var store = Enum.GetValues<Resource>().Select(r => _world.Settlement.Stock(r)).ToArray();
+            var before = (long[])store.Clone();
             long need = Quantity.Units(_world.Villagers);
-            long fish = Math.Min(need, Stock(Resource.Fish));
-            long grain = Math.Min(need - fish, Stock(Resource.Grain));
-            bool fed = fish + grain == need;
-            return resource switch
+            bool fed = Settlement.TakeEvenly(store, _world.Content.For(Need.Food).Goods.ToArray(), need) == need;
+            var clothes = _world.Content.For(Need.Clothes).Goods.ToArray();
+            if (fed && home.CroftersRoom > 1 && clothes.Sum(c => store[(int)c]) >= Quantity.Units(2))
             {
-                Resource.Fish => fish,
-                Resource.Grain => grain,
-                Resource.Wadmal => fed && Stock(Resource.Wadmal) >= Quantity.Units(2) ? Quantity.Units(2) : 0,
-                _ => 0,
-            };
+                Settlement.TakeEvenly(store, clothes, Quantity.Units(2));
+            }
+
+            return before[(int)resource] - store[(int)resource];
         }
 
         /// <summary>Stock at home in millionths, finer than the whole units the world shows.</summary>

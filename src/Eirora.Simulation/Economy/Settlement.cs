@@ -28,15 +28,18 @@ namespace Eirora.Simulation.Economy
         private const long WorkPerVillagerPerTick = 250; // Thousandths of a villager-hour.
         private const int StoragePerStorehouse = 150;
         private const int StorageAtJetty = 50; // Every jetty stores goods for the ship (economy-v2.md, section 6).
-        private const int ComfortPerDawn = 2;
+        private const int ComfortPerDawn = 2; // Clothes that give one more crofter at dawn (economy-v2.md, section 2).
+        private const int RisingPerDawn = 2; // Villagers who rise to each tier in a settlement at a dawn (D-115).
         private const int StartingHousing = 16;
+
+        /// <summary>The planks a new world starts with, the only planks there are without a sawmill (economy-v2.md, section 3).</summary>
+        internal const int StartingPlanks = 20;
         private const long ForestPerTile = World.TimberPerForest * Quantity.PerUnit;
         private const long ForestRegrowthPerTick = 62_500; // 0.25 timber an hour on each forest tile.
         private const long SeaRoutePerTick = 625_000; // 40 units a game day over 16 waking hours (economy-v1.md, section 5).
         private const int FoodDays = 2; // The ships keep two game days' food on each island (economy-v2.md, section 6).
 
         private static readonly int s_resourceCount = Enum.GetValues(typeof(Resource)).Length;
-        private static readonly Resource[] s_food = { Resource.Fish, Resource.Grain }; // In the order villagers eat them.
 
         // The store on each island where something has been built, by the map's id; it stays when what was built goes.
         private readonly Dictionary<string, long[]> _stores = new(StringComparer.Ordinal);
@@ -65,7 +68,13 @@ namespace Eirora.Simulation.Economy
         private readonly List<Hex> _woods = new();
         private long[] _before = new long[64]; // The state before a tick's work (RecordState).
         private readonly Dictionary<string, long> _capacity = new(StringComparer.Ordinal); // Forgotten whenever a building is added.
-        private readonly Dictionary<string, int> _unstaffed = new(StringComparer.Ordinal); // Villagers left as each island's are given out.
+        private readonly Dictionary<string, int[]> _housing = new(StringComparer.Ordinal); // Each tier's housing, forgotten with _capacity.
+        private readonly Dictionary<string, int[]> _unstaffed = new(StringComparer.Ordinal); // Villagers of each tier left as each island's are given out.
+        private readonly int _tiers; // The population tiers the content has.
+        private readonly bool[] _met; // Whether each tier's needs were met at a dawn, reused for every settlement.
+        private readonly List<Hex> _grounds = new(); // Another hunting lodge's forest, as HuntPerTick compares it.
+        private readonly long[] _keeps; // What an island keeps of each need from the ships (Keeps).
+        private readonly int[] _freeByTier; // An island's free villagers of each tier, as the depots hire carriers.
         private readonly Dictionary<string, long> _labour = new(StringComparer.Ordinal); // Each settlement's free villagers' work in a tick.
         private readonly List<string> _pools = new(); // The islands that build a project (PoolsOf).
         private long _expeditionLeft;
@@ -76,6 +85,10 @@ namespace Eirora.Simulation.Economy
             _home = map.IslandAt(map.Start) ?? throw new ArgumentException("A map starts on land.", nameof(map));
             _founding = founding;
             _content = content;
+            _tiers = content.Tiers.Count;
+            _met = new bool[_tiers];
+            _keeps = new long[content.Needs.Count];
+            _freeByTier = new int[_tiers];
             Fog = fog;
             _owed = new long[map.Islands.Count];
             for (int i = 0; i < map.Islands.Count; i++)
@@ -121,6 +134,12 @@ namespace Eirora.Simulation.Economy
         }
 
         public int SurveysDone { get; private set; }
+
+        /// <summary>
+        /// The unlocked step the whole world has reached (D-114): 0 at the start, and one more each time a settlement meets
+        /// the next step's condition at dawn; never lower again (INV-V1).
+        /// </summary>
+        public int Step { get; private set; }
 
         /// <summary>The buildings in the staffing order (economy-v1.md, section 4.1), which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _buildings;
@@ -225,9 +244,9 @@ namespace Eirora.Simulation.Economy
             var home = settlement.StoreOn(settlement._home);
             home[(int)Resource.Fish] = Quantity.Units(30);
             home[(int)Resource.Timber] = Quantity.Units(40);
-            home[(int)Resource.Planks] = Quantity.Units(20);
+            home[(int)Resource.Planks] = Quantity.Units(StartingPlanks);
             home[(int)Resource.Stone] = Quantity.Units(20);
-            settlement._settlements[settlement._home].Villagers = 12;
+            settlement._settlements[settlement._home].Add(PopulationTier.Crofters, 12);
 
             foreach (var (kind, tile) in founding.StartBuildings)
             {
@@ -256,7 +275,7 @@ namespace Eirora.Simulation.Economy
             }
 
             var settlement = _settlements[island];
-            return Shippable(store, settlement.Reserved, resource, Quantity.Units(FoodDays * settlement.Villagers));
+            return Shippable(store, settlement.Reserved, resource, Keeps(settlement));
         }
 
         /// <summary>Goods waiting at an island's depots for room in its store; nothing on most islands.</summary>
@@ -265,19 +284,81 @@ namespace Eirora.Simulation.Economy
         /// <summary>Materials paid from the home island for work on an island that its sea route has yet to carry, in millionths.</summary>
         public long Owed(string island) => _mapIndex.TryGetValue(island, out int at) ? _owed[at] : 0;
 
-        /// <summary>How many villagers a settlement can house (economy-v2.md, section 6).</summary>
+        /// <summary>How many villagers of every tier a settlement can house (economy-v2.md, section 6).</summary>
         internal int HousingOf(IslandSettlement settlement)
         {
-            int housing = settlement.Island == _home ? StartingHousing : IslandSettlement.SettlerHousing;
-            foreach (var building in _buildings)
+            int housing = 0;
+            for (int tier = 0; tier < _tiers; tier++)
             {
-                if (building.Island == settlement.Island)
-                {
-                    housing += _content.For(building.Kind).Housing;
-                }
+                housing += HousingOf(settlement, (PopulationTier)tier);
             }
 
             return housing;
+        }
+
+        /// <summary>
+        /// How many villagers of a tier a settlement can house: for the crofters what it was founded with and its island's
+        /// cottages and longhouses, for another tier the buildings that house it (economy-v2.md, sections 2 and 6).
+        /// </summary>
+        internal int HousingOf(IslandSettlement settlement, PopulationTier tier)
+        {
+            // Looked up by the ships every quarter hour, so counted once until a building is added or demolished (#173).
+            if (!_housing.TryGetValue(settlement.Island, out var housing))
+            {
+                housing = new int[_tiers];
+                housing[(int)PopulationTier.Crofters] = settlement.Island == _home ? StartingHousing : IslandSettlement.SettlerHousing;
+                foreach (var building in _buildings)
+                {
+                    var spec = _content.For(building.Kind);
+                    if (building.Island == settlement.Island && spec.Housing > 0)
+                    {
+                        housing[(int)spec.Houses] += spec.Housing;
+                    }
+                }
+
+                _housing.Add(settlement.Island, housing);
+            }
+
+            return housing[(int)tier];
+        }
+
+        /// <summary>
+        /// The crofters' housing that no one lives in: a farmer on an island without a farmstead for it lives in a crofter's
+        /// home until there is one, and that home is taken, so the island's crofters do not grow into it (D-124, D-39).
+        /// </summary>
+        internal int CroftersRoom(IslandSettlement settlement)
+        {
+            int room = HousingOf(settlement, PopulationTier.Crofters) - settlement.VillagersOf(PopulationTier.Crofters);
+            for (int tier = 1; tier < _tiers; tier++)
+            {
+                int lodgers = settlement.VillagersOf((PopulationTier)tier) - HousingOf(settlement, (PopulationTier)tier);
+                room -= lodgers > 0 ? lodgers : 0;
+            }
+
+            return room;
+        }
+
+        /// <summary>
+        /// Whether a villager of a tier finds a home in a settlement: in its own tier's housing, or else in a crofter's
+        /// (D-124).
+        /// </summary>
+        private bool HasRoomFor(IslandSettlement settlement, PopulationTier tier) =>
+            (tier != PopulationTier.Crofters && HousingOf(settlement, tier) > settlement.VillagersOf(tier)) || CroftersRoom(settlement) > 0;
+
+        /// <summary>
+        /// Whether a villager of a tier may move to a settlement (D-124, D-106): with room for it, a crofter always, and a
+        /// farmer only to a settlement that has no villagers yet.
+        /// </summary>
+        private bool MayMoveTo(IslandSettlement settlement, PopulationTier tier) =>
+            HasRoomFor(settlement, tier) && (tier == PopulationTier.Crofters || settlement.Villagers == 0);
+
+        /// <summary>
+        /// A settlement's villagers of each tier who neither staff a building on its island nor carry for one of its depots,
+        /// into <paramref name="free"/>: the staffed buildings take them as <see cref="StaffBuildings"/> gives them out.
+        /// </summary>
+        internal void FreeVillagersOf(IslandSettlement settlement, int[] free)
+        {
+            GiveOut(settlement, free, decide: false);
         }
 
         /// <summary>A settlement's villagers who neither staff a building on its island nor carry for one of its depots.</summary>
@@ -394,6 +475,12 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public Rejection CheckBuild(BuildingKind kind, Hex tile)
         {
+            // A building of a step the world has not reached is not built anywhere yet (economy-v2.md, section 5).
+            if (_content.For(kind).Step > Step)
+            {
+                return Rejection.NotUnlocked;
+            }
+
             if ((UsesOf(tile) & _content.For(kind).Requirement) == 0 || BuildingAt(tile) is not null || IsQueued(tile, ProjectKind.Build))
             {
                 return Rejection.SiteUnavailable;
@@ -595,14 +682,19 @@ namespace Eirora.Simulation.Economy
         private void RecordState<TState>(ref TState state)
             where TState : struct, IStateRecord
         {
-            state.Reserve(9 + (_islands.Count * (1 + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count));
+            state.Reserve(10 + (_islands.Count * (_tiers + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count));
             state.Put(SurveysDone);
             state.Put(_expeditionLeft);
             state.Put(Fog.Lifts);
+            state.Put(Step);
             state.Put(_islands.Count);
             foreach (var island in _islands)
             {
-                state.Put(_settlements[island].Villagers);
+                for (int tier = 0; tier < _tiers; tier++)
+                {
+                    state.Put(_settlements[island].VillagersOf((PopulationTier)tier));
+                }
+
                 var store = _stores[island];
                 _atDepots.TryGetValue(island, out var atDepots);
                 for (int resource = 0; resource < s_resourceCount; resource++)
@@ -748,11 +840,14 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Each settlement's villagers eat from its own store and it grows if it can, today's workdays end, the villagers
-        /// are given out again, a villager may move over a sea route, and the depots take the carriers they need for a game
-        /// day of <paramref name="activeTicks"/> waking quarter hours, each from its own island's free villagers
-        /// (economy-v2.md, sections 6 and 7). Missing food stops only that settlement's growth (D-39). A settlement without
-        /// villagers does not grow: they come by moving (D-106, D-121).
+        /// Dawn in the order of economy-v2.md, section 2: in each settlement the villagers eat from its own store, its tiers
+        /// use up their needs, up to two villagers rise to each tier whose needs were met, and it grows if it can; then
+        /// today's workdays end, the villagers are given out again, a villager may move over a sea route, the depots take
+        /// the carriers they need for a game day of <paramref name="activeTicks"/> waking quarter hours, each from its own
+        /// island's free crofters (sections 6 and 7), and a step whose condition is met unlocks. Missing food stops only
+        /// that settlement's growth and rising, and a missing need only rising to its tier: no villager goes down a tier
+        /// and no building loses its staff (D-39, INV-V3). A settlement without villagers does not grow: they come by
+        /// moving (D-106, D-121).
         /// </summary>
         public void Dawn(long utcSeconds, List<GameEvent> events, int activeTicks)
         {
@@ -760,25 +855,11 @@ namespace Eirora.Simulation.Economy
             {
                 var settlement = _settlements[island];
                 var store = _stores[island];
-                long need = Quantity.Units(settlement.Villagers);
-                need -= Take(store, Resource.Fish, need);
-                need -= Take(store, Resource.Grain, need);
-                bool fed = need == 0 && settlement.Villagers > 0;
-
-                bool comfort = fed && store[(int)Resource.Wadmal] >= Quantity.Units(ComfortPerDawn);
-                if (comfort)
-                {
-                    store[(int)Resource.Wadmal] -= Quantity.Units(ComfortPerDawn);
-                }
-
-                int growth = (fed ? 1 : 0) + (comfort ? 1 : 0);
-                int room = HousingOf(settlement) - settlement.Villagers;
-                growth = growth < room ? growth : room;
-                if (growth > 0)
-                {
-                    settlement.Villagers += growth;
-                    events.Add(new VillagersMovedIn(utcSeconds, growth, island));
-                }
+                long food = Quantity.Units(settlement.Villagers);
+                bool fed = TakeNeed(store, Need.Food, food) == food && settlement.Villagers > 0;
+                UseNeeds(settlement, store);
+                Rise(settlement, store, fed, utcSeconds, events);
+                Grow(settlement, store, fed, utcSeconds, events);
             }
 
             foreach (var building in _buildings)
@@ -794,13 +875,241 @@ namespace Eirora.Simulation.Economy
             StaffBuildings();
             Migrate(utcSeconds, events);
             HireCarriers(activeTicks);
+            Unlock(utcSeconds, events);
+        }
+
+        /// <summary>
+        /// Each tier above the crofters uses up its needs other than food, rounded up for the settlement, each from the
+        /// goods that meet it (economy-v2.md, section 2), and <see cref="_met"/> tells which tiers' needs were met; a tier
+        /// without villagers has its needs met.
+        /// </summary>
+        private void UseNeeds(IslandSettlement settlement, long[] store)
+        {
+            for (int tier = 0; tier < _tiers; tier++)
+            {
+                _met[tier] = true;
+                int villagers = settlement.VillagersOf((PopulationTier)tier);
+                foreach (var need in _content.Tiers[tier].Needs)
+                {
+                    if (need.Need != Need.Food && villagers > 0)
+                    {
+                        long wanted = Quantity.Units(_content.Tiers[tier].Uses(need.Need, villagers));
+                        _met[tier] &= TakeNeed(store, need.Need, wanted) == wanted;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Up to <see cref="RisingPerDawn"/> villagers rise from the tier below to each tier that the world has unlocked,
+        /// when the settlement was fed, the tier's needs were met, its housing has room and the store holds the goods the
+        /// new ones will need (economy-v2.md, section 2; D-115). Rising goes before growth, so that the clothes go to those
+        /// who rise before they are used for comfort.
+        /// </summary>
+        private void Rise(IslandSettlement settlement, long[] store, bool fed, long utcSeconds, List<GameEvent> events)
+        {
+            for (int tier = 1; tier < _tiers; tier++)
+            {
+                var spec = _content.Tiers[tier];
+                if (Step < spec.Step || !fed || !_met[tier])
+                {
+                    continue;
+                }
+
+                var to = (PopulationTier)tier;
+                int rising = HousingOf(settlement, to) - settlement.VillagersOf(to);
+                rising = rising < RisingPerDawn ? rising : RisingPerDawn;
+                int below = settlement.VillagersOf((PopulationTier)(tier - 1));
+                rising = rising < below ? rising : below;
+                while (rising > 0 && !Holds(store, spec, rising))
+                {
+                    rising--;
+                }
+
+                if (rising > 0)
+                {
+                    settlement.Add((PopulationTier)(tier - 1), -rising);
+                    settlement.Add(to, rising);
+                    events.Add(new VillagersRose(utcSeconds, rising, to, settlement.Island));
+                }
+            }
+        }
+
+        /// <summary>Whether a store holds what <paramref name="villagers"/> of a tier need besides food for a dawn.</summary>
+        private bool Holds(long[] store, TierSpec tier, int villagers)
+        {
+            foreach (var need in tier.Needs)
+            {
+                if (need.Need != Need.Food && Available(store, need.Need) < Quantity.Units(tier.Uses(need.Need, villagers)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// A fed settlement with villagers gets one crofter more when the crofters' housing has room. When a second one
+        /// fits too, and the store holds <see cref="ComfortPerDawn"/> clothes beyond what the tiers need at the next dawn,
+        /// they are used up for one more: v1's comfort with wadmal, which v1 used up even without room (economy-v2.md,
+        /// section 2).
+        /// </summary>
+        private void Grow(IslandSettlement settlement, long[] store, bool fed, long utcSeconds, List<GameEvent> events)
+        {
+            int room = CroftersRoom(settlement);
+            if (!fed || room <= 0)
+            {
+                return;
+            }
+
+            int growth = 1;
+            long comfort = Quantity.Units(ComfortPerDawn);
+            if (room > 1 && Available(store, Need.Clothes) - Quantity.Units(Uses(settlement, Need.Clothes)) >= comfort)
+            {
+                TakeNeed(store, Need.Clothes, comfort);
+                growth++;
+            }
+
+            settlement.Add(PopulationTier.Crofters, growth);
+            events.Add(new VillagersMovedIn(utcSeconds, growth, settlement.Island));
+        }
+
+        /// <summary>Whole units of a need that a settlement's tiers use up at a dawn, each tier rounded up.</summary>
+        private int Uses(IslandSettlement settlement, Need need)
+        {
+            int uses = 0;
+            for (int tier = 0; tier < _tiers; tier++)
+            {
+                uses += _content.Tiers[tier].Uses(need, settlement.VillagersOf((PopulationTier)tier));
+            }
+
+            return uses;
+        }
+
+        /// <summary>Millionths of the goods that meet a need in a store.</summary>
+        private long Available(long[] store, Need need)
+        {
+            long available = 0;
+            foreach (var good in _content.For(need).GoodSpan)
+            {
+                available += store[(int)good];
+            }
+
+            return available;
+        }
+
+        /// <summary>Takes up to <paramref name="wanted"/> millionths of a need from a store as <see cref="TakeEvenly"/> does.</summary>
+        private long TakeNeed(long[] store, Need need, long wanted) => TakeEvenly(store, _content.For(need).GoodSpan, wanted);
+
+        /// <summary>
+        /// Takes up to <paramref name="wanted"/> millionths of <paramref name="goods"/> from a store, from the good it holds
+        /// most of, so that the goods even out and no chain is emptied first (economy-v2.md, section 2); a millionth left
+        /// over goes from the goods in their order. Returns what was taken. The balance bots' tests read a dawn by it.
+        /// </summary>
+        internal static long TakeEvenly(long[] store, ReadOnlySpan<Resource> goods, long wanted)
+        {
+            long available = 0;
+            foreach (var good in goods)
+            {
+                available += store[(int)good];
+            }
+
+            if (available <= wanted)
+            {
+                foreach (var good in goods)
+                {
+                    store[(int)good] = 0;
+                }
+
+                return available;
+            }
+
+            // The highest level that what lies above it covers what is wanted: everything above the next level is taken,
+            // and then a millionth from each good still above this one until enough is.
+            long low = 0, high = 0;
+            foreach (var good in goods)
+            {
+                high = store[(int)good] > high ? store[(int)good] : high;
+            }
+
+            while (low < high)
+            {
+                long level = low + ((high - low + 1) / 2);
+                if (Above(store, goods, level) >= wanted)
+                {
+                    low = level;
+                }
+                else
+                {
+                    high = level - 1;
+                }
+            }
+
+            long left = wanted - Above(store, goods, low + 1);
+            foreach (var good in goods)
+            {
+                long over = store[(int)good] - (low + 1);
+                if (over > 0)
+                {
+                    store[(int)good] -= over;
+                }
+
+                if (left > 0 && store[(int)good] > low)
+                {
+                    store[(int)good]--;
+                    left--;
+                }
+            }
+
+            return wanted;
+        }
+
+        /// <summary>Millionths of the goods in a store above <paramref name="level"/>.</summary>
+        private static long Above(long[] store, ReadOnlySpan<Resource> goods, long level)
+        {
+            long above = 0;
+            foreach (var good in goods)
+            {
+                long over = store[(int)good] - level;
+                above += over > 0 ? over : 0;
+            }
+
+            return above;
+        }
+
+        /// <summary>
+        /// Each step whose condition a settlement now meets unlocks for the whole world, one after the other (D-105, D-114);
+        /// villagers rise to its tier from the next dawn.
+        /// </summary>
+        private void Unlock(long utcSeconds, List<GameEvent> events)
+        {
+            while (Step < _content.Steps.Count)
+            {
+                var next = _content.Steps[Step];
+                bool met = false;
+                foreach (var island in _islands)
+                {
+                    met |= _settlements[island].Villagers >= next.Villagers;
+                }
+
+                if (!met)
+                {
+                    return;
+                }
+
+                Step = next.Step;
+                events.Add(new StepUnlocked(utcSeconds, Step));
+            }
         }
 
         /// <summary>
         /// At most one villager in the whole world moves at dawn (D-106): a free one, to the settlement whose buildings lack
-        /// the most villagers and that has housing for one more, from the settlement joined to it by a sea route that has
-        /// the most free; the first in map order when two are alike. Only finished buildings lack villagers, so one in the
-        /// queue draws no one yet (D-123). Only a free villager moves, so no building loses its staff (D-39).
+        /// the most villagers and that has a home for one more, from the settlement joined to it by a sea route that has the
+        /// most free; the first in map order when two are alike. The one who moves is a free villager of the lowest tier
+        /// that may move there and keeps its tier: to a settlement without villagers any tier, to one with villagers only a
+        /// crofter (D-124, D-39). Only finished buildings lack villagers, so one in the queue draws no one yet (D-123). Only
+        /// a free villager moves, so no building loses its staff (D-39).
         /// </summary>
         private void Migrate(long utcSeconds, List<GameEvent> events)
         {
@@ -809,7 +1118,7 @@ namespace Eirora.Simulation.Economy
             {
                 var settlement = _settlements[island];
                 int missing = MissingStaffOn(island);
-                if (missing > 0 && HousingOf(settlement) > settlement.Villagers)
+                if (missing > 0 && MayMoveToAny(settlement))
                 {
                     int at = wanting.Count;
                     while (at > 0 && wanting[at - 1].Missing < missing)
@@ -821,24 +1130,39 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
+            var free = new int[_tiers];
             foreach (var (_, to) in wanting)
             {
                 IslandSettlement? from = null;
                 int most = 0;
+                PopulationTier moving = PopulationTier.Crofters;
                 foreach (var island in _islands)
                 {
-                    int free = Linked(island, to.Island) ? FreeVillagersOf(_settlements[island]) : 0;
-                    if (free > most)
+                    if (!Linked(island, to.Island))
+                    {
+                        continue;
+                    }
+
+                    FreeVillagersOf(_settlements[island], free);
+                    int all = 0, lowest = -1;
+                    for (int tier = 0; tier < _tiers; tier++)
+                    {
+                        all += free[tier];
+                        lowest = lowest < 0 && free[tier] > 0 && MayMoveTo(to, (PopulationTier)tier) ? tier : lowest;
+                    }
+
+                    if (lowest >= 0 && all > most)
                     {
                         from = _settlements[island];
-                        most = free;
+                        most = all;
+                        moving = (PopulationTier)lowest;
                     }
                 }
 
                 if (from is not null)
                 {
-                    from.Villagers--;
-                    to.Villagers++;
+                    from.Add(moving, -1);
+                    to.Add(moving, 1);
                     events.Add(new VillagerMoved(utcSeconds, from.Island, to.Island));
                     StaffBuildings();
                     return;
@@ -846,12 +1170,31 @@ namespace Eirora.Simulation.Economy
             }
         }
 
+        /// <summary>Whether a villager of some tier may move to a settlement.</summary>
+        private bool MayMoveToAny(IslandSettlement settlement)
+        {
+            for (int tier = 0; tier < _tiers; tier++)
+            {
+                if (MayMoveTo(settlement, (PopulationTier)tier))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void Write(StateWriter writer)
         {
-            writer.Line("economy").Long(SurveysDone).Long(_expeditionLeft);
+            writer.Line("economy").Long(SurveysDone).Long(_expeditionLeft).Long(Step);
             foreach (var island in _islands)
             {
-                writer.Line("settlement").Text(island).Long(_settlements[island].Villagers);
+                // The villagers of each tier, the crofters first.
+                var line = writer.Line("settlement").Text(island);
+                for (int tier = 0; tier < _tiers; tier++)
+                {
+                    line.Long(_settlements[island].VillagersOf((PopulationTier)tier));
+                }
             }
 
             foreach (var island in _islands)
@@ -946,19 +1289,31 @@ namespace Eirora.Simulation.Economy
                 throw new FormatException("An expedition never has negative time left.");
             }
 
+            settlement.Step = reader.Int();
+            if (settlement.Step < 0 || settlement.Step > content.Steps.Count)
+            {
+                throw new FormatException($"Step {settlement.Step} is not a step of the content.");
+            }
+
             // Each settlement, the islands in map order, then each one's store in full in the same order.
             while (reader.Next("settlement"))
             {
                 string island = reader.Text();
                 int last = settlement._islands.Count > 0 ? IndexOf(map, settlement._islands[settlement._islands.Count - 1]) : -1;
-                int villagers = reader.Int();
-                if (IndexOf(map, island) <= last || villagers < 0)
+                if (IndexOf(map, island) <= last)
                 {
-                    throw new FormatException($"The settlement on {island} is not on the map after the previous one with villagers.");
+                    throw new FormatException($"The settlement on {island} is not on the map after the previous one.");
                 }
 
                 settlement.StoreOn(island);
-                settlement._settlements[island].Villagers = villagers;
+                for (int tier = 0; tier < settlement._tiers; tier++)
+                {
+                    int villagers = reader.Int();
+                    bool reached = tier == 0 || content.Tiers[tier].Step <= settlement.Step;
+                    settlement._settlements[island].Add((PopulationTier)tier, villagers >= 0 && (reached || villagers == 0)
+                        ? villagers
+                        : throw new FormatException($"{villagers} {(PopulationTier)tier} on {island} is not villagers of a tier the world has reached."));
+                }
             }
 
             if (!settlement._stores.ContainsKey(settlement._home))
@@ -1100,12 +1455,13 @@ namespace Eirora.Simulation.Economy
                 settlement._buildingAt.Add(tile, building);
             }
 
-            // Villagers staff only buildings on their own island (INV-V2 in each settlement).
+            // Villagers staff only buildings on their own island, each of a tier that can (INV-V2 in each settlement).
+            var free = new int[settlement._tiers];
             foreach (var island in settlement._islands)
             {
-                if (settlement.FreeVillagersOf(settlement._settlements[island]) < 0)
+                if (!settlement.GiveOut(settlement._settlements[island], free, decide: false))
                 {
-                    throw new FormatException($"The buildings on {island} have more staff than its settlement has villagers.");
+                    throw new FormatException($"The buildings on {island} have more staff than its settlement has villagers of their tiers.");
                 }
             }
 
@@ -1335,6 +1691,11 @@ namespace Eirora.Simulation.Economy
                 {
                     (could, did) = Fell(b, recipe, room, level, workday);
                 }
+                else if (recipe.HuntTiles > 0)
+                {
+                    could = Scale(HuntPerTick(b, recipe), level, workday);
+                    did = Min(could, room);
+                }
                 else if (recipe.IsSlowProcess)
                 {
                     // Richness scales how fast it grows; the harvest only empties what has grown.
@@ -1394,13 +1755,43 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
+        /// Millionths of game a hunting lodge hunts in a quarter hour at level 1 and without a workday: its recipe's rate on
+        /// each of the forest tiles it hunts on, the first of <see cref="Woods(Hex)"/>, times the tile's richness and shared
+        /// evenly with every other lodge that hunts on the tile (economy-v2.md, section 4). Hunting fells nothing.
+        /// </summary>
+        internal long HuntPerTick(Building lodge, Recipe recipe)
+        {
+            long game = 0;
+            var woods = Woods(lodge.Tile);
+            for (int i = 0; i < woods.Count && i < recipe.HuntTiles; i++)
+            {
+                var tile = woods[i];
+                int sharing = 0;
+                foreach (var other in _buildings)
+                {
+                    if (_content.For(other.Kind).Recipe is { HuntTiles: > 0 } hunting && Woods(other.Tile, _grounds).IndexOf(tile) is int at && at >= 0 && at < hunting.HuntTiles)
+                    {
+                        sharing++;
+                    }
+                }
+
+                game += TileRate(recipe.PerTick, recipe, tile) / (sharing > 0 ? sharing : 1);
+            }
+
+            return game;
+        }
+
+        /// <summary>
         /// The forest tiles a woodcutter on <paramref name="tile"/> can fell: known forest on the tile itself and its six
         /// neighbours that no other building stands on (D-93), richest first, then fullest, then in map order. The list
         /// is reused by the next call.
         /// </summary>
-        private List<Hex> Woods(Hex tile)
+        private List<Hex> Woods(Hex tile) => Woods(tile, _woods);
+
+        /// <summary>As <see cref="Woods(Hex)"/>, into <paramref name="woods"/>, which is cleared first.</summary>
+        private List<Hex> Woods(Hex tile, List<Hex> woods)
         {
-            _woods.Clear();
+            woods.Clear();
             for (int direction = -1; direction < Hex.Directions; direction++)
             {
                 var near = direction < 0 ? tile : tile.Neighbour(direction);
@@ -1410,16 +1801,16 @@ namespace Eirora.Simulation.Economy
                     continue;
                 }
 
-                int at = _woods.Count;
-                while (at > 0 && FelledBefore(near, _woods[at - 1]))
+                int at = woods.Count;
+                while (at > 0 && FelledBefore(near, woods[at - 1]))
                 {
                     at--;
                 }
 
-                _woods.Insert(at, near);
+                woods.Insert(at, near);
             }
 
-            return _woods;
+            return woods;
         }
 
         private bool FelledBefore(Hex a, Hex b)
@@ -1459,15 +1850,20 @@ namespace Eirora.Simulation.Economy
                 room -= owed;
 
                 // A reservation on the home island keeps nothing from going out: it only keeps goods from going home (D-127).
-                long food = Quantity.Units(FoodDays * _settlements[island].Villagers);
-                room -= SupplyFood(home, store, StorageCapacity(island), food, room);
                 var settlement = _settlements[island];
+                long capacity = StorageCapacity(island);
+                foreach (var need in _content.Needs)
+                {
+                    room -= Supply(home, store, capacity, need, Quantity.Units(FoodDays * Housed(settlement, need.Need)), room);
+                }
+
+                var keeps = Keeps(settlement);
                 var order = ShippingOrder(settlement);
                 var reserved = settlement.Reserved;
                 for (int i = 0; i < order.Length && room > 0; i++)
                 {
                     var resource = order[i];
-                    long moved = Add(home, resource, Min(room, Shippable(store, reserved, resource, food)), homeCapacity);
+                    long moved = Add(home, resource, Min(room, Shippable(store, reserved, resource, keeps)), homeCapacity);
                     store[(int)resource] -= moved;
                     room -= moved;
                 }
@@ -1475,22 +1871,23 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Ships food from the home island's store to an island's until it holds <paramref name="food"/> or the ships have
-        /// no more <paramref name="room"/>: fish first, then grain, as the villagers eat them. Returns what was shipped.
+        /// Ships the goods that meet a need from the home island's store to an island's until it holds
+        /// <paramref name="wanted"/> of them or the ships have no more <paramref name="room"/>, in the need's order.
+        /// Returns what was shipped.
         /// </summary>
-        private static long SupplyFood(long[] home, long[] store, long capacity, long food, long room)
+        private long Supply(long[] home, long[] store, long capacity, NeedSpec need, long wanted, long room)
         {
             long shipped = 0;
-            long lacking = food - store[(int)Resource.Fish] - store[(int)Resource.Grain];
-            foreach (var resource in s_food)
+            long lacking = wanted - Available(store, need.Need);
+            foreach (var resource in need.GoodSpan)
             {
-                long wanted = Min(Min(room - shipped, lacking - shipped), home[(int)resource]);
-                if (wanted <= 0)
+                long moving = Min(Min(room - shipped, lacking - shipped), home[(int)resource]);
+                if (moving <= 0)
                 {
                     continue;
                 }
 
-                long moved = Add(store, resource, wanted, capacity);
+                long moved = Add(store, resource, moving, capacity);
                 home[(int)resource] -= moved;
                 shipped += moved;
             }
@@ -1499,18 +1896,62 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// What of a resource an island keeps when <paramref name="food"/> is the food it keeps in all: fish first, then
-        /// grain, as the villagers eat them, so that it keeps no more than two days' food together.
+        /// Whole units of a need that a settlement's housing would use up at a dawn, full, which is what the ships bring it
+        /// two days of: food for the villagers who live there, and the other needs for every tier's housing (economy-v2.md,
+        /// section 6).
         /// </summary>
-        internal static long Kept(long[] store, Resource resource, long food)
+        private int Housed(IslandSettlement settlement, Need need)
         {
-            long fish = store[(int)Resource.Fish];
-            return resource switch
+            if (need == Need.Food)
             {
-                Resource.Fish => Min(fish, food),
-                Resource.Grain => Min(store[(int)Resource.Grain], food > fish ? food - fish : 0),
-                _ => 0,
-            };
+                return settlement.Villagers;
+            }
+
+            int uses = 0;
+            for (int tier = 0; tier < _tiers; tier++)
+            {
+                uses += _content.Tiers[tier].PerThousand(need) == 0 ? 0 : _content.Tiers[tier].Uses(need, HousingOf(settlement, (PopulationTier)tier));
+            }
+
+            return uses;
+        }
+
+        /// <summary>
+        /// Millionths of each need that an island keeps from the ships, by need: two days of what its tiers use up
+        /// (economy-v2.md, section 6).
+        /// </summary>
+        /// <remarks>The array is reused by the next call, so that the ships' every quarter hour allocates nothing (#173).</remarks>
+        private long[] Keeps(IslandSettlement settlement)
+        {
+            for (int need = 0; need < _keeps.Length; need++)
+            {
+                _keeps[need] = Quantity.Units(FoodDays * Uses(settlement, (Need)need));
+            }
+
+            return _keeps;
+        }
+
+        /// <summary>
+        /// What of a resource an island keeps when <paramref name="keeps"/> is what it keeps of each need in all: of the
+        /// goods that meet a need in the need's order, so that it keeps no more than two days' need together.
+        /// </summary>
+        internal long Kept(long[] store, Resource resource, long[] keeps)
+        {
+            foreach (var need in _content.Needs)
+            {
+                long left = keeps[(int)need.Need];
+                foreach (var good in need.GoodSpan)
+                {
+                    if (good == resource)
+                    {
+                        return Min(store[(int)good], left > 0 ? left : 0);
+                    }
+
+                    left -= store[(int)good];
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>Moves goods waiting at each settlement's depots into its store as far as there is room.</summary>
@@ -1686,6 +2127,7 @@ namespace Eirora.Simulation.Economy
             _buildings.Add(building);
             _buildingAt.Add(tile, building);
             _capacity.Clear();
+            _housing.Clear();
             ForgetServed();
         }
 
@@ -1703,7 +2145,7 @@ namespace Eirora.Simulation.Economy
 
             store = new long[s_resourceCount];
             _stores.Add(island, store);
-            _settlements.Add(island, new IslandSettlement(this, island));
+            _settlements.Add(island, new IslandSettlement(this, island, _tiers));
             _islands.Clear();
             foreach (var candidate in _map.Islands)
             {
@@ -1731,43 +2173,26 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Gives each settlement's villagers to the buildings on its island in the staffing order (economy-v1.md, section
-        /// 4.1; D-106): each building that is not paused is staffed if enough of its island's villagers are left for it,
-        /// and is otherwise passed over for the next one; a storehouse or a jetty is staffed by its first carrier. The
+        /// Gives each settlement's villagers to the buildings on its island (economy-v1.md, section 4.1; economy-v2.md,
+        /// section 2; D-106): the buildings that need a higher tier first and the rest in the staffing order, each that is
+        /// not paused staffed if enough of its island's villagers of its tier or higher are left for it, the lowest tiers
+        /// first, and otherwise passed over for the next one; a storehouse or a jetty is staffed by its first carrier. The
         /// carriers a depot took beyond its first at dawn stay with it until the next dawn, so a new building takes only
         /// free villagers and no building ever loses a villager to a depot (economy-v2.md, section 7; D-39, D-109). The
         /// villagers left over build.
         /// </summary>
         private void StaffBuildings()
         {
+            bool depots = false;
             foreach (var island in _islands)
             {
-                _unstaffed[island] = _settlements[island].Villagers;
-            }
-
-            foreach (var building in _buildings)
-            {
-                if (IsDepot(building.Kind) && building.Carriers > 1)
+                if (!_unstaffed.TryGetValue(island, out var free))
                 {
-                    _unstaffed[building.Island] -= building.Carriers - 1;
-                }
-            }
-
-            bool depots = false;
-            foreach (var building in _buildings)
-            {
-                int staff = _content.For(building.Kind).Staff;
-                int free = _unstaffed[building.Island];
-                bool staffed = staff > 0 && !building.Paused && free >= staff;
-                _unstaffed[building.Island] = staffed ? free - staff : free;
-                if (IsDepot(building.Kind))
-                {
-                    // A depot that loses its first carrier lets the others go too; they build until the next dawn.
-                    depots |= staffed != building.Staffed;
-                    building.Carriers = !staffed ? 0 : building.Carriers > 1 ? building.Carriers : 1;
+                    free = new int[_tiers];
+                    _unstaffed.Add(island, free);
                 }
 
-                building.Staffed = staffed;
+                depots |= GiveOut(_settlements[island], free, decide: true);
             }
 
             if (depots)
@@ -1776,6 +2201,88 @@ namespace Eirora.Simulation.Economy
             }
 
             AssignDepots(all: false);
+        }
+
+        /// <summary>
+        /// Gives a settlement's villagers of each tier to the buildings on its island in the order <see cref="StaffBuildings"/>
+        /// has, leaving in <paramref name="free"/> those no building takes (INV-V2). When <paramref name="decide"/> it staffs
+        /// the buildings and returns whether a depot's staffing changed; otherwise it gives villagers to those staffed now
+        /// and returns whether there were enough for them.
+        /// </summary>
+        private bool GiveOut(IslandSettlement settlement, int[] free, bool decide)
+        {
+            for (int tier = 0; tier < _tiers; tier++)
+            {
+                free[tier] = settlement.VillagersOf((PopulationTier)tier);
+            }
+
+            foreach (var building in _buildings)
+            {
+                if (building.Island == settlement.Island && IsDepot(building.Kind) && building.Carriers > 1)
+                {
+                    Take(free, PopulationTier.Crofters, building.Carriers - 1);
+                }
+            }
+
+            bool changed = false, enough = true;
+            for (int tier = _tiers - 1; tier >= 0; tier--)
+            {
+                foreach (var building in _buildings)
+                {
+                    var spec = _content.For(building.Kind);
+                    if (building.Island != settlement.Island || (int)spec.Tier != tier)
+                    {
+                        continue;
+                    }
+
+                    int staff = spec.Staff;
+                    if (!decide)
+                    {
+                        enough &= !building.Staffed || Take(free, spec.Tier, staff);
+                        continue;
+                    }
+
+                    bool staffed = staff > 0 && !building.Paused && Free(free, spec.Tier) >= staff && Take(free, spec.Tier, staff);
+                    if (IsDepot(building.Kind))
+                    {
+                        // A depot that loses its first carrier lets the others go too; they build until the next dawn.
+                        changed |= staffed != building.Staffed;
+                        building.Carriers = !staffed ? 0 : building.Carriers > 1 ? building.Carriers : 1;
+                    }
+
+                    building.Staffed = staffed;
+                }
+            }
+
+            return decide ? changed : enough;
+        }
+
+        /// <summary>The villagers left in <paramref name="free"/> of a tier and every tier above it.</summary>
+        private int Free(int[] free, PopulationTier lowest)
+        {
+            int villagers = 0;
+            for (int tier = (int)lowest; tier < _tiers; tier++)
+            {
+                villagers += free[tier];
+            }
+
+            return villagers;
+        }
+
+        /// <summary>
+        /// Takes <paramref name="villagers"/> from <paramref name="free"/>, of a tier or higher, the lowest first; returns
+        /// whether there were that many.
+        /// </summary>
+        private bool Take(int[] free, PopulationTier lowest, int villagers)
+        {
+            for (int tier = (int)lowest; tier < _tiers && villagers > 0; tier++)
+            {
+                int taken = free[tier] < villagers ? free[tier] : villagers;
+                free[tier] -= taken;
+                villagers -= taken;
+            }
+
+            return villagers == 0;
         }
 
         /// <summary>

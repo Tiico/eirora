@@ -6,6 +6,6 @@ namespace Eirora.Simulation
     /// </summary>
     public static class ContentVersion
     {
-        public const int Current = 1;
+        public const int Current = 2;
     }
 }

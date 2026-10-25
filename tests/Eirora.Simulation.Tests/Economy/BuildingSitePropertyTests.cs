@@ -71,6 +71,12 @@ public sealed class BuildingSitePropertyTests
             return false;
         }
 
+        // A new world has reached no unlocked step, so only the buildings of the start can be built (TASK-061).
+        if (world.Content.For(kind).Step > world.Step)
+        {
+            return false;
+        }
+
         bool crest = tile == PrototypeHome.Crest;
         bool plain = terrain.IsLand() && terrain != Terrain.Mountain && !crest;
         return kind switch
@@ -79,7 +85,7 @@ public sealed class BuildingSitePropertyTests
             BuildingKind.Field => terrain == Terrain.Farmland,
             BuildingKind.SheepFarm => terrain == Terrain.Pasture,
             BuildingKind.Quarry => terrain == Terrain.Mountain && !crest,
-            BuildingKind.Woodcutter => plain && Neighbours(tile).Prepend(tile).Any(n => s_map.TerrainAt(n) == Terrain.Forest && world.IsKnown(n) && (n == tile || world.BuildingAt(n) is null)),
+            BuildingKind.Woodcutter or BuildingKind.HuntingLodge => plain && Neighbours(tile).Prepend(tile).Any(n => s_map.TerrainAt(n) == Terrain.Forest && world.IsKnown(n) && (n == tile || world.BuildingAt(n) is null)),
             BuildingKind.Jetty => plain && Neighbours(tile).Any(s_openShallows.Contains),
             _ => plain,
         };

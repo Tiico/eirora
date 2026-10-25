@@ -374,14 +374,78 @@ namespace Eirora.Simulation.Economy
         Full,
     }
 
+    /// <summary>What keeps villagers from rising to a tier at dawn, the first of them in the order dawn checks (economy-v2.md, section 2).</summary>
+    public enum Rising
+    {
+        /// <summary>Up to two rise at the next dawn.</summary>
+        Rises,
+
+        /// <summary>The world has not reached the step that unlocks the tier (D-114).</summary>
+        Locked,
+
+        /// <summary>The store does not hold food for every villager, so no one rises.</summary>
+        Hungry,
+
+        /// <summary>The store lacks a need of the tier, for its villagers or for those who would rise (<see cref="TierDiagnosis.Missing"/>).</summary>
+        LacksNeed,
+
+        /// <summary>The tier's housing is full, so a farmstead or another of its homes is needed.</summary>
+        NoHousing,
+
+        /// <summary>No villager of the tier below lives here.</summary>
+        NoneBelow,
+    }
+
+    /// <summary>A tier of a settlement: its villagers and housing, what they lack and whether more would rise to it (TASK-061).</summary>
+    public sealed class TierDiagnosis
+    {
+        internal TierDiagnosis(PopulationTier tier, int villagers, int housing, Need? lacks, Rising rising, Need? missing)
+        {
+            Tier = tier;
+            Villagers = villagers;
+            Housing = housing;
+            Lacks = lacks;
+            Rising = rising;
+            Missing = missing;
+        }
+
+        public PopulationTier Tier { get; }
+
+        public int Villagers { get; }
+
+        /// <summary>The homes for the tier on the island.</summary>
+        public int Housing { get; }
+
+        /// <summary>
+        /// The need that the tier's villagers would lack at dawn, or null when the store holds all they use; a lack stops
+        /// only rising, never what they have (D-39, INV-V3).
+        /// </summary>
+        public Need? Lacks { get; }
+
+        /// <summary>Whether villagers would rise to it at dawn, or the first thing that keeps them from it.</summary>
+        public Rising Rising { get; }
+
+        /// <summary>The need that keeps villagers from rising, for the tier or those who would rise; null unless <see cref="Rising.LacksNeed"/>.</summary>
+        public Need? Missing { get; }
+    }
+
     /// <summary>
     /// A settlement's growth and what holds it back (TASK-050): whether it would grow if dawn came now, the villagers its
     /// buildings lack and who could move there to staff them, and the island's largest bottleneck.
     /// </summary>
     public sealed class SettlementDiagnosis
     {
-        internal SettlementDiagnosis(IslandSettlement settlement, long food, Growth growth, bool hasRoom, int missingStaff, int freeNearby, Bottleneck? bottleneck)
+        internal SettlementDiagnosis(
+            IslandSettlement settlement,
+            long food,
+            Growth growth,
+            bool hasRoom,
+            int missingStaff,
+            int freeNearby,
+            Bottleneck? bottleneck,
+            IReadOnlyList<TierDiagnosis> tiers)
         {
+            Tiers = tiers;
             Settlement = settlement;
             Food = food;
             Growth = growth;
@@ -401,6 +465,23 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Whether it has housing for one more, whom growth or moving can bring; also when it is hungry.</summary>
         public bool HasRoom { get; }
+
+        /// <summary>Each tier above the crofters, in order: whether villagers would rise to it at dawn, and what it lacks (TASK-061).</summary>
+        public IReadOnlyList<TierDiagnosis> Tiers { get; }
+
+        /// <summary>The diagnosis of a tier above the crofters, or null for the crofters and a tier the content lacks.</summary>
+        public TierDiagnosis? TierOf(PopulationTier tier)
+        {
+            foreach (var diagnosis in Tiers)
+            {
+                if (diagnosis.Tier == tier)
+                {
+                    return diagnosis;
+                }
+            }
+
+            return null;
+        }
 
         /// <summary>The villagers that its buildings lack, leaving out the paused ones.</summary>
         public int MissingStaff { get; }

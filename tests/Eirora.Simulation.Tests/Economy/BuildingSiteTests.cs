@@ -63,7 +63,8 @@ public sealed class BuildingSiteTests
     {
         var world = Morning();
 
-        Assert.All(Enum.GetValues<BuildingKind>(), kind => Assert.Equal(Rejection.SiteUnavailable, world.CheckBuild(kind, new Hex(6, 0))));
+        Assert.All(Enum.GetValues<BuildingKind>(), kind => Assert.Equal(
+            world.Content.For(kind).Step == 0 ? Rejection.SiteUnavailable : Rejection.NotUnlocked, world.CheckBuild(kind, new Hex(6, 0))));
         Assert.Equal(Rejection.SiteUnavailable, world.CheckBuild(BuildingKind.Quarry, M2)); // The vein waits for the survey.
         Assert.Equal(Rejection.SiteUnavailable, world.CheckBuild(BuildingKind.Cottage, S));
         Assert.Equal(TileUse.None, world.UsesOf(M2));

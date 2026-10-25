@@ -13,10 +13,10 @@ day-start 40 1784887200
 force Exploration 582 3
 force BuildPower 190 28
 force DawnPower 1720 11
-economy 2 0
-settlement home 22
-settlement first 6
-settlement second 4
+economy 2 0 1
+settlement home 22 0
+settlement first 6 0
+settlement second 4 0
 stock home Fish 0
 stock home Grain 19737435
 stock home Timber 5250000
@@ -24,6 +24,8 @@ stock home Planks 43250000
 stock home Stone 23812447
 stock home Wool 15300000
 stock home Wadmal 0
+stock home Game 0
+stock home Hide 0
 stock first Fish 2399995
 stock first Grain 6100005
 stock first Timber 0
@@ -31,6 +33,8 @@ stock first Planks 0
 stock first Stone 0
 stock first Wool 0
 stock first Wadmal 0
+stock first Game 0
+stock first Hide 0
 stock second Fish 199993
 stock second Grain 6300007
 stock second Timber 750000
@@ -38,6 +42,8 @@ stock second Planks 0
 stock second Stone 0
 stock second Wool 0
 stock second Wadmal 0
+stock second Game 0
+stock second Hide 0
 owed second 20000000
 building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0 0
 building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0 0

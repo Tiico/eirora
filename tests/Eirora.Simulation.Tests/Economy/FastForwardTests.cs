@@ -31,12 +31,14 @@ public sealed class FastForwardTests
     /// </summary>
     /// <remarks>
     /// On 25 October 2026, with demolition (TASK-047) and with the stock rules (TASK-046), the six worlds worked 78.3 % of
-    /// them (105 762 of 135 050). The count is the same on every machine, so the margin only leaves room for rules that
-    /// keep the villagers busier: the world that skips fewest still skips 6 823, and if it skipped none the six would
-    /// work 83 %. With the skip broken they work every one, as the year scene's world does anyway: its expedition and its
-    /// queue change something every quarter hour.
+    /// them (105 762 of 135 050). With the population tiers (TASK-061) they work 81.1 % (109 493): the villagers eat from
+    /// the good there is most of, so no food chain fills its store and stands still, the hunting lodges hunt all year, and
+    /// the ships carry clothes to the farmers off the home island, so four of the six work every quarter hour. The count
+    /// is the same on every machine, so the margin only leaves room for rules that keep the villagers busier. With the
+    /// skip broken they work every one, as the year scene's world does anyway: its expedition and its queue change
+    /// something every quarter hour.
     /// </remarks>
-    private const double MostWorkedShare = 0.8;
+    private const double MostWorkedShare = 0.85;
 
     /// <summary>
     /// The most a year away may allocate in the year scene's world, in bytes: what its events and the dawns take, since a
@@ -118,14 +120,16 @@ public sealed class FastForwardTests
             [
                 // Recorded.
                 "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_buildings", "_projects", "_felled", "_roads", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
+                "<Step>k__BackingField",
 
                 // Fixed for the world.
-                "_map", "_home", "_founding", "_content", "_mapIndex",
+                "_map", "_home", "_founding", "_content", "_mapIndex", "_tiers",
 
                 // Derived, or scratch for a single call.
-                "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_jobs", "_needs", "_free", "_before", "_unstaffed", "_labour", "_pools",
+                "_buildingAt", "_capacity", "_housing", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_jobs", "_needs", "_free", "_before", "_unstaffed", "_labour", "_pools",
+                "_met", "_grounds", "_keeps", "_freeByTier",
             ],
-            [typeof(IslandSettlement)] = ["<Villagers>k__BackingField", "<Island>k__BackingField", "_economy", "<Reserved>k__BackingField", "<Imports>k__BackingField"],
+            [typeof(IslandSettlement)] = ["_tiers", "<Island>k__BackingField", "_economy", "<Reserved>k__BackingField", "<Imports>k__BackingField"],
             [typeof(Building)] =
             [
                 "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
@@ -248,7 +252,7 @@ public sealed class FastForwardTests
                 return $"stock {parts[1]} {parts[2]} {Capacity(parts[1])}";
             }
 
-            return parts[0] == "economy" && voyage > 0 ? $"economy {parts[1]} {voyage}" : line;
+            return parts[0] == "economy" && voyage > 0 ? $"economy {parts[1]} {voyage} {parts[3]}" : line;
         });
 
         var reader = new StateReader(string.Join('\n', lines));

@@ -26,7 +26,6 @@ internal static class BuiltOutWorld
 {
     private const long Hour = 3600;
 
-    private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
     // What a settlement builds first at home: a jetty for the expedition, planks and stone for everything after.
     private static readonly BuildingKind[] s_first = [BuildingKind.Jetty, BuildingKind.Sawmill, BuildingKind.Quarry];
@@ -48,10 +47,20 @@ internal static class BuiltOutWorld
 
     public static Save GenerateSave(int seed, SelfCare selfCare) => GenerateSave(seed, selfCare, archipelago: Math.Abs(seed % 4) == 3);
 
-    public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago)
+    /// <summary>
+    /// A world built only of what the rules before the population tiers had (TASK-061), which the migrations' tests can
+    /// write back to them: no farmsteads, so no farmers, and no game or hide.
+    /// </summary>
+    public static Save BeforeTiers(int seed) => GenerateSave(seed, (SelfCare)(Math.Abs(seed) % 3), archipelago: Math.Abs(seed % 4) == 3, lastStep: 0);
+
+    /// <inheritdoc cref="BeforeTiers(int)"/>
+    public static Save BeforeTiers(int seed, SelfCare selfCare, bool archipelago) => GenerateSave(seed, selfCare, archipelago, lastStep: 0);
+
+    public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago, int lastStep = int.MaxValue)
     {
         var random = new Random(~seed);
-        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false);
+        var buildings = Scenario.Kinds(lastStep);
+        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false, lastStep);
         var save = scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)
@@ -84,7 +93,7 @@ internal static class BuiltOutWorld
 
             for (int move = 3 + random.Next(5); move > 0; move--)
             {
-                if (Suited(world, random, expeditionLast) is { } command)
+                if (Suited(world, random, expeditionLast, buildings) is { } command)
                 {
                     save.Apply($"out-{key++}", command);
                 }
@@ -112,7 +121,7 @@ internal static class BuiltOutWorld
 
         for (int build = random.Next(7); build > 0; build--)
         {
-            if (FreeSite(world, random.Next(int.MaxValue), _ => true) is { } free)
+            if (FreeSite(world, random.Next(int.MaxValue), _ => true, buildings) is { } free)
             {
                 save.Apply($"out-{key++}", new Build(free.Kind, free.Site));
             }
@@ -122,7 +131,7 @@ internal static class BuiltOutWorld
         // the ships carry the home island's materials before anything else (D-106, D-113).
         var settled = world.Islands.Where(i => i != world.HomeIsland && world.Settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
         if (random.Next(2) == 0 && settled.Count > 0
-            && FreeSite(world, random.Next(int.MaxValue), c => world.Settlement.IslandOf(c.Site) == settled[key % settled.Count]) is { } away)
+            && FreeSite(world, random.Next(int.MaxValue), c => world.Settlement.IslandOf(c.Site) == settled[key % settled.Count], buildings) is { } away)
         {
             save.Apply($"out-{key++}", new Build(away.Kind, away.Site));
         }
@@ -190,7 +199,7 @@ internal static class BuiltOutWorld
     /// it knows first, then a little of everything. A few projects at a time, and a building that needs staff only while
     /// villagers are left to build, as a player builds while the villagers keep up.
     /// </summary>
-    private static GameCommand? Suited(World world, Random random, bool expeditionLast)
+    private static GameCommand? Suited(World world, Random random, bool expeditionLast, BuildingKind[] buildings)
     {
         int pick = random.Next(int.MaxValue);
         var settlement = world.Settlement;
@@ -202,7 +211,7 @@ internal static class BuiltOutWorld
 
         foreach (var first in s_first)
         {
-            if (Wanting(first, world.HomeIsland) && FreeSite(world, pick, c => c.Kind == first && settlement.IslandOf(c.Site) == world.HomeIsland) is { } site)
+            if (Wanting(first, world.HomeIsland) && FreeSite(world, pick, c => c.Kind == first && settlement.IslandOf(c.Site) == world.HomeIsland, buildings) is { } site)
             {
                 return new Build(site.Kind, site.Site);
             }
@@ -216,7 +225,7 @@ internal static class BuiltOutWorld
         var known = world.Map.Islands.Select(i => i.Id).Where(i => i != world.HomeIsland && world.Map.Features.LandOf(i).Any(world.IsKnown)).ToList();
         foreach (var island in known)
         {
-            if (Wanting(BuildingKind.Jetty, island) && FreeSite(world, pick, c => c.Kind == BuildingKind.Jetty && settlement.IslandOf(c.Site) == island) is { } landing)
+            if (Wanting(BuildingKind.Jetty, island) && FreeSite(world, pick, c => c.Kind == BuildingKind.Jetty && settlement.IslandOf(c.Site) == island, buildings) is { } landing)
             {
                 return new Build(landing.Kind, landing.Site);
             }
@@ -224,14 +233,14 @@ internal static class BuiltOutWorld
 
         var landed = known.Where(i => settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
         if (building && random.Next(2) == 0 && landed.Count > 0
-            && FreeSite(world, pick, c => settlement.IslandOf(c.Site) == landed[pick % landed.Count] && Staffable(c)) is { } across)
+            && FreeSite(world, pick, c => settlement.IslandOf(c.Site) == landed[pick % landed.Count] && Staffable(c), buildings) is { } across)
         {
             return new Build(across.Kind, across.Site);
         }
 
         return random.Next(12) switch
         {
-            < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
+            < 4 => building && FreeSite(world, pick, Staffable, buildings) is { } free ? new Build(free.Kind, free.Site) : null,
             4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
             6 => (pick % 3) switch
             {
@@ -304,9 +313,9 @@ internal static class BuiltOutWorld
     /// One of the affordable buildings that the settlement would take on a tile and that is <paramref name="wanted"/>,
     /// or none; every kind is as likely, however many tiles would take it.
     /// </summary>
-    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, Func<(BuildingKind Kind, Hex Site), bool> wanted)
+    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, Func<(BuildingKind Kind, Hex Site), bool> wanted, BuildingKind[] buildings)
     {
-        var free = s_buildings
+        var free = buildings
             .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile))
                 .Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site)).ToList())
             .Where(sites => sites.Count > 0)

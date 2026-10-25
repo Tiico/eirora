@@ -76,12 +76,13 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Millionths of a unit of a resource in an island's store that the ships may take home: all but the larger of
-        /// what is <paramref name="reserved"/> there (the island's reservations, or null when it has none) and what of
-        /// <paramref name="food"/> the island keeps for its settlement (<see cref="Kept"/>), as D-125 has it for processing.
+        /// what is <paramref name="reserved"/> there (the island's reservations, or null when it has none) and what of the
+        /// needs in <paramref name="keeps"/> the island keeps for its settlement (<see cref="Kept"/>), as D-125 has it for
+        /// processing.
         /// </summary>
-        private static long Shippable(long[] store, int[]? reserved, Resource resource, long food)
+        private long Shippable(long[] store, int[]? reserved, Resource resource, long[] keeps)
         {
-            long kept = Kept(store, resource, food);
+            long kept = Kept(store, resource, keeps);
             long reservation = reserved is null ? 0 : Quantity.Units(reserved[(int)resource]);
             long left = store[(int)resource] - (reservation > kept ? reservation : kept);
             return left > 0 ? left : 0;
