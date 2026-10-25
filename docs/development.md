@@ -62,7 +62,7 @@ dotnet run -c Release --project benchmarks/Eirora.Simulation.Benchmarks -- --fil
 | Mätning | Budget på en utvecklardator | Senast uppmätt |
 |---|---|---|
 | Sökväg över hela kartan (radie 24), värsta fallet | Högst 1 ms och inga allokeringar | 0,41 ms, 0 byte (i7-7700K, .NET 10) |
-| Ett års frånvaro i mätscenens värld (`FastForwardBenchmarks`) | Högst 150 ms | MEASURED |
+| Ett års frånvaro i mätscenens värld (`FastForwardBenchmarks`) | Högst 150 ms | 115 ms i median (M1 Pro med andra jobb igång, .NET 10, 25 oktober 2026); varje körning av .NET-workflowen visar CI-maskinens tid |
 
 Budgetarna på telefonen sätts i TASK-024.
 Gränsen för framspolningen är räknad från den svagaste målenheten ([mätbudgetar](./design/performance-budgets.md#2-budgetar)).
