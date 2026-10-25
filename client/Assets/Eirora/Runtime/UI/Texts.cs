@@ -271,13 +271,17 @@ namespace Eirora.Client.UI
             }
             else
             {
+                // What the store lacks above what the shipyard leaves there, its minimum stock or the reservation (D-125).
                 var lacking = knarr.Cost
                     .OrderBy(c => c.Key)
-                    .Select(c => (Resource: c.Key, Units: c.Value - world.Stock(shipyard.Island, c.Key)))
+                    .Select(c => (Resource: c.Key, Units: c.Value + Kept(world, shipyard, c.Key) - world.Stock(shipyard.Island, c.Key), Kept: Kept(world, shipyard, c.Key)))
                     .Where(c => c.Units > 0)
-                    .Select(c => $"{c.Units} {Name(c.Resource, c.Units)}")
                     .ToList();
-                yield return $"Nästa knarr väntar på {List(lacking)} till i lagret.";
+                string goods = List(lacking.Select(c => $"{c.Units} {Name(c.Resource, c.Units)}"));
+                bool reserved = lacking.Any(c => world.ReservationOf(shipyard.Island, c.Resource) > shipyard.Reserve);
+                yield return lacking.All(c => c.Kept == 0) ? $"Nästa knarr väntar på {goods} till i lagret."
+                    : reserved ? $"Nästa knarr väntar på {goods} till i lagret, utöver det som är reserverat där."
+                    : $"Nästa knarr väntar på {goods} till i lagret, utöver minimilagret.";
             }
 
             if (!world.SeaRoutes.Any(r => r.From == shipyard.Island || shipyard.Island == world.HomeIsland))
@@ -285,6 +289,9 @@ namespace Eirora.Client.UI
                 yield return "Knarrarna bär först när en sjöväg går hit.";
             }
         }
+
+        /// <summary>What a shipyard leaves of a material in its island's store: the larger of its minimum stock and the reservation.</summary>
+        private static int Kept(World world, Building shipyard, Resource material) => Math.Max(shipyard.Reserve, world.ReservationOf(shipyard.Island, material));
 
         /// <summary>Whether a building that needs staff works, is paused or waits for villagers; null for one that needs none.</summary>
         public static string? Staffing(Building building, BuildingSpec spec) =>

@@ -80,7 +80,7 @@ building Shipyard work 40 power 80 staff 2 site HarborSpot housing 0 levels 1 st
 cost Timber 20
 cost Planks 20
 cost Stone 10
-knarrs work 32 per-day 10 most 4
+knarrs work 32 per-day 10 most 4 reserve 20
 knarr-cost Planks 10
 knarr-cost Tar 5
 need Food Fish Game Grain

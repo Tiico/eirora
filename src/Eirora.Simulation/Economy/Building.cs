@@ -63,9 +63,10 @@ namespace Eirora.Simulation.Economy
         public Hex? Depot { get; internal set; }
 
         /// <summary>
-        /// Whole units of each raw material that the carriers always leave in the island's store for building (GLOSSARY:
-        /// Minimilager, LOG-06): 0 to what the store holds, its recipe's <see cref="Recipe.Reserve"/> when it is built; free
-        /// planning (D-23). 0 for a building without raw materials.
+        /// Whole units of each raw material that the carriers always leave in the island's store for building, or of each
+        /// material of a knarr that a shipyard leaves there (GLOSSARY: Minimilager, LOG-06): 0 to what the store holds, its
+        /// spec's <see cref="BuildingSpec.Reserve"/> when it is built; free planning (D-23). 0 for a building without
+        /// materials.
         /// </summary>
         public int Reserve { get; internal set; }
 

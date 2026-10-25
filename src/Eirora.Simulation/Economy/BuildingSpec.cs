@@ -116,6 +116,15 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whether it produces, so that it can be upgraded, given a road and worked.</summary>
         public bool Produces => Recipe is not null;
 
+        /// <summary>
+        /// Whether it takes materials from its island's store, a processing building's raw materials or a shipyard's
+        /// knarrs, and so leaves a minimum stock of them that the player sets (GLOSSARY: Minimilager, LOG-06).
+        /// </summary>
+        public bool HasReserve => Recipe is { Inputs: { Count: > 0 } } || Knarrs is not null;
+
+        /// <summary>Whole units of each material that a new building of the kind leaves in the store; 0 when <see cref="HasReserve"/> is false.</summary>
+        public int Reserve => Recipe is { Inputs: { Count: > 0 } } recipe ? recipe.Reserve : Knarrs?.Reserve ?? 0;
+
         /// <summary>Whether its staff work at it, producing or building knarrs, so that the player can pause it (D-39).</summary>
         public bool Pausable => Recipe is not null || Knarrs is not null;
     }
@@ -127,7 +136,7 @@ namespace Eirora.Simulation.Economy
     /// </summary>
     public sealed class KnarrSpec
     {
-        internal KnarrSpec(IReadOnlyDictionary<Resource, int> cost, int workHours, int unitsPerGameDay, int most)
+        internal KnarrSpec(IReadOnlyDictionary<Resource, int> cost, int workHours, int unitsPerGameDay, int most, int reserve = StockRules.StandardReserve)
         {
             foreach (Resource resource in Enum.GetValues(typeof(Resource)))
             {
@@ -137,15 +146,16 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            if (workHours < 1 || unitsPerGameDay < 1 || most < 1)
+            if (workHours < 1 || unitsPerGameDay < 1 || most < 1 || reserve < 0)
             {
-                throw new ArgumentException("A knarr takes work and carries something, and a route has room for one.");
+                throw new ArgumentException("A knarr takes work and carries something, a route has room for one, and nothing is negative.");
             }
 
             Cost = cost;
             WorkHours = workHours;
             UnitsPerGameDay = unitsPerGameDay;
             Most = most;
+            Reserve = reserve;
         }
 
         /// <summary>Whole units of each resource, paid from the shipyard's island's store when the knarr is begun.</summary>
@@ -159,5 +169,14 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>The most knarrs that carry on one sea route, and that one island's shipyards build.</summary>
         public int Most { get; }
+
+        /// <summary>
+        /// Whole units of each material that a new shipyard leaves in the store when it begins a knarr (GLOSSARY:
+        /// Minimilager), as processing does; the player can change it (produktägaren 2026-10-25, PR #185).
+        /// </summary>
+        public int Reserve { get; }
+
+        /// <summary>Whether a knarr costs the resource.</summary>
+        public bool Uses(Resource resource) => Cost.ContainsKey(resource);
     }
 }

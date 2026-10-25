@@ -71,5 +71,5 @@ internal static class TierVillage
     /// <summary>A building as the state writes it, a storehouse or a jetty with its one carrier when staffed, no other with a depot yet.</summary>
     public static string Line(BuildingKind kind, Hex tile, bool staffed = false) => Logistics.IsDepot(kind)
         ? $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 {(staffed ? 1 : 0)} 4 0 0 0 0 0 0"
-        : $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 0 0 0 0 0 0 0 {ContentCatalog.Current.For(kind).Recipe?.Reserve ?? 0}";
+        : $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 0 0 0 0 0 0 0 {ContentCatalog.Current.For(kind).Reserve}";
 }

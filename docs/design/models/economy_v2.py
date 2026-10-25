@@ -772,15 +772,17 @@ class World:
                 n = self.make(b, min(rate * k, b.inp / per))
                 b.inp -= n * per
             elif b.kind == "Varv":
+                # Varvet lämnar minimilagret som förädlingen och skyndas inte på av nivå eller extraarbete:
+                # det har ingen nivå 2 och tar ingen Ork (produktägaren 2026-10-25, PR #185).
                 s = self.settlements[self.island(b)]
                 done = self.knarrar.get(self.island(b), 0)
                 if done < MAX_KNARRAR:
-                    if b.knarr_work == 0 and all(s.stock[r] >= n for r, n in KNARR_COST.items()):
+                    if b.knarr_work == 0 and all(s.stock[r] - n >= RESERVE for r, n in KNARR_COST.items()):
                         for r, n in KNARR_COST.items():
                             s.stock[r] -= n
                         b.knarr_work = KNARR_HOURS
                     if b.knarr_work:
-                        b.knarr_work = max(0.0, b.knarr_work - k)
+                        b.knarr_work = max(0.0, b.knarr_work - 1.0)
                         if b.knarr_work == 0:
                             self.knarrar[self.island(b)] = done + 1
 

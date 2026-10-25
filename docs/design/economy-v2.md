@@ -156,7 +156,8 @@ Steg 0 är ekonomi v1 oförändrad, utom att bryggan får ett litet lager och at
 - Varvet bygger en knarr i taget av 10 plankor och 5 tjära på 32 aktiva timmar.
   Eftersom alla sjövägar i epok 1 går till hemön lyfter ett varv på hemön alla öars sjövägar, och ett varv på en annan ö bara den öns.
   En sjöväg bär högst fyra knarrar, hemöns och dess egen ös tillsammans, och en ös varv påbörjar ingen knarr när ön har fyra byggda och påbörjade.
-  Varvet betalar knarren ur sin ös lager när det påbörjar den, som byggmaterial, så minimilagret och reserveringen hindrar det inte (D-127).
+  Varvet betalar knarren ur sin ös lager när det påbörjar den, och lämnar som förädlingen det största av sitt minimilager, 20 som standard, och öns reservering av plankor och tjära (D-125, D-127; produktägaren 2026-10-25, PR #185).
+  Varvet har ingen nivå 2 och inget extraarbete, eftersom det inte gör varor (produktägaren 2026-10-25, PR #185).
   Ett varv utan hantverkare behåller den knarr det påbörjat, och ett varv som rivs lämnar knarrens material till öns lager; knarrarna står kvar, eftersom en knarr aldrig går förlorad (INV-V1).
 - Nivå 2, rika rutor och extraarbete skalar produktionen som i v1, även de långsamma processernas tillväxt (D-103).
 
@@ -396,7 +397,7 @@ Startvärdet är 409, som i v1.
 **Olika men jämbördiga.**
 Närområdet slutar med ett stenlager och ett kluster som bärarna hinner med, Havet med två bosättningar, flest bybor och högst dagsproduktion, och Bygden med 20 bybor och bönderna upplåsta.
 Utvecklingsvärdena skiljer sig med 14 %, mot 12 % i v1, och värdet per använd kraft med 10 %.
-Havet är jämbördigt första veckan men svagare vecka 6, med 5 911 mot Närområdets 6 334 och Bygdens 7 139 (avsnitt 10), eftersom alla strategier delar samma planerare från vecka 2.
+Havet är jämbördigt första veckan men svagare vecka 6, med 5 942 mot Närområdets 6 334 och Bygdens 7 071 (avsnitt 10), eftersom alla strategier delar samma planerare från vecka 2.
 Så får det vara tills scenarierna i #136 har visat lägen där Havet vinner.
 
 **Strategin hinner ikapp (D-34).**
@@ -417,16 +418,17 @@ Den höga profilen lägger det Ork den har utöver den måttliga på extraarbete
 | Strategi | Utvecklingsvärde måttlig/hög dygn 7 | Dygn 14 | Dygn 28 | Dygn 42 | Sämsta dygnet | Dygn under måttlig |
 |---|---|---|---|---|---|---|
 | Närområdet | 1 407 / 1 407 | 2 250 / 2 250 | 4 415 / 4 424 | 6 334 / 6 343 | ±0 % | 0 av 42 |
-| Havet | 1 297 / 1 297 | 2 069 / 2 069 | 4 173 / 4 173 | 5 911 / 5 911 | +0 % | 0 av 42 |
-| Bygden | 1 237 / 1 243 | 2 424 / 2 436 | 5 047 / 5 083 | 7 139 / 7 133 | −0,10 % (dygn 41) | 6 av 42 |
+| Havet | 1 297 / 1 297 | 2 069 / 2 069 | 4 173 / 4 173 | 5 942 / 5 942 | +0 % | 0 av 42 |
+| Bygden | 1 237 / 1 243 | 2 424 / 2 436 | 5 047 / 5 083 | 7 071 / 7 097 | +0 % | 0 av 42 |
 
 Mer egenvård syns alltså mest i saldot och i epokens tempo ([epok 1, avsnitt 5](./epoch-1.md#5-tempo)), och lite i världen genom extraarbetet.
 Vid veckans slut är världen med hög egenvård nästan alltid minst lika stor som med måttlig.
-Sedan bönder får bära (D-109, PR #180) är Bygden med hög egenvård något mindre sex dygn i vecka 6, som mest 0,10 % dygn 41 och 0,09 % vid veckans slut: med mer extraarbete skeppas Nyöns ull hem tidigare, när hemöns fisklager redan är fullt.
+När bönder fick bära (D-109, PR #180) blev Bygden med hög egenvård något mindre sex dygn i vecka 6, som mest 0,10 % dygn 41 och 0,09 % vid veckans slut: med mer extraarbete skeppades Nyöns ull hem tidigare, när hemöns fisklager redan var fullt.
+Sedan varvet lämnar minimilagret och inte skyndas på av extraarbete (PR #185) är ingen strategi mindre något dygn.
 Bärarnas och skeppens ordning kan alltså göra den något mindre: att arbeta extra fyller en råvarubyggnads utlager snabbare, bärarna hämtar där det väntar mest, och annat väntar längre, så att till exempel en komfortbybo kommer ett dygn senare.
 D-119 godtar det: D-34 gäller över veckor, och kalkylen stoppar om en vecka eller ett enskilt dygn blir mer än 0,1 % mindre, så att en regeländring som skapar en större dipp syns (veckans tolerans beslutad av produktägaren 2026-10-25, PR #180).
 Före D-121–D-124 mätte kalkylen som mest 0,07 %, och med råvaran till förädlingen först, i stället för D-111, 0,82 %.
-Ett varv börjar en knarr så fort materialet finns, så med mer egenvård kan knarren komma ett dygn tidigare; därför räknas knarrarna till vad de kostade, annars hade det sett ut som en mindre värld.
+Ett varv börjar en knarr så fort materialet finns ovanför minimilagret, så med mer egenvård kan knarren komma ett dygn tidigare; därför räknas knarrarna till vad de kostade, annars hade det sett ut som en mindre värld.
 
 ## 10. Sex veckor
 
@@ -437,13 +439,13 @@ Planeraren lämnar alltid två lediga bybor som bygger och uppgraderar bara av m
 | Körning | Egenvård | Bönder | Hantverkare | Sjöfart | Bärarna hinner inte | Bybor | Hemön T/B/H | Nyön T/B/H | Byggnader | Utvecklingsvärde vecka 2/4/6 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 1 | 84 | 40/8/16 | 8/12/0 | 45 | 2 250 / 4 415 / 6 334 |
-| Havet | måttlig | vecka 2 | vecka 4 | vecka 4 | – | 88 | 32/14/24 | 12/6/0 | 42 | 2 069 / 4 173 / 5 911 |
-| Bygden | måttlig | vecka 1 | vecka 2 | vecka 3 | vecka 6 | 106 | 33/15/40 | 12/6/0 | 52 | 2 424 / 5 047 / 7 139 |
-| Turen | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 4 | 95 | 19/16/44 | 16/0/0 | 46 | 2 369 / 4 724 / 6 155 |
-| Turen | manuell | vecka 2 | vecka 3 | vecka 4 | vecka 5 | 87 | 15/16/40 | 16/0/0 | 45 | 1 925 / 4 678 / 6 092 |
+| Havet | måttlig | vecka 2 | vecka 4 | vecka 4 | – | 88 | 32/12/26 | 12/6/0 | 42 | 2 069 / 4 173 / 5 942 |
+| Bygden | måttlig | vecka 1 | vecka 2 | vecka 3 | vecka 6 | 104 | 31/15/40 | 12/6/0 | 52 | 2 424 / 5 047 / 7 071 |
+| Turen | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 4 | 90 | 14/16/44 | 16/0/0 | 46 | 2 369 / 4 720 / 6 076 |
+| Turen | manuell | vecka 2 | vecka 3 | vecka 4 | vecka 5 | 87 | 15/16/40 | 16/0/0 | 45 | 1 925 / 4 673 / 6 093 |
 | Naiv | hög | vecka 2 | – | – | – | 32 | 32/0/0 | – | 10 | 1 592 / 1 940 / 2 230 |
 | Utan träning | utan träning | vecka 2 | vecka 3 | – | vecka 5 | 75 | 31/12/32 | – | 40 | 1 353 / 3 108 / 3 960 |
-| Havet | hög | vecka 2 | vecka 3 | vecka 4 | – | 90 | 30/14/28 | 12/6/0 | 42 | 2 074 / 4 240 / 6 049 |
+| Havet | hög | vecka 2 | vecka 3 | vecka 4 | – | 90 | 30/14/28 | 12/6/0 | 42 | 2 074 / 4 235 / 6 049 |
 | Ingen spelare | ingen | – | – | – | – | 16 | 16/0/0 | – | 4 | 643 / 671 / 671 |
 
 - **Upplåsningen sprids över epokens första halva:** bönder vecka 1–2, hantverkare vecka 2–4 och sjöfarten vecka 3–4.
@@ -457,7 +459,7 @@ Planeraren lämnar alltid två lediga bybor som bygger och uppgraderar bara av m
 - **Långa körningar säger lite om vilken strategi som är bäst,** eftersom alla följer samma planerare från vecka 2.
   Det prövar balansbotarna i TASK-053 (#136) med egna strategier och kartor.
 - **Byarna blir större än i dag.**
-  Med nivåernas tätare bostäder når strategierna 75–106 bybor vecka 6, mot 72 vid dygn 45 i [epok 1:s tempo](./epoch-1.md#vecka-då-spelaren-når-varje-steg).
+  Med nivåernas tätare bostäder når strategierna 75–104 bybor vecka 6, mot 72 vid dygn 45 i [epok 1:s tempo](./epoch-1.md#vecka-då-spelaren-når-varje-steg).
   Elden kräver 50 bybor, så epokens tempo kan bli snabbare; det prövas i TASK-054 (#137) med epokens kalkyl ovanpå ekonomi v2.
 
 ## 11. Utan egenvård
@@ -566,7 +568,7 @@ Lagerreglerna i TASK-046 (#129) står i [ekonomi v1, avsnitt 5](./economy-v1.md#
 
 - **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
 - **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
-- **D-127:** reserveringen hindrar bara skeppning hemåt och förädling, inte byggmaterial och mat som skeppas ut till öarna.
+- **D-127:** reserveringen hindrar bara skeppning hemåt, förädling och varvets knarrar, inte byggmaterial och mat som skeppas ut till öarna; varvet tillkom 2026-10-25 (PR #185).
 
 Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.
 

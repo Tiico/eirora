@@ -133,15 +133,15 @@ public sealed class SeafaringTests
     [Fact]
     public void AShipyardBuildsAKnarrOfPlanksAndTarInThirtyTwoActiveHours()
     {
-        var world = Shipyard(planks: 25, tar: 12);
+        var world = Shipyard(planks: 45, tar: 32);
 
         // The quarter hour that begins at dawn is the first one worked.
         world.AdvanceTo(At("2026-10-16 06:45", 2));
         var shipyard = world.BuildingAt(Harbour(PrototypeHome.Home))!;
-        Assert.Equal((25, 12, 0), (world.Stock(Resource.Planks), world.Stock(Resource.Tar), shipyard.KnarrHoursLeft));
+        Assert.Equal((45, 32, 0), (world.Stock(Resource.Planks), world.Stock(Resource.Tar), shipyard.KnarrHoursLeft));
         world.AdvanceTo(At("2026-10-16 07:00", 2));
         Assert.True(shipyard.Staffed);
-        Assert.Equal((15, 7, KnarrHours), (world.Stock(Resource.Planks), world.Stock(Resource.Tar), shipyard.KnarrHoursLeft));
+        Assert.Equal((35, 27, KnarrHours), (world.Stock(Resource.Planks), world.Stock(Resource.Tar), shipyard.KnarrHoursLeft));
 
         world.AdvanceTo(At("2026-10-17 22:30", 2));
         Assert.Equal((0, 1), (world.Knarrs(PrototypeHome.Home), shipyard.KnarrHoursLeft));
@@ -150,9 +150,10 @@ public sealed class SeafaringTests
         Assert.Equal((1, 0), (world.Knarrs(PrototypeHome.Home), shipyard.KnarrHoursLeft));
         Assert.Contains(events, e => e is KnarrLaunched { Island: PrototypeHome.Home, Knarrs: 1 });
 
-        // The next begins at the next dawn, while the store still holds a knarr's materials.
+        // The next begins at the next dawn, while the store still holds a knarr's materials above the minimum stock, and
+        // none after it.
         world.AdvanceTo(At("2026-10-18 07:00", 2));
-        Assert.Equal((5, 2, KnarrHours), (world.Stock(Resource.Planks), world.Stock(Resource.Tar), shipyard.KnarrHoursLeft));
+        Assert.Equal((25, 22, KnarrHours), (world.Stock(Resource.Planks), world.Stock(Resource.Tar), shipyard.KnarrHoursLeft));
     }
 
     // Acceptance: given four knarrs, when the shipyard goes on, then no fifth is built; and an island's shipyards together
@@ -171,11 +172,31 @@ public sealed class SeafaringTests
         Assert.Equal((50, 25), (world.Stock(Resource.Planks), world.Stock(Resource.Tar)));
     }
 
+    // The shipyard leaves its minimum stock of planks and tar, and the island's reservation when that is larger, as
+    // processing does (D-125, D-127; produktägaren 2026-10-25, PR #185); the player can lower the minimum stock.
+    [Fact]
+    public void AShipyardLeavesItsMinimumStockAndTheIslandsReservation()
+    {
+        var world = Shipyard(planks: 29, tar: 40);
+        var tile = Harbour(PrototypeHome.Home);
+        world.AdvanceTo(At("2026-10-16 07:00", 2));
+        Assert.Equal((0, 29), (world.BuildingAt(tile)!.KnarrHoursLeft, world.Stock(Resource.Planks)));
+
+        Assert.True(world.Apply("reserve", new SetReserve(tile, 15)).Accepted);
+        Assert.True(world.Apply("reservation", new SetReservation(PrototypeHome.Home, Resource.Tar, 36)).Accepted);
+        world.AdvanceTo(At("2026-10-16 08:00", 2));
+        Assert.Equal((0, 29, 40), (world.BuildingAt(tile)!.KnarrHoursLeft, world.Stock(Resource.Planks), world.Stock(Resource.Tar)));
+
+        Assert.True(world.Apply("less", new SetReservation(PrototypeHome.Home, Resource.Tar, 35)).Accepted);
+        world.AdvanceTo(At("2026-10-16 08:15", 2));
+        Assert.Equal((KnarrHours, 19, 35), (world.BuildingAt(tile)!.KnarrHoursLeft, world.Stock(Resource.Planks), world.Stock(Resource.Tar)));
+    }
+
     // A shipyard without craftsmen keeps the knarr it began and goes on with it when it is staffed again.
     [Fact]
     public void APausedShipyardKeepsItsKnarr()
     {
-        var world = Shipyard(planks: 10, tar: 5);
+        var world = Shipyard(planks: 10, tar: 5, reserve: 0);
         var tile = Harbour(PrototypeHome.Home);
         world.AdvanceTo(At("2026-10-16 10:45", 2));
         Assert.Equal(KnarrHours - 4, world.BuildingAt(tile)!.KnarrHoursLeft);
@@ -194,7 +215,7 @@ public sealed class SeafaringTests
     [Fact]
     public void ADemolishedShipyardGivesBackItsKnarrsMaterialsAndTheKnarrsStay()
     {
-        var world = WithKnarrs(Shipyard(planks: 10, tar: 5), (PrototypeHome.Home, 2));
+        var world = WithKnarrs(Shipyard(planks: 10, tar: 5, reserve: 0), (PrototypeHome.Home, 2));
         var tile = Harbour(PrototypeHome.Home);
         world.AdvanceTo(At("2026-10-16 09:00", 2));
         Assert.Equal((0, 0), (world.Stock(Resource.Planks), world.Stock(Resource.Tar)));
@@ -211,7 +232,7 @@ public sealed class SeafaringTests
     [Fact]
     public void KnarrsAndAKnarrInProgressAreKeptBySaves()
     {
-        var world = WithKnarrs(Shipyard(planks: 10, tar: 5), (PrototypeHome.Home, 1));
+        var world = WithKnarrs(Shipyard(planks: 10, tar: 5, reserve: 0), (PrototypeHome.Home, 1));
         world.AdvanceTo(At("2026-10-16 08:45", 2));
         string state = world.Fingerprint();
         Assert.Contains("knarrs home 1", state.Split('\n'));
@@ -227,8 +248,8 @@ public sealed class SeafaringTests
     [Fact]
     public void AShipyardsWorldIsTheSameAdvancedInPartsOrAtOnce()
     {
-        var once = Shipyard(planks: 30, tar: 15);
-        var parts = Shipyard(planks: 30, tar: 15);
+        var once = Shipyard(planks: 30, tar: 15, reserve: 0);
+        var parts = Shipyard(planks: 30, tar: 15, reserve: 0);
         var until = At("2026-10-19 12:00", 2);
 
         once.AdvanceTo(until);
@@ -246,7 +267,7 @@ public sealed class SeafaringTests
     [Fact]
     public void AYearAwayBuildsTheKnarrsTheStoreHasMaterialsFor()
     {
-        var world = Shipyard(planks: 60, tar: 30);
+        var world = Shipyard(planks: 60, tar: 30, reserve: 0);
 
         world.AdvanceTo(At("2027-10-16 12:00", 2));
 
@@ -257,13 +278,15 @@ public sealed class SeafaringTests
 
     /// <summary>
     /// The prototype's village half an hour before a dawn, with step 3, two craftsmen among its villagers and a staffed
-    /// shipyard on each of the first <paramref name="shipyards"/> free harbour spots at home, and planks and tar in store.
+    /// shipyard on each of the first <paramref name="shipyards"/> free harbour spots at home with a minimum stock of
+    /// <paramref name="reserve"/>, and planks and tar in store.
     /// </summary>
-    private static World Shipyard(int planks, int tar, int shipyards = 1) => Village(
+    private static World Shipyard(int planks, int tar, int shipyards = 1, int reserve = StockRules.StandardReserve) => Village(
         crofters: 10,
         craftsmen: 2 * shipyards,
         step: 3,
-        buildings: [.. Enumerable.Range(0, shipyards).Select(i => Line(BuildingKind.Shipyard, Harbour(PrototypeHome.Home, i), staffed: true))],
+        buildings: [.. Enumerable.Range(0, shipyards).Select(i => Line(BuildingKind.Shipyard, Harbour(PrototypeHome.Home, i), staffed: true))
+            .Select(line => $"{line[..line.LastIndexOf(' ')]} {reserve}")],
         stock: [(Resource.Planks, planks), (Resource.Tar, tar), (Resource.Fish, 80)]);
 
     /// <summary>A free harbour spot on an island of the prototype's map, past the start's buildings.</summary>

@@ -81,6 +81,25 @@ namespace Eirora.Client.Tests
             Assert.That(Sheet(Village(shipyard: true, knarrs: 4), tile, out _), Does.Contain("Sjövägen rymmer inte fler knarrar härifrån."));
         }
 
+        // The shipyard leaves its minimum stock of planks and tar, as processing does, and its sheet says so and sets it
+        // (produktägaren 2026-10-25, PR #185).
+        [Test]
+        public void TheShipyardSaysItLeavesItsMinimumStock()
+        {
+            var tile = Harbour(PrototypeHome.Home);
+            var root = new VisualElement();
+            var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
+            hud.Show(Village(shipyard: true, reserve: 20), Array.Empty<GameEvent>());
+            Close(root);
+
+            hud.Select(tile);
+
+            var texts = root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray();
+            Assert.That(texts, Does.Contain("Nästa knarr väntar på 10 plankor och 25 tjära till i lagret, utöver minimilagret."));
+            Assert.That(root.Query<Label>(className: "row-title").ToList().Select(l => l.text), Has.Member("Minimilager"));
+            Assert.That(root.Query<Label>(className: "stepper-value").ToList().Select(l => l.text), Has.Member("20 av varje"));
+        }
+
         // The jetty at home tells the route's capacity with the knarrs that carry on it (economy-v2.md, section 4).
         [Test]
         public void TheJettyTellsTheSeaRoutesCapacityWithItsKnarrs()
@@ -125,10 +144,10 @@ namespace Eirora.Client.Tests
 
         /// <summary>
         /// The start village in the morning at step 3, with two craftsmen among its twelve villagers and, as asked, a staffed
-        /// shipyard at home and the knarr it builds, a sea route to Nyön and knarrs at home; read back from a snapshot, as
+        /// shipyard at home with its minimum stock and the knarr it builds, a sea route to Nyön and knarrs at home; read back from a snapshot, as
         /// a save is.
         /// </summary>
-        private static World Village(string morning = "2026-10-15 09:00", bool shipyard = false, bool seaRoute = false, int knarrs = 0, int knarrWork = 0)
+        private static World Village(string morning = "2026-10-15 09:00", bool shipyard = false, bool seaRoute = false, int knarrs = 0, int knarrWork = 0, int reserve = 0)
         {
             var world = World.Create(PrototypeHome.Map, ScriptedWeek.At("2026-10-14 14:00"), s_night);
             world.AdvanceTo(ScriptedWeek.At(morning));
@@ -156,7 +175,7 @@ namespace Eirora.Client.Tests
                 if (shipyard)
                 {
                     var tile = Harbour(PrototypeHome.Home);
-                    lines.Insert(last++, $"building Shipyard {tile.Q} {tile.R} 1 1 0 0 0 0 0 0 0 0 0 0 0");
+                    lines.Insert(last++, $"building Shipyard {tile.Q} {tile.R} 1 1 0 0 0 0 0 0 0 0 0 0 {reserve}");
                     if (knarrWork > 0)
                     {
                         lines.Insert(last++, $"knarr {knarrWork}");

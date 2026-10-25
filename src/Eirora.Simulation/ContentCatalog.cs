@@ -303,7 +303,7 @@ namespace Eirora.Simulation
 
             if (spec.Knarrs is KnarrSpec knarrs)
             {
-                writer.Line("knarrs").Text("work").Long(knarrs.WorkHours).Text("per-day").Long(knarrs.UnitsPerGameDay).Text("most").Long(knarrs.Most);
+                writer.Line("knarrs").Text("work").Long(knarrs.WorkHours).Text("per-day").Long(knarrs.UnitsPerGameDay).Text("most").Long(knarrs.Most).Text("reserve").Long(knarrs.Reserve);
                 foreach (Resource resource in Enum.GetValues(typeof(Resource)))
                 {
                     if (knarrs.Cost.TryGetValue(resource, out int amount))

@@ -1,35 +1,35 @@
 map 641fc6a76e80571e133d523dd2a771e9f17aed8f2ae438b94e4e310326341e0e
-cycle 1771062660 America/New_York -18000 Active 40 330 360
+cycle 1771818660 America/New_York -18000 Active 49 330 360
 created 1767567600
-day-start 32 1770309000
-day-start 33 1770395400
-day-start 34 1770481800
-day-start 35 1770568200
-day-start 36 1770654600
-day-start 37 1770741000
-day-start 38 1770827400
-day-start 39 1770913800
-day-start 40 1771000200
+day-start 41 1771086600
+day-start 42 1771173000
+day-start 43 1771259400
+day-start 44 1771345800
+day-start 45 1771432200
+day-start 46 1771518600
+day-start 47 1771605000
+day-start 48 1771691400
+day-start 49 1771777800
 force Exploration 2384 3
 force BuildPower 335 43
-force DawnPower 3000 8
+force DawnPower 3720 8
 economy 2 0 3
-settlement home 32 18 8
+settlement home 42 18 8
 settlement first 4 6 0
 settlement second 12 0 0
-stock home Fish 218640625
-stock home Grain 178765625
-stock home Timber 11343276
-stock home Planks 118730383
+stock home Fish 39289415
+stock home Grain 18914416
+stock home Timber 7343304
+stock home Planks 201397029
 stock home Stone 340000000
 stock home Wool 7000000
 stock home Wadmal 0
-stock home Game 147927201
-stock home Hide 29055488
-stock home Honey 44366692
-stock home Mead 45719461
-stock home Ale 46608354
-stock home Tar 0
+stock home Game 23851921
+stock home Hide 5888886
+stock home Honey 60011166
+stock home Mead 87830559
+stock home Ale 88275005
+stock home Tar 20000000
 stock first Fish 20000000
 stock first Grain 0
 stock first Timber 0
@@ -64,10 +64,10 @@ reserved first Wool 10
 imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale Tar
 building FishingHut 6 -4 1 1 0 0 0 0 0 1 0 1 3 1 0
 building Storehouse 0 0 1 1 0 0 0 4 4 0 0 0 0 0 0
-building FishingHut -2 -1 2 1 0 0 0 0 0 0 7500000 1 0 0 0
+building FishingHut -2 -1 2 1 0 0 0 0 0 0 4687500 1 0 0 0
 building Field 1 -1 2 0 0 4669277 1 0 0 0 0 1 0 0 0
-building Woodcutter 2 0 1 1 0 0 0 0 0 0 4000000 1 0 0 0
-building Woodcutter 2 -3 1 1 0 0 0 0 0 0 7883421 1 0 0 0
+building Woodcutter 2 0 1 1 0 0 0 0 0 0 6250000 1 0 0 0
+building Woodcutter 2 -3 1 1 0 0 0 0 0 0 7050101 1 0 0 0
 building Longhouse -1 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Sawmill -3 3 1 1 0 0 0 0 0 0 7083334 1 0 0 15
 building Woodcutter 0 -3 1 1 0 0 0 0 0 1 0 1 0 0 0
@@ -89,24 +89,25 @@ building Longhouse -18 8 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Lookout 15 -11 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Cottage 0 3 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Jetty -20 10 1 1 0 0 0 1 4 0 0 0 0 0 0
-building Tannery 1 -3 1 1 0 0 0 0 0 0 5375000 1 0 0 5
-held Game 1666666
+building Tannery 1 -3 1 1 0 0 0 0 0 0 7833333 1 0 0 5
+held Game 2083332
 building Quarry 17 -13 1 1 0 0 0 0 0 0 8000000 1 15 -12 0
 building Farmstead 2 -6 1 0 0 0 0 0 0 0 0 0 0 0 0
 building HuntingLodge 1 -4 1 1 0 0 0 0 0 0 0 1 0 0 0
-building Tannery 1 -5 1 1 0 0 0 0 0 0 7229165 1 0 0 5
-held Game 305555
+building Tannery 1 -5 1 1 0 0 0 0 0 0 6104165 1 0 0 5
+held Game 777778
 building Cottage 2 -5 1 0 0 0 0 0 0 0 0 0 0 0 0
-building Apiary 3 -5 1 1 0 0 0 0 0 0 6887503 1 0 0 0
-building Meadery -1 -4 1 1 0 0 0 0 0 0 7261117 1 0 0 20
-held Honey 402777
-building Brewery 0 -4 1 1 0 0 0 0 0 0 6204096 1 0 0 5
-held Grain 1250000
+building Apiary 3 -5 1 1 0 0 0 0 0 0 7687503 1 0 0 0
+building Meadery -1 -4 1 1 0 0 0 0 0 0 7597223 1 0 0 20
+held Honey 1844448
+building Brewery 0 -4 1 1 0 0 0 0 0 0 6625000 1 0 0 5
+held Grain 408192
 building CraftsmensHouse 3 -4 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Cottage -1 -3 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Farmstead 3 -3 1 0 0 0 0 0 0 0 0 0 0 0 0
-building TarKiln 4 -3 1 1 0 0 0 0 0 0 6000000 1 0 0 20
-building Shipyard 5 -3 1 1 0 0 0 0 0 0 0 0 0 0 0
+building TarKiln 4 -3 1 1 0 0 0 0 0 0 7750000 1 0 0 20
+held Timber 500000
+building Shipyard 5 -3 1 1 0 0 0 0 0 0 0 0 0 0 20
 knarr 31000
 project Build Cottage -18 7 32000 0
 project Build Weavery 18 -13 0 7
@@ -115,9 +116,9 @@ road 1 -4
 road -2 0
 road -1 0
 forest 2 -3 0
-forest 2 0 38437500
-forest 3 0 38437500
-forest 2 1 38500000
+forest 2 0 39062500
+forest 3 0 39062500
+forest 2 1 39000000
 fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000380000000f80000000fc00000003e000000007800000000700000000000000000c0000000003c000000000fc000000000ff8000000003fe0000000007fc0000000007fc0000000007fe000000000ffe000000001ffc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 selfcare 1 Workouts Verified 2
 selfcare 2 Sleep SelfReported 357
@@ -230,6 +231,15 @@ credited 37 Sleep 40
 credited 38 Sleep 40
 credited 39 Sleep 40
 credited 40 Sleep 40
+credited 41 Sleep 40
+credited 42 Sleep 40
+credited 43 Sleep 40
+credited 44 Sleep 40
+credited 45 Sleep 40
+credited 46 Sleep 40
+credited 47 Sleep 40
+credited 48 Sleep 40
+credited 49 Sleep 40
 gained 1 Workouts 380
 gained 1 Sleep 80
 gained 2 Sleep 127
@@ -291,6 +301,15 @@ gained 37 Sleep 0
 gained 38 Sleep 0
 gained 39 Sleep 0
 gained 40 Sleep 0
+gained 41 Sleep 0
+gained 42 Sleep 0
+gained 43 Sleep 0
+gained 44 Sleep 0
+gained 45 Sleep 0
+gained 46 Sleep 0
+gained 47 Sleep 0
+gained 48 Sleep 0
+gained 49 Sleep 0
 spends-at-credit 1 Workouts 3
 spends-at-credit 1 Sleep 0
 spends-at-credit 2 Sleep 0
@@ -352,6 +371,15 @@ spends-at-credit 37 Sleep 8
 spends-at-credit 38 Sleep 8
 spends-at-credit 39 Sleep 8
 spends-at-credit 40 Sleep 8
+spends-at-credit 41 Sleep 8
+spends-at-credit 42 Sleep 8
+spends-at-credit 43 Sleep 8
+spends-at-credit 44 Sleep 8
+spends-at-credit 45 Sleep 8
+spends-at-credit 46 Sleep 8
+spends-at-credit 47 Sleep 8
+spends-at-credit 48 Sleep 8
+spends-at-credit 49 Sleep 8
 command golden-by-hand 0
 command golden-craftsmen-0 0
 command golden-craftsmen-1 0

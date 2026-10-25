@@ -740,7 +740,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Every staffed shipyard works a quarter hour on its knarr, one at a time (economy-v2.md, section 4). One that
-        /// builds none begins the next when its island's store holds what a knarr costs, paying it there, and its island
+        /// builds none begins the next when its island's store holds what a knarr costs above what the shipyard leaves
+        /// there (<see cref="Spares"/>), paying it there, and its island
         /// has fewer knarrs built and begun than a sea route has room for; so the shipyards go on until the island has
         /// them all, and no more. A finished knarr belongs to the island and is never lost (INV-V1), and a shipyard that
         /// is not staffed keeps the knarr it began until it is again.
@@ -758,7 +759,7 @@ namespace Eirora.Simulation.Economy
                 if (shipyard.KnarrWorkLeft == 0)
                 {
                     var store = _stores[shipyard.Island];
-                    if (_knarrs[at] + KnarrsBegun(shipyard.Island) >= knarr.Most || !Holds(store, knarr.Cost))
+                    if (_knarrs[at] + KnarrsBegun(shipyard.Island) >= knarr.Most || !Spares(shipyard, store, knarr.Cost))
                     {
                         continue;
                     }
@@ -792,12 +793,17 @@ namespace Eirora.Simulation.Economy
             return begun;
         }
 
-        /// <summary>Whether a store holds every whole unit of a cost.</summary>
-        private static bool Holds(long[] store, IReadOnlyDictionary<Resource, int> cost)
+        /// <summary>
+        /// Whether a store holds every whole unit of a cost above what the shipyard leaves there, the larger of its minimum
+        /// stock and the island's reservation, as processing leaves it (D-125, D-127).
+        /// </summary>
+        private bool Spares(Building shipyard, long[] store, IReadOnlyDictionary<Resource, int> cost)
         {
+            var reserved = _settlements[shipyard.Island].Reserved;
             for (int r = 0; r < s_resourceCount; r++)
             {
-                if (store[r] < Quantity.Units(CostOf(cost, r)))
+                long units = CostOf(cost, r);
+                if (units > 0 && store[r] - Quantity.Units(units) < Leaves(shipyard, (Resource)r, reserved).Kept)
                 {
                     return false;
                 }
@@ -1603,9 +1609,9 @@ namespace Eirora.Simulation.Economy
                 }
 
                 var recipe = content.For(kind).Recipe;
-                if (building.Reserve < 0 || (building.Reserve > 0 && (recipe is null || recipe.Inputs.Count == 0)))
+                if (building.Reserve < 0 || (building.Reserve > 0 && !content.For(kind).HasReserve))
                 {
-                    throw new FormatException($"{kind} on {tile} leaves {building.Reserve} of a raw material it does not use.");
+                    throw new FormatException($"{kind} on {tile} leaves {building.Reserve} of a material it does not use.");
                 }
 
                 if (depotTile is Hex depotAt)
@@ -2366,7 +2372,7 @@ namespace Eirora.Simulation.Economy
             {
                 CarrierCap = IsDepot(kind) ? MostCarriers : 0,
                 Held = recipe is not null && recipe.Inputs.Count > 0 ? new long[s_resourceCount] : null,
-                Reserve = recipe is not null && recipe.Inputs.Count > 0 ? recipe.Reserve : 0,
+                Reserve = _content.For(kind).Reserve,
             };
             StoreOn(building.Island);
             _buildings.Add(building);

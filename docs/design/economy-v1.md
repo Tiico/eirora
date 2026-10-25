@@ -257,10 +257,11 @@ De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-
 - **Minimilager** per förädlingsbyggnad: hur mycket av råvaran som alltid blir kvar i öns lager, från 0 till det lagret rymmer.
   Ett nytt sågverk eller väveri lämnar 20.
   Bärarna bär bara fram råvara över minimilagret, så ett sågverk med minimilagret 40 och 45 timmer i lagret förädlar högst 5 timmer.
+  Varvet i ekonomi v2 har på samma sätt ett minimilager av plankor och tjära, 20 som standard, som det lämnar när det påbörjar en knarr ([ekonomi v2, avsnitt 4](./economy-v2.md#4-byggnader)).
 - **Importprioritet** per sjöväg: i vilken ordning skeppen tar hem öns varor, till exempel sten före ull så att stenådern på Nyön inte trängs undan.
   Spelaren ordnar alla varor, och utan spelarens ordning går de i sin fasta ordning: fisk, säd, timmer, plankor, sten, ull och tyg (D-126).
   Ordningen kan sättas innan sjövägen öppnar.
-- **Reservering** per ö och vara, alltså per bosättning: ett lager som skeppen inte tar hem och förädlingen inte tar, till exempel timmer på Nyön till byggen där eller timmer på Hemön som sågverket inte ska såga.
+- **Reservering** per ö och vara, alltså per bosättning: ett lager som skeppen inte tar hem och förädlingen och varvet inte tar, till exempel timmer på Nyön till byggen där eller timmer på Hemön som sågverket inte ska såga.
   Med 30 timmer reserverade på en ö lämnar sjövägen 30 timmer kvar där.
   Byggen betalar ändå ur det reserverade, eftersom ett projekt betalas när det läggs i kön; reserveringen gäller lagret, och byborna äter som förut (D-127).
   Ett bygge på en ö betalas ur öns eget lager när det räcker (TASK-050), så det som är reserverat där finns kvar till öns byggen.

@@ -731,6 +731,9 @@ namespace Eirora.Client.UI
                     {
                         Text("sheet-text", _sheet, line);
                     }
+
+                    // The shipyard leaves its minimum stock of a knarr's materials, as processing does (PR #185).
+                    ReserveActions(world, building, knarr.Cost.Keys.OrderBy(r => r).ToArray());
                 }
 
                 // A tier's homes tell how many live there and what they lack, or why no one rises to them (TASK-061).
@@ -780,25 +783,25 @@ namespace Eirora.Client.UI
 
             if (spec.Recipe is { Inputs: { Count: > 0 } } recipe)
             {
-                ReserveActions(world, building, recipe.Inputs[0].Resource);
+                ReserveActions(world, building, new[] { recipe.Inputs[0].Resource });
             }
         }
 
         /// <summary>
-        /// A processing building's minimum stock (LOG-06, TASK-046): how much of its raw material always stays in the store
-        /// for building, from nothing to what the store holds, and the island's reservation when that keeps more. Free
-        /// planning, so it shows no force.
+        /// A processing building's or a shipyard's minimum stock (LOG-06, TASK-046): how much of each of its materials
+        /// always stays in the store for building, from nothing to what the store holds, and the island's reservation when
+        /// that keeps more. Free planning, so it shows no force.
         /// </summary>
-        private void ReserveActions(World world, Building building, Resource input)
+        private void ReserveActions(World world, Building building, IReadOnlyList<Resource> materials)
         {
             int reserve = building.Reserve, capacity = world.StorageUnits(building.Island);
             var row = Container("row", _sheet);
             var label = Container("row-label", row);
             Text("row-title", label, "Minimilager");
-            Text("row-detail", label, Texts.Reserve(building, world.ReservationOf(building.Island, input), Texts.IslandName(world, building.Island)));
+            Text("row-detail", label, Texts.Reserve(building, materials.Max(m => world.ReservationOf(building.Island, m)), Texts.IslandName(world, building.Island)));
             var stepper = Container("stepper", row);
             Button("stepper-button", stepper, "−", () => Run(new SetReserve(building.Tile, Lower(reserve, capacity)))).SetEnabled(reserve > 0);
-            Text("stepper-value", stepper, $"{reserve} {Texts.Name(input)}");
+            Text("stepper-value", stepper, materials.Count == 1 ? $"{reserve} {Texts.Name(materials[0])}" : $"{reserve} av varje");
             Button("stepper-button", stepper, "+", () => Run(new SetReserve(building.Tile, Raise(reserve, capacity)))).SetEnabled(reserve < capacity);
         }
 
