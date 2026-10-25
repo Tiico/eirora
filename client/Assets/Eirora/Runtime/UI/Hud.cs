@@ -248,6 +248,7 @@ namespace Eirora.Client.UI
 
             _tile = tile;
             _moreBuildingsShown = false;
+            _demolishing = null;
             _fog = null;
             _open = tile is null ? Sheet.None : Sheet.Tile;
             SelectionChanged?.Invoke(tile);
@@ -401,6 +402,7 @@ namespace Eirora.Client.UI
         {
             _open = _open == sheet ? Sheet.None : sheet;
             _explainingHealth = false;
+            _demolishing = null;
             _confirmingDeletion = false;
             _showingRecoveryCode = false;
             _sendingKey = false;
@@ -531,6 +533,12 @@ namespace Eirora.Client.UI
             string ground = Texts.Ground(world.Map, tile, uses) + (world.HasRoad(tile) ? " med väg" : string.Empty);
             var building = world.BuildingAt(tile);
             var project = world.Projects.FirstOrDefault(p => p.Tile == tile && p.Kind is ProjectKind.Build or ProjectKind.Road);
+            if (building is not null && _demolishing == tile && world.Phase == Phase.Active && world.Demolition(tile) is { } demolition)
+            {
+                DemolitionSheet(world, demolition);
+                return;
+            }
+
             if (building is not null)
             {
                 Text("sheet-title", _sheet, Texts.Name(building.Kind) + (building.Level == 2 ? " · nivå 2" : string.Empty));
@@ -551,6 +559,7 @@ namespace Eirora.Client.UI
                     Text("sheet-text", _sheet, Texts.Hindrance(hindrance, diagnosis!.Product, building.Island == world.HomeIsland));
                 }
 
+                DemolitionButton(world, building);
                 BuildingActions(world, building, diagnosis);
                 StaffingActions(world, building);
                 return;

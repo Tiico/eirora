@@ -227,7 +227,7 @@ public sealed class SettlementsPerIslandTests
     /// </summary>
     internal static string RulesEight(string state)
     {
-        var lines = StockRulesArriveTests.RulesNine(state).Split('\n').ToList();
+        var lines = StockRulesArriveTests.RulesTen(state).Split('\n').ToList();
         Assert.DoesNotContain(lines, l => l.StartsWith("at-depot ", StringComparison.Ordinal));
         lines.RemoveAll(l => l.StartsWith("owed ", StringComparison.Ordinal));
         long villagers = lines.Where(l => l.StartsWith("settlement ", StringComparison.Ordinal)).Sum(l => long.Parse(l.Split(' ')[2], CultureInfo.InvariantCulture));
@@ -248,7 +248,7 @@ public sealed class SettlementsPerIslandTests
         Assert.Equal(long.Parse(lines.Single(f => f[0] == "settlement")[1], CultureInfo.InvariantCulture), world.Villagers);
         Assert.Equal(
             lines.Where(f => f[0] == "building").Select(f => string.Join(' ', f)),
-            StockRulesArriveTests.RulesNine(world.Fingerprint()).Split('\n').Where(l => l.StartsWith("building ", StringComparison.Ordinal)));
+            StockRulesArriveTests.RulesTen(world.Fingerprint()).Split('\n').Where(l => l.StartsWith("building ", StringComparison.Ordinal)));
         Assert.All(world.Buildings, b => Assert.NotNull(world.SettlementOn(b.Island)));
         Assert.All(s_resources, r => Assert.Equal(
             lines.Where(f => f[0] == "stock" && f[2] == r.ToString()).Sum(f => long.Parse(f[3], CultureInfo.InvariantCulture)),

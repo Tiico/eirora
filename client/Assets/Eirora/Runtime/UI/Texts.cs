@@ -81,6 +81,16 @@ namespace Eirora.Client.UI
             ? $"{World.TimberPerForest} timmer att fälla."
             : $"{left} av {World.TimberPerForest} timmer kvar att fälla. Skogen växer tillbaka.";
 
+        /// <summary>Goods as a list, such as "7 timmer och 2 sten", in the resources' order; null when there are none.</summary>
+        public static string? Goods(Func<Resource, long> amount)
+        {
+            var goods = Enum.GetValues(typeof(Resource)).Cast<Resource>()
+                .Where(r => amount(r) > 0)
+                .Select(r => $"{amount(r)} {Name(r, amount(r))}")
+                .ToList();
+            return goods.Count == 0 ? null : List(goods);
+        }
+
         /// <summary>Items joined as Swedish lists them: "a, b och c".</summary>
         public static string List(IEnumerable<string> items)
         {
@@ -404,6 +414,8 @@ namespace Eirora.Client.UI
             Rejection.AmountOutOfRange => "Värdet verkar inte stämma.",
             Rejection.NoSuchPlace => "Längre än så går den inte att flytta.",
             Rejection.NotQueued => "Det bygget ligger inte i kön längre.",
+            Rejection.NoRoomInStore => "Lagret rymmer inte öns varor utan byggnaden. Använd eller skeppa några först.",
+            Rejection.LastStorehouse => "Hemöns sista förråd står kvar, eftersom allt betalas ur dess lager.",
             Rejection.NoSuchIsland => "Ön har inget eget lager än.",
             _ => "Det gick inte just nu.",
         };
@@ -673,6 +685,7 @@ namespace Eirora.Client.UI
             ExpeditionReturned { Island: PrototypeHome.Nyon } => "Expeditionen kom hem. Den hittade Nyön i öster.",
             ExpeditionReturned => "Expeditionen kom hem. Den hittade en ny ö.",
             FogLifted => FogLiftedOver(1),
+            BuildingDemolished demolished => $"{Definite(demolished.Building)} revs.",
             _ => null,
         };
 

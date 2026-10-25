@@ -1,6 +1,6 @@
 # Ekonomi v2
 
-> **Status:** [BESLUTAT] v2.4, delfrågorna avgjorda som D-109–D-119 bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
+> **Status:** [BESLUTAT] v2.4, delfrågorna avgjorda som D-109–D-119, bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
 > **Ärende:** TASK-058 (#145), TASK-050 (#133), TASK-046 (#129) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-127, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi v1:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Epok 1:** [epoch-1.md](./epoch-1.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v2.py](./models/economy_v2.py) (`python -I economy_v2.py`)
@@ -556,3 +556,11 @@ Lagerreglerna i TASK-046 (#129) står i [ekonomi v1, avsnitt 5](./economy-v1.md#
 - **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
 - **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
 - **D-127:** reserveringen hindrar bara skeppning hemåt och förädling, inte byggmaterial och mat som skeppas ut till öarna.
+
+Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.
+
+- **D-128:** ett förråd eller en brygga nekas rivning bara när öns varor inte ryms i det lager som blir kvar; den del av återbetalningen som inte ryms visas och förloras.
+- **D-129:** Hemöns sista förråd kan inte rivas.
+- **D-130:** en uppgradering räknas till det byggnaden kostade, också en som står i byggkön.
+- **D-131:** startbyns byggnader ger tillbaka hälften av katalogens kostnad.
+- **D-132:** säd och ull som vuxit men inte skördats följer med åkern eller fårgården.

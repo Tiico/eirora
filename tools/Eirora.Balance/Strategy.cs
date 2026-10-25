@@ -48,6 +48,16 @@ public sealed class Strategy
         [.. Near.Daily, new QueueFirstUntilBuilt(BuildingKind.Longhouse), new PauseWhileStocked(BuildingKind.Quarry, Resource.Stone, 100, 80)]);
 
     /// <summary>
+    /// Närområdet, flyttad: Närområdet with the start woodcutter moved to the richest forest once the surveys have found
+    /// it, by demolishing it and building it again (D-108), which must not beat building there from the start (TASK-047).
+    /// </summary>
+    public static Strategy NearMoved { get; } = new(
+        "near-moved",
+        "Närområdet, flyttad",
+        [Near.Goals[0], new MoveOne(BuildingKind.Woodcutter, Placement.Richest), .. Near.Goals.Skip(1)],
+        Near.Daily);
+
+    /// <summary>
     /// Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth. The jetty,
     /// sheep and stone on the island go before the first housing, which is a cottage (economy-v2.md, section 9), and the
     /// jetty goes first in the queue, so that its settlement is founded and villagers can move there early (D-106).
@@ -106,7 +116,7 @@ public sealed class Strategy
     /// <summary>Ingen spelare: no commands at all; only self-care, if any, is recorded.</summary>
     public static Strategy Idle { get; } = new("idle", "Ingen spelare", [], []);
 
-    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, Sea, Naive, NoTraining, Idle];
+    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Naive, NoTraining, Idle];
 
     /// <summary>The id the tool takes on its command line.</summary>
     public string Id { get; }

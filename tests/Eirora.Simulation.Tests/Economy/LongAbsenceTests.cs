@@ -24,7 +24,8 @@ namespace Eirora.Simulation.Tests.Economy;
 /// over a sea route, and their buildings stay staffed (TASK-050); some worlds come from rules 8 with goods waiting at a
 /// depot for room in its store, which only ever move in. The player's stock rules hold while they are away (TASK-046):
 /// every minimum stock, reservation and import order stays as it was, and neither the ships nor processing take a
-/// reserved good below its reservation.
+/// reserved good below its reservation. Some worlds were left just after a demolition, now and then with more villagers
+/// than room, who all stay while the village waits for room to grow (D-38, D-39; TASK-047).
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -150,6 +151,8 @@ public sealed class LongAbsenceTests
             See("left resting", world.Phase == Phase.Resting);
             See("left active", world.Phase == Phase.Active);
             See("no free villagers", world.FreeVillagers == 0 && world.Projects.Count > 0);
+            See("demolished", world.Fingerprint().Contains("\nbuilding-demolished ", StringComparison.Ordinal));
+            See("more villagers than room", world.Villagers > world.Housing);
             See("minimum stock", world.Buildings.Any(b => b.Held is not null && b.Reserve != StockRules.StandardReserve));
             See("reserved", world.Islands.Any(i => s_resources.Any(r => world.ReservationOf(i, r) > 0)));
             See("reserved off the home island", world.SeaRoutes.Any(route => s_resources.Any(r => world.ReservationOf(route.From, r) > 0)));
@@ -162,6 +165,7 @@ public sealed class LongAbsenceTests
             "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
             "villagers off the home island", "buildings lacking villagers off the home island", "materials owed", "goods waiting at a depot",
             "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
+            "demolished", "more villagers than room",
             "minimum stock", "reserved", "reserved off the home island", "import order",
         ];
         Assert.Equal([], wanted.Where(w => !seen.Contains(w)).ToArray());

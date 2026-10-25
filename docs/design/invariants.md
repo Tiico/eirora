@@ -69,7 +69,7 @@ Varje lagrad mängd ligger mellan 0 och lagrets kapacitet.
 *Test:* kontrolleras efter varje steg i varje genererad sekvens.
 
 **INV-R2 Bevarande.**
-Resurser skapas och förbrukas bara av definierade källor: recept, byggkostnader, basbehov, fynd och handel.
+Resurser skapas och förbrukas bara av definierade källor: recept, byggkostnader, basbehov, fynd, handel och rivningens återbetalning.
 Transport inom världen flyttar resurser men ändrar inte summan.
 *Test:* för varje resurs är förändringen i totalt lager lika med summan av händelsernas deltan, och transporthändelser summerar till noll.
 
@@ -85,8 +85,8 @@ Varje resurs som behövs för basbehov kan produceras utan krafter, på minst tv
 
 **INV-V1 Inget går förlorat med tiden.**
 När tiden går minskar aldrig antalet bybor, byggnader, byggnadsnivåer, bosättningar, utforskade rutor, avslutad forskning, epokframsteg eller historik (D-08, D-17).
-Bara ett uttryckligt rivningskommando från spelaren kan minska något av dem (D-38).
-*Test:* för varje sådant attribut `M` gäller `M(advance(S, Δt)) ≥ M(S)`.
+Bara ett uttryckligt rivningskommando från spelaren kan minska något av dem (D-38), och då bara den rivna byggnaden och dess nivå (TASK-047).
+*Test:* för varje sådant attribut `M` gäller `M(advance(S, Δt)) ≥ M(S)`, och efter varje godkänt kommando `M(apply(S, c)) ≥ M(S)` med den byggnad som en rivning tog bort undantagen.
 
 **INV-V2 Arbetsfördelning.**
 Summan av bybor i arbetsgrupper är högst antalet bybor, och ingen arbetsgrupp har ett negativt antal.
@@ -105,6 +105,7 @@ Från TASK-044 också med pausade byggnader och spelarens bemanningsordning och 
 Från TASK-045 också i världar på en genererad karta med lager på tre öar och två sjövägar.
 Från TASK-051 också med bärare, varor som väntar i byggnadernas utlager och råvara framme vid förädlingen, vägar och vägar i kön: bärarna flyttar bara varor mellan byggnaderna och lagren, och inget flyttas under vilan.
 Från TASK-050 också med en bosättning per ö, byggnader som väntar på bybor som flyttar, byggmaterial som sjövägen ännu ska bära och varor från regelversion 7 som väntar vid förrådet på plats i lagret.
+Från TASK-047 också i världar där spelaren just har rivit en byggnad, ibland en bostad så att byborna är fler än bostäderna: ingen bybo försvinner och byn växer inte förrän det finns plats (D-39).
 
 Framspolningen hoppar över kvartar där bara långsamma processer rör sig: vilotiden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
 Det håller bara om inget tillstånd som kvartarna driver kan börja ändras utan att något av det som jämförs ändras först.

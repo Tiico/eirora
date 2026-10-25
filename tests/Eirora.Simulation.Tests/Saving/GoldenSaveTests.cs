@@ -95,11 +95,12 @@ public sealed class GoldenSaveTests
     /// (TASK-044, TASK-045); from rules 8 on also with roads, goods waiting for the carriers, raw materials at the
     /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051);
     /// from rules 9 on with villagers in each island's settlement and materials owed on a sea route (TASK-050); from
-    /// rules 10 on also with a minimum stock of the player's, reservations and an import order (TASK-046).
+    /// rules 10 on also with a storehouse demolished (TASK-047); from rules 11 on also with a minimum stock of the
+    /// player's, reservations and an import order (TASK-046).
     /// </summary>
     private static void Write(string name)
     {
-        var save = WithStockRules(BuiltOutWorld.GenerateSave(55));
+        var save = BuiltOutWorld.GenerateSave(55);
         var world = save.World;
 
         // A cottage on the second island, which its store cannot pay, so the ships owe the home island's materials.
@@ -110,6 +111,12 @@ public sealed class GoldenSaveTests
 
         var site = world.Map.Features.LandOf(Archipelago.Second).First(h => world.CheckBuild(BuildingKind.Cottage, h) == Rejection.None);
         Assert.True(save.Apply("golden-owed", new Build(BuildingKind.Cottage, site)).Accepted);
+
+        // A storehouse demolished, so that the corpus holds a depot's demolition and the buildings it served (TASK-047).
+        var depot = world.Buildings.First(b => b.Kind == BuildingKind.Storehouse && b.Carriers <= 1 && b.CarrierCap == Logistics.MostCarriers
+            && world.Demolition(b.Tile)!.Rejection == Rejection.None);
+        Assert.True(save.Apply("golden-demolish", new Demolish(depot.Tile)).Accepted);
+        WithStockRules(save);
         Assert.Equal(2, world.SeaRoutes.Count);
         Assert.Contains(world.Buildings, b => b.Paused);
         Assert.NotEmpty(world.Roads);
@@ -130,11 +137,11 @@ public sealed class GoldenSaveTests
     }
 
     /// <summary>
-    /// The save with the player's stock rules set while the villagers are awake (TASK-046): the first processing
-    /// building's minimum stock raised, timber reserved at home and wool on the island of the first sea route, and stone
-    /// shipped first from it, so that the golden save keeps all three in its state and its journal.
+    /// The player's stock rules, set while the villagers are awake (TASK-046): the first processing building's minimum
+    /// stock lowered, stone reserved at home and wool on the island of the first sea route, and stone shipped first from
+    /// it, so that the golden save keeps all three in its state and its journal.
     /// </summary>
-    private static Save WithStockRules(Save save)
+    private static void WithStockRules(Save save)
     {
         while (save.World.Phase != Phase.Active)
         {
@@ -147,16 +154,14 @@ public sealed class GoldenSaveTests
         var processing = world.Buildings.First(b => b.Held is not null);
         foreach (var (key, command) in new (string, GameCommand)[]
         {
-            ("golden-reserve", new SetReserve(processing.Tile, 35)),
-            ("golden-timber", new SetReservation(world.HomeIsland, Resource.Timber, 30)),
+            ("golden-reserve", new SetReserve(processing.Tile, 15)),
+            ("golden-stone-home", new SetReservation(world.HomeIsland, Resource.Stone, 30)),
             ("golden-wool", new SetReservation(away, Resource.Wool, 10)),
             ("golden-stone", new MoveImport(away, Resource.Stone, 0)),
         })
         {
             Assert.True(save.Apply(key, command).Accepted, $"{key} was refused.");
         }
-
-        return save;
     }
 
     /// <summary>The bytes of a checked-in golden save.</summary>

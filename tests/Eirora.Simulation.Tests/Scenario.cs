@@ -17,8 +17,8 @@ namespace Eirora.Simulation.Tests;
 /// it, now and then off the home island, a producing building that can still be upgraded, given a road to its depot,
 /// worked or paused, a tile that takes a road, a storehouse or a jetty to work or to cap the carriers of, a processing
 /// building's minimum stock, an island's reservation and import order, a paused building to resume, a building and a
-/// place in the staffing order, a project that is not first in the queue, a tile at the fog's edge, self-care within the
-/// window), and three in four commands that would come
+/// place in the staffing order, a project that is not first in the queue, a building to demolish, a tile at the fog's
+/// edge, self-care within the window), and three in four commands that would come
 /// while the villagers rest wait until a little after dawn, so most commands are accepted and change the world. The
 /// rest are made blind, so every rejection stays covered. To know when the villagers rest, generating plays the inputs
 /// into a world of its own.
@@ -59,12 +59,16 @@ internal sealed class Scenario
 
     public IReadOnlyList<Input> Inputs { get; }
 
-    public static Scenario Generate(int seed, int length = 60, bool archipelago = false)
+    /// <param name="stockRules">
+    /// Whether the player's stock rules are among the commands (TASK-046); <see cref="BuiltOutWorld"/> leaves them out and
+    /// sets them itself, so that its worlds are drawn as they were before the rules.
+    /// </param>
+    public static Scenario Generate(int seed, int length = 60, bool archipelago = false, bool stockRules = true)
     {
         var random = new Random(seed);
         var install = new TimeReading(At("2026-01-01 00:00", 1).UtcSeconds + (random.Next(360 * 24) * Hour), Stockholm, 3600 * (1 + random.Next(2)));
         var schedule = new RestSchedule(random.Next(96) * 15, (6 * 60) + (random.Next(9) * 30));
-        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k"));
+        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k", stockRules));
     }
 
     /// <summary>
@@ -74,7 +78,7 @@ internal sealed class Scenario
     public static IReadOnlyList<Input> Continue(int seed, World world, string device, int length = 20) =>
         Play(new Random(seed), SimulationSnapshot.Take(world).Restore(world.Map), length, device);
 
-    private static List<Input> Play(Random random, World world, int length, string keyPrefix)
+    private static List<Input> Play(Random random, World world, int length, string keyPrefix, bool stockRules = true)
     {
         var inputs = new List<Input>(length);
         long utc = world.Now.UtcSeconds;
@@ -108,7 +112,7 @@ internal sealed class Scenario
 
                 // Now and then a key is sent again, as a client does after a crash or a retry.
                 string key = i > 0 && random.Next(100) < 15 ? $"{keyPrefix}{random.Next(i)}" : $"{keyPrefix}{i}";
-                Add(new Command(key, Maker(random)));
+                Add(new Command(key, Maker(random, stockRules)));
             }
         }
 
@@ -163,7 +167,7 @@ internal sealed class Scenario
 
     // Commands are made against the world when applied, so that they can suit it; everything random is drawn here, so
     // a scenario is the same whichever world it is applied to.
-    private static Func<World, GameCommand> Maker(Random random)
+    private static Func<World, GameCommand> Maker(Random random, bool stockRules)
     {
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
@@ -188,7 +192,7 @@ internal sealed class Scenario
             case 5:
                 return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.CanAfford(world.Content.Upgrade.Cost, b.Tile)) ?? site : site);
             case 6:
-                int road = random.Next(6);
+                int road = random.Next(stockRules ? 6 : 3);
                 int cap = suited ? 1 + random.Next(Logistics.MostCarriers) : random.Next(-1, Logistics.MostCarriers + 2);
 
                 // The stock rules (TASK-046), from the same draws: an amount up to the store's capacity or past it, any
@@ -230,14 +234,16 @@ internal sealed class Scenario
                     1 => new ResumeBuilding(suited ? BuiltSite(world, pick, b => b.Paused) ?? site : site),
                     2 => suited && world.StaffingOrder.Count > 1
                         ? new Prioritize(world.StaffingOrder[pick % world.StaffingOrder.Count].Tile, place % world.StaffingOrder.Count)
-                        : new Prioritize(site, place),
+                        : new Prioritize(world.StaffingOrder.Count > 0 && pick % 2 == 0 ? world.StaffingOrder[pick % world.StaffingOrder.Count].Tile : site, place),
                     _ => suited && world.Projects.Count > 1
                         ? new QueueFirst(world.Projects[1 + (pick % (world.Projects.Count - 1))].Kind, world.Projects[1 + (pick % (world.Projects.Count - 1))].Tile)
                         : new QueueFirst(project, site),
                 };
             default:
+                // A demolition in one case of three, drawn from what is already drawn, so the rest of the sequence stays.
                 var change = new RestSchedule(random.Next(96) * 15, (5 * 60) + (random.Next(13) * 30));
-                return _ => new ChangeRestSchedule(change);
+                return world => pick % 3 > 0 ? new ChangeRestSchedule(change)
+                    : new Demolish(suited && world.Buildings.Count > 0 ? world.Buildings[pick / 3 % world.Buildings.Count].Tile : site);
         }
     }
 

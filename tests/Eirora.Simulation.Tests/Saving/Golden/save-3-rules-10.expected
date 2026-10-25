@@ -1,6 +1,7 @@
 map 641fc6a76e80571e133d523dd2a771e9f17aed8f2ae438b94e4e310326341e0e
-cycle 1784887897 Europe/Stockholm 7200 Active 40 300 420
+cycle 1784857716 Europe/Stockholm 7200 Active 39 300 420
 created 1781517600
+day-start 31 1784109600
 day-start 32 1784196000
 day-start 33 1784282400
 day-start 34 1784368800
@@ -9,73 +10,72 @@ day-start 36 1784541600
 day-start 37 1784628000
 day-start 38 1784714400
 day-start 39 1784800800
-day-start 40 1784887200
 force Exploration 582 3
-force BuildPower 50 28
-force DawnPower 1720 10
+force BuildPower 190 28
+force DawnPower 1640 11
 economy 2 0
-settlement home 21
-settlement first 7
+settlement home 20
+settlement first 6
 settlement second 4
-stock home Fish 0
-stock home Grain 36525000
-stock home Timber 6000000
-stock home Planks 34189582
-stock home Stone 23669562
-stock home Wool 0
+stock home Fish 6637459
+stock home Grain 34150000
+stock home Timber 5531250
+stock home Planks 41406250
+stock home Stone 20812447
+stock home Wool 12900000
 stock home Wadmal 0
-stock first Fish 0
-stock first Grain 6625000
+stock first Fish 3675000
+stock first Grain 8325000
 stock first Timber 0
 stock first Planks 0
 stock first Stone 0
 stock first Wool 0
 stock first Wadmal 0
-stock second Fish 0
-stock second Grain 4625000
-stock second Timber 187500
+stock second Fish 750000
+stock second Grain 7250000
+stock second Timber 5000000
 stock second Planks 0
-stock second Stone 0
+stock second Stone 2000000
 stock second Wool 0
 stock second Wadmal 0
 owed second 20000000
-reserved home Timber 30
-reserved home Wool 10
-reserved first Wool 10
-imports first Stone Fish Grain Timber Planks Wool Wadmal
-building Woodcutter -17 7 1 1 0 0 0 0 0 1 0 1 -18 7 0
-building FishingHut -2 -1 2 0 0 0 1 0 0 0 2400000 1 0 0 0
-building Field 1 -1 1 1 0 3125000 0 0 0 0 2125000 1 0 0 0
-building Storehouse 0 0 1 1 0 0 0 1 1 0 0 0 0 0 0
-building Jetty -18 7 1 1 0 0 0 1 4 0 0 0 0 0 0
-building Woodcutter 3 0 2 0 0 0 1 0 0 1 0 1 0 0 0
-building Woodcutter 0 -2 2 1 0 0 0 0 0 0 1625003 1 0 0 0
-building Jetty -4 4 1 1 0 0 0 2 4 0 0 0 0 0 0
-building Sawmill -2 4 2 1 0 0 0 0 0 0 0 1 -4 4 35
-held Timber 1945833
-building Woodcutter 0 -3 2 1 0 0 0 0 0 0 1862500 1 0 0 0
-building Quarry 2 -4 1 1 0 0 0 0 0 0 2553610 1 0 0 0
+building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0 0
+building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0 0
 building Jetty 17 -12 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Woodcutter 3 0 1 1 0 0 0 0 0 1 0 1 0 0 0
+building Woodcutter 0 -2 2 1 0 0 0 0 0 0 8000000 1 0 0 0
+building Quarry 2 -4 1 1 0 0 0 0 0 1 0 1 0 0 0
+building Jetty -4 4 1 1 0 0 0 2 4 0 0 0 0 0 0
+building Storehouse 0 0 1 1 0 0 0 1 1 0 0 0 0 0 0
+building Sawmill -2 4 2 1 0 0 0 0 0 0 0 1 -4 4 20
+held Timber 531250
+building Woodcutter 0 -3 2 1 0 0 0 0 0 0 8000000 1 0 0 0
+building Jetty -18 7 1 1 0 0 0 1 4 0 0 0 0 0 0
 building Cottage 0 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Cottage 3 -4 1 0 0 0 0 0 0 0 0 0 0 0 0
-building Storehouse -18 8 1 1 0 0 0 1 4 0 0 0 0 0 0
 building Lookout -19 10 1 0 0 0 0 0 0 0 0 0 0 0 0
-building Field 0 1 1 1 0 3125000 0 0 0 0 2000000 1 0 0 0
+building Field 0 1 2 1 0 13062500 0 0 0 0 8000000 1 0 0 0
 building Longhouse 15 -12 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Lookout -17 9 1 0 0 0 0 0 0 0 0 0 0 0 0
-building Woodcutter -19 8 1 0 0 0 0 0 0 0 0 1 -18 7 0
-building Weavery 3 -3 1 1 0 0 0 0 0 0 0 1 0 0 20
-building Weavery 0 -4 1 1 0 0 0 0 0 0 0 1 0 0 20
-building Weavery -3 3 1 1 0 0 0 0 0 0 0 1 -4 4 20
-building Sawmill 18 -12 1 1 0 0 0 0 0 0 0 1 17 -12 20
-building Field 1 0 1 0 0 0 0 0 0 0 0 1 0 0 0
-project Build Cottage -19 9 19000
-project Build Cottage -17 8 32000
+building Woodcutter -17 7 1 1 1 0 0 0 0 0 0 1 -18 7 0
+building Storehouse -20 10 1 1 0 0 0 1 4 0 0 0 0 0 0
+building SheepFarm -1 4 1 1 0 0 0 0 0 0 0 1 -4 4 0
+building Lookout -20 11 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 3 -3 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Quarry -5 5 1 1 0 0 0 0 0 0 0 1 -4 4 0
+building FishingHut -2 6 1 0 0 0 0 0 0 0 0 1 -4 4 0
+project Build Weavery 16 -10 6000
+project Road 15 -11 4000
+project Build Cottage -19 8 32000
 road 0 -1
 road 1 0
 road 2 0
-forest 1 -3 1437500
-forest -17 8 18187500
+forest 1 -3 2062500
+forest 3 -1 39937500
+forest 2 0 39937500
+forest 3 0 39875000
+forest 2 1 39875000
+forest -17 8 17437500
 fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000380000000f80000000fc00000003e000000007800000000700000000000000000c0000000003c000000000fc000000000ff8000000003fe0000000007fc0000000007fc0000000007fe000000000ffe000000001ffc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 selfcare 2 Steps SelfReported 19998
 selfcare 2 Workouts Verified 1
@@ -150,7 +150,6 @@ credited 38 Steps 110
 credited 38 Workouts 0
 credited 38 Sleep 97
 credited 39 Sleep 40
-credited 40 Sleep 40
 gained 1 Sleep 80
 gained 2 Steps 218
 gained 2 Workouts 200
@@ -192,7 +191,7 @@ gained 32 Workouts 540
 gained 32 Sleep 60
 gained 33 Steps 220
 gained 33 Workouts 100
-gained 33 Sleep 0
+gained 33 Sleep 40
 gained 34 Sleep 0
 gained 35 Sleep 0
 gained 36 Steps 220
@@ -202,7 +201,6 @@ gained 37 Sleep 40
 gained 38 Steps 220
 gained 38 Sleep 24
 gained 39 Sleep 40
-gained 40 Sleep 40
 spends-at-credit 1 Sleep 0
 spends-at-credit 2 Steps 0
 spends-at-credit 2 Workouts 0
@@ -244,22 +242,19 @@ spends-at-credit 32 Workouts 12
 spends-at-credit 32 Sleep 5
 spends-at-credit 33 Steps 2
 spends-at-credit 33 Workouts 13
-spends-at-credit 33 Sleep 5
-spends-at-credit 34 Sleep 5
-spends-at-credit 35 Sleep 5
+spends-at-credit 33 Sleep 6
+spends-at-credit 34 Sleep 6
+spends-at-credit 35 Sleep 6
 spends-at-credit 36 Steps 3
 spends-at-credit 36 Workouts 15
-spends-at-credit 36 Sleep 7
-spends-at-credit 37 Sleep 8
+spends-at-credit 36 Sleep 8
+spends-at-credit 37 Sleep 9
 spends-at-credit 38 Steps 3
-spends-at-credit 38 Sleep 8
-spends-at-credit 39 Sleep 9
-spends-at-credit 40 Sleep 10
+spends-at-credit 38 Sleep 9
+spends-at-credit 39 Sleep 10
+command golden-demolish 1
+building-demolished 1784857716 Storehouse -18 8
 command golden-owed 0
-command golden-reserve 0
-command golden-stone 0
-command golden-timber 0
-command golden-wool 0
 command k1 1
 force-credited 1781669676 BuildPower 100
 command k13 1
@@ -277,6 +272,7 @@ command k4 1
 force-credited 1781671625 Exploration 109
 command k5 0
 command k6 0
+command k8 0
 command k9 0
 command out-0 0
 command out-1 0
@@ -347,13 +343,14 @@ command out-57 0
 command out-58 0
 command out-59 0
 command out-6 0
+command out-61 0
 command out-62 0
 command out-63 0
 command out-64 0
-command out-69 0
+command out-65 0
+command out-66 0
+command out-67 0
+command out-68 0
 command out-7 0
-command out-70 0
-command out-71 0
-command out-72 0
 command out-8 0
 command out-9 0

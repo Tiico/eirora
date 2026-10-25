@@ -12,7 +12,8 @@ namespace Eirora.Simulation.Tests;
 /// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
 /// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
 /// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044),
-/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050).
+/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050), and now
+/// and then a building demolished just before leaving (TASK-047).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
@@ -50,7 +51,7 @@ internal static class BuiltOutWorld
     public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago)
     {
         var random = new Random(~seed);
-        var scenario = Scenario.Generate(seed, length: 30, archipelago);
+        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false);
         var save = scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)
@@ -147,10 +148,21 @@ internal static class BuiltOutWorld
             save.Apply($"out-{key++}", first);
         }
 
+        foreach (var rule in StockRules(world, seed))
+        {
+            save.Apply($"out-{key++}", rule);
+        }
+
         // Or lay a road, which the villagers build while the player is away.
         if (random.Next(2) == 0 && Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } roads)
         {
             save.Apply($"out-{key++}", new LayRoad(roads[random.Next(roads.Count)]));
+        }
+
+        // Or demolish a building, housing first, so that the village may be left with more villagers than room (D-39).
+        if (random.Next(3) == 0 && Demolished(world, random.Next(int.MaxValue)) is Hex demolished)
+        {
+            save.Apply($"out-{key++}", new Demolish(demolished));
         }
 
         // The player may leave at any moment of the day, also just before or during the rest.
@@ -233,27 +245,35 @@ internal static class BuiltOutWorld
             8 => new Survey(),
             9 => BuiltSite(world, pick, _ => true) is Hex tile ? (world.BuildingAt(tile)!.Paused ? new ResumeBuilding(tile) : new PauseBuilding(tile)) : null,
             10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),
-            // Every other rush gives way to a stock rule (TASK-046), so that the other commands come as often as before.
-            _ => (pick % 6) switch
-            {
-                < 3 => new Rush(),
-                3 => BuiltSite(world, pick, b => b.Held is not null) is Hex processing ? new SetReserve(processing, pick / 6 % 9 * 5) : new Rush(),
-                _ => StockRule(world, pick),
-            },
+            _ => new Rush(),
         };
     }
 
     /// <summary>
-    /// A reservation on an island with a store or a resource moved in an island's import order (TASK-046), so that some
-    /// worlds keep timber on an island and ship stone before wool.
+    /// The player's stock rules in one world of three (TASK-046), drawn from the seed alone so that the build-out draws as
+    /// before: a processing building's minimum stock, a reservation at home and one on an island the ships sail from,
+    /// and a good moved first in that island's import order. The commands the world refuses change nothing.
     /// </summary>
-    private static GameCommand StockRule(World world, int pick)
+    private static IEnumerable<GameCommand> StockRules(World world, int seed)
     {
-        var resource = (Resource)(pick / 6 % Enum.GetValues<Resource>().Length);
-        var away = world.Islands.Where(i => i != world.HomeIsland).ToList();
-        return pick % 6 == 5 && away.Count > 0
-            ? new MoveImport(away[pick / 7 % away.Count], resource, 0)
-            : new SetReservation(world.Islands[pick / 7 % world.Islands.Count], resource, 5 + (pick / 11 % 6 * 5));
+        var random = new Random(seed * 7919);
+        if (random.Next(3) != 0)
+        {
+            yield break;
+        }
+
+        var resources = Enum.GetValues<Resource>();
+        if (BuiltSite(world, random.Next(int.MaxValue), b => b.Held is not null) is Hex processing)
+        {
+            yield return new SetReserve(processing, random.Next(9) * 5);
+        }
+
+        yield return new SetReservation(world.HomeIsland, resources[random.Next(resources.Length)], 5 + (random.Next(6) * 5));
+        if (world.SeaRoutes.Count > 0 && world.SeaRoutes[random.Next(world.SeaRoutes.Count)].From is var away)
+        {
+            yield return new SetReservation(away, resources[random.Next(resources.Length)], 5 + (random.Next(6) * 5));
+            yield return new MoveImport(away, resources[random.Next(resources.Length)], 0);
+        }
     }
 
     /// <summary>A building that needs staff moved to another place in the staffing order, or none.</summary>
@@ -263,6 +283,15 @@ internal static class BuiltOutWorld
         return order.Count > 1 && order[pick % order.Count] is var moved && order[place % order.Count] != moved
             ? new Prioritize(moved.Tile, place % order.Count)
             : null;
+    }
+
+    /// <summary>The tile of a building that can be demolished now, housing when there is any, or none.</summary>
+    private static Hex? Demolished(World world, int pick)
+    {
+        var can = world.Buildings.Where(b => world.Demolition(b.Tile)!.Rejection == Rejection.None).ToList();
+        var housing = can.Where(b => world.Content.For(b.Kind).Housing > 0).ToList();
+        var from = housing.Count > 0 ? housing : can;
+        return from.Count > 0 ? from[pick % from.Count].Tile : null;
     }
 
     /// <summary>A project that is not first in the queue moved first, or none.</summary>

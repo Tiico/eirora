@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 10;
+        public const int Current = 11;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -23,9 +23,12 @@ namespace Eirora.Simulation
         /// share of the production, so a journal from rules 7 would replay to another world too. Rules 9 gave every
         /// island its own settlement (TASK-050, D-106): its villagers staff only its buildings, carry only for its depots
         /// and eat from its store, so a journal from rules 8 that staffed Nyön's buildings from the home island would
-        /// replay to another world as well. Rules 10 let the player set the minimum stock,
-        /// the import order and reservations (TASK-046); a journal from rules 9 has none of their commands and keeps the
-        /// minimum stock of 20 and the fixed order, so it replays to the same world.
+        /// replay to another world as well. Rules 10 added demolition (TASK-047), a command and an event that older rules
+        /// cannot read, and changed nothing that a journal from the rules before can hold, so such a journal still replays
+        /// to the same world.
+        /// Rules 11 let the player set the minimum stock, the import order and reservations (TASK-046); a journal from
+        /// rules 10 has none of their commands and keeps the minimum stock of 20 and the fixed order, so it replays to the
+        /// same world.
         /// </summary>
         public const int ReplaysJournalsFrom = 9;
     }

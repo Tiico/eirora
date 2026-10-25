@@ -172,6 +172,11 @@ Spelet uppmuntrar återhämtning i stället för sena sessioner, streaks eller n
 | D-125 | **Förädlingen lämnar det största golvet:** när minimilagret och öns reservering gäller samma råvara lämnar förädlingen det största av dem, och diagnostiken säger vilket som håller kvar varan ([ekonomi v1](./docs/design/economy-v1.md#lagerregler), TASK-046) | [BESLUTAT] |
 | D-126 | **Importprioriteten är en ordnad lista med alla varor:** spelaren ordnar alla varor på sjövägen, och standard är dagens fasta ordning ([ekonomi v1](./docs/design/economy-v1.md#lagerregler), TASK-046) | [BESLUTAT] |
 | D-127 | **Reserveringen hindrar bara skeppning hemåt och förädling:** byggen betalar ur det reserverade, och reserveringen håller inte kvar byggmaterial eller mat som skeppas ut till öarna ([ekonomi v1](./docs/design/economy-v1.md#lagerregler), TASK-046) | [BESLUTAT] |
+| D-128 | **Ett förråd eller en brygga nekas rivning bara när öns varor inte ryms** i det lager som blir kvar; den del av återbetalningen som inte ryms visas i bekräftelsen och förloras, som för andra byggnader, så att en ös sista lagerbyggnad också går att riva ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), förtydligar D-108, TASK-047) | [BESLUTAT] |
+| D-129 | **Hemöns sista förråd kan inte rivas,** eftersom allt betalas ur Hemöns lager och ingenting annars kunde byggas igen (INV-R4) ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), TASK-047) | [BESLUTAT] |
+| D-130 | **En uppgradering räknas till det byggnaden kostade,** också en uppgradering som står i byggkön, som följer med byggnaden när den rivs; arbetet på den går förlorat ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), förtydligar D-108, TASK-047) | [BESLUTAT] |
+| D-131 | **Startbyns byggnader ger tillbaka hälften av katalogens kostnad** som andra byggnader, fast de var gratis ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), förtydligar D-108, TASK-047) | [BESLUTAT] |
+| D-132 | **Säd och ull som vuxit men inte skördats följer med åkern eller fårgården** när den rivs, eftersom de inte är varor förrän de skördats; bekräftelsen visar hur mycket (INV-R2) ([ekonomi v1](./docs/design/economy-v1.md#32-rivning), TASK-047) | [BESLUTAT] |
 
 ### 1.2 Produktpositionering [FÖRSLAG]
 
@@ -723,6 +728,7 @@ Givet en grupp där en medlem varit inaktiv i två veckor, när övriga bygger g
 | D-121–D-124 | 2026-10-23 | Se avsnitt 1.1 | Produktägarens svar på frågorna i TASK-050 (PR #164) |
 | D-124 | 2026-10-24 | Se avsnitt 1.1; räckvidden förtydligad: andra nivåer än torpare flyttar bara till en bosättning utan bybor | Produktägarens svar på följdfrågan i granskningen av PR #164 |
 | D-125–D-127 | 2026-10-24 | Se avsnitt 1.1 | Produktägarens val i TASK-046: minimilager, importprioritet och reservering |
+| D-128–D-132 | 2026-10-24 | Se avsnitt 1.1 | Produktägarens svar på frågorna i TASK-047 (PR #168) |
 | — | 2026-10-18 | O-01 beslutas i M4/M5, O-03 i M10 och O-13 i M2, som i ROADMAP och grind A0 | [gate-a0.md](./docs/design/gate-a0.md#21-o-frågor) |
 | — | 2026-10-18 | O-11 avgjord: inget hinder för Eirora; domäner, handtag och varumärke säkras först i M12, och namnet kan bytas fram till dess | [Namnkontroll](./docs/research/eirora-name-check.md) |
 | — | 2026-10-17 | LOG-06 höjt från P1 till P0 | D-44 |

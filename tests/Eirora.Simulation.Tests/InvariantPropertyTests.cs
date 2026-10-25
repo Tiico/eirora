@@ -126,7 +126,8 @@ public sealed class InvariantPropertyTests
         return world.Fingerprint() == scenario.Run().Fingerprint();
     }
 
-    // Checked after every step: INV-D7, INV-D8, INV-R1, INV-V1, INV-V2, INV-F1 and one building to a tile.
+    // Checked after every step: INV-D7, INV-D8, INV-R1, INV-V1, INV-V2, INV-F1 and one building to a tile. Only the
+    // building a demolition took away is less than before (D-38).
     [Property(MaxTest = 50)]
     public void EveryStepKeepsTheWorldsInvariants(int seed)
     {
@@ -137,13 +138,17 @@ public sealed class InvariantPropertyTests
         {
             string before = world.Fingerprint();
             var was = Measures.Of(world);
+            var villagersWere = world.Settlements.ToDictionary(s => s.Island, s => s.Villagers);
             if (input is Scenario.Command command)
             {
-                var result = world.Apply(command.Key, command.For(world));
+                var made = command.For(world);
+                var result = world.Apply(command.Key, made);
                 if (!result.Accepted)
                 {
                     Assert.Equal(before, world.Fingerprint()); // INV-D7.
                 }
+
+                Measures.Of(world).AssertNotLowerThan(was, result.Accepted && made is Demolish demolish ? demolish.Tile : null); // INV-V1.
             }
             else
             {
@@ -154,7 +159,9 @@ public sealed class InvariantPropertyTests
             Assert.True(world.Now.UtcSeconds >= was.UtcSeconds); // INV-D8.
             Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2, and in each settlement.
             Assert.All(world.Settlements, s => Assert.InRange(s.FreeVillagers, 0, s.Villagers));
-            Assert.All(world.Settlements, s => Assert.InRange(s.Villagers, 0, s.Housing)); // Only a migrated world has more (SettlementsPerIslandTests).
+            // Only a migrated world (SettlementsPerIslandTests) or demolished housing (D-39) leaves more villagers than room,
+            // and then none move in.
+            Assert.All(world.Settlements, s => Assert.InRange(s.Villagers, 0, Math.Max(s.Housing, villagersWere.GetValueOrDefault(s.Island))));
             Assert.All(world.Islands, island => Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(island, r), 0, Capacity(world, island)))); // INV-R1.
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
 
@@ -208,13 +215,13 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        Assert.Equal(19, accepted.Count); // Every kind of command.
-        Assert.Superset(
-            new HashSet<Rejection> { Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued, Rejection.NoSuchIsland },
-            rejections);
-        Assert.Superset(
-            new HashSet<string> { "cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-away", "owed", "road", "held", "reserved" },
-            records);
+        Assert.Equal(20, accepted.Count); // Every kind of command.
+        Rejection[] wantedRejections =
+            [Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued, Rejection.LastStorehouse, Rejection.NoSuchIsland];
+        Assert.Equal([], wantedRejections.Except(rejections));
+        string[] wantedRecords =
+            ["cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-away", "owed", "road", "held", "building-demolished", "reserved"];
+        Assert.Equal([], wantedRecords.Except(records));
         Assert.True(duplicates > 50, $"Only {duplicates} duplicates.");
     }
 
@@ -229,22 +236,26 @@ public sealed class InvariantPropertyTests
         _ => 0,
     });
 
-    private sealed record Measures(long UtcSeconds, int Villagers, int Settlements, int Buildings, int Levels, int Revealed)
+    /// <summary>What never decreases (INV-V1): the villagers, the settlements, each building and its level, and the known tiles.</summary>
+    private sealed record Measures(long UtcSeconds, int Villagers, int Settlements, IReadOnlyDictionary<Hex, (BuildingKind Kind, int Level)> Buildings, int Revealed)
     {
         public static Measures Of(World world) => new(
             world.Now.UtcSeconds,
             world.Villagers,
             world.Settlements.Count,
-            world.Buildings.Count,
-            world.Buildings.Sum(b => b.Level),
+            world.Buildings.ToDictionary(b => b.Tile, b => (b.Kind, b.Level)),
             Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i])));
 
-        public void AssertNotLowerThan(Measures earlier)
+        /// <summary>Nothing is lower than <paramref name="earlier"/>, but for the building demolished on <paramref name="demolished"/>.</summary>
+        public void AssertNotLowerThan(Measures earlier, Hex? demolished = null)
         {
             Assert.True(Villagers >= earlier.Villagers);
             Assert.True(Settlements >= earlier.Settlements);
-            Assert.True(Buildings >= earlier.Buildings);
-            Assert.True(Levels >= earlier.Levels);
+            Assert.All(earlier.Buildings.Where(b => b.Key != demolished), b =>
+            {
+                Assert.True(Buildings.TryGetValue(b.Key, out var now) && now.Kind == b.Value.Kind, $"The {b.Value.Kind} on {b.Key} is gone.");
+                Assert.True(now.Level >= b.Value.Level);
+            });
             Assert.True(Revealed >= earlier.Revealed);
         }
     }
