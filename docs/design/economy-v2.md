@@ -265,7 +265,8 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
 - **Lagret.**
   Ett förråd rymmer 150 av varje resurs som i v1, och en brygga 50, så att en ö med bara en brygga har ett eget lager.
 - **Före nivåerna.**
-  Regelversion 9 (TASK-050) har bosättningarna men ännu inte nivåerna, så komforten från v1 gäller per bosättning: 2 tyg ur öns eget lager ger en bybo till, tills nivåerna kommer i TASK-061 (#156).
+  Regelversion 9–11 (TASK-050) har bosättningarna men ännu inte nivåerna, så komforten från v1 gäller per bosättning: 2 tyg ur öns eget lager ger en bybo till.
+  Regelversion 12 (TASK-061, #156) har nivåerna och steg 1: komforten tar 2 kläder bara när en andra torpare får plats, och en sparning från regelversion 11 får alla bybor som torpare och steg 1 upplåst om en bosättning redan har 20 bybor.
 
 I de sex veckorna i avsnitt 10 växer Nyön till 16–18 bybor, och i fyra av sex körningar med Nyön stiger 6 av dem till bönder med kläder från hemön; ön har bara sex landrutor, så mer ryms inte.
 D-106 gör havet långsammare än i v1, eftersom Nyöns byggnader inte längre kan bemannas från hemön.

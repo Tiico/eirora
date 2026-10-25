@@ -60,6 +60,8 @@ namespace Eirora.Client.Tests
                 "Stenbrott | 0,75 sten/h",
                 "Sågverk | 2 timmer → 1 planka/h",
                 "Väveri | 2 ull → 1 tyg per 2 h",
+                "Jaktstuga | 0,25 vilt/h per skogsruta, högst fyra · fäller ingen skog",
+                "Garveri | 2 vilt → 1 skinn per 2 h",
             }));
         }
 

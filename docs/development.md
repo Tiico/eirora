@@ -162,6 +162,11 @@ En journalfil från prototypen (`world.journal`) tas över en gång och döps om
 Det går bara för en journal under en regelversion som `RulesVersion.ReplaysJournalsFrom` fortfarande spelar upp; journalerna från M1 har regelversion 1, och sedan regelversion 4 byggs det på rutor i stället för namngivna platser (TASK-037, D-104).
 En sådan journal skrivs aldrig över: klienten säger att världen inte kan spelas vidare i stället för att visa en annan värld, och lägger journalen undan först när spelaren börjar en ny.
 
+### Innehållet
+
+Byggnaderna, nivåerna, behoven och upplåsningens steg står i innehållskatalogen (`ContentCatalog`), vars kanoniska text ligger incheckad i `tests/Eirora.Simulation.Tests/Economy/Golden/content-catalog.txt`.
+Innehållsvalidatorn (`ContentValidation`, INV-R4) underkänner en katalog där ett behov inte kan göras utan krafter på minst två sätt som börjar på olika mark, eller där ett behov kräver sin egen nivå; `ContentValidationTests` kör den i CI.
+
 ### Migrationer och gyllene sparningar
 
 När `RulesVersion` höjs läggs en `StateMigration` från den förra versionen till i `Migrations.All`; den gör om tillståndstexten till nästa versions, och ett test underkänner en kedja med luckor.

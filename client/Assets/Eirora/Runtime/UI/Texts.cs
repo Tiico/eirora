@@ -34,7 +34,11 @@ namespace Eirora.Client.UI
             BuildingKind.Sawmill => "Sågverk",
             BuildingKind.Weavery => "Väveri",
             BuildingKind.Jetty => "Brygga",
-            _ => "Utkikstorn",
+            BuildingKind.Lookout => "Utkikstorn",
+            BuildingKind.Farmstead => "Bondgård",
+            BuildingKind.HuntingLodge => "Jaktstuga",
+            BuildingKind.Tannery => "Garveri",
+            _ => kind.ToString(),
         };
 
         public static string Name(Resource resource) => resource switch
@@ -45,8 +49,49 @@ namespace Eirora.Client.UI
             Resource.Planks => "plankor",
             Resource.Stone => "sten",
             Resource.Wool => "ull",
-            _ => "tyg",
+            Resource.Wadmal => "tyg",
+            Resource.Game => "vilt",
+            Resource.Hide => "skinn",
+            _ => resource.ToString(),
         };
+
+        /// <summary>A population tier, as many: "torpare", "bönder" (GLOSSARY: Befolkningsnivå).</summary>
+        public static string Name(PopulationTier tier) => tier switch
+        {
+            PopulationTier.Crofters => "torpare",
+            PopulationTier.Farmers => "bönder",
+            _ => tier.ToString(),
+        };
+
+        /// <summary>A population tier in the definite form, as a sentence begins with it: "torparna", "bönderna".</summary>
+        public static string Definite(PopulationTier tier) => tier switch
+        {
+            PopulationTier.Crofters => "torparna",
+            PopulationTier.Farmers => "bönderna",
+            _ => tier.ToString(),
+        };
+
+        /// <summary>A need by itself: "mat", "kläder".</summary>
+        public static string NeedName(Need need) => need switch
+        {
+            Need.Food => "mat",
+            Need.Clothes => "kläder",
+            _ => need.ToString(),
+        };
+
+        /// <summary>A need, as the sheets name it, with the goods that meet it: "kläder (tyg eller skinn)".</summary>
+        public static string Name(Need need, ContentCatalog content) =>
+            $"{NeedName(need)} ({string.Join(" eller ", content.For(need).Goods.Select(g => Name(g)))})";
+
+        /// <summary>A tier's villagers and homes on an island, for its homes' sheet: "Hemön har 4 bönder i bostäder för 6."</summary>
+        public static string TierHomes(World world, IslandSettlement settlement, PopulationTier tier)
+        {
+            string island = Capital(IslandName(world, settlement.Island));
+            int villagers = settlement.VillagersOf(tier);
+            return villagers == 0
+                ? $"{island} har inga {Name(tier)} än, bostäder för {Count(settlement.HousingOf(tier))}."
+                : $"{island} har {villagers} {Name(tier)} i bostäder för {settlement.HousingOf(tier)}.";
+        }
 
         /// <summary>A resource's name after a count: "1 planka" but "2 plankor"; the other resources do not change.</summary>
         public static string Name(Resource resource, long count) =>
@@ -147,7 +192,7 @@ namespace Eirora.Client.UI
 
             if (spec.Housing > 0)
             {
-                return $"+{spec.Housing} bostadsplatser";
+                return spec.Houses == PopulationTier.Crofters ? $"+{spec.Housing} bostadsplatser" : $"+{spec.Housing} bostäder för {Name(spec.Houses)}";
             }
 
             return kind switch
@@ -193,9 +238,51 @@ namespace Eirora.Client.UI
                 int count => $"{Count(count)} lediga",
             };
             string island = Capital(IslandName(world, settlement.Island));
+            string tiers = Tiers(settlement) is string above ? $", varav {above}" : string.Empty;
             return settlement.Villagers == 0 ? $"{island}: inga bybor än, bostäder för {Count(settlement.Housing)}"
-                : settlement.Villagers > settlement.Housing ? $"{island}: {settlement.Villagers} bybor i bostäder för {settlement.Housing}, {free}"
-                : $"{island}: {settlement.Villagers} av {settlement.Housing} bybor, {free}";
+                : settlement.Villagers > settlement.Housing ? $"{island}: {settlement.Villagers} bybor{tiers} i bostäder för {settlement.Housing}, {free}"
+                : $"{island}: {settlement.Villagers} av {settlement.Housing} bybor{tiers}, {free}";
+        }
+
+        /// <summary>The villagers of the tiers above the crofters, such as "4 bönder"; null when all are crofters.</summary>
+        public static string? Tiers(IslandSettlement settlement)
+        {
+            var tiers = Enum.GetValues(typeof(PopulationTier)).Cast<PopulationTier>()
+                .Where(t => t != PopulationTier.Crofters && settlement.VillagersOf(t) > 0)
+                .Select(t => $"{settlement.VillagersOf(t)} {Name(t)}")
+                .ToList();
+            return tiers.Count == 0 ? null : List(tiers);
+        }
+
+        /// <summary>
+        /// What a tier lacks and why no one rises to it, in sentences for its island's sheets (TASK-061, TASK-043); nothing
+        /// before its step is unlocked, while it rises, or when the settlement is hungry, which its growth says already.
+        /// </summary>
+        public static IEnumerable<string> Rising(TierDiagnosis tier, ContentCatalog content)
+        {
+            string name = Name(tier.Tier);
+            string below = Name((PopulationTier)((int)tier.Tier - 1));
+            if (tier.Lacks is Need lacks)
+            {
+                yield return $"{Capital(Definite(tier.Tier))} saknar {Name(lacks, content)}. De förblir {name}, men inga fler blir {name} förrän det finns.";
+                yield break;
+            }
+
+            // The building that houses the tier, such as a farmstead.
+            string homes = content.Buildings.Where(k => content.For(k) is { Housing: > 0 } spec && spec.Houses == tier.Tier)
+                .Select(k => Name(k).ToLowerInvariant()).FirstOrDefault() ?? "bostad";
+            switch (tier.Rising)
+            {
+                case Simulation.Economy.Rising.LacksNeed when tier.Missing is Need missing:
+                    yield return $"Med {Name(missing, content)} i lagret kan {below} bli {name} i gryningen.";
+                    break;
+                case Simulation.Economy.Rising.NoHousing when tier.Housing == 0:
+                    yield return $"Med en {homes} kan {below} bli {name}.";
+                    break;
+                case Simulation.Economy.Rising.NoHousing:
+                    yield return $"Alla bostäder för {name} är fulla. Med en {homes} till kan fler bli {name}.";
+                    break;
+            }
         }
 
         /// <summary>
@@ -240,6 +327,11 @@ namespace Eirora.Client.UI
         /// </summary>
         public static string? Purpose(BuildingKind kind, BuildingSpec spec)
         {
+            if (spec.Housing > 0 && spec.Houses != PopulationTier.Crofters)
+            {
+                return $"Ger plats åt {Count(spec.Housing)} {Name(spec.Houses)}. Torpare blir {Name(spec.Houses)} här när de får det de behöver.";
+            }
+
             if (spec.Housing > 0)
             {
                 return spec.Housing == 1 ? "Ger plats åt en bybo." : $"Ger plats åt {Count(spec.Housing)} bybor.";
@@ -263,6 +355,11 @@ namespace Eirora.Client.UI
                 return recipe.PerHour == Quantity.PerUnit ? $"{inputs} → 1 {one}/h"
                     : Quantity.PerUnit % recipe.PerHour == 0 ? $"{inputs} → 1 {one} per {Quantity.PerUnit / recipe.PerHour} h"
                     : $"{inputs} → 1 {one}, {Amount(recipe.PerHour)}/h";
+            }
+
+            if (recipe.HuntTiles > 0)
+            {
+                return $"{Amount(recipe.PerHour)} {product}/h per skogsruta, högst {Count(recipe.HuntTiles)} · fäller ingen skog";
             }
 
             if (recipe.ForestTiles > 0)
@@ -417,6 +514,7 @@ namespace Eirora.Client.UI
             Rejection.NoRoomInStore => "Lagret rymmer inte öns varor utan byggnaden. Använd eller skeppa några först.",
             Rejection.LastStorehouse => "Hemöns sista förråd står kvar, eftersom allt betalas ur dess lager.",
             Rejection.NoSuchIsland => "Ön har inget eget lager än.",
+            Rejection.NotUnlocked => "Det kan byggas när byn har vuxit.",
             _ => "Det gick inte just nu.",
         };
 
@@ -462,7 +560,11 @@ namespace Eirora.Client.UI
             BuildingKind.Sawmill => "Sågverket",
             BuildingKind.Weavery => "Väveriet",
             BuildingKind.Jetty => "Bryggan",
-            _ => "Utkikstornet",
+            BuildingKind.Lookout => "Utkikstornet",
+            BuildingKind.Farmstead => "Bondgården",
+            BuildingKind.HuntingLodge => "Jaktstugan",
+            BuildingKind.Tannery => "Garveriet",
+            _ => kind.ToString(),
         };
 
         /// <summary>
@@ -666,6 +768,7 @@ namespace Eirora.Client.UI
             VillagersMovedIn moved when moved.Island != world.HomeIsland =>
                 (moved.Count == 1 ? "En ny bybo flyttade in på " : $"{moved.Count} nya bybor flyttade in på ") + IslandName(world, moved.Island) + ".",
             VillagerMoved moved => $"En bybo flyttade från {IslandName(world, moved.From)} till {IslandName(world, moved.To)}.",
+            VillagersRose rose when rose.Island != world.HomeIsland => $"{Rose(rose)} på {IslandName(world, rose.Island)}.",
             ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind.Jetty } done when world.IslandOf(done.Tile) is var island && island != world.HomeIsland =>
                 $"Bryggan på {IslandName(world, island)} är färdig.",
             SettlementFounded founded => $"{Capital(IslandName(world, founded.Island))} har en egen by, dit bybor flyttar över sjövägen.",
@@ -678,6 +781,8 @@ namespace Eirora.Client.UI
             DawnBroke dawn => $"Byn vaknade till dag {dawn.GameDay}.",
             ForceCredited { Amount: > 0 } credit => $"+{credit.Amount} {Name(credit.Force)} från din egenvård.",
             VillagersMovedIn moved => moved.Count == 1 ? "En ny bybo flyttade in." : $"{moved.Count} nya bybor flyttade in.",
+            VillagersRose rose => $"{Rose(rose)}.",
+            StepUnlocked { Step: 1 } => "Byn har vuxit. Bondgård, jaktstuga och garveri kan byggas.",
             ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind built } => $"{Name(built)} är färdig.",
             ProjectCompleted { Kind: ProjectKind.Upgrade, Building: BuildingKind upgraded } => $"{Name(upgraded)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
@@ -724,6 +829,20 @@ namespace Eirora.Client.UI
 
             return lines;
         }
+
+        /// <summary>Villagers who rose a tier, as the report begins it: "Två torpare blev bönder".</summary>
+        private static string Rose(VillagersRose rose) =>
+            $"{Capital(rose.Count == 1 ? "en" : Count(rose.Count))} {Name((PopulationTier)((int)rose.Tier - 1))} blev {Name(rose.Tier)}";
+
+        /// <summary>
+        /// An introduction of a system as it reaches the player (PRG-02; epoch-1.md, section 3): its title and what the
+        /// guide says (economy-v2.md, section 5).
+        /// </summary>
+        public static (string Title, string Text) Introduction(App.Introduction introduction) => introduction switch
+        {
+            App.Introduction.Farmers => ("Bönder", "Byn har vuxit. Med kläder kan torpare bli bönder. De bor i bondgårdar, och tyg från väveriet eller skinn från garveriet klär dem."),
+            _ => (introduction.ToString(), string.Empty),
+        };
 
         private static string FogLiftedOver(int tiles) =>
             tiles == 1 ? "Dimman lättade över en ruta." : $"Dimman lättade över {tiles} rutor.";

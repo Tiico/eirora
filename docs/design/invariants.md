@@ -80,6 +80,7 @@ Lagrade varor försvinner aldrig bara för att tiden går (D-17).
 **INV-R4 Brister går alltid att återhämta.**
 Varje resurs som behövs för basbehov kan produceras utan krafter, på minst två sätt eller av en källa som inte kan blockeras (PRD 6.2).
 *Test:* innehållsvalidator i CI över all spelinnehållsdata, plus property: från varje nåbart tillstånd finns gratis planeringskommandon som ger positiv nettoproduktion av varje basbehov.
+Innehållsvalidatorn är `ContentValidation` (TASK-061), som `ContentValidationTests` kör över innehållskatalogen: varje behov kan göras utan krafter på minst två sätt som börjar på olika mark, och inget behov kräver sin egen nivå.
 
 ## 3. Bybor och världens beständighet
 

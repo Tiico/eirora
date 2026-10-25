@@ -550,6 +550,18 @@
     -unity-text-align: middle-center;
 }
 
+.introduction {
+    margin-top: 160px;
+}
+
+.introduction-title {
+    font-size: 52px;
+    -unity-font-style: bold;
+    color: rgb(180, 71, 58);
+    white-space: normal;
+    margin-bottom: 12px;
+}
+
 .setup-title {
     font-size: 64px;
     -unity-font-style: bold;

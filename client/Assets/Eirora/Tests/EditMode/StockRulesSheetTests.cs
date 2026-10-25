@@ -105,7 +105,7 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels(), Does.Contain("Lagret på Nyön"));
             Assert.That(Goods(), Is.EqualTo(System.Enum.GetValues(typeof(Resource)).Cast<Resource>().Select(r => Capital(Texts.Name(r))).ToArray()));
-            Assert.That(_root.Query<Button>(className: "good-button").ToList(), Has.Count.EqualTo(6)); // All but the first.
+            Assert.That(_root.Query<Button>(className: "good-button").ToList(), Has.Count.EqualTo(System.Enum.GetValues(typeof(Resource)).Length - 1)); // All but the first.
 
             Press(First("Ull"));
 
