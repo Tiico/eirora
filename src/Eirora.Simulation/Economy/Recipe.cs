@@ -14,6 +14,8 @@ namespace Eirora.Simulation.Economy
     /// </remarks>
     public sealed class Recipe
     {
+        private readonly Ingredient[] _inputs;
+
         /// <summary>Quarter-hour ticks in an hour, the step a rate is divided into.</summary>
         internal const long TicksPerHour = 3600 / Settlement.TickSeconds;
 
@@ -28,7 +30,8 @@ namespace Eirora.Simulation.Economy
             Product = product;
             PerHour = perHour;
             Richness = richness;
-            Inputs = inputs ?? Array.Empty<Ingredient>();
+            _inputs = inputs is null ? Array.Empty<Ingredient>() : new List<Ingredient>(inputs).ToArray();
+            Inputs = Array.AsReadOnly(_inputs);
             GrowsPerHour = growsPerHour;
             ForestTiles = forestTiles;
 
@@ -79,6 +82,12 @@ namespace Eirora.Simulation.Economy
         /// <summary>The raw materials used for each unit of the product; none for a recipe that gathers.</summary>
         public IReadOnlyList<Ingredient> Inputs { get; }
 
+        /// <summary>
+        /// <see cref="Inputs"/> for the simulation's every quarter hour, which a foreach over the list would allocate for
+        /// (#173).
+        /// </summary>
+        internal ReadOnlySpan<Ingredient> InputSpan => _inputs;
+
         /// <summary>Millionths of a unit that a slow process grows an hour, day and night; 0 for any other recipe.</summary>
         public long GrowsPerHour { get; }
 
@@ -90,7 +99,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whether it is one of the raw materials.</summary>
         public bool Uses(Resource resource)
         {
-            foreach (var input in Inputs)
+            foreach (var input in InputSpan)
             {
                 if (input.Resource == resource)
                 {

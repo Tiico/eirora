@@ -53,8 +53,15 @@ Måtten heter som i skriptets `results.tsv`, och gränserna står i [`budgets.ts
 Uppvärmningen mäts över ett pass på tio minuter (`--seconds 600`), eftersom fem minuter är för kort för att telefonen ska bli varm.
 Kallstarten till första bilden av världen mäts också efter ett års frånvaro, med mätscenen `year` ([mätningar på enhet](./device-measurements.md#kallstart-efter-ett-års-frånvaro)).
 Av golvets fem sekunder får framspolningen av ett år ta högst en, eftersom Unitys egen start tar det mesta av resten.
-Galaxy A06 har en fjärdedel till en femtedel av en utvecklardators eller en CI-maskins prestanda per kärna, och IL2CPP kör simuleringen något långsammare än .NET, så testet `FastForwardTests.AYearAwayIsCaughtUpInTime` kräver att ett år i den långsammaste av sex utbyggda världar, och i mätscenens värld, spolas fram på högst 150 ms processortid (TASK-049).
-Den 23 oktober 2026 tog det 35 ms på en M1 Pro, mot 80 ms innan framspolningen hoppade över kvartar där bara långsamma processer rör sig.
+Galaxy A06 har en fjärdedel till en femtedel av en utvecklardators eller en CI-maskins prestanda per kärna, och IL2CPP kör simuleringen något långsammare än .NET, så ett år i mätscenens värld ska spolas fram på högst 150 ms på en utvecklardator (TASK-049).
+Den 23 oktober 2026 tog det 35 ms processortid på en M1 Pro, mot 80 ms innan framspolningen hoppade över kvartar där bara långsamma processer rör sig.
+Bärarna och vägarna (#166) gjorde varje arbetad kvart dyrare, och den 25 oktober 2026 tog ett år 52 ms; efter #173 tar det 29 ms, mot 27 ms för koden från den 23 oktober i samma mätning (minsta processortid av 20 körningar på en M1 Pro, .NET 10, Release).
+Skillnaden är bärarnas eget arbete, och gränsen på 150 ms står kvar med fem gångers marginal.
+Tiden mäts med `FastForwardBenchmarks` i `benchmarks/` och inte i testsviten, där den föll när maskinen var belastad (#170).
+Testsviten räknar i stället de kvartar ett år arbetar en i taget, vilket blir detsamma på varje maskin: i sex utbyggda världar får det vara högst åtta tiondelar av kvartarna då byborna är vakna.
+Den 25 oktober 2026 var det 78,3 %, och om världen som hoppar över minst kvartar slutade hoppa över dem skulle det bli 83 %.
+Testsviten räknar också vad ett år i mätscenens värld allokerar, högst 0,5 MB: en arbetad kvart allokerar ingenting, eftersom Unitys skräpsamlare på telefonen är långsammare än .NET:s.
+Den 25 oktober 2026 var det 0,37 MB, mot 21 MB (13 MB i Release) innan #173; ett enda objekt per arbetad kvart tar året över gränsen.
 Ett lokalt bygge av APK:n var 34 MB den 22 oktober 2026, alltså en tredjedel av storleksbudgeten.
 
 Kartans rendering har en egen budget som inte behöver en telefon: hela kartan ritas med högst 75 000 trianglar ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md#storlek-och-prestanda)), och ett EditMode-test prövar den största av femtio genererade kartor mot den (TASK-033).
@@ -80,7 +87,8 @@ CI kan bara mäta det som inte kräver en riktig telefon: emulatorns programvaru
 |---|---|---|
 | Paketets storlek | Android-bygget i Unity-workflowen, vid releaser och manuella körningar | Ja |
 | Trianglar för hela kartan | Unity EditMode-testerna, på varje pull request som rör klienten | Ja |
-| Framspolning av ett års frånvaro, högst 150 ms | `FastForwardTests` i .NET-testerna, på varje pull request | Ja |
+| Framspolningen hoppar över kvartar där bara långsamma processer rör sig, och en arbetad kvart allokerar ingenting | `FastForwardTests` i .NET-testerna, på varje pull request | Ja |
+| Framspolning av ett års frånvaro, högst 150 ms | `FastForwardBenchmarks` i .NET-workflowen, på varje pull request, med tiden i körningens sammanfattning | Nej, varnar när tiden går över |
 | Bildtid, minne, kallstart, uppvärmning, batteri | `measure.sh` på telefoner i varje nivå | Nej, mäts för hand före varje grind och release |
 
 Att mäta golvet och basen kräver telefoner som projektet inte har.

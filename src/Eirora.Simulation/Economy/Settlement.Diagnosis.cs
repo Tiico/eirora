@@ -153,7 +153,7 @@ namespace Eirora.Simulation.Economy
             // Raw materials and nature, against what it makes at full pace with nothing else holding it back.
             if (recipe.Inputs.Count > 0)
             {
-                foreach (var input in recipe.Inputs)
+                foreach (var input in recipe.InputSpan)
                 {
                     long stock = store[(int)input.Resource];
                     long held = building.Held![(int)input.Resource];
@@ -597,7 +597,7 @@ namespace Eirora.Simulation.Economy
             store ??= _stores[building.Island];
             if (recipe.Inputs.Count > 0)
             {
-                foreach (var input in recipe.Inputs)
+                foreach (var input in recipe.InputSpan)
                 {
                     long available = building.Held![(int)input.Resource] + Max(store[(int)input.Resource] - Leaves(building, input.Resource).Kept, 0);
                     full = Min(full, available / input.PerProduct);
