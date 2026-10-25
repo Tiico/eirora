@@ -62,5 +62,8 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The home island's last storehouse, whose store everything is paid from, cannot be demolished.</summary>
         LastStorehouse,
+
+        /// <summary>The island has no store, or for an import order no ships sail home from it.</summary>
+        NoSuchIsland,
     }
 }

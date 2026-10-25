@@ -125,12 +125,15 @@ public sealed class FastForwardTests
                 // Derived, or scratch for a single call.
                 "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_jobs", "_needs", "_free", "_before", "_unstaffed", "_labour", "_pools",
             ],
-            [typeof(IslandSettlement)] = ["<Villagers>k__BackingField", "<Island>k__BackingField", "_economy"],
+            [typeof(IslandSettlement)] = ["<Villagers>k__BackingField", "<Island>k__BackingField", "_economy", "<Reserved>k__BackingField", "<Imports>k__BackingField"],
             [typeof(Building)] =
             [
                 "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
                 "<Carriers>k__BackingField", "<CarrierCap>k__BackingField", "<CarriedFirst>k__BackingField", "<Depot>k__BackingField", "<Waiting>k__BackingField", "<Held>k__BackingField",
                 "<Kind>k__BackingField", "<Tile>k__BackingField", "<Island>k__BackingField",
+
+                // Set only by a command, which never runs in a tick (TASK-046).
+                "<Reserve>k__BackingField",
             ],
             [typeof(Project)] = ["<WorkLeft>k__BackingField", "<Kind>k__BackingField", "<Building>k__BackingField", "<Tile>k__BackingField"],
 

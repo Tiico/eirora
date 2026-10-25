@@ -28,7 +28,7 @@ public sealed class DemolitionTests
     [Fact]
     public void ADemolishedWoodcutterLeavesItsForestToAnother()
     {
-        var world = Morning(["building Woodcutter 1 -2 1 1 0 0 0 0 0 0 0 0 0 0"]);
+        var world = Morning(["building Woodcutter 1 -2 1 1 0 0 0 0 0 0 0 0 0 0 0"]);
         Assert.Equal(Terrain.Forest, world.Map.TerrainAt(F1));
         Assert.Equal(Terrain.Forest, world.Map.TerrainAt(s_secondForest));
         int free = world.FreeVillagers;
@@ -52,7 +52,7 @@ public sealed class DemolitionTests
     [Fact]
     public void ASawmillGivesBackHalfItsMaterialsRoundedDownAndNoForce()
     {
-        var world = Morning(["building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0"]);
+        var world = Morning(["building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0 20"]);
         Assert.Equal(new Dictionary<Resource, int> { [Resource.Timber] = 15, [Resource.Stone] = 5 }, world.Content.For(BuildingKind.Sawmill).Cost);
         var stock = Stocks(world);
         var forces = Enum.GetValues<Force>().Select(world.Available).ToList();
@@ -73,7 +73,7 @@ public sealed class DemolitionTests
     [Fact]
     public void ARefundThatDoesNotFitIsShownBeforehandAndTheStoreEndsFull()
     {
-        var world = Morning(["building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0"], ("Timber", 147));
+        var world = Morning(["building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0 20"], ("Timber", 147));
 
         var demolition = world.Demolition(L1)!;
 
@@ -91,7 +91,7 @@ public sealed class DemolitionTests
     [Fact]
     public void AnUpgradeCountsToWhatItCostAndAQueuedOneGoesWithTheBuilding()
     {
-        var world = Morning(["building Sawmill -1 0 2 1 0 0 0 0 0 0 0 0 0 0", "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0", "project Upgrade Quarry -3 -1 16000"]);
+        var world = Morning(["building Sawmill -1 0 2 1 0 0 0 0 0 0 0 0 0 0 20", "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0", "project Upgrade Quarry -3 -1 16000"]);
         var upgrade = world.Content.Upgrade.Cost;
 
         var upgraded = world.Demolition(L1)!;
@@ -111,7 +111,7 @@ public sealed class DemolitionTests
     [Fact]
     public void AStorehouseIsNotDemolishedWhileTheGoodsWouldNotFit()
     {
-        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0"], ("Fish", 200), ("Stone", 151));
+        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0 0"], ("Fish", 200), ("Stone", 151));
         string before = world.Fingerprint();
 
         var demolition = world.Demolition(E1)!;
@@ -129,7 +129,7 @@ public sealed class DemolitionTests
     [Fact]
     public void ADemolishedStorehouseLeavesItsBuildingsToAnotherDepot()
     {
-        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0", "building Quarry 3 -1 1 1 0 0 0 0 0 0 0 0 0 0"], ("Fish", 150));
+        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0 0", "building Quarry 3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0"], ("Fish", 150));
         Assert.Equal(E1, world.BuildingAt(M2)!.Depot);
         int free = world.FreeVillagers;
 
@@ -159,7 +159,7 @@ public sealed class DemolitionTests
     public void TheGoodsAtABuildingGoToTheStoreAndWhatHasGrownGoesWithIt()
     {
         var world = Morning(
-            ["building Sawmill -1 0 1 1 0 0 0 0 0 0 2500000 0 0 0", "held Timber 3000000", "building Field -1 2 1 1 0 4200000 0 0 0 0 1000000 0 0 0"]);
+            ["building Sawmill -1 0 1 1 0 0 0 0 0 0 2500000 0 0 0 20", "held Timber 3000000", "building Field -1 2 1 1 0 4200000 0 0 0 0 1000000 0 0 0 0"]);
         var stock = Stocks(world);
 
         var sawmill = world.Demolition(L1)!;
@@ -179,7 +179,7 @@ public sealed class DemolitionTests
     [Fact]
     public void DemolishedHousingLeavesEveryVillagerButStopsTheGrowth()
     {
-        var world = Village(At("2026-10-15 07:00", 2), 20, ["building Cottage -1 0 1 0 0 0 0 0 0 0 0 0 0 0"], ("Fish", 150));
+        var world = Village(At("2026-10-15 07:00", 2), 20, ["building Cottage -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0"], ("Fish", 150));
         Assert.Equal((20, 20), (world.Villagers, world.Housing));
 
         Assert.True(Apply(world, new Demolish(L1)).Accepted);
@@ -192,7 +192,7 @@ public sealed class DemolitionTests
     [Fact]
     public void DemolitionIsRefusedDuringTheRest()
     {
-        var world = Village(At("2026-10-15 23:30", 2), 12, ["building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0"]);
+        var world = Village(At("2026-10-15 23:30", 2), 12, ["building Sawmill -1 0 1 1 0 0 0 0 0 0 0 0 0 0 20"]);
         Assert.Equal(Phase.Resting, world.Phase);
         string before = world.Fingerprint();
 
@@ -220,7 +220,7 @@ public sealed class DemolitionTests
     [Fact]
     public void ADemolishedStorehouseLetsAllItsCarriersBuild()
     {
-        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 3 4 0 0 0 0 0"]);
+        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 3 4 0 0 0 0 0 0"]);
         int free = world.FreeVillagers;
 
         var demolition = world.Demolition(E1)!;
@@ -234,7 +234,7 @@ public sealed class DemolitionTests
     [Fact]
     public void TheGoodsWaitingForADemolishedStorehouseWaitForTheNextOne()
     {
-        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0", "building Quarry 3 -1 1 1 0 0 0 0 0 0 5000000 1 2 -1"]);
+        var world = Morning(["building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0 0", "building Quarry 3 -1 1 1 0 0 0 0 0 0 5000000 1 2 -1 0"]);
         long stone = world.Settlement.Stock(Resource.Stone);
 
         Assert.True(Apply(world, new Demolish(E1)).Accepted);
@@ -253,8 +253,8 @@ public sealed class DemolitionTests
         var world = Village(
             At("2026-10-15 07:00", 2),
             11,
-            ["building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0", "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0",
-                "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 0 0 0", "building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0"]);
+            ["building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0", "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0 0",
+                "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 0 0 0 20", "building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0 0"]);
         Assert.Equal((false, true, 0), (world.BuildingAt(L1)!.Staffed, world.BuildingAt(H1)!.Staffed, world.FreeVillagers));
 
         var demolition = world.Demolition(E1)!;
@@ -303,7 +303,7 @@ public sealed class DemolitionTests
     [Fact]
     public void TheVillagersOfADemolishedBuildingAreFreedInTheirOwnSettlement()
     {
-        var world = OnNyon(0, 2, "building SheepFarm 10 1 1 1 0 0 0 0 0 0 0 0 0 0");
+        var world = OnNyon(0, 2, "building SheepFarm 10 1 1 1 0 0 0 0 0 0 0 0 0 0 0");
         var home = world.SettlementOn(world.HomeIsland)!;
         var nyon = world.SettlementOn(PrototypeHome.Nyon)!;
         (int Home, int Nyon) free = (home.FreeVillagers, nyon.FreeVillagers);
@@ -324,7 +324,7 @@ public sealed class DemolitionTests
     private static World OnNyon(int fish, int villagers = 0, params string[] buildings) => Village(
         At("2026-10-15 07:00", 2),
         12,
-        ["building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0", villagers > 0 ? "building Jetty 10 0 1 1 0 0 0 1 4 0 0 0 0 0" : "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0", .. buildings],
+        ["building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0 0", villagers > 0 ? "building Jetty 10 0 1 1 0 0 0 1 4 0 0 0 0 0 0" : "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0 0", .. buildings],
         lines =>
         {
             lines.InsertRange(

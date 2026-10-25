@@ -20,10 +20,12 @@ namespace Eirora.Simulation.Tests.Economy;
 /// never fewer villagers are at work (INV-V2). Some worlds have a store on each of three islands and two sea routes
 /// home (TASK-045), whose shipping only moves goods between the stores. The carriers only move goods between the
 /// buildings' outboxes, the raw materials held at the processing and the stores, never while the villagers rest
-/// (INV-R2, INV-T4; TASK-051), and the roads stay. Their settlements keep
-/// their villagers, or give a free one to another over a sea route, and their buildings stay staffed (TASK-050); some
-/// worlds come from rules 8 with goods waiting at a depot for room in its store, which only ever move in. Some worlds were left just after a demolition, now and then with more villagers than room,
-/// who all stay while the village waits for room to grow (D-38, D-39; TASK-047).
+/// (INV-R2, INV-T4; TASK-051), and the roads stay. Their settlements keep their villagers, or give a free one to another
+/// over a sea route, and their buildings stay staffed (TASK-050); some worlds come from rules 8 with goods waiting at a
+/// depot for room in its store, which only ever move in. The player's stock rules hold while they are away (TASK-046):
+/// every minimum stock, reservation and import order stays as it was, and neither the ships nor processing take a
+/// reserved good below its reservation. Some worlds were left just after a demolition, now and then with more villagers
+/// than room, who all stay while the village waits for room to grow (D-38, D-39; TASK-047).
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -68,6 +70,7 @@ public sealed class LongAbsenceTests
         {
             var was = Stocks.Of(parts);
             var measuresWere = Measures.Of(parts);
+            var reservedWere = Reserved.Of(parts);
             int dayWas = parts.GameDay;
             bool restingThroughout = parts.Phase == Phase.Resting;
             int ticks = Ticks(parts.Now.UtcSeconds, reading.UtcSeconds);
@@ -79,6 +82,7 @@ public sealed class LongAbsenceTests
             Stocks.Of(parts).AssertOnlyConsumedSince(was, parts.GameDay - dayWas, parts.Villagers, parts.Settlements.Count, restingThroughout); // INV-R2, INV-R3, INV-T4.
             Measures.Of(parts).AssertNotLowerThan(measuresWere); // INV-V1, INV-F6.
             AssertLeftTheQueueOnlyFinished(measuresWere.Queue, parts, events); // INV-V1, INV-V4.
+            Reserved.Of(parts).AssertKeptSince(reservedWere);
         }
 
         Assert.Equal(once.Fingerprint(), parts.Fingerprint()); // INV-D4.
@@ -155,6 +159,10 @@ public sealed class LongAbsenceTests
             See("no free villagers", world.FreeVillagers == 0 && world.Projects.Count > 0);
             See("demolished", world.Fingerprint().Contains("\nbuilding-demolished ", StringComparison.Ordinal));
             See("more villagers than room", world.Villagers > world.Housing);
+            See("minimum stock", world.Buildings.Any(b => b.Held is not null && b.Reserve != StockRules.StandardReserve));
+            See("reserved", world.Islands.Any(i => s_resources.Any(r => world.ReservationOf(i, r) > 0)));
+            See("reserved off the home island", world.SeaRoutes.Any(route => s_resources.Any(r => world.ReservationOf(route.From, r) > 0)));
+            See("import order", world.SeaRoutes.Any(route => !world.ImportOrder(route.From).SequenceEqual(s_resources)));
         }
 
         string[] wanted =
@@ -164,6 +172,7 @@ public sealed class LongAbsenceTests
             "villagers off the home island", "buildings lacking villagers off the home island", "materials owed", "goods waiting at a depot",
             "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
             "demolished", "more villagers than room",
+            "minimum stock", "reserved", "reserved off the home island", "import order",
         ];
         Assert.Equal([], wanted.Where(w => !seen.Contains(w)).ToArray());
     }
@@ -291,7 +300,7 @@ public sealed class LongAbsenceTests
             long rulesSeven = Quantity.Units(world.Buildings.Where(b => b.Island == fields[1]).Sum(b => b.Kind is BuildingKind.Storehouse or BuildingKind.Jetty ? 150 : 0));
             return $"stock {fields[1]} {fields[2]} {(long)(random.NextDouble() * rulesSeven)}";
         });
-        var reader = new StateReader(new SettlementsPerIsland().Migrate(string.Join('\n', lines), world.Map));
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(string.Join('\n', lines), 8, RulesVersion.Current, world.Map));
         var migrated = World.Read(reader, world.Map);
         reader.End();
         return migrated;
@@ -428,6 +437,51 @@ public sealed class LongAbsenceTests
             Assert.True(wadmalMade >= 0, $"wadmal {Change(Resource.Wadmal)} over {dawns} dawns");
             Assert.True(Change(Resource.Wool) >= -2 * wadmalMade, $"wool {Change(Resource.Wool)} for {wadmalMade} wadmal");
             Assert.True(Change(Resource.Fish) + Change(Resource.Grain) >= -Quantity.Units((long)villagers * dawns), $"food {Change(Resource.Fish) + Change(Resource.Grain)} over {dawns} dawns");
+        }
+    }
+
+    /// <summary>
+    /// The player's stock rules and the reserved goods (TASK-046): the rules never change by themselves, and a reserved
+    /// good the villagers neither eat nor wear stays at its reservation, or where it was when it was below.
+    /// </summary>
+    private sealed class Reserved
+    {
+        // What the villagers eat and wear at dawn, which a reservation does not keep from them.
+        private static readonly Resource[] s_needed = [Resource.Fish, Resource.Grain, Resource.Wadmal];
+
+        private readonly Dictionary<Hex, int> _reserves;
+        private readonly string _rules;
+        private readonly Dictionary<(string Island, Resource Resource), (long Stock, int Reserved)> _goods;
+
+        private Reserved(Dictionary<Hex, int> reserves, string rules, Dictionary<(string, Resource), (long, int)> goods)
+        {
+            _reserves = reserves;
+            _rules = rules;
+            _goods = goods;
+        }
+
+        public static Reserved Of(World world)
+        {
+            string rules = string.Join(
+                " ",
+                world.Islands.SelectMany(i => world.ImportOrder(i).Select(r => $"{i}:{r}"))
+                    .Concat(world.Islands.SelectMany(i => s_resources.Select(r => $"{i}:{r}={world.ReservationOf(i, r)}"))));
+            var goods = world.Islands.SelectMany(i => s_resources.Where(r => world.ReservationOf(i, r) > 0 && !s_needed.Contains(r)).Select(r => (i, r)))
+                .ToDictionary(g => g, g => (world.Settlement.Stock(g.i, g.r), world.ReservationOf(g.i, g.r)));
+            return new(world.Buildings.ToDictionary(b => b.Tile, b => b.Reserve), rules, goods);
+        }
+
+        /// <summary>A building completed meanwhile comes with its own minimum stock, and an island built on with none reserved.</summary>
+        public void AssertKeptSince(Reserved earlier)
+        {
+            Assert.All(earlier._reserves, reserve => Assert.Equal(reserve.Value, _reserves[reserve.Key]));
+            Assert.StartsWith(earlier._rules.Split(' ')[0], _rules, StringComparison.Ordinal);
+            Assert.All(earlier._rules.Split(' '), rule => Assert.Contains(rule, _rules.Split(' ')));
+            foreach (var (good, (stock, reserved)) in earlier._goods)
+            {
+                long kept = Math.Min(stock, Quantity.Units(reserved));
+                Assert.True(_goods[good].Stock >= kept, $"{good.Resource} on {good.Island}: {stock} → {_goods[good].Stock} with {reserved} reserved");
+            }
         }
     }
 

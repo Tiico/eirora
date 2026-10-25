@@ -86,7 +86,7 @@ namespace Eirora.Client.Tests
             Open(Edited(NewWorld(), lines =>
             {
                 Settlement(lines, 20);
-                Buildings(lines, "building Cottage -1 0 1 0 0 0 0 0 0 0 0 0 0 0", "building Sawmill 0 -1 2 0 0 0 0 0 0 0 0 1 0 0");
+                Buildings(lines, "building Cottage -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0", "building Sawmill 0 -1 2 0 0 0 0 0 0 0 0 1 0 0 20");
             }));
 
             _hud.Select(s_west);
@@ -110,7 +110,7 @@ namespace Eirora.Client.Tests
                     lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
                     Enum.GetValues(typeof(Resource)).Cast<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? 40 * Quantity.PerUnit : 0)}"));
                 lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {PrototypeHome.Nyon} 0");
-                Buildings(lines, $"building Jetty {jetty.Q} {jetty.R} 1 1 0 0 0 1 4 0 0 0 0 0", "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0");
+                Buildings(lines, $"building Jetty {jetty.Q} {jetty.R} 1 1 0 0 0 1 4 0 0 0 0 0 0", "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0 0");
             }));
             _hud.Select(jetty);
 
@@ -144,7 +144,7 @@ namespace Eirora.Client.Tests
             Open(Edited(NewWorld(), lines =>
             {
                 Stock(lines, "Fish", 200);
-                Buildings(lines, $"building Storehouse {s_east.Q} {s_east.R} 1 1 0 0 0 1 4 0 0 0 0 0");
+                Buildings(lines, $"building Storehouse {s_east.Q} {s_east.R} 1 1 0 0 0 1 4 0 0 0 0 0 0");
             }));
             _hud.Select(s_east);
 

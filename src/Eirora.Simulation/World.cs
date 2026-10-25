@@ -155,8 +155,8 @@ namespace Eirora.Simulation
         public long Stock(string island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
 
         /// <summary>
-        /// Whole units of a resource on an island that wait for the ships to take them home: its store but the two days'
-        /// food it keeps for its villagers; nothing on the home island.
+        /// Whole units of a resource on an island that wait for the ships to take them home: its store but the larger of
+        /// the two days' food it keeps for its villagers and what is reserved there (TASK-046); nothing on the home island.
         /// </summary>
         public long ForTheShips(string island, Resource resource) => Quantity.Whole(_settlement.ForTheShips(island, resource));
 
@@ -195,6 +195,15 @@ namespace Eirora.Simulation
 
         /// <summary>The sea routes that ships sail, in map order: one between each island with a jetty and the home island.</summary>
         public IReadOnlyList<SeaRoute> SeaRoutes => _settlement.SeaRoutes;
+
+        /// <summary>Whole units of each resource an island's store holds; 0 on an island without one.</summary>
+        public int StorageUnits(string island) => _settlement.StorageUnits(island);
+
+        /// <summary>Whole units of a resource reserved on an island, which neither the ships nor processing take (TASK-046).</summary>
+        public int ReservationOf(string island, Resource resource) => _settlement.ReservationOf(island, resource);
+
+        /// <summary>The order the ships take an island's goods home in (TASK-046): the player's, or the resources' fixed order.</summary>
+        public IReadOnlyList<Resource> ImportOrder(string island) => _settlement.ImportOrder(island);
 
         /// <summary>The building on a tile, if any.</summary>
         public Building? BuildingAt(Hex tile) => _settlement.BuildingAt(tile);

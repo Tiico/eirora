@@ -416,6 +416,7 @@ namespace Eirora.Client.UI
             Rejection.NotQueued => "Det bygget ligger inte i kön längre.",
             Rejection.NoRoomInStore => "Lagret rymmer inte öns varor utan byggnaden. Använd eller skeppa några först.",
             Rejection.LastStorehouse => "Hemöns sista förråd står kvar, eftersom allt betalas ur dess lager.",
+            Rejection.NoSuchIsland => "Ön har inget eget lager än.",
             _ => "Det gick inte just nu.",
         };
 
@@ -493,8 +494,12 @@ namespace Eirora.Client.UI
             MissingStaff staff when !home => $"Det saknas {Villagers(staff.Villagers)} här. Öns egna bybor bemannar den, och lediga bybor flyttar hit över sjövägen.",
             MissingStaff staff => $"Det saknas {Villagers(staff.Villagers)} här. Flytta upp den i bemanningen eller pausa en byggnad före den.",
             Paused => "Pausad: byborna bygger i stället. Nivån och lagret står kvar.",
+            WaitingForInput { KeptBy: KeptBy.Reservation } input =>
+                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. {input.Kept} är reserverade på ön.",
+            WaitingForInput { Kept: 0 } input =>
+                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete.",
             WaitingForInput input =>
-                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. Minimilagret på {input.Reserve} sparas till byggen.",
+                $"Väntar på {Name(input.Resource)}: {input.Missing} till behövs för en timmes arbete. Minimilagret på {input.Kept} sparas till byggen.",
             StoreFull { Capacity: 0 } full => $"Ön har inget förråd för {Name(full.Resource)}.",
             StoreFull full => $"Lagret är fullt: {full.Capacity} {Name(full.Resource)}. Inget går förlorat.",
             ForestFelled { InReach: 0 } => "Här finns ingen skog kvar att fälla.",
@@ -506,6 +511,19 @@ namespace Eirora.Client.UI
             CarriersBehind behind => Behind(behind, product),
             _ => $"Något håller tillbaka {Rate(hindrance.LostPerHour)} i timmen.",
         };
+
+        /// <summary>
+        /// What a processing building's minimum stock keeps, under its name on its sheet (TASK-046): building material, or
+        /// the island's reservation when that keeps more.
+        /// </summary>
+        public static string Reserve(Building building, int reserved, string island) =>
+            reserved > building.Reserve ? $"{reserved} reserverade på {island} går före"
+            : building.Reserve == 0 ? $"{Definite(building.Kind)} tar allt"
+            : "Sparas till byggen";
+
+        /// <summary>What an island's store holds of a good and what is reserved, such as "12 i lagret, 10 reserverade".</summary>
+        public static string InStore(long stock, int reserved) =>
+            reserved == 0 ? $"{stock} i lagret" : $"{stock} i lagret, {reserved} {(reserved == 1 ? "reserverad" : "reserverade")}";
 
         /// <summary>What a road to the storehouse gives a building, beside the road's cost on its sheet.</summary>
         public static string RoadGives(CarriersBehind behind, Resource product) =>
@@ -561,6 +579,10 @@ namespace Eirora.Client.UI
                 if (hindrance is StoreFull full)
                 {
                     yield return $"Lagret hemma är fullt av {Name(full.Resource)}, så den väntar på andra sidan.";
+                }
+                else if (hindrance is Reserved reserved)
+                {
+                    yield return $"Skeppen har plats för mer, men {reserved.Units} {Name(reserved.Resource)} är reserverade på ön.";
                 }
             }
         }

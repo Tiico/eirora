@@ -51,7 +51,7 @@ internal static class BuiltOutWorld
     public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago)
     {
         var random = new Random(~seed);
-        var scenario = Scenario.Generate(seed, length: 30, archipelago);
+        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false);
         var save = scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)
@@ -148,6 +148,11 @@ internal static class BuiltOutWorld
             save.Apply($"out-{key++}", first);
         }
 
+        foreach (var rule in StockRules(world, seed))
+        {
+            save.Apply($"out-{key++}", rule);
+        }
+
         // Or lay a road, which the villagers build while the player is away.
         if (random.Next(2) == 0 && Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } roads)
         {
@@ -242,6 +247,33 @@ internal static class BuiltOutWorld
             10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),
             _ => new Rush(),
         };
+    }
+
+    /// <summary>
+    /// The player's stock rules in one world of three (TASK-046), drawn from the seed alone so that the build-out draws as
+    /// before: a processing building's minimum stock, a reservation at home and one on an island the ships sail from,
+    /// and a good moved first in that island's import order. The commands the world refuses change nothing.
+    /// </summary>
+    private static IEnumerable<GameCommand> StockRules(World world, int seed)
+    {
+        var random = new Random(seed * 7919);
+        if (random.Next(3) != 0)
+        {
+            yield break;
+        }
+
+        var resources = Enum.GetValues<Resource>();
+        if (BuiltSite(world, random.Next(int.MaxValue), b => b.Held is not null) is Hex processing)
+        {
+            yield return new SetReserve(processing, random.Next(9) * 5);
+        }
+
+        yield return new SetReservation(world.HomeIsland, resources[random.Next(resources.Length)], 5 + (random.Next(6) * 5));
+        if (world.SeaRoutes.Count > 0 && world.SeaRoutes[random.Next(world.SeaRoutes.Count)].From is var away)
+        {
+            yield return new SetReservation(away, resources[random.Next(resources.Length)], 5 + (random.Next(6) * 5));
+            yield return new MoveImport(away, resources[random.Next(resources.Length)], 0);
+        }
     }
 
     /// <summary>A building that needs staff moved to another place in the staffing order, or none.</summary>

@@ -39,33 +39,33 @@ stock second Stone 0
 stock second Wool 0
 stock second Wadmal 0
 owed second 20000000
-building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0
-building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0
-building Jetty 17 -12 1 1 0 0 0 1 4 0 0 0 0 0
-building Woodcutter 3 0 1 1 0 0 0 0 0 1 0 1 0 0
-building Woodcutter 0 -2 2 1 0 0 0 0 0 0 8000000 1 0 0
-building Quarry 2 -4 1 1 0 0 0 0 0 1 0 1 0 0
-building Jetty -4 4 1 1 0 0 0 2 4 0 0 0 0 0
-building Storehouse 0 0 1 1 0 0 0 1 1 0 0 0 0 0
-building Sawmill -2 4 2 1 0 0 0 0 0 0 0 1 -4 4
+building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0 0
+building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0 0
+building Jetty 17 -12 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Woodcutter 3 0 1 1 0 0 0 0 0 1 0 1 0 0 0
+building Woodcutter 0 -2 2 1 0 0 0 0 0 0 8000000 1 0 0 0
+building Quarry 2 -4 1 1 0 0 0 0 0 1 0 1 0 0 0
+building Jetty -4 4 1 1 0 0 0 2 4 0 0 0 0 0 0
+building Storehouse 0 0 1 1 0 0 0 1 1 0 0 0 0 0 0
+building Sawmill -2 4 2 1 0 0 0 0 0 0 0 1 -4 4 20
 held Timber 250000
-building Woodcutter 0 -3 2 1 0 0 0 0 0 0 8000000 1 0 0
-building Jetty -18 7 1 1 0 0 0 1 4 0 0 0 0 0
-building Cottage 0 -1 1 0 0 0 0 0 0 0 0 0 0 0
-building Cottage 3 -4 1 0 0 0 0 0 0 0 0 0 0 0
-building Storehouse -18 8 1 1 0 0 0 1 4 0 0 0 0 0
-building Lookout -19 10 1 0 0 0 0 0 0 0 0 0 0 0
-building Field 0 1 2 1 0 19812500 0 0 0 0 8000000 1 0 0
-building Longhouse 15 -12 1 0 0 0 0 0 0 0 0 0 0 0
-building Lookout -17 9 1 0 0 0 0 0 0 0 0 0 0 0
-building Woodcutter -17 7 1 1 0 0 0 0 0 0 0 1 -18 7
-building Storehouse -20 10 1 0 0 0 0 0 4 0 0 0 0 0
-building SheepFarm -1 4 1 1 0 1200000 0 0 0 0 0 1 -4 4
-building Lookout -20 11 1 0 0 0 0 0 0 0 0 0 0 0
-building Lookout 3 -3 1 0 0 0 0 0 0 0 0 0 0 0
-building Quarry -5 5 1 1 0 0 0 0 0 0 0 1 -4 4
-building FishingHut -2 6 1 1 0 0 0 0 0 0 0 1 -4 4
-building Weavery 16 -10 1 1 0 0 0 0 0 0 0 1 17 -12
+building Woodcutter 0 -3 2 1 0 0 0 0 0 0 8000000 1 0 0 0
+building Jetty -18 7 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Cottage 0 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Cottage 3 -4 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Storehouse -18 8 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Lookout -19 10 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Field 0 1 2 1 0 19812500 0 0 0 0 8000000 1 0 0 0
+building Longhouse 15 -12 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Lookout -17 9 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Woodcutter -17 7 1 1 0 0 0 0 0 0 0 1 -18 7 0
+building Storehouse -20 10 1 0 0 0 0 0 4 0 0 0 0 0 0
+building SheepFarm -1 4 1 1 0 1200000 0 0 0 0 0 1 -4 4 0
+building Lookout -20 11 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 3 -3 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Quarry -5 5 1 1 0 0 0 0 0 0 0 1 -4 4 0
+building FishingHut -2 6 1 1 0 0 0 0 0 0 0 1 -4 4 0
+building Weavery 16 -10 1 1 0 0 0 0 0 0 0 1 17 -12 20
 project Road 15 -11 1500
 project Build Cottage -19 8 32000
 road 0 -1

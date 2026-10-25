@@ -26,7 +26,7 @@ public sealed class StaffingTests
     [Fact]
     public void APausedQuarryProducesNothingAndItsVillagersBuild()
     {
-        var running = Morning("building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0");
+        var running = Morning("building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0");
         Assert.True(Apply(running, new Build(BuildingKind.Cottage, L1)).Accepted);
         var paused = Copy(running);
 
@@ -52,7 +52,7 @@ public sealed class StaffingTests
     [Fact]
     public void APausedBuildingLosesNothingAndIsStaffedAgainWhenResumed()
     {
-        var world = Morning("building Field -1 2 2 1 0 3000000 0 0 0 0 0 0 0 0");
+        var world = Morning("building Field -1 2 2 1 0 3000000 0 0 0 0 0 0 0 0 0");
         Assert.True(Apply(world, new PauseBuilding(O2)).Accepted);
 
         world.AdvanceTo(At("2026-10-15 12:00", 2));
@@ -74,9 +74,9 @@ public sealed class StaffingTests
     public void BuildingsAreStaffedInTheNewOrderFromTheNextQuarterHour()
     {
         var world = Morning(
-            "building FishingHut -3 3 1 1 0 0 0 0 0 0 0 0 0 0",
-            "building Field -1 2 1 1 0 0 0 0 0 0 0 0 0 0",
-            "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0");
+            "building FishingHut -3 3 1 1 0 0 0 0 0 0 0 0 0 0 0",
+            "building Field -1 2 1 1 0 0 0 0 0 0 0 0 0 0 0",
+            "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0 0");
         Assert.Equal(1, world.FreeVillagers);
         long stone = world.Settlement.Stock(Resource.Stone);
 
@@ -97,10 +97,10 @@ public sealed class StaffingTests
     public void ABuildingThatDoesNotFitIsPassedOverForOneThatDoes()
     {
         var world = Morning(
-            "building FishingHut -3 3 1 1 0 0 0 0 0 0 0 0 0 0",
-            "building Field -1 2 1 1 0 0 0 0 0 0 0 0 0 0",
-            "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0",
-            "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0");
+            "building FishingHut -3 3 1 1 0 0 0 0 0 0 0 0 0 0 0",
+            "building Field -1 2 1 1 0 0 0 0 0 0 0 0 0 0 0",
+            "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0 0",
+            "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0 0");
         Assert.Equal(0, world.FreeVillagers);
 
         Assert.True(Apply(world, new Prioritize(M3, 0)).Accepted);
@@ -115,7 +115,7 @@ public sealed class StaffingTests
     [Fact]
     public void MovingABuildingKeepsTheOthersInTheirOrder()
     {
-        var world = Morning("building Longhouse -1 0 1 0 0 0 0 0 0 0 0 0 0 0", "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0");
+        var world = Morning("building Longhouse -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0", "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0");
 
         Assert.True(Apply(world, new Prioritize(M3, 2)).Accepted);
         Assert.Equal([S, K1, M3, O1, F1, L1], world.Buildings.Select(b => b.Tile));
@@ -129,7 +129,7 @@ public sealed class StaffingTests
     [Fact]
     public void ACompletedBuildingComesLastInTheStaffingOrder()
     {
-        var world = Morning("building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0");
+        var world = Morning("building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0");
         Assert.True(Apply(world, new Prioritize(M3, 0)).Accepted);
         Assert.True(Apply(world, new Build(BuildingKind.Storehouse, E1)).Accepted);
 
@@ -159,7 +159,7 @@ public sealed class StaffingTests
     [Fact]
     public void ACommandThatChangesNothingOrNamesNothingIsRejected()
     {
-        var world = Morning("building Longhouse -1 0 1 0 0 0 0 0 0 0 0 0 0 0");
+        var world = Morning("building Longhouse -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0");
         Assert.True(Apply(world, new Build(BuildingKind.Cottage, L2)).Accepted);
         string before = world.Fingerprint();
 
@@ -186,7 +186,7 @@ public sealed class StaffingTests
     [Fact]
     public void DuringTheRestPausingPrioritizingAndOrderingTheQueueAreRejectedWithoutSideEffects()
     {
-        var world = Village(At("2026-10-15 22:45", 2), "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0");
+        var world = Village(At("2026-10-15 22:45", 2), "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0");
         Assert.True(Apply(world, new Build(BuildingKind.Cottage, L1)).Accepted);
         Assert.True(Apply(world, new Build(BuildingKind.Cottage, L2)).Accepted);
         Assert.True(Apply(world, new PauseBuilding(K1)).Accepted);
@@ -208,10 +208,10 @@ public sealed class StaffingTests
     public void TheVillagersAtWorkNeverOutnumberTheVillagers()
     {
         var world = Morning(
-            "building FishingHut -3 3 1 1 0 0 0 0 0 0 0 0 0 0",
-            "building Field -1 2 1 1 0 0 0 0 0 0 0 0 0 0",
-            "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0",
-            "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0");
+            "building FishingHut -3 3 1 1 0 0 0 0 0 0 0 0 0 0 0",
+            "building Field -1 2 1 1 0 0 0 0 0 0 0 0 0 0 0",
+            "building Storehouse 2 -1 1 1 0 0 0 1 4 0 0 0 0 0 0",
+            "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0 0");
         var random = new Random(44);
         for (int i = 0; i < 200; i++)
         {

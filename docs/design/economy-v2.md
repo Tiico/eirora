@@ -1,7 +1,7 @@
 # Ekonomi v2
 
-> **Status:** [BESLUTAT] v2.4, delfrågorna avgjorda som D-109–D-119 och bosättningarnas frågor i TASK-050 som D-121–D-124  
-> **Ärende:** TASK-058 (#145), TASK-050 (#133) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-124, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
+> **Status:** [BESLUTAT] v2.4, delfrågorna avgjorda som D-109–D-119, bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
+> **Ärende:** TASK-058 (#145), TASK-050 (#133), TASK-046 (#129) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-127, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi v1:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Epok 1:** [epoch-1.md](./epoch-1.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v2.py](./models/economy_v2.py) (`python -I economy_v2.py`)
 
@@ -261,7 +261,7 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Den bär 40 enheter per dag som i v1, delat mellan varorna och nu åt båda hållen.
   Först går det öns bosättning behöver för två dygn ut från hemön: mat till alla och kläder och dryck till de bostäder öns nivåer har.
   Sedan går öns varor hem, och ön behåller två dygns behov.
-  Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen.
+  Importprioriteten och reserveringen i TASK-046 (#129) låter spelaren ändra ordningen för varorna hem och hålla kvar varor på ön; skulden och maten ut går som förut (D-126, D-127, [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler)).
 - **Lagret.**
   Ett förråd rymmer 150 av varje resurs som i v1, och en brygga 50, så att en ö med bara en brygga har ett eget lager.
 - **Före nivåerna.**
@@ -285,7 +285,7 @@ Havets strategi bygger därför Nyöns brygga före den första bostaden, så at
 - **En vända** är 4 enheter fram och tillbaka längs sökvägen över land.
   Ett steg tar 15 minuter, och 7,5 minuter in på en ruta med väg.
 - **Bärarna hämtar och lämnar.**
-  De hämtar det som väntar vid byggnaderna och bär råvara till förädlingen, som håller 4 enheter framme och aldrig tar förrådet under minimilagret på 20 (LOG-06).
+  De hämtar det som väntar vid byggnaderna och bär råvara till förädlingen, som håller 4 enheter framme och aldrig tar förrådet under sitt minimilager, 20 som standard, eller under öns reservering (LOG-06, TASK-046).
   De tar först där det väntar mest: det fullaste utlagret eller den förädling som har minst råvara kvar, och spelarens prioritet går före (D-111).
   Spelarens prioritet är ett uttryckligt läge, inte platsen i bemanningsordningen (förtydligande av D-111): en byggnad som spelaren flyttat upp där tar bärarna först, också när andra flyttas upp ovanför den.
   Flyttad ned igen tar de den där det väntar mest, och förråd och bryggor får aldrig läget.
@@ -550,6 +550,12 @@ Produktägarens svar på frågorna i TASK-050 (PR #164):
   Utan det får Närområdet och Bygden aldrig någon bybo på Nyön, eftersom hemöns lediga bybor från vecka 2 är bönder och hantverkare.
 - Komforten med tyg gäller per bosättning, med 2 tyg ur öns eget lager, tills nivåerna kommer (avsnitt 6).
 - Nyöns egna bybor visas på bryggans blad och i rapporten; introduktion 6 byggs med introduktionssystemet i M5 ([ROADMAP](../../ROADMAP.md), M5 punkt 4).
+
+Lagerreglerna i TASK-046 (#129) står i [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler):
+
+- **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
+- **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
+- **D-127:** reserveringen hindrar bara skeppning hemåt och förädling, inte byggmaterial och mat som skeppas ut till öarna.
 
 Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.
 

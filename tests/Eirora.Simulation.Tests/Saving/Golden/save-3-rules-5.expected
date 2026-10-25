@@ -22,20 +22,20 @@ stock home Planks 150000000
 stock home Stone 4000000
 stock home Wool 0
 stock home Wadmal 0
-building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0
-building FishingHut 1 0 1 1 0 0 0 0 0 0 0 1 0 0
-building Field 0 1 1 1 0 966187500 0 0 0 0 0 1 0 0
-building Woodcutter 1 -1 2 1 0 0 0 0 0 0 0 1 0 0
-building Sawmill -1 -3 1 1 0 0 0 0 0 0 0 1 0 0
-building Woodcutter -1 1 1 1 0 0 0 0 0 0 0 1 0 0
-building Woodcutter -3 2 1 1 0 0 0 0 0 0 0 1 0 0
-building FishingHut 5 -2 1 1 0 0 0 0 0 0 0 1 0 0
-building Woodcutter 3 -2 1 0 0 0 0 0 0 0 0 1 0 0
-building FishingHut 0 5 1 0 0 0 0 0 0 0 0 1 1 2
-building FishingHut 4 -4 1 0 0 0 0 0 0 0 0 1 0 0
-building Woodcutter -3 1 1 0 0 0 0 0 0 0 0 1 0 0
-building Woodcutter 1 -2 1 0 0 0 0 0 0 0 0 1 0 0
-building Jetty 1 2 1 1 0 0 0 1 4 0 0 0 0 0
+building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0 0
+building FishingHut 1 0 1 1 0 0 0 0 0 0 0 1 0 0 0
+building Field 0 1 1 1 0 966187500 0 0 0 0 0 1 0 0 0
+building Woodcutter 1 -1 2 1 0 0 0 0 0 0 0 1 0 0 0
+building Sawmill -1 -3 1 1 0 0 0 0 0 0 0 1 0 0 20
+building Woodcutter -1 1 1 1 0 0 0 0 0 0 0 1 0 0 0
+building Woodcutter -3 2 1 1 0 0 0 0 0 0 0 1 0 0 0
+building FishingHut 5 -2 1 1 0 0 0 0 0 0 0 1 0 0 0
+building Woodcutter 3 -2 1 0 0 0 0 0 0 0 0 1 0 0 0
+building FishingHut 0 5 1 0 0 0 0 0 0 0 0 1 1 2 0
+building FishingHut 4 -4 1 0 0 0 0 0 0 0 0 1 0 0 0
+building Woodcutter -3 1 1 0 0 0 0 0 0 0 0 1 0 0 0
+building Woodcutter 1 -2 1 0 0 0 0 0 0 0 0 1 0 0 0
+building Jetty 1 2 1 1 0 0 0 1 4 0 0 0 0 0 0
 project Build Woodcutter -1 -1 8000
 road 0 -3
 road 0 -2

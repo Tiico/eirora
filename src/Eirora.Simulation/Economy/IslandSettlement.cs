@@ -35,5 +35,17 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Villagers not working in a building on the island; they build.</summary>
         public int FreeVillagers => _economy.FreeVillagersOf(this);
+
+        /// <summary>
+        /// Whole units of each resource that neither the ships take home nor processing takes from the island's store
+        /// (GLOSSARY: Reservering, TASK-046); null when nothing is reserved. Only a command changes it, never a tick.
+        /// </summary>
+        internal int[]? Reserved { get; set; }
+
+        /// <summary>
+        /// The order the ships take the island's goods home in (GLOSSARY: Importprioritet, TASK-046); null for the
+        /// resources' fixed order. Never changed in place, so that it can be shown as it is; only a command replaces it.
+        /// </summary>
+        internal Resource[]? Imports { get; set; }
     }
 }

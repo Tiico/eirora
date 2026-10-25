@@ -23,7 +23,7 @@ namespace Eirora.Simulation.Tests.Economy;
 public sealed class SettlementTests
 {
     private const long WorkPerVillagerPerQuarter = 250; // Thousandths of a villager-hour.
-    private static readonly string s_homeJetty = $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 1 4 0 0 0 0 0";
+    private static readonly string s_homeJetty = $"building Jetty {H1.Q} {H1.R} 1 1 0 0 0 1 4 0 0 0 0 0 0";
     private static int s_key;
 
     // Acceptance: a new settlement has its own housing and store, and its villagers staff only buildings on its island; the
@@ -108,8 +108,8 @@ public sealed class SettlementTests
             IslandSettlement.SettlerHousing,
             buildings:
             [
-                s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0", "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 0 0 0",
-                "building Weavery -1 1 1 0 0 0 0 0 0 0 0 0 0 0", "building Field -1 2 1 0 0 0 0 0 0 0 0 0 0 0",
+                s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0", "building Quarry -3 -1 1 0 0 0 0 0 0 0 0 0 0 0 0", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 0 0 0 20",
+                "building Weavery -1 1 1 0 0 0 0 0 0 0 0 0 0 0 20", "building Field -1 2 1 0 0 0 0 0 0 0 0 0 0 0 0",
             ],
             stock: [(PrototypeHome.Nyon, Resource.Fish, 10)]);
 
@@ -125,7 +125,7 @@ public sealed class SettlementTests
     public void MissingFoodInOneSettlementStopsOnlyItsGrowth()
     {
         // Nyön has no food and no sea route, since Hemön has no jetty; Hemön has its fish.
-        var world = Village(3, buildings: [$"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"]);
+        var world = Village(3, buildings: [$"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"]);
         Assert.Empty(world.SeaRoutes);
         int home = world.SettlementOn(PrototypeHome.Home)!.Villagers;
 
@@ -142,17 +142,17 @@ public sealed class SettlementTests
     [Fact]
     public void TheDiagnosisSaysWhyASettlementStandsStill()
     {
-        var hungry = Village(3, buildings: [$"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"]).Diagnose().SettlementOn(PrototypeHome.Nyon)!;
+        var hungry = Village(3, buildings: [$"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"]).Diagnose().SettlementOn(PrototypeHome.Nyon)!;
         Assert.Equal((Growth.Hungry, 0L, true), (hungry.Growth, hungry.Food, hungry.StandsStill));
 
-        var full = Village(4, buildings: [$"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Fish, 10)]).Diagnose().SettlementOn(PrototypeHome.Nyon)!;
+        var full = Village(4, buildings: [$"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Fish, 10)]).Diagnose().SettlementOn(PrototypeHome.Nyon)!;
         Assert.Equal((Growth.Full, 10L, true), (full.Growth, full.Food, full.StandsStill));
 
         // An empty settlement whose jetty lacks a villager: without a sea route no one can move there, with one Hemön's
         // free villagers can, one a dawn.
-        var alone = Village(0, buildings: [$"building Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0"]).Diagnose().SettlementOn(PrototypeHome.Nyon)!;
+        var alone = Village(0, buildings: [$"building Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0 0"]).Diagnose().SettlementOn(PrototypeHome.Nyon)!;
         Assert.Equal((Growth.Empty, 1, 0, true), (alone.Growth, alone.MissingStaff, alone.FreeNearby, alone.StandsStill));
-        var joined = Village(0, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0"]);
+        var joined = Village(0, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 0 0 0 0 0 4 0 0 0 0 0 0"]);
         var waiting = joined.Diagnose().SettlementOn(PrototypeHome.Nyon)!;
         Assert.Equal((Growth.Empty, 1, joined.SettlementOn(PrototypeHome.Home)!.FreeVillagers, false), (waiting.Growth, waiting.MissingStaff, waiting.FreeNearby, waiting.StandsStill));
 
@@ -163,7 +163,7 @@ public sealed class SettlementTests
         // it stands still, and at dawn no one comes (review of #164).
         var crowded = Village(
             IslandSettlement.SettlerHousing,
-            buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0", $"building Quarry {N2.Q} {N2.R} 1 1 0 0 0 0 0 0 0 0 0 0", $"building SheepFarm {N1.Q} {N1.R} 1 0 0 0 0 0 0 0 0 0 0 0"]);
+            buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0", $"building Quarry {N2.Q} {N2.R} 1 1 0 0 0 0 0 0 0 0 0 0 0", $"building SheepFarm {N1.Q} {N1.R} 1 0 0 0 0 0 0 0 0 0 0 0 0"]);
         var still = crowded.Diagnose().SettlementOn(PrototypeHome.Nyon)!;
         Assert.Equal((Growth.Hungry, false, 1, true), (still.Growth, still.HasRoom, still.MissingStaff, still.StandsStill));
         Assert.True(still.FreeNearby > 0);
@@ -177,7 +177,7 @@ public sealed class SettlementTests
     {
         var world = Village(
             3,
-            buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"],
+            buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"],
             stock: [(PrototypeHome.Nyon, Resource.Fish, 10), (PrototypeHome.Nyon, Resource.Stone, 10)]);
         int homeFree = world.SettlementOn(PrototypeHome.Home)!.FreeVillagers;
         Record(world, Habit.Workouts, 3);
@@ -195,14 +195,14 @@ public sealed class SettlementTests
     [Fact]
     public void BuildingIsPaidFromTheIslandsStoreOrFromHomeWhoseMaterialsSailFirst()
     {
-        var stocked = Village(1, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Stone, 10), (PrototypeHome.Nyon, Resource.Fish, 2)]);
+        var stocked = Village(1, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Stone, 10), (PrototypeHome.Nyon, Resource.Fish, 2)]);
         long homeStone = stocked.Settlement.Stock(Resource.Stone);
         Record(stocked, Habit.Workouts, 3);
         Assert.True(Apply(stocked, new Build(BuildingKind.Lookout, N1)).Accepted);
         Assert.Equal((0L, homeStone, 0L), (stocked.Stock(PrototypeHome.Nyon, Resource.Stone), stocked.Settlement.Stock(Resource.Stone), stocked.Settlement.Owed(PrototypeHome.Nyon)));
 
         // Nyön has 9 stone, so the home island pays the 10 and the ships carry them before Nyön's own stone.
-        var bare = Village(1, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Stone, 9), (PrototypeHome.Nyon, Resource.Fish, 2)]);
+        var bare = Village(1, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Stone, 9), (PrototypeHome.Nyon, Resource.Fish, 2)]);
         Record(bare, Habit.Workouts, 3);
         Assert.True(Apply(bare, new Build(BuildingKind.Lookout, N1)).Accepted);
         Assert.Equal((9L, homeStone - Quantity.Units(10), Quantity.Units(10)), (bare.Stock(PrototypeHome.Nyon, Resource.Stone), bare.Settlement.Stock(Resource.Stone), bare.Settlement.Owed(PrototypeHome.Nyon)));
@@ -220,7 +220,7 @@ public sealed class SettlementTests
     [Fact]
     public void TheShipsKeepTwoDaysOfFoodOnTheIslandBeforeTheyCarryItsGoodsHome()
     {
-        var world = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Grain, 10)]);
+        var world = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Grain, 10)]);
         Assert.Equal((Resource.Grain, 4L), Assert.Single(world.Diagnose().SeaRouteFrom(PrototypeHome.Nyon)!.Waiting));
 
         world.AdvanceTo(At("2026-10-15 12:00", 2));
@@ -229,12 +229,12 @@ public sealed class SettlementTests
         Assert.Equal((Quantity.Units(6), 0L), (world.Settlement.Stock(PrototypeHome.Nyon, Resource.Grain), world.Settlement.Stock(PrototypeHome.Nyon, Resource.Fish)));
 
         // Two days' food in all, fish first as the villagers eat it, not two days of each (review of #164).
-        var both = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Fish, 6), (PrototypeHome.Nyon, Resource.Grain, 6)]);
+        var both = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"], stock: [(PrototypeHome.Nyon, Resource.Fish, 6), (PrototypeHome.Nyon, Resource.Grain, 6)]);
         Assert.Equal(6, both.ForTheShips(PrototypeHome.Nyon, Resource.Grain));
         both.AdvanceTo(At("2026-10-15 12:00", 2));
         Assert.Equal((Quantity.Units(6), 0L), (both.Settlement.Stock(PrototypeHome.Nyon, Resource.Fish), both.Settlement.Stock(PrototypeHome.Nyon, Resource.Grain)));
 
-        var hungry = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0"]);
+        var hungry = Village(3, buildings: [s_homeJetty, $"building Jetty {N0.Q} {N0.R} 1 1 0 0 0 1 4 0 0 0 0 0 0"]);
         Assert.Equal(2_500_000L, hungry.Diagnose().SeaRouteFrom(PrototypeHome.Nyon)!.SuppliesPerHour);
         hungry.AdvanceTo(At("2026-10-15 12:00", 2));
         Assert.Equal(Quantity.Units(6), hungry.Settlement.Stock(PrototypeHome.Nyon, Resource.Fish));
@@ -318,8 +318,8 @@ public sealed class SettlementTests
 
     /// <summary>A building as the state writes it, a storehouse or a jetty with its one carrier when staffed, no other with a depot yet.</summary>
     private static string Line(BuildingKind kind, Hex tile, bool staffed = false) => Logistics.IsDepot(kind)
-        ? $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 {(staffed ? 1 : 0)} 4 0 0 0 0 0"
-        : $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 0 0 0 0 0 0 0";
+        ? $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 {(staffed ? 1 : 0)} 4 0 0 0 0 0 0"
+        : $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 0 0 0 0 0 0 0 0";
 
     private static void Record(World world, Habit habit, int total) =>
         Assert.True(Apply(world, new RecordSelfCare(world.GameDay, habit, ContributionSource.Verified, total)).Accepted);

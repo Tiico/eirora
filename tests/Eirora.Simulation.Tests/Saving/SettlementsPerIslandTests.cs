@@ -50,7 +50,7 @@ public sealed class SettlementsPerIslandTests
         var built = BuiltOutWorld.Generate(seed);
         string rulesEight = RulesEight(built.Fingerprint());
 
-        var reader = new StateReader(new SettlementsPerIsland().Migrate(rulesEight, built.Map));
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(rulesEight, 8, RulesVersion.Current, built.Map));
         var world = World.Read(reader, built.Map);
         reader.End();
 
@@ -75,10 +75,10 @@ public sealed class SettlementsPerIslandTests
             StringComparison.Ordinal);
         state = Edit(state, "stock home Timber ", $"stock home Timber {140 * Quantity.PerUnit}");
         int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
-        state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing)}\nbuilding Sawmill {mill.Q} {mill.R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R}");
+        state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing)}\nbuilding Sawmill {mill.Q} {mill.R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R} 20");
         string rulesEight = RulesEight(state);
 
-        string migrated = new SettlementsPerIsland().Migrate(rulesEight, map);
+        string migrated = RoadsAreTilesTests.Migrated(rulesEight, 8, RulesVersion.Current, map);
 
         // The jetty's and the sawmill's villagers moved with them, and the store on the second island keeps 50 of each.
         // The other 70 timber wait, and the planks fit.
@@ -119,7 +119,7 @@ public sealed class SettlementsPerIslandTests
         state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing, carriers: 3)}");
         string rulesEight = RulesEight(state);
 
-        var reader = new StateReader(new SettlementsPerIsland().Migrate(rulesEight, map));
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(rulesEight, 8, RulesVersion.Current, map));
         var migrated = World.Read(reader, map);
         reader.End();
 
@@ -151,9 +151,9 @@ public sealed class SettlementsPerIslandTests
             $"\nstock home Wadmal 0\n{string.Concat(s_resources.Select(r => $"stock second {r} {(r == Resource.Fish ? 30 : 0) * Quantity.PerUnit}\n")).TrimEnd('\n')}",
             StringComparison.Ordinal);
         int last = state.LastIndexOf("\nbuilding ", StringComparison.Ordinal);
-        state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing)}\nbuilding Sawmill {land[0].Q} {land[0].R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R}\nbuilding Weavery {land[1].Q} {land[1].R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R}");
+        state = state.Insert(state.IndexOf('\n', last + 1), $"\n{Jetty(landing)}\nbuilding Sawmill {land[0].Q} {land[0].R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R} 20\nbuilding Weavery {land[1].Q} {land[1].R} 1 1 0 0 0 0 0 0 0 1 {landing.Q} {landing.R} 20");
 
-        var reader = new StateReader(new SettlementsPerIsland().Migrate(RulesEight(state), map));
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(RulesEight(state), 8, RulesVersion.Current, map));
         var migrated = World.Read(reader, map);
         reader.End();
 
@@ -191,7 +191,7 @@ public sealed class SettlementsPerIslandTests
             .Replace("stock Nyon Stone 0\n", $"stock Nyon Stone {120 * Quantity.PerUnit}\n", StringComparison.Ordinal);
         long homeStone = world.Settlement.Stock(Resource.Stone);
 
-        string migrated = RoadsAreTilesTests.Migrated(rulesSix, 6, 9, map);
+        string migrated = RoadsAreTilesTests.Migrated(rulesSix, 6, RulesVersion.Current, map);
 
         var reader = new StateReader(migrated);
         var after = World.Read(reader, map);
@@ -227,7 +227,7 @@ public sealed class SettlementsPerIslandTests
     /// </summary>
     internal static string RulesEight(string state)
     {
-        var lines = state.Split('\n').ToList();
+        var lines = StockRulesArriveTests.RulesTen(state).Split('\n').ToList();
         Assert.DoesNotContain(lines, l => l.StartsWith("at-depot ", StringComparison.Ordinal));
         lines.RemoveAll(l => l.StartsWith("owed ", StringComparison.Ordinal));
         long villagers = lines.Where(l => l.StartsWith("settlement ", StringComparison.Ordinal)).Sum(l => long.Parse(l.Split(' ')[2], CultureInfo.InvariantCulture));
@@ -247,7 +247,7 @@ public sealed class SettlementsPerIslandTests
     {
         var lines = rulesEight.Split('\n').Select(l => l.Split(' ')).ToList();
         Assert.Equal(long.Parse(lines.Single(f => f[0] == "settlement")[1], CultureInfo.InvariantCulture), world.Villagers);
-        string[] migrated = world.Fingerprint().Split('\n');
+        string[] migrated = StockRulesArriveTests.RulesTen(world.Fingerprint()).Split('\n');
         Assert.Equal(lines.Where(f => f[0] == "building").Select(f => string.Join(' ', f)), migrated.Where(l => l.StartsWith("building ", StringComparison.Ordinal)));
         Assert.Equal(lines.Where(f => f[0] == "project").Select(f => string.Join(' ', f)), migrated.Where(l => l.StartsWith("project ", StringComparison.Ordinal)));
         Assert.All(world.Buildings, b => Assert.NotNull(world.SettlementOn(b.Island)));
@@ -268,7 +268,7 @@ public sealed class SettlementsPerIslandTests
     }
 
     /// <summary>A staffed jetty with its carriers, one unless given, as rules 8 and 9 write it.</summary>
-    private static string Jetty(Hex tile, int carriers = 1) => $"building Jetty {tile.Q} {tile.R} 1 1 0 0 0 {carriers} 4 0 0 0 0 0";
+    private static string Jetty(Hex tile, int carriers = 1) => $"building Jetty {tile.Q} {tile.R} 1 1 0 0 0 {carriers} 4 0 0 0 0 0 0";
 
     private static string Edit(string state, string prefix, string line)
     {

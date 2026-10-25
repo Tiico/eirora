@@ -220,12 +220,12 @@ namespace Eirora.Simulation.Economy
         public long SuppliesPerHour { get; }
 
         /// <summary>
-        /// Whole units on the island the route sails from that wait for the ships, by resource, above the food the island
-        /// keeps; only resources with any.
+        /// Whole units on the island the route sails from that wait for the ships, in its import order, above the food the
+        /// island keeps and what is reserved there (TASK-046); only resources with any.
         /// </summary>
         public IReadOnlyList<(Resource Resource, long Units)> Waiting { get; }
 
-        /// <summary>What keeps goods from reaching home, such as a full store there.</summary>
+        /// <summary>What keeps goods from reaching home, such as a full store there or a reservation on the island.</summary>
         public IReadOnlyList<Hindrance> Hindrances { get; }
     }
 
