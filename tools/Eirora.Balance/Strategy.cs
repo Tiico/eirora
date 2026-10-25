@@ -113,10 +113,33 @@ public sealed class Strategy
         ],
         [new WorkdayOn(BuildingKind.Quarry), new WorkdayOn(BuildingKind.Woodcutter), new RushFirst()]);
 
+    /// <summary>
+    /// Utan träning, handkraft (epoch-1.md, section 5; D-65): Havet for a player who has deselected training, with the
+    /// guided tour's Build Power on the first jetty and the sawmill and the jetty on the island and the weavery built by
+    /// hand, and cottages for housing (D-43).
+    /// </summary>
+    public static Strategy NoTrainingByHand { get; } = new(
+        "no-training-by-hand",
+        "Utan träning, handkraft",
+        [
+            new BuildOne(BuildingKind.Jetty, Placement.Depot, byHand: true),
+            new BuildOne(BuildingKind.Woodcutter, Placement.Richest),
+            new BuildOne(BuildingKind.Sawmill, Placement.Village),
+            new SendExpeditionOnce(),
+            new BuildOne(BuildingKind.Jetty, Placement.RichGround, Where.ExpeditionIsland, byHand: true),
+            new BuildOne(BuildingKind.SheepFarm, Placement.Richest, Where.ExpeditionIslandElseHome),
+            new BuildOne(BuildingKind.Quarry, Placement.Richest, Where.ExpeditionIslandElseHome),
+            new BuildOne(BuildingKind.Cottage, Placement.Village),
+            new BuildOne(BuildingKind.Weavery, Placement.Village, byHand: true),
+            new BuildOne(BuildingKind.Cottage, Placement.Village),
+            new BuildOne(BuildingKind.Cottage, Placement.Village),
+        ],
+        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst()]);
+
     /// <summary>Ingen spelare: no commands at all; only self-care, if any, is recorded.</summary>
     public static Strategy Idle { get; } = new("idle", "Ingen spelare", [], []);
 
-    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Naive, NoTraining, Idle];
+    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Naive, NoTraining, NoTrainingByHand, Idle];
 
     /// <summary>The id the tool takes on its command line.</summary>
     public string Id { get; }

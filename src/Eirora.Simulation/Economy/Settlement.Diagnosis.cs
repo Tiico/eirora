@@ -103,11 +103,19 @@ namespace Eirora.Simulation.Economy
 
             // The queue stands still when no project has a free villager to build it, and the carriers took those who
             // would have: every villager that no building on those islands needs carries (D-109).
-            bool queueStandsStill = _projects.Count > 0;
+            // A building built by hand takes no villagers (D-65): it never stands still, and it is told with its dawns left.
+            bool queueStandsStill = FirstWorked is not null;
             bool carrying = false;
             var pools = new List<string>();
+            var byHand = new List<Project>();
             foreach (var project in _projects)
             {
+                if (project.ByHand)
+                {
+                    byHand.Add(project);
+                    continue;
+                }
+
                 foreach (var island in PoolsOf(project, pools))
                 {
                     queueStandsStill &= FreeVillagersOf(_settlements[island]) == 0;
@@ -118,7 +126,7 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            return new Diagnostics(buildings, depots, seaRoutes, settlements, next._stores, queueStandsStill && carrying);
+            return new Diagnostics(buildings, depots, seaRoutes, settlements, next._stores, queueStandsStill && carrying, byHand);
         }
 
         /// <summary>

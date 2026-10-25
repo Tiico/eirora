@@ -36,7 +36,7 @@ namespace Eirora.Simulation.Commands
         /// <summary>Every survey area has been surveyed.</summary>
         NothingLeftToSurvey,
 
-        /// <summary>The building queue is empty.</summary>
+        /// <summary>The building queue holds no project that the free villagers work on; one built by hand is not rushed (D-65).</summary>
         NothingToRush,
 
         /// <summary>The fog lifts only from a tile next to what is known (TASK-032).</summary>
@@ -68,5 +68,11 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The building belongs to an unlocked step the world has not reached yet (economy-v2.md, section 5).</summary>
         NotUnlocked,
+
+        /// <summary>The catalog does not let the building be built by hand (D-65).</summary>
+        NotByHand,
+
+        /// <summary>The project is built by hand in a fixed time, which the order of the queue does not change (D-65).</summary>
+        BuiltByHand,
     }
 }

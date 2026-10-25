@@ -46,7 +46,7 @@ public sealed class ContentValidationTests
     {
         var weavery = ContentCatalog.Current.For(BuildingKind.Weavery);
 
-        var byHand = ContentCatalog.Current.Replacing(BuildingKind.Weavery, Like(weavery, handBuild: false));
+        var byHand = ContentCatalog.Current.Replacing(BuildingKind.Weavery, Like(weavery, handBuildDays: 0));
         var dear = ContentCatalog.Current.Replacing(BuildingKind.Weavery, Like(weavery, planks: 12));
 
         Assert.NotEmpty(ContentValidation.Problems(byHand));
@@ -63,7 +63,7 @@ public sealed class ContentValidationTests
         Assert.Contains("Clothes: Hide takes Farmers to make, a tier that needs it.", ContentValidation.Problems(catalog));
     }
 
-    private static BuildingSpec Like(BuildingSpec spec, int? buildPower = null, bool? handBuild = null, int? planks = null, PopulationTier? tier = null)
+    private static BuildingSpec Like(BuildingSpec spec, int? buildPower = null, int? handBuildDays = null, int? planks = null, PopulationTier? tier = null)
     {
         var cost = new Dictionary<Resource, int>(spec.Cost);
         if (planks is int units)
@@ -73,6 +73,6 @@ public sealed class ContentValidationTests
 
         return new BuildingSpec(
             cost, spec.WorkHours, buildPower ?? spec.BuildPower, spec.Staff, spec.Requirement, spec.Housing, spec.MaxLevel, spec.Recipe,
-            spec.Step, tier ?? spec.Tier, spec.Houses, handBuild ?? spec.HandBuild);
+            spec.Step, tier ?? spec.Tier, spec.Houses, handBuildDays ?? spec.HandBuildDays);
     }
 }

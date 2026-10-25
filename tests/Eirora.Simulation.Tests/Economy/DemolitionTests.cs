@@ -91,7 +91,7 @@ public sealed class DemolitionTests
     [Fact]
     public void AnUpgradeCountsToWhatItCostAndAQueuedOneGoesWithTheBuilding()
     {
-        var world = Morning(["building Sawmill -1 0 2 1 0 0 0 0 0 0 0 0 0 0 20", "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0", "project Upgrade Quarry -3 -1 16000"]);
+        var world = Morning(["building Sawmill -1 0 2 1 0 0 0 0 0 0 0 0 0 0 20", "building Quarry -3 -1 1 1 0 0 0 0 0 0 0 0 0 0 0", "project Upgrade Quarry -3 -1 16000 0"]);
         var upgrade = world.Content.Upgrade.Cost;
 
         var upgraded = world.Demolition(L1)!;

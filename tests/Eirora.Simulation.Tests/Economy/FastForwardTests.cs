@@ -139,7 +139,7 @@ public sealed class FastForwardTests
                 // Set only by a command, which never runs in a tick (TASK-046).
                 "<Reserve>k__BackingField",
             ],
-            [typeof(Project)] = ["<WorkLeft>k__BackingField", "<Kind>k__BackingField", "<Building>k__BackingField", "<Tile>k__BackingField"],
+            [typeof(Project)] = ["<WorkLeft>k__BackingField", "<DaysLeft>k__BackingField", "<Kind>k__BackingField", "<Building>k__BackingField", "<Tile>k__BackingField"],
 
             // The fog is recorded by its lifts, which count every change of what is known.
             [typeof(Fog)] = ["_known", "<Lifts>k__BackingField", "_map"],
