@@ -81,6 +81,7 @@ public sealed class LongAbsenceTests
             AssertBounds(parts); // INV-R1.
             Stocks.Of(parts).AssertOnlyConsumedSince(was, parts.GameDay - dayWas, parts.Villagers, parts.Settlements.Count, restingThroughout); // INV-R2, INV-R3, INV-T4.
             Measures.Of(parts).AssertNotLowerThan(measuresWere); // INV-V1, INV-F6.
+            AssertLeftTheQueueOnlyFinished(measuresWere.Queue, parts, events); // INV-V1, INV-V4.
             Reserved.Of(parts).AssertKeptSince(reservedWere);
         }
 
@@ -104,6 +105,11 @@ public sealed class LongAbsenceTests
 
         Assert.Equal(once.Fingerprint(), parts.Fingerprint());
     }
+
+    // Seed -11 leaves a world with three settlements whose queue holds two fishing huts and then a road on the home
+    // island, and the road is finished while the huts before it still have work left (D-113, #175).
+    [Fact]
+    public void AnAbsenceWhereAProjectFurtherBackFinishesFirstBreaksNothing() => AnAbsenceOfAnyLengthBreaksNothing(-11);
 
     // The property proves little unless the build-out leaves worlds with work in flight.
     [Fact]
@@ -214,6 +220,32 @@ public sealed class LongAbsenceTests
         }
 
         return late;
+    }
+
+    /// <summary>
+    /// A project leaves the queue while the player is away only when it is finished: told in a <see cref="ProjectCompleted"/>
+    /// and standing as the building, the upgrade or the road it was, wherever it stood in the queue (D-113). The player's
+    /// commands that take one out otherwise, moving it first or demolishing a building with an upgrade queued, never come
+    /// during an absence.
+    /// </summary>
+    private static void AssertLeftTheQueueOnlyFinished(string[] queueWas, World world, IReadOnlyList<GameEvent> events)
+    {
+        var completed = events.OfType<ProjectCompleted>().ToList();
+        var left = queueWas.ToList();
+        foreach (string project in Measures.Of(world).Queue)
+        {
+            left.Remove(project);
+        }
+
+        Assert.Equal(left.Order(StringComparer.Ordinal), completed.Select(c => $"{c.Kind} {c.Building}@{c.Tile}").Order(StringComparer.Ordinal));
+        Assert.All(completed, c => Assert.True(
+            c.Kind switch
+            {
+                ProjectKind.Build => world.BuildingAt(c.Tile)?.Kind == c.Building,
+                ProjectKind.Upgrade => world.BuildingAt(c.Tile) is { Level: > 1 } upgraded && upgraded.Kind == c.Building,
+                _ => world.Roads.Contains(c.Tile),
+            },
+            $"{c.Kind} {c.Building}@{c.Tile} was completed but does not stand."));
     }
 
     private static void AssertBounds(World world)
@@ -331,11 +363,28 @@ public sealed class LongAbsenceTests
             Assert.True(ExpeditionHoursLeft <= earlier.ExpeditionHoursLeft, $"expedition {earlier.ExpeditionHoursLeft} → {ExpeditionHoursLeft}");
 
             // The player's say holds: a completed building comes last in the staffing order, a completed project leaves
-            // the front of the queue, nothing is paused or resumed, and villagers only ever go to work (INV-V2).
+            // the queue and the rest keep their order, nothing is paused or resumed, and villagers only ever go to work
+            // (INV-V2). A project further back can finish first, since each takes the work of the villagers who reach it
+            // that the ones before it have not taken (D-113).
             Assert.True(AtWork >= earlier.AtWork && AtWork <= Villagers, $"villagers at work {earlier.AtWork} → {AtWork} of {Villagers}");
             Assert.Equal(earlier.StaffingOrder, StaffingOrder.Take(earlier.StaffingOrder.Length));
             Assert.Equal(earlier.Paused, Paused);
-            Assert.Equal(earlier.Queue.Skip(earlier.Queue.Length - Queue.Length), Queue);
+            Assert.True(IsLeftOf(earlier.Queue, Queue), $"queue {string.Join(" | ", earlier.Queue)} → {string.Join(" | ", Queue)}");
+        }
+
+        /// <summary>Whether <paramref name="queue"/> is <paramref name="earlier"/> with some projects taken out, in its order.</summary>
+        private static bool IsLeftOf(string[] earlier, string[] queue)
+        {
+            int next = 0;
+            foreach (string project in earlier)
+            {
+                if (next < queue.Length && project == queue[next])
+                {
+                    next++;
+                }
+            }
+
+            return next == queue.Length;
         }
     }
 

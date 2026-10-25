@@ -238,17 +238,18 @@ public sealed class SettlementsPerIslandTests
     }
 
     /// <summary>
-    /// The world from a state of rules 8 has every villager, building and good of it, each in a settlement: the villagers
-    /// together, the buildings line for line, each good in the stores and at the depots together, and no store above what
-    /// its depots hold (INV-R1, INV-R2, INV-V1). An island's settlement has the villagers its buildings need.
+    /// The world from a state of rules 8 has every villager, building, project and good of it, each in a settlement: the
+    /// villagers together, the buildings and the queue line for line, each good in the stores and at the depots together,
+    /// and no store above what its depots hold (INV-R1, INV-R2, INV-V1). An island's settlement has the villagers its
+    /// buildings need.
     /// </summary>
     private static void AssertKeptEverything(string rulesEight, World world)
     {
         var lines = rulesEight.Split('\n').Select(l => l.Split(' ')).ToList();
         Assert.Equal(long.Parse(lines.Single(f => f[0] == "settlement")[1], CultureInfo.InvariantCulture), world.Villagers);
-        Assert.Equal(
-            lines.Where(f => f[0] == "building").Select(f => string.Join(' ', f)),
-            StockRulesArriveTests.RulesTen(world.Fingerprint()).Split('\n').Where(l => l.StartsWith("building ", StringComparison.Ordinal)));
+        string[] migrated = StockRulesArriveTests.RulesTen(world.Fingerprint()).Split('\n');
+        Assert.Equal(lines.Where(f => f[0] == "building").Select(f => string.Join(' ', f)), migrated.Where(l => l.StartsWith("building ", StringComparison.Ordinal)));
+        Assert.Equal(lines.Where(f => f[0] == "project").Select(f => string.Join(' ', f)), migrated.Where(l => l.StartsWith("project ", StringComparison.Ordinal)));
         Assert.All(world.Buildings, b => Assert.NotNull(world.SettlementOn(b.Island)));
         Assert.All(s_resources, r => Assert.Equal(
             lines.Where(f => f[0] == "stock" && f[2] == r.ToString()).Sum(f => long.Parse(f[3], CultureInfo.InvariantCulture)),
