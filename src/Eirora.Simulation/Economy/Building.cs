@@ -64,7 +64,7 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Whole units of each raw material that the carriers always leave in the island's store for building (GLOSSARY:
-        /// Minimilager, LOG-06): 0 to what the store holds, <see cref="StockRules.StandardReserve"/> when it is built; free
+        /// Minimilager, LOG-06): 0 to what the store holds, its recipe's <see cref="Recipe.Reserve"/> when it is built; free
         /// planning (D-23). 0 for a building without raw materials.
         /// </summary>
         public int Reserve { get; internal set; }

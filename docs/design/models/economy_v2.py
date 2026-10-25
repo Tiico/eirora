@@ -140,6 +140,7 @@ RECIPES = {
 GAME_PER_TILE = 0.25   # vilt per timme och oexploaterad skogsruta som jaktstugan når
 GAME_TILES = 4
 RESERVE = 20           # minimilager som förädlingen lämnar kvar (LOG-06)
+RESERVES = {"Garveri": 5}  # garveriet lämnar 5 vilt, som också är mat (produktägaren 2026-10-25, PR #180)
 
 # Varvet bygger knarrar som ökar kapaciteten på sjövägarna till och från sin ö.
 KNARR_COST = {"plankor": 10, "tjära": 5}
@@ -469,7 +470,7 @@ class World:
         return True
 
     def hire_carriers(self):
-        """Vid gryningen tar varje förråd så många bärare som varorna kräver, av de lediga torparna.
+        """Vid gryningen tar varje förråd så många bärare som varorna kräver, av de lediga byborna av alla nivåer.
 
         Bärarna räcker alltid till minst en; överblivna bärare blir lediga och bygger. Står något
         i byggkön lämnar förrådet KEEP_BUILDERS lediga bybor åt den.
@@ -484,7 +485,7 @@ class World:
                     d.carriers = want
                 elif want > d.carriers:
                     spare = sum(self.free(s)) - (KEEP_BUILDERS if self.projects else 0)
-                    d.carriers += max(0, min(want - d.carriers, self.free(s)[0], spare))
+                    d.carriers += max(0, min(want - d.carriers, spare))
                 self.staff()
 
     def explore_cost(self, base):
@@ -807,7 +808,7 @@ class World:
                         jobs.append((b.out / OUTPUT_BUFFER, "hämta", b, rate))
                     if b.kind in RECIPES and b.staffed:
                         res = RECIPES[b.kind][0]
-                        want = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVE))
+                        want = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVES.get(b.kind, RESERVE)))
                         if want > 1e-9:
                             jobs.append((want / INPUT_BUFFER, "lämna", b, rate))
                 jobs.sort(key=lambda j: (INPUT_FIRST and j[1] != "lämna", -j[0]))
@@ -822,7 +823,7 @@ class World:
                         s.stock[res] += n
                     else:
                         res = RECIPES[b.kind][0]
-                        n = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVE), left * rate)
+                        n = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVES.get(b.kind, RESERVE)), left * rate)
                         s.stock[res] -= n
                         b.inp += n
                     left -= n / rate

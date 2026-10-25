@@ -127,7 +127,7 @@ public sealed class FastForwardTests
 
                 // Derived, or scratch for a single call.
                 "_buildingAt", "_capacity", "_housing", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_jobs", "_needs", "_free", "_before", "_unstaffed", "_labour", "_pools",
-                "_met", "_grounds", "_keeps", "_freeByTier",
+                "_met", "_grounds", "_keeps",
             ],
             [typeof(IslandSettlement)] = ["_tiers", "<Island>k__BackingField", "_economy", "<Reserved>k__BackingField", "<Imports>k__BackingField"],
             [typeof(Building)] =

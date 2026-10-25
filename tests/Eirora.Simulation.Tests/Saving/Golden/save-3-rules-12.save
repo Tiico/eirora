@@ -1,5 +1,5 @@
 eirora-save 3
-sha256 431b51a5c1ac17a4bba736770cf17d0d3e91ea1591f3ff591acbf47ffd25603a
+sha256 748d3e4b802bd283d58f53dc92606c74485072c439bc20d17d6163ed90130069
 map 6206
 eirora-map 1
 radius 24
@@ -71,16 +71,15 @@ row 21 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D
 row 22 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
 row 23 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
 row 24 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0 D0
-latest 3444
+latest 3548
 eirora-snapshot 1
 rules 12
 content 2
-time 1786754916
-state-sha256 cabc6de6971299ee683ef373dbbce63225c5695206367bb94cd0d18b8715ea5c
+time 1786841316
+state-sha256 e5d20806b43483095d13b3f6deb4df3a1aaed09ceca9ea3229ab07a987d80172
 map 641fc6a76e80571e133d523dd2a771e9f17aed8f2ae438b94e4e310326341e0e
-cycle 1786754916 Europe/Stockholm 7200 Active 61 300 420
+cycle 1786841316 Europe/Stockholm 7200 Active 62 300 420
 created 1781517600
-day-start 53 1786010400
 day-start 54 1786096800
 day-start 55 1786183200
 day-start 56 1786269600
@@ -89,20 +88,21 @@ day-start 58 1786442400
 day-start 59 1786528800
 day-start 60 1786615200
 day-start 61 1786701600
+day-start 62 1786788000
 force Exploration 582 3
 force BuildPower 150 31
-force DawnPower 3400 11
+force DawnPower 3480 11
 economy 2 0 1
 settlement home 24 6
 settlement first 12 0
 settlement second 4 0
-stock home Fish 162843633
-stock home Grain 200000000
+stock home Fish 163593478
+stock home Grain 170000000
 stock home Timber 185000000
-stock home Planks 32671875
-stock home Stone 18124947
+stock home Planks 57796875
+stock home Stone 30874947
 stock home Wool 200000000
-stock home Wadmal 9800000
+stock home Wadmal 6800000
 stock home Game 11686509
 stock home Hide 0
 stock first Fish 21743633
@@ -116,7 +116,7 @@ stock first Game 0
 stock first Hide 0
 stock second Fish 7000000
 stock second Grain 1000000
-stock second Timber 95812500
+stock second Timber 72312500
 stock second Planks 0
 stock second Stone 2000000
 stock second Wool 0
@@ -127,44 +127,49 @@ owed second 20000000
 reserved home Stone 30
 reserved first Wool 10
 imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide
-building FishingHut -2 -1 2 1 0 0 0 0 0 0 7668750 1 0 0 0
+building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0 0
 building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0 0
 building Jetty 17 -12 1 1 0 0 0 1 4 0 0 0 0 0 0
-building Woodcutter 3 0 1 1 0 0 0 0 0 1 8000000 1 0 0 0
+building Woodcutter 3 0 1 1 0 0 0 0 0 1 0 1 0 0 0
 building Woodcutter 0 -2 2 1 0 0 0 0 0 0 8000000 1 0 0 0
-building Quarry 2 -4 1 0 0 0 1 0 0 1 0 1 0 0 0
-building Jetty -4 4 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Quarry 2 -4 1 1 0 0 0 0 0 1 0 1 0 0 0
+building Jetty -4 4 1 1 0 0 0 2 4 0 0 0 0 0 0
 building Storehouse 0 0 1 1 0 0 0 1 1 0 0 0 0 0 0
-building Sawmill -2 4 2 0 0 0 1 0 0 0 0 1 -4 4 15
+building Sawmill -2 4 2 1 0 0 0 0 0 0 0 1 -4 4 15
+held Timber 4000000
 building Woodcutter 0 -3 2 1 0 0 0 0 0 0 8000000 1 0 0 0
 building Jetty -18 7 1 1 0 0 0 1 4 0 0 0 0 0 0
 building Cottage 0 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Cottage 3 -4 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Lookout -19 10 1 0 0 0 0 0 0 0 0 0 0 0 0
-building Field 0 1 2 1 0 0 0 0 0 0 6812500 1 0 0 0
+building Field 0 1 2 1 0 16812500 0 0 0 0 8000000 1 0 0 0
 building Longhouse 15 -12 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Lookout -17 9 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Woodcutter -17 7 1 1 0 0 0 0 0 0 0 1 -18 7 0
 building Storehouse -20 10 1 1 0 0 0 1 4 0 0 0 0 0 0
-building SheepFarm -1 4 1 1 0 21500000 0 0 0 0 7700000 1 -4 4 0
+building SheepFarm -1 4 1 1 0 30800000 0 0 0 0 8000000 1 -4 4 0
 building Lookout -20 11 1 0 0 0 0 0 0 0 0 0 0 0 0
-building SheepFarm 0 3 1 1 0 118600000 0 0 0 0 8000000 1 0 0 0
-building Field 1 0 1 1 0 143634 0 0 0 0 6000000 1 0 0 0
+building SheepFarm 0 3 1 1 0 128200000 0 0 0 0 8000000 1 0 0 0
+building Field 1 0 1 1 0 10143634 0 0 0 0 8000000 1 0 0 0
 building Weavery 1 2 1 1 0 0 0 0 0 0 8000000 1 0 0 20
 held Wool 400000
 building Weavery 16 -10 1 1 0 0 0 0 0 0 0 1 17 -12 20
 building Farmstead 2 -6 1 0 0 0 0 0 0 0 0 0 0 0 0
-building HuntingLodge 1 -4 1 1 0 0 0 0 0 0 7803572 1 0 0 0
+building HuntingLodge 1 -4 1 1 0 0 0 0 0 0 8000000 1 0 0 0
 building Tannery 1 -5 1 1 0 0 0 0 0 0 0 1 0 0 5
 project Build Cottage -19 8 32000
 road 15 -11
 road 0 -1
 road 1 0
 road 2 0
+forest 3 -1 39937500
+forest 2 0 39937500
+forest 3 0 39875000
+forest 2 1 39875000
 forest -17 8 0
 fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000380000000f80000000fc00000003e000000007800000000700000000000000000c0000000003c000000000fc000000000ff8000000003fe0000000007fc0000000007fc0000000007fe000000000ffe000000001ffc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-contributions 8163
-of cabc6de6971299ee683ef373dbbce63225c5695206367bb94cd0d18b8715ea5c
+contributions 8258
+of e5d20806b43483095d13b3f6deb4df3a1aaed09ceca9ea3229ab07a987d80172
 selfcare 2 Steps SelfReported 19998
 selfcare 2 Workouts Verified 1
 selfcare 2 Workouts SelfReported 1
@@ -260,6 +265,7 @@ credited 58 Sleep 40
 credited 59 Sleep 40
 credited 60 Sleep 40
 credited 61 Sleep 40
+credited 62 Sleep 40
 gained 1 Sleep 80
 gained 2 Steps 218
 gained 2 Workouts 200
@@ -333,6 +339,7 @@ gained 58 Sleep 0
 gained 59 Sleep 0
 gained 60 Sleep 0
 gained 61 Sleep 0
+gained 62 Sleep 0
 spends-at-credit 1 Sleep 0
 spends-at-credit 2 Steps 0
 spends-at-credit 2 Workouts 0
@@ -406,14 +413,16 @@ spends-at-credit 58 Sleep 11
 spends-at-credit 59 Sleep 11
 spends-at-credit 60 Sleep 11
 spends-at-credit 61 Sleep 11
+spends-at-credit 62 Sleep 11
 command golden-demolish 1
-building-demolished 1786754916 Storehouse -18 8
+building-demolished 1786841316 Storehouse -18 8
 command golden-farmers-0 0
 command golden-farmers-1 0
 command golden-farmers-2 0
 command golden-farmers-3 0
 command golden-farmers-4 0
 command golden-farmers-5 0
+command golden-farmers-6 0
 command golden-owed 0
 command golden-reserve 0
 command golden-stone 0
@@ -548,7 +557,7 @@ building Field 1 -1 1 1 0 0 0 0 0 0 0 1 0 0 0
 building Woodcutter 0 -2 1 1 0 0 0 0 0 0 0 1 0 0 0
 fog 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000003c000000000fc000000000ff8000000003fe0000000007e40000000007fc0000000007fe000000000ff6000000001fbc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 credited 0 Sleep 40
-inputs 4092
+inputs 4160
 time 1781669676 America/New_York -18000
 cmd k1 selfcare 2 Workouts Verified 1
 time 1781671625 America/New_York -18000
@@ -668,8 +677,10 @@ cmd golden-farmers-2 build Tannery 1 -5
 time 1784940516 Europe/Stockholm 7200
 cmd golden-farmers-3 pause 2 -4
 cmd golden-farmers-4 pause -2 4
-cmd golden-farmers-5 reserve 1 -5 5
 time 1786754916 Europe/Stockholm 7200
+cmd golden-farmers-5 resume 2 -4
+cmd golden-farmers-6 resume -2 4
+time 1786841316 Europe/Stockholm 7200
 cmd golden-owed build Cottage -19 8
 cmd golden-demolish demolish -18 8
 cmd golden-reserve reserve -2 4 15

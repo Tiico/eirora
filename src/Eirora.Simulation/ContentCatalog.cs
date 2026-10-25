@@ -131,7 +131,7 @@ namespace Eirora.Simulation
                     recipe: new(Resource.Game, perHour: 250_000, richness: true, huntTiles: 4))),
                 (BuildingKind.Tannery, new(
                     Materials(timber: 10, stone: 5), workHours: 16, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 1,
-                    recipe: new(Resource.Hide, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Game, 2) }))),
+                    recipe: new(Resource.Hide, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Game, 2) }, reserve: 5))),
             },
             needs: new[]
             {
@@ -263,7 +263,7 @@ namespace Eirora.Simulation
             {
                 writer.Line("recipe").Enum(recipe.Product).Text("per-hour").Long(recipe.PerHour).Text("richness").Bool(recipe.Richness)
                     .Text("grows-per-hour").Long(recipe.GrowsPerHour).Text("forest-tiles").Long(recipe.ForestTiles)
-                    .Text("hunt-tiles").Long(recipe.HuntTiles);
+                    .Text("hunt-tiles").Long(recipe.HuntTiles).Text("reserve").Long(recipe.Reserve);
                 foreach (var input in recipe.Inputs)
                 {
                     writer.Line("input").Enum(input.Resource).Long(input.PerProduct);

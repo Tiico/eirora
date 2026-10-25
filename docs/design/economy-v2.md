@@ -63,7 +63,7 @@ Sedan sker det här, i den här ordningen; stegen 1–4 i varje bosättning för
 6. **Flytt.**
    En ledig bybo flyttar till den bosättning som saknar flest bybor till sina byggnader och har lediga bostäder (avsnitt 6, D-124), och byggnaderna bemannas igen.
 7. **Bärare.**
-   Varje förråd tar så många bärare som varorna kräver av sin ös lediga torpare, efter flytten (avsnitt 7).
+   Varje förråd tar så många bärare som varorna kräver av sin ös lediga bybor av alla nivåer, efter flytten (avsnitt 7); en bybo kan arbeta för sin nivå och lägre, så också bönder bär (produktägaren 2026-10-25, PR #180).
    Flytten går före, så en bybo som flyttar blir inte bärare på sin gamla ö samma gryning.
    Kalkylen flyttar före bemanningen och släpper bärarna först i det här steget; det ändrar bara vilken gryning något sker.
 8. **Upplåsning.**
@@ -150,6 +150,7 @@ Steg 0 är ekonomi v1 oförändrad, utom att bryggan får ett litet lager och at
   Jakten fäller inte skogen, så en skogshuggare och en jaktstuga kan dela skog; en skogsruta som flera jaktstugor når delar de lika.
 - Bigården är en långsam process som åkern: honungen växer dygnet runt och skattas under de aktiva timmarna (INV-T5).
 - Mjödet ur honung är dubbelt så effektivt som ölet ur säd, men bigården kräver äng nära förrådet, där bostäderna också vill stå.
+- Garveriet lämnar 5 vilt i lagret som minimilager i stället för förädlingens 20, eftersom vilt också är mat och en jaktstuga annars sällan når över 20 (produktägaren 2026-10-25, PR #180).
 - Tjärdalen står vid skogen men tar sitt timmer ur förrådet, som sågverket.
 - Varvet bygger en knarr i taget av 10 plankor och 5 tjära på 32 aktiva timmar.
   Eftersom alla sjövägar i epok 1 går till hemön lyfter ett varv på hemön alla öars sjövägar, och ett varv på en annan ö bara den öns.
@@ -276,7 +277,7 @@ Havets strategi bygger därför Nyöns brygga före den första bostaden, så at
 
 - **Bärarna är bybor vid förråden och bryggorna** (D-109).
   Varje förråd och brygga har minst en och högst fyra.
-  Vid gryningen tar förrådet så många som varorna kräver av sin ös lediga torpare, efter flytten, upp till spelarens tak, och släpper dem som inte behövs; taket är gratis planering (D-23).
+  Vid gryningen tar förrådet så många som varorna kräver av sin ös lediga bybor av alla nivåer, efter flytten, upp till spelarens tak, och släpper dem som inte behövs; taket är gratis planering (D-23).
   Förrådet tar också byggarna om det behöver dem, så byggkön kan stå still tills bosättningen växt; diagnostiken säger då *Byggkön står still: alla lediga bybor bär*, så att spelaren kan sänka taket.
   Förrådet tar aldrig en bybo från en annan byggnad: bemanningen är klibbig, så en byggnad som är bemannad förblir det, och en ny byggnad eller ett nytt förråd tar bara lediga bybor (D-39).
 - **Varje byggnad hör till det bemannade förråd eller den bemannade brygga som bärarna når snabbast på sin ö.**
@@ -524,7 +525,7 @@ I alla fyra är byborna, byggnaderna, nivåerna, krafterna och den upptäckta ka
 
 Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2.0 och F5 och F11 i en andra omgång efter granskningen:
 
-- **D-109 (F1):** bärarna är bybor som förrådet anställer själv vid gryningen, en till fyra lediga torpare, med spelarens tak.
+- **D-109 (F1):** bärarna är bybor som förrådet anställer själv vid gryningen, en till fyra lediga bybor, med spelarens tak; bybor av alla nivåer kan bära (förtydligat 2026-10-25, PR #180).
   Kalkylen räknar alternativen: bärare för hand ger den naiva strategin 0,46 i värde per kraft i stället för 0,65, och att lämna två byggare åt kön ger Närområdet 0,96 i stället för 1,13.
 - **D-110 (F2):** avståndet kostar bärartid i stället för produktion, och avståndsklasserna försvinner; avståndsdelen av D-103 ersätts.
 - **D-111 (F3):** bärarna tar först där det väntar mest, och spelarens prioritet från TASK-044 går före.

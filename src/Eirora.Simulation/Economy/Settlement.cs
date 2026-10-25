@@ -74,7 +74,6 @@ namespace Eirora.Simulation.Economy
         private readonly bool[] _met; // Whether each tier's needs were met at a dawn, reused for every settlement.
         private readonly List<Hex> _grounds = new(); // Another hunting lodge's forest, as HuntPerTick compares it.
         private readonly long[] _keeps; // What an island keeps of each need from the ships (Keeps).
-        private readonly int[] _freeByTier; // An island's free villagers of each tier, as the depots hire carriers.
         private readonly Dictionary<string, long> _labour = new(StringComparer.Ordinal); // Each settlement's free villagers' work in a tick.
         private readonly List<string> _pools = new(); // The islands that build a project (PoolsOf).
         private long _expeditionLeft;
@@ -88,7 +87,6 @@ namespace Eirora.Simulation.Economy
             _tiers = content.Tiers.Count;
             _met = new bool[_tiers];
             _keeps = new long[content.Needs.Count];
-            _freeByTier = new int[_tiers];
             Fog = fog;
             _owed = new long[map.Islands.Count];
             for (int i = 0; i < map.Islands.Count; i++)
@@ -844,7 +842,7 @@ namespace Eirora.Simulation.Economy
         /// use up their needs, up to two villagers rise to each tier whose needs were met, and it grows if it can; then
         /// today's workdays end, the villagers are given out again, a villager may move over a sea route, the depots take
         /// the carriers they need for a game day of <paramref name="activeTicks"/> waking quarter hours, each from its own
-        /// island's free crofters (sections 6 and 7), and a step whose condition is met unlocks. Missing food stops only
+        /// island's free villagers of every tier (sections 6 and 7), and a step whose condition is met unlocks. Missing food stops only
         /// that settlement's growth and rising, and a missing need only rising to its tier: no villager goes down a tier
         /// and no building loses its staff (D-39, INV-V3). A settlement without villagers does not grow: they come by
         /// moving (D-106, D-121).
@@ -2121,7 +2119,7 @@ namespace Eirora.Simulation.Economy
             {
                 CarrierCap = IsDepot(kind) ? MostCarriers : 0,
                 Held = recipe is not null && recipe.Inputs.Count > 0 ? new long[s_resourceCount] : null,
-                Reserve = recipe is not null && recipe.Inputs.Count > 0 ? StockRules.StandardReserve : 0,
+                Reserve = recipe is not null && recipe.Inputs.Count > 0 ? recipe.Reserve : 0,
             };
             StoreOn(building.Island);
             _buildings.Add(building);

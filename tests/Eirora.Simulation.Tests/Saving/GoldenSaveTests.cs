@@ -94,7 +94,7 @@ public sealed class GoldenSaveTests
     /// Makes the golden save of the current version from a fixed scenario: from rules 7 on, a world built out on the
     /// archipelago with a store on each of three islands, two sea routes home with goods waiting, and paused buildings
     /// (TASK-044, TASK-045); from rules 8 on also with roads, goods waiting for the carriers, raw materials at the
-    /// processing, a depot with more than one carrier (until rules 12) and one with a lower cap, and a building carried first (TASK-051);
+    /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051);
     /// from rules 9 on with villagers in each island's settlement and materials owed on a sea route (TASK-050); from
     /// rules 10 on also with a storehouse demolished (TASK-047); from rules 11 on also with a minimum stock of the
     /// player's, reservations and an import order (TASK-046); from rules 12 on also with step 1 unlocked, farmers, and a
@@ -125,8 +125,7 @@ public sealed class GoldenSaveTests
         Assert.NotEmpty(world.Roads);
         Assert.Contains(world.Buildings, b => b.Waiting > 0);
         Assert.Contains(world.Buildings, b => b.Held?.Any(h => h > 0) == true);
-        // From rules 12 the villagers left free at home are the farmers who rose, and depots hire only free crofters
-        // (economy-v2.md, section 2), so the depot with more than one carrier is in the golden saves of rules 8–11.
+        Assert.Contains(world.Buildings, b => b.Carriers > 1);
         Assert.Contains(world.Buildings, b => Logistics.IsDepot(b.Kind) && b.CarrierCap < Logistics.MostCarriers);
         Assert.Contains(world.Buildings, b => b.CarriedFirst);
         Assert.All(world.Settlements, s => Assert.True(s.Villagers > 0, $"No villagers on {s.Island}."));
@@ -177,19 +176,29 @@ public sealed class GoldenSaveTests
         }
 
         // The home island's sawmills and quarries pause, so that their villagers hunt and tan, and the food keeps coming.
-        foreach (var paused in world.Buildings.Where(b => b.Island == world.HomeIsland && b.Kind is BuildingKind.Sawmill or BuildingKind.Quarry && !b.Paused).ToList())
+        var pausing = world.Buildings.Where(b => b.Island == world.HomeIsland && b.Kind is BuildingKind.Sawmill or BuildingKind.Quarry && !b.Paused).ToList();
+        foreach (var paused in pausing)
         {
             Assert.True(save.Apply($"golden-farmers-{key++}", new PauseBuilding(paused.Tile)).Accepted, $"The {paused.Kind} was not paused.");
         }
-
-        // The tannery leaves only 5 of the game the lodge brings home, so that it is not all eaten first.
-        var tannery = world.Buildings.Single(b => b.Kind == BuildingKind.Tannery).Tile;
-        Assert.True(save.Apply($"golden-farmers-{key++}", new SetReserve(tannery, 5)).Accepted, "The tannery's minimum stock was not lowered.");
 
         for (int hour = 0; hour < 21 * 24 && !(world.Settlements.Any(s => s.VillagersOf(PopulationTier.Farmers) > 0) && world.Stock(Resource.Hide) > 0 && world.Stock(Resource.Game) > 0); hour++)
         {
             save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 3600, world.Now.ZoneId, world.Now.OffsetSeconds));
         }
+
+        // Then they work again, and at the next dawn the depots hire carriers of every tier for their goods (D-109).
+        while (world.Phase != Phase.Active)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 900, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        foreach (var paused in pausing)
+        {
+            Assert.True(save.Apply($"golden-farmers-{key++}", new ResumeBuilding(paused.Tile)).Accepted, $"The {paused.Kind} was not resumed.");
+        }
+
+        save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (24 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
     }
 
     /// <summary>

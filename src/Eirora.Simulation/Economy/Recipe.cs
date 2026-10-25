@@ -28,7 +28,8 @@ namespace Eirora.Simulation.Economy
             IReadOnlyList<Ingredient>? inputs = null,
             long growsPerHour = 0,
             int forestTiles = 0,
-            int huntTiles = 0)
+            int huntTiles = 0,
+            int reserve = StockRules.StandardReserve)
         {
             Product = product;
             PerHour = perHour;
@@ -38,8 +39,9 @@ namespace Eirora.Simulation.Economy
             GrowsPerHour = growsPerHour;
             ForestTiles = forestTiles;
             HuntTiles = huntTiles;
+            Reserve = inputs is null || inputs.Count == 0 ? 0 : reserve;
 
-            if (perHour <= 0 || perHour % TicksPerHour != 0 || growsPerHour < 0 || growsPerHour % TicksPerHour != 0 || forestTiles < 0 || huntTiles < 0)
+            if (perHour <= 0 || perHour % TicksPerHour != 0 || growsPerHour < 0 || growsPerHour % TicksPerHour != 0 || forestTiles < 0 || huntTiles < 0 || reserve < 0)
             {
                 throw new ArgumentException("A rate is positive millionths an hour that split evenly into quarter hours.");
             }
@@ -98,6 +100,12 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>How many forest tiles it fells at once, the richest it reaches with timber left; 0 for any other recipe.</summary>
         public int ForestTiles { get; }
+
+        /// <summary>
+        /// Whole units of each raw material that a new building of the recipe leaves in the store (GLOSSARY: Minimilager,
+        /// LOG-06), which the player can change; 0 for a recipe without raw materials.
+        /// </summary>
+        public int Reserve { get; }
 
         /// <summary>How many forest tiles it hunts on, the richest it reaches; 0 for any other recipe.</summary>
         public int HuntTiles { get; }

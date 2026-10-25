@@ -202,16 +202,44 @@ public sealed class PopulationTierTests
         Assert.True(alone.TimberLeft(F1) <= forest, "Hunting grew the forest.");
     }
 
-    // The tannery makes hide of game, as the weavery makes wadmal of wool, and leaves its minimum stock of game (LOG-06).
+    // The tannery makes hide of game, as the weavery makes wadmal of wool, and leaves its minimum stock of game (LOG-06):
+    // 5, not processing's 20, since game is food too and a lodge seldom brings more (product owner, 2026-10-25).
     [Fact]
-    public void TheTanneryMakesHideOfGame()
+    public void TheTanneryMakesHideOfGameAndLeavesFive()
     {
-        var world = Village(crofters: 12, step: 1, buildings: [Line(BuildingKind.Tannery, L1, staffed: true)], stock: [(Resource.Game, 40)]);
+        Assert.Equal(5, ContentCatalog.Current.For(BuildingKind.Tannery).Recipe!.Reserve);
+        var world = Village(crofters: 12, step: 1, buildings: [Line(BuildingKind.Tannery, L1, staffed: true)], stock: [(Resource.Game, 12)]);
+        Dawn(world);
 
-        world.AdvanceTo(At("2026-10-16 14:00", 2));
+        world.AdvanceTo(At("2026-10-16 23:00", 2));
 
+        Assert.Equal(5, world.BuildingAt(L1)!.Reserve);
         Assert.True(world.Stock(Resource.Hide) > 0, "The tannery made no hide.");
-        Assert.True(world.Stock(Resource.Game) >= StockRules.StandardReserve - 12, $"{world.Stock(Resource.Game)} game left.");
+        Assert.Equal(5, world.Stock(Resource.Game));
+    }
+
+    // Farmers carry: a depot hires free villagers of every tier, since a villager can do the work of its tier and those
+    // below (D-109; product owner, 2026-10-25). Here every crofter staffs a building, and the farmers are the free ones.
+    [Fact]
+    public void ADepotHiresFreeFarmersAsCarriers()
+    {
+        var probe = Village(crofters: 12);
+        var far = Enumerable.Range(0, probe.Map.Disc.Count).Select(i => probe.Map.Disc[i])
+            .Where(h => (probe.UsesOf(h) & TileUse.FishingWater) != 0 && probe.BuildingAt(h) is null && probe.TripFrom(h).Steps == 4)
+            .Take(3).ToArray();
+        var world = Village(
+            crofters: 13,
+            farmers: 4,
+            step: 1,
+            buildings: [Line(BuildingKind.Farmstead, s_farmstead), .. far.Select(h => Line(BuildingKind.FishingHut, h, staffed: true))]);
+        Assert.Equal(4, world.FreeVillagers);
+
+        Dawn(world);
+
+        var storehouse = world.BuildingAt(S)!;
+        // The dawn's one new crofter carries first, and then the farmers.
+        Assert.True(storehouse.Carriers > 2, $"The storehouse has {storehouse.Carriers} carriers.");
+        Assert.Equal(5 - (storehouse.Carriers - 1), world.SettlementOn(PrototypeHome.Home)!.FreeVillagers);
     }
 
     // The diagnosis says which need a tier lacks and why no one rises (TASK-043): first the step, then food, the tier's
@@ -308,5 +336,5 @@ public sealed class PopulationTierTests
     /// <summary>A building as the state writes it, a storehouse or a jetty with its one carrier when staffed, no other with a depot yet.</summary>
     private static string Line(BuildingKind kind, Hex tile, bool staffed = false) => Logistics.IsDepot(kind)
         ? $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 {(staffed ? 1 : 0)} 4 0 0 0 0 0 0"
-        : $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 0 0 0 0 0 0 0 {(ContentCatalog.Current.For(kind).Recipe?.Inputs.Count > 0 ? StockRules.StandardReserve : 0)}";
+        : $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 0 0 0 0 0 0 0 {ContentCatalog.Current.For(kind).Recipe?.Reserve ?? 0}";
 }
