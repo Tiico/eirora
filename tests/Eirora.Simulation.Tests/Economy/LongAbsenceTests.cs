@@ -3,7 +3,10 @@ using Eirora.Simulation.Economy;
 using Eirora.Simulation.Events;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
+using Eirora.Simulation.Serialization;
+using Eirora.Simulation.Tests.Saving;
 using Eirora.Simulation.Time;
 using FsCheck.Xunit;
 
@@ -17,9 +20,11 @@ namespace Eirora.Simulation.Tests.Economy;
 /// never fewer villagers are at work (INV-V2). Some worlds have a store on each of three islands and two sea routes
 /// home (TASK-045), whose shipping only moves goods between the stores. The carriers only move goods between the
 /// buildings' outboxes, the raw materials held at the processing and the stores, never while the villagers rest
-/// (INV-R2, INV-T4; TASK-051), and the roads stay. The player's stock rules hold while they are away (TASK-046): every
-/// minimum stock, reservation and import order stays as it was, and neither the ships nor processing take a reserved
-/// good below its reservation.
+/// (INV-R2, INV-T4; TASK-051), and the roads stay. Their settlements keep their villagers, or give a free one to another
+/// over a sea route, and their buildings stay staffed (TASK-050); some worlds come from rules 8 with goods waiting at a
+/// depot for room in its store, which only ever move in. The player's stock rules hold while they are away (TASK-046):
+/// every minimum stock, reservation and import order stays as it was, and neither the ships nor processing take a
+/// reserved good below its reservation.
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -32,7 +37,7 @@ public sealed class LongAbsenceTests
     private const long Day = 24 * Hour;
     private const long Year = 365 * Day;
     private const int StoragePerStorehouse = 150; // economy-v1.md, section 2.
-    private const int StorageAtJetty = 150;
+    private const int StorageAtJetty = 50; // economy-v2.md, section 6.
     private const int ComfortPerDawn = 2;
 
     // Ticks read one by one at the start of an absence, so that every quarter hour of the slow processes is seen.
@@ -45,6 +50,7 @@ public sealed class LongAbsenceTests
     {
         var random = new Random(seed);
         var left = BuiltOutWorld.Generate(seed);
+        left = random.Next(4) == 0 ? FromRulesEight(left, random) : left;
         long until = left.Now.UtcSeconds + AbsenceLength(random);
         var before = Measures.Of(left);
 
@@ -72,7 +78,7 @@ public sealed class LongAbsenceTests
             slowProcesses.Check(events, ticks);
 
             AssertBounds(parts); // INV-R1.
-            Stocks.Of(parts).AssertOnlyConsumedSince(was, parts.GameDay - dayWas, parts.Villagers, restingThroughout); // INV-R2, INV-R3, INV-T4.
+            Stocks.Of(parts).AssertOnlyConsumedSince(was, parts.GameDay - dayWas, parts.Villagers, parts.Settlements.Count, restingThroughout); // INV-R2, INV-R3, INV-T4.
             Measures.Of(parts).AssertNotLowerThan(measuresWere); // INV-V1, INV-F6.
             Reserved.Of(parts).AssertKeptSince(reservedWere);
         }
@@ -123,6 +129,11 @@ public sealed class LongAbsenceTests
             See("goods waiting for the ships", world.SeaRoutes.Any(r => s_resources.Any(res => world.Settlement.Stock(r.From, res) > 0)));
             See("paused", world.Buildings.Any(b => b.Paused));
             See("paused off the home island", world.Buildings.Any(b => b.Paused && b.Island != world.HomeIsland));
+            See("villagers off the home island", world.Settlements.Any(s => s.Island != world.HomeIsland && s.Villagers > 0));
+            See("buildings lacking villagers off the home island", world.Diagnose().Settlements.Any(s => s.Settlement.Island != world.HomeIsland && s.MissingStaff > 0));
+            See("materials owed", world.Islands.Any(i => world.Settlement.Owed(i) > 0));
+            var migrated = FromRulesEight(world, new Random(seed));
+            See("goods waiting at a depot", migrated.Islands.Any(i => s_resources.Any(r => migrated.Settlement.AtDepot(i, r) > 0)));
             See("full store", world.Islands.Any(i => s_resources.Any(r => Capacity(world, i) > 0 && world.Settlement.Stock(i, r) == Capacity(world, i))));
             See("felled forest", world.Fingerprint().Contains("\nforest ", StringComparison.Ordinal));
             See("ripening", world.Buildings.Any(b => b.Kind == BuildingKind.SheepFarm && b.Ripe > 0) && world.Buildings.Any(b => b.Kind == BuildingKind.Field && b.Ripe > 0));
@@ -149,6 +160,7 @@ public sealed class LongAbsenceTests
         [
             "queue", "expedition at sea", "sea route", "two sea routes", "three stores", "goods waiting for the ships", "paused", "paused off the home island",
             "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
+            "villagers off the home island", "buildings lacking villagers off the home island", "materials owed", "goods waiting at a depot",
             "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
             "minimum stock", "reserved", "reserved off the home island", "import order",
         ];
@@ -228,12 +240,35 @@ public sealed class LongAbsenceTests
         world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
         {
             BuildingKind.Storehouse => StoragePerStorehouse,
-            BuildingKind.Jetty when island != world.HomeIsland => StorageAtJetty,
+            BuildingKind.Jetty => StorageAtJetty,
             _ => 0,
         }));
 
     private static World Copy(World world) =>
         SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(world.Map);
+
+    /// <summary>
+    /// The world as rules 7 would have left it, migrated to the current rules: the stores off the home island filled at
+    /// random up to what rules 7 let their depots hold, so that goods wait at a depot for room (TASK-050).
+    /// </summary>
+    private static World FromRulesEight(World world, Random random)
+    {
+        var lines = SettlementsPerIslandTests.RulesEight(world.Fingerprint()).Split('\n').Select(line =>
+        {
+            string[] fields = line.Split(' ');
+            if (fields[0] != "stock" || fields[1] == world.HomeIsland)
+            {
+                return line;
+            }
+
+            long rulesSeven = Quantity.Units(world.Buildings.Where(b => b.Island == fields[1]).Sum(b => b.Kind is BuildingKind.Storehouse or BuildingKind.Jetty ? 150 : 0));
+            return $"stock {fields[1]} {fields[2]} {(long)(random.NextDouble() * rulesSeven)}";
+        });
+        var reader = new StateReader(RoadsAreTilesTests.Migrated(string.Join('\n', lines), 8, RulesVersion.Current, world.Map));
+        var migrated = World.Read(reader, world.Map);
+        reader.End();
+        return migrated;
+    }
 
     /// <summary>The first ticks after <paramref name="utcSeconds"/>, to read one by one.</summary>
     private static IEnumerable<long> OneByOne(long utcSeconds) =>
@@ -244,12 +279,13 @@ public sealed class LongAbsenceTests
 
     /// <summary>Everything that never decreases while the player is away (INV-V1, INV-F6), and the work left.</summary>
     private sealed record Measures(
-        int Villagers, int Housing, int Buildings, int Levels, int Roads, int Revealed, int Surveys, int GameDay, int[] Forces, int Projects, long WorkLeft, int ExpeditionHoursLeft,
-        int AtWork, string[] StaffingOrder, string[] Paused, string[] Queue)
+        int Villagers, int Housing, int Settlements, int Buildings, int Levels, int Roads, int Revealed, int Surveys, int GameDay, int[] Forces, int Projects, long WorkLeft,
+        int ExpeditionHoursLeft, int AtWork, string[] StaffingOrder, string[] Paused, string[] Queue)
     {
         public static Measures Of(World world) => new(
             world.Villagers,
             world.Housing,
+            world.Settlements.Count,
             world.Buildings.Count,
             world.Buildings.Sum(b => b.Level),
             world.Roads.Count,
@@ -276,6 +312,7 @@ public sealed class LongAbsenceTests
         {
             Assert.True(Villagers >= earlier.Villagers, $"villagers {earlier.Villagers} → {Villagers}");
             Assert.True(Housing >= earlier.Housing, $"housing {earlier.Housing} → {Housing}");
+            Assert.True(Settlements >= earlier.Settlements, $"settlements {earlier.Settlements} → {Settlements}");
             Assert.True(Buildings >= earlier.Buildings, $"buildings {earlier.Buildings} → {Buildings}");
             Assert.True(Levels >= earlier.Levels, $"levels {earlier.Levels} → {Levels}");
             Assert.True(Roads >= earlier.Roads, $"roads {earlier.Roads} → {Roads}");
@@ -299,8 +336,9 @@ public sealed class LongAbsenceTests
     }
 
     /// <summary>
-    /// The stock of each resource on every island together, in millionths, with what waits in the buildings' outboxes and
-    /// what the carriers have brought to the processing; and where each lies, to see that nothing moves during the rest.
+    /// The stock of each resource on every island together, in millionths, with what waits at the depots for room in the
+    /// store, in the buildings' outboxes and what the carriers have brought to the processing; and where each lies, to see
+    /// that nothing moves during the rest.
     /// </summary>
     private sealed class Stocks
     {
@@ -319,19 +357,19 @@ public sealed class LongAbsenceTests
             long Held(Resource r) => world.Buildings.Sum(b => b.Held?[(int)r] ?? 0);
             string where = string.Join(
                 " ",
-                world.Islands.SelectMany(i => s_resources.Select(r => world.Settlement.Stock(i, r)))
+                world.Islands.SelectMany(i => s_resources.SelectMany(r => new[] { world.Settlement.Stock(i, r), world.Settlement.AtDepot(i, r) }))
                     .Concat(world.Buildings.SelectMany(b => (b.Held ?? []).Prepend(b.Waiting))));
-            return new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r)) + Waiting(r) + Held(r))], where);
+            return new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.AtDepot(i, r)) + Waiting(r) + Held(r))], where);
         }
 
         /// <summary>
         /// A store shrinks with time only by what recipes and basic needs consume (INV-R3), and the carriers only move goods
         /// between a building and a store (INV-R2): the sawmill takes two timber
         /// for a plank, the weavery two wool for a wadmal, and each dawn every villager eats one fish or grain and
-        /// comfort takes two wadmal. The ships only move goods between the islands. Nothing changes while the villagers
-        /// rest throughout (INV-T4).
+        /// comfort takes two wadmal in each settlement. The ships only move goods between the islands, and goods waiting at
+        /// a depot only move into its store. Nothing changes while the villagers rest throughout (INV-T4).
         /// </summary>
-        public void AssertOnlyConsumedSince(Stocks earlier, int dawns, int villagers, bool restingThroughout)
+        public void AssertOnlyConsumedSince(Stocks earlier, int dawns, int villagers, int settlements, bool restingThroughout)
         {
             long Change(Resource r) => _total[(int)r] - earlier._total[(int)r];
             if (restingThroughout)
@@ -339,7 +377,7 @@ public sealed class LongAbsenceTests
                 Assert.Equal(earlier._where, _where);
             }
 
-            long wadmalMade = Change(Resource.Wadmal) + Quantity.Units(ComfortPerDawn * dawns);
+            long wadmalMade = Change(Resource.Wadmal) + Quantity.Units(ComfortPerDawn * dawns * settlements);
             Assert.True(Change(Resource.Planks) >= 0, $"planks {Change(Resource.Planks)}");
             Assert.True(Change(Resource.Stone) >= 0, $"stone {Change(Resource.Stone)}");
             Assert.True(Change(Resource.Timber) >= -2 * Change(Resource.Planks), $"timber {Change(Resource.Timber)} for {Change(Resource.Planks)} planks");

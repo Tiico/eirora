@@ -64,14 +64,29 @@ namespace Eirora.Simulation
         /// <summary>A schedule change waiting for its 24 hours to pass, if any (INV-T7).</summary>
         public RestSchedule? PendingRestSchedule => Cycle.PendingSchedule;
 
-        /// <summary>Villagers living in the settlement (GLOSSARY: Bybor).</summary>
+        /// <summary>Villagers living in every settlement together (GLOSSARY: Bybor).</summary>
         public int Villagers => _settlement.Villagers;
 
-        /// <summary>How many villagers the settlement can house.</summary>
+        /// <summary>How many villagers every settlement together can house.</summary>
         public int Housing => _settlement.Housing;
 
-        /// <summary>Villagers not working in a building; they build.</summary>
+        /// <summary>Villagers of every settlement together who work in no building; they build.</summary>
         public int FreeVillagers => _settlement.FreeVillagers;
+
+        /// <summary>
+        /// The settlements, in map order: the home island's and one on each island built on, each with its own villagers,
+        /// housing and store (D-106).
+        /// </summary>
+        public IReadOnlyList<IslandSettlement> Settlements => _settlement.Settlements;
+
+        /// <summary>The settlement on an island, by the map's id, or null when none has been founded there.</summary>
+        public IslandSettlement? SettlementOn(string island) => _settlement.SettlementOn(island);
+
+        /// <summary>
+        /// The map's id of the island a building site belongs to: its own for land, and for fishing water the land it lies
+        /// off, whose settlement staffs and builds it.
+        /// </summary>
+        public string IslandOf(Hex tile) => _settlement.IslandOf(tile);
 
         /// <summary>The buildings in the staffing order, which is also the order they work in.</summary>
         public IReadOnlyList<Building> Buildings => _settlement.Buildings;
@@ -128,11 +143,23 @@ namespace Eirora.Simulation
         /// <summary>Whole units of a resource in store on an island, by the map's id; goods reach home by sea route.</summary>
         public long Stock(string island, Resource resource) => Quantity.Whole(_settlement.Stock(island, resource));
 
-        /// <summary>The map's id of the island the settlement began on, where materials are paid from and villagers eat.</summary>
+        /// <summary>
+        /// Whole units of a resource on an island that wait for the ships to take them home: its store but the larger of
+        /// the two days' food it keeps for its villagers and what is reserved there (TASK-046); nothing on the home island.
+        /// </summary>
+        public long ForTheShips(string island, Resource resource) => Quantity.Whole(_settlement.ForTheShips(island, resource));
+
+        /// <summary>The map's id of the island the world began on, whose store pays for what another island's cannot.</summary>
         public string HomeIsland => _settlement.HomeIsland;
 
-        /// <summary>The islands with a store of their own, in map order: the home island and every island built on.</summary>
+        /// <summary>The islands with a settlement and a store of their own, in map order: the home island and every island built on.</summary>
         public IReadOnlyList<string> Islands => _settlement.Islands;
+
+        /// <summary>
+        /// Whether work on a tile can be paid: from its island's store when that holds it all, otherwise from the home
+        /// island's, whose materials then take room on the sea route (economy-v2.md, section 6).
+        /// </summary>
+        public bool CanAfford(IReadOnlyDictionary<Resource, int> cost, Hex tile) => _settlement.CanAfford(cost, tile);
 
         /// <summary>When the world was created (D-51).</summary>
         public long CreatedUtc => Cycle.CreatedUtc;
@@ -155,7 +182,7 @@ namespace Eirora.Simulation
         /// <summary>A tile of the island the first expedition finds, or null when the map has none worth the journey.</summary>
         public Hex? ExpeditionFinds => _settlement.Founding.ExpeditionFinds;
 
-        /// <summary>The sea routes that ships sail, in map order: one from each island with a jetty to the home island.</summary>
+        /// <summary>The sea routes that ships sail, in map order: one between each island with a jetty and the home island.</summary>
         public IReadOnlyList<SeaRoute> SeaRoutes => _settlement.SeaRoutes;
 
         /// <summary>Whole units of each resource an island's store holds; 0 on an island without one.</summary>

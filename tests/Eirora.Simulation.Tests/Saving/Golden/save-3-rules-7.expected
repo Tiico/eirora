@@ -14,7 +14,10 @@ rest 1780550100 America/New_York -18000
 force Exploration 1003 3
 force BuildPower 50 24
 force DawnPower 1512 8
-settlement 23 2 0
+economy 2 0
+settlement home 12
+settlement first 4
+settlement second 7
 stock home Fish 59687500
 stock home Grain 0
 stock home Timber 10406250

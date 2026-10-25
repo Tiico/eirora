@@ -129,6 +129,35 @@ public sealed class StockRulesTests
         Assert.Empty(route.Waiting);
     }
 
+    // Review of #167, with a settlement on each island (TASK-050): the ships leave the larger of the reservation and the two
+    // days' food the island keeps (D-125), and a reservation at home keeps no food from going out to an island (D-127).
+    [Theory]
+    [InlineData(20, 10)] // The reservation keeps more than the food: 20 stay, 10 go home.
+    [InlineData(5, 20)] // The food keeps more: 10 stay, and in eight hours the route takes 20 of the other 20.
+    public void TheShipsLeaveTheLargerOfTheReservationAndTheFoodTheIslandKeeps(int reserved, int shipped)
+    {
+        var world = WithFishOnFirst(villagers: 5, fish: 30);
+        Assert.True(Apply(world, new SetReservation(Archipelago.First, Resource.Fish, reserved)).Accepted);
+        long home = world.Settlement.Stock(Resource.Fish);
+
+        world.AdvanceTo(Shift(world.Now, 8 * 3600));
+
+        Assert.Equal((30 - shipped) * Unit, world.Settlement.Stock(Archipelago.First, Resource.Fish));
+        Assert.Equal(home + (shipped * Unit), world.Settlement.Stock(Resource.Fish));
+        Assert.Equal(30 - shipped - Math.Max(reserved, 10), world.ForTheShips(Archipelago.First, Resource.Fish));
+    }
+
+    [Fact]
+    public void AReservationAtHomeKeepsNoFoodFromGoingOutToAnIsland()
+    {
+        var world = WithFishOnFirst(villagers: 5, fish: 0);
+        Assert.True(Apply(world, new SetReservation(world.HomeIsland, Resource.Fish, (int)Quantity.Whole(world.Settlement.Stock(Resource.Fish)))).Accepted);
+
+        world.AdvanceTo(Shift(world.Now, 4 * 3600));
+
+        Assert.Equal(10 * Unit, world.Settlement.Stock(Archipelago.First, Resource.Fish)); // Two days' food for five.
+    }
+
     // Building pays from what is reserved: the reservation keeps goods from the ships and processing, not from the queue.
     [Fact]
     public void BuildingStillPaysFromWhatIsReserved()
@@ -294,6 +323,19 @@ public sealed class StockRulesTests
         (timber * Unit) - world.Settlement.Stock(Resource.Timber) - world.BuildingAt(L1)!.Held![(int)Resource.Timber];
 
     private static World Morning() => CarriersTests.Morning();
+
+    /// <summary>The world where only the ships work, with <paramref name="villagers"/> on the first island and its fish.</summary>
+    private static World WithFishOnFirst(int villagers, int fish)
+    {
+        var lines = SeaRouteTests.OnlyShips((_, _) => 0).Fingerprint().Split('\n').Select(line =>
+            line == $"settlement {Archipelago.First} 1" ? $"settlement {Archipelago.First} {villagers}"
+            : line.StartsWith($"stock {Archipelago.First} Fish ", StringComparison.Ordinal) ? $"stock {Archipelago.First} Fish {fish * Unit}"
+            : line);
+        var reader = new StateReader(string.Join('\n', lines));
+        var world = World.Read(reader, Archipelago.Map);
+        reader.End();
+        return world;
+    }
 
     /// <summary>The state without the commands' keys and outcomes, which every accepted command adds.</summary>
     private static string StripKeys(string state) =>

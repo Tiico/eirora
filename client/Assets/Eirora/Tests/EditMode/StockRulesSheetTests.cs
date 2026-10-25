@@ -88,9 +88,10 @@ namespace Eirora.Client.Tests
         [Test]
         public void NyonsStoreReservesTheChosenGoodAndTheShipsLeaveIt()
         {
-            // The good that waits most on Nyön at the end of the tour's week.
+            // The good that waits most on Nyön at the end of the tour's week, of those its villagers do not eat.
             var world = _game.World!;
-            var good = System.Enum.GetValues(typeof(Resource)).Cast<Resource>().OrderByDescending(r => world.Stock(PrototypeHome.Nyon, r)).First();
+            var good = System.Enum.GetValues(typeof(Resource)).Cast<Resource>().Where(r => r is not (Resource.Fish or Resource.Grain))
+                .OrderByDescending(r => world.Stock(PrototypeHome.Nyon, r)).First();
             long stock = world.Stock(PrototypeHome.Nyon, good);
             Assert.That(stock, Is.GreaterThan(0), "Nothing waits on Nyön at the end of the tour's week.");
             string name = Texts.Name(good);
@@ -107,9 +108,9 @@ namespace Eirora.Client.Tests
             Assert.That(Labels(), Does.Contain(Texts.InStore(stock, 10)));
 
             // What is reserved does not wait for the ships.
+            Assert.That(world.ForTheShips(PrototypeHome.Nyon, good), Is.EqualTo(System.Math.Max(stock - 10, 0)));
             _hud.Select(Jetty(PrototypeHome.Nyon));
             var waiting = Waiting(world);
-            Assert.That(waiting.Any(g => g.EndsWith(" " + Texts.Name(good, stock))), Is.False);
             Assert.That(Labels(), Does.Contain(waiting.Length == 0 ? "Inget väntar på skeppen just nu." : $"Väntar på skeppen: {Texts.List(waiting)}."));
         }
 
@@ -150,9 +151,9 @@ namespace Eirora.Client.Tests
             _root.Query(className: "row").ToList().Single(r => r.Query<Label>().ToList().Any(l => l.text == label))
                 .Query<Button>(className: "stepper-button").ToList().Single(b => b.text == text);
 
-        /// <summary>What waits for the ships on Nyön, as the jetty lists it: in the ships' order, without what is reserved.</summary>
+        /// <summary>What waits for the ships on Nyön, as the jetty lists it: in the ships' order, without the food it keeps and what is reserved.</summary>
         private static string[] Waiting(Simulation.World world) => world.ImportOrder(PrototypeHome.Nyon)
-            .Select(r => (Resource: r, Left: world.Stock(PrototypeHome.Nyon, r) - world.ReservationOf(PrototypeHome.Nyon, r)))
+            .Select(r => (Resource: r, Left: world.ForTheShips(PrototypeHome.Nyon, r)))
             .Where(g => g.Left > 0)
             .Select(g => $"{g.Left} {Texts.Name(g.Resource, g.Left)}")
             .ToArray();

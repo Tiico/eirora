@@ -11,7 +11,8 @@ namespace Eirora.Simulation.Tests;
 /// <summary>
 /// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
 /// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
-/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044).
+/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044),
+/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
@@ -116,12 +117,21 @@ internal static class BuiltOutWorld
             }
         }
 
+        // Now and then a building on another island with a settlement, which its own store or the home island's pays;
+        // the ships carry the home island's materials before anything else (D-106, D-113).
+        var settled = world.Islands.Where(i => i != world.HomeIsland && world.Settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
+        if (random.Next(2) == 0 && settled.Count > 0
+            && FreeSite(world, random.Next(int.MaxValue), c => world.Settlement.IslandOf(c.Site) == settled[key % settled.Count]) is { } away)
+        {
+            save.Apply($"out-{key++}", new Build(away.Kind, away.Site));
+        }
+
         if (BuiltSite(world, random.Next(int.MaxValue), b => b.Staffed && !b.WorkdayToday) is Hex worked)
         {
             save.Apply($"out-{key++}", new Workday(worked));
         }
 
-        // Before leaving, the player may pause a building, give another villagers first or put a project first.
+        // Before leaving, the player may pause a building, give another villagers first, put a project first or lay a road.
         if (random.Next(2) == 0 && BuiltSite(world, random.Next(int.MaxValue), b => !b.Paused) is Hex paused)
         {
             save.Apply($"out-{key++}", new PauseBuilding(paused));
@@ -135,6 +145,12 @@ internal static class BuiltOutWorld
         if (random.Next(2) == 0 && QueueMove(world, random.Next(int.MaxValue)) is { } first)
         {
             save.Apply($"out-{key++}", first);
+        }
+
+        // Or lay a road, which the villagers build while the player is away.
+        if (random.Next(2) == 0 && Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } roads)
+        {
+            save.Apply($"out-{key++}", new LayRoad(roads[random.Next(roads.Count)]));
         }
 
         // The player may leave at any moment of the day, also just before or during the rest.
@@ -205,13 +221,11 @@ internal static class BuiltOutWorld
         {
             < 4 => building && FreeSite(world, pick, Staffable) is { } free ? new Build(free.Kind, free.Site) : null,
             4 or 5 => BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel) is Hex level ? new Upgrade(level) : null,
-            6 => (pick % 6) switch
+            6 => (pick % 3) switch
             {
                 0 => BuiltSite(world, pick, b => world.RoadToDepot(b.Tile).Count > 0) is Hex road ? new BuildRoad(road) : null,
                 1 => Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } free ? new LayRoad(free[pick % free.Count]) : null,
-                2 => world.Buildings.Where(b => Logistics.IsDepot(b.Kind)).ToList() is { Count: > 0 } depots ? new SetCarrierCap(depots[pick % depots.Count].Tile, 1 + (pick / 3 % Logistics.MostCarriers)) : null,
-                3 => BuiltSite(world, pick, b => b.Held is not null) is Hex processing ? new SetReserve(processing, pick / 6 % 9 * 5) : null,
-                _ => StockRule(world, pick),
+                _ => world.Buildings.Where(b => Logistics.IsDepot(b.Kind)).ToList() is { Count: > 0 } depots ? new SetCarrierCap(depots[pick % depots.Count].Tile, 1 + (pick / 3 % Logistics.MostCarriers)) : null,
             },
             7 => world.Buildings.Where(b => b.Staffed && !b.WorkdayToday && (world.Content.For(b.Kind).Produces || Logistics.IsDepot(b.Kind))).ToList() is { Count: > 0 } workers
                 ? new Workday(workers[pick % workers.Count].Tile)
@@ -219,7 +233,13 @@ internal static class BuiltOutWorld
             8 => new Survey(),
             9 => BuiltSite(world, pick, _ => true) is Hex tile ? (world.BuildingAt(tile)!.Paused ? new ResumeBuilding(tile) : new PauseBuilding(tile)) : null,
             10 => random.Next(2) == 0 ? StaffingMove(world, pick, random.Next(int.MaxValue)) : QueueMove(world, pick),
-            _ => new Rush(),
+            // Every other rush gives way to a stock rule (TASK-046), so that the other commands come as often as before.
+            _ => (pick % 6) switch
+            {
+                < 3 => new Rush(),
+                3 => BuiltSite(world, pick, b => b.Held is not null) is Hex processing ? new SetReserve(processing, pick / 6 % 9 * 5) : new Rush(),
+                _ => StockRule(world, pick),
+            },
         };
     }
 
@@ -258,8 +278,8 @@ internal static class BuiltOutWorld
     private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, Func<(BuildingKind Kind, Hex Site), bool> wanted)
     {
         var free = s_buildings
-            .Where(k => world.Settlement.CanAfford(world.Content.For(k).Cost))
-            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
+            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile))
+                .Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site)).ToList())
             .Where(sites => sites.Count > 0)
             .ToList();
         if (free.Count == 0)

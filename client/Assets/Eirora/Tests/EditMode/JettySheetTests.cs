@@ -1,6 +1,7 @@
 using System.Linq;
 using Eirora.Client.App;
 using Eirora.Client.UI;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Time;
@@ -10,8 +11,9 @@ using UnityEngine.UIElements;
 namespace Eirora.Client.Tests
 {
     /// <summary>
-    /// The jetties' sheets show every island's store and sea route (TASK-045, economy-v1.md, section 5): the tour's week
-    /// ends with the sea route from Nyön open and goods waiting there.
+    /// The jetties' sheets show every island's settlement, store and sea route (TASK-045, TASK-050, economy-v2.md,
+    /// section 6): the tour's week ends with the sea route from Nyön open, villagers of Nyön's own at work there and goods
+    /// waiting for the ships.
     /// </summary>
     public sealed class JettySheetTests
     {
@@ -38,26 +40,67 @@ namespace Eirora.Client.Tests
         {
             _hud.Select(Jetty(_game.World!.HomeIsland));
 
-            Assert.That(Labels(), Does.Contain("Sjövägen till Nyön är öppen. Skeppen tar hem 40 varor per dygn."));
-            Assert.That(Labels().Where(l => l.StartsWith("Nyön: ")).ToArray(), Is.EqualTo(new[] { $"Nyön: {Waiting()} väntar på skeppen." }));
+            Assert.That(Labels(), Does.Contain("Sjövägen till Nyön är öppen. Skeppen bär 40 varor per dag, åt båda hållen tillsammans."));
+            Assert.That(Labels().Where(l => l.StartsWith("Nyön: ")).ToArray(), Is.EqualTo(new[] { Settlement(), $"Nyön: {Waiting()} väntar på skeppen." }));
         }
 
+        // Introduction 6 shows Nyön's own villagers with the sea route (D-118).
         [Test]
-        public void NyonsJettyShowsItsRouteAndItsStore()
+        public void NyonsJettyShowsItsOwnVillagersItsRouteAndItsStore()
         {
             _hud.Select(Jetty(PrototypeHome.Nyon));
 
-            Assert.That(Labels(), Does.Contain("Skeppen tar hem varorna från Nyön, 40 per dygn."));
+            var nyon = _game.World!.SettlementOn(PrototypeHome.Nyon)!;
+            Assert.That(nyon.Villagers, Is.GreaterThan(0), "No villager has moved to Nyön by the end of the tour's week.");
+            Assert.That(Labels(), Does.Contain(Settlement()));
+            Assert.That(Labels(), Does.Contain("Skeppen seglar mellan Nyön och Hemön med 40 varor per dag, åt båda hållen tillsammans."));
             Assert.That(Labels(), Does.Contain($"Väntar på skeppen: {Waiting()}."));
         }
 
-        /// <summary>What the world holds on Nyön, as the sheets list it.</summary>
+        // The report lists every settlement once there is more than one.
+        [Test]
+        public void TheReportListsEverySettlement()
+        {
+            _hud.OpenReport();
+
+            Assert.That(Labels(), Does.Contain(Texts.Settlement(_game.World!, _game.World!.SettlementOn(_game.World!.HomeIsland)!) + "."));
+            Assert.That(Labels(), Does.Contain(Settlement()));
+        }
+
+        // With more than one settlement the free villagers build in the queue's order on the islands they reach, not
+        // all on the first project (D-113); the subtitle stays on one line.
+        [Test]
+        public void TheQueueSaysTheFreeVillagersBuildInItsOrder()
+        {
+            var world = _game.World!;
+            var meadow = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
+                .First(h => world.CheckBuild(BuildingKind.Cottage, h) == Rejection.None);
+            Assert.That(_game.Apply(new Build(BuildingKind.Cottage, meadow)).Accepted, Is.True);
+            Assume.That(world.FreeVillagers, Is.GreaterThan(1));
+            _hud.OpenQueue();
+
+            Assert.That(Labels(), Does.Contain($"{Texts.FreeVillagers(world.FreeVillagers).Substring(0, 1).ToUpperInvariant()}{Texts.FreeVillagers(world.FreeVillagers).Substring(1)} bygger i köns ordning."));
+        }
+
+        /// <summary>Nyön's settlement, as the sheets show it.</summary>
+        private string Settlement()
+        {
+            var world = _game.World!;
+            string line = Texts.Settlement(world, world.SettlementOn(PrototypeHome.Nyon)!) + ".";
+            Assert.That(line, Does.Match("^Nyön: [1-4] av 4 bybor, (alla i arbete|en ledig|[a-z]+ lediga)\\.$"));
+            return line;
+        }
+
+        /// <summary>What waits on Nyön for the ships, as the sheets list it: its store but the two days' food it keeps.</summary>
         private string Waiting()
         {
             var world = _game.World!;
-            var goods = System.Enum.GetValues(typeof(Resource)).Cast<Resource>().Where(r => world.Stock(PrototypeHome.Nyon, r) > 0).ToList();
+            var goods = System.Enum.GetValues(typeof(Resource)).Cast<Resource>()
+                .Select(r => (Resource: r, Units: world.ForTheShips(PrototypeHome.Nyon, r)))
+                .Where(g => g.Units > 0)
+                .ToList();
             Assert.That(goods, Is.Not.Empty, "Nothing waits on Nyön at the end of the tour's week.");
-            return Texts.List(goods.Select(r => $"{world.Stock(PrototypeHome.Nyon, r)} {Texts.Name(r)}"));
+            return Texts.List(goods.Select(g => $"{g.Units} {Texts.Name(g.Resource)}"));
         }
 
         private Hex Jetty(string island) =>

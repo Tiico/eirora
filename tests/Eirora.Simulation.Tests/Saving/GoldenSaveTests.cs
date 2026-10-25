@@ -94,12 +94,22 @@ public sealed class GoldenSaveTests
     /// archipelago with a store on each of three islands, two sea routes home with goods waiting, and paused buildings
     /// (TASK-044, TASK-045); from rules 8 on also with roads, goods waiting for the carriers, raw materials at the
     /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051);
-    /// from rules 9 on also with a minimum stock of the player's, reservations and an import order (TASK-046).
+    /// from rules 9 on with villagers in each island's settlement and materials owed on a sea route (TASK-050); from
+    /// rules 10 on also with a minimum stock of the player's, reservations and an import order (TASK-046).
     /// </summary>
     private static void Write(string name)
     {
-        var save = WithStockRules(BuiltOutWorld.GenerateSave(35));
+        var save = WithStockRules(BuiltOutWorld.GenerateSave(55));
         var world = save.World;
+
+        // A cottage on the second island, which its store cannot pay, so the ships owe the home island's materials.
+        while (world.Phase == Phase.Resting)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 3600, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        var site = world.Map.Features.LandOf(Archipelago.Second).First(h => world.CheckBuild(BuildingKind.Cottage, h) == Rejection.None);
+        Assert.True(save.Apply("golden-owed", new Build(BuildingKind.Cottage, site)).Accepted);
         Assert.Equal(2, world.SeaRoutes.Count);
         Assert.Contains(world.Buildings, b => b.Paused);
         Assert.NotEmpty(world.Roads);
@@ -108,6 +118,8 @@ public sealed class GoldenSaveTests
         Assert.Contains(world.Buildings, b => b.Carriers > 1);
         Assert.Contains(world.Buildings, b => Logistics.IsDepot(b.Kind) && b.CarrierCap < Logistics.MostCarriers);
         Assert.Contains(world.Buildings, b => b.CarriedFirst);
+        Assert.All(world.Settlements, s => Assert.True(s.Villagers > 0, $"No villagers on {s.Island}."));
+        Assert.Contains(world.Islands, i => world.Settlement.Owed(i) > 0);
         Assert.Contains(world.Buildings, b => b.Held is not null && b.Reserve != StockRules.StandardReserve);
         Assert.Contains(world.Islands, i => Enum.GetValues<Resource>().Any(r => world.ReservationOf(i, r) > 0));
         Assert.Contains(world.Islands, i => !world.ImportOrder(i).SequenceEqual(Enum.GetValues<Resource>()));
@@ -154,3 +166,4 @@ public sealed class GoldenSaveTests
 
     private static string Name(int format, int rules) => $"save-{format}-rules-{rules}";
 }
+

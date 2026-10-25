@@ -548,7 +548,7 @@ namespace Eirora.Client.UI
                 Text("sheet-subtitle", status, state is null ? ground : $"{ground} · {state}");
                 foreach (var hindrance in diagnosis?.Hindrances ?? Array.Empty<Hindrance>())
                 {
-                    Text("sheet-text", _sheet, Texts.Hindrance(hindrance, diagnosis!.Product));
+                    Text("sheet-text", _sheet, Texts.Hindrance(hindrance, diagnosis!.Product, building.Island == world.HomeIsland));
                 }
 
                 BuildingActions(world, building, diagnosis);
@@ -563,6 +563,8 @@ namespace Eirora.Client.UI
                 Text("sheet-subtitle", _sheet, $"{ground} · {Texts.WorkLeft(project)}");
                 Text("sheet-text", _sheet, place == 0
                     ? "Först i byggkön. Lediga bybor bygger här medan de är vakna."
+                    : world.Settlements.Count > 1
+                    ? $"Nummer {place + 1} i byggkön. Lediga bybor bygger i köns ordning, på sin ö och på öarna som sjövägen når."
                     : $"Nummer {place + 1} i byggkön. Lediga bybor bygger på det första projektet.");
                 if (place > 0)
                 {
@@ -590,7 +592,7 @@ namespace Eirora.Client.UI
             foreach (var kind in folded ? special : special.Concat(anyLand))
             {
                 var spec = world.Content.For(kind);
-                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
+                AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec, tile), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
             }
 
             // A road lies on any land, so it waits behind the fold with the buildings that any land takes.
@@ -615,7 +617,9 @@ namespace Eirora.Client.UI
             }
             else if (buildable.Count == 0 && uses != TileUse.None)
             {
-                Text("sheet-text", _sheet, "Bygg en brygga på ön först, så når byggarna hit.");
+                // Builders sail from a jetty at home to the island's own (D-113).
+                bool sailing = world.Buildings.Any(b => b.Kind == BuildingKind.Jetty && b.Island == world.HomeIsland);
+                Text("sheet-text", _sheet, sailing ? "Bygg en brygga på ön först, så når byggarna hit." : "Bygg en brygga på Hemön först, så seglar byggarna hit.");
             }
         }
 
@@ -657,7 +661,7 @@ namespace Eirora.Client.UI
 
             if (building.Level == 1 && !world.Projects.Any(p => p.Tile == building.Tile && p.Kind == ProjectKind.Upgrade))
             {
-                AddAction("Uppgradera till nivå 2", Texts.Cost(world.Content.Upgrade), Affordable(world, world.Content.Upgrade), () => Run(new Upgrade(building.Tile)));
+                AddAction("Uppgradera till nivå 2", Texts.Cost(world.Content.Upgrade), Affordable(world, world.Content.Upgrade, building.Tile), () => Run(new Upgrade(building.Tile)));
             }
 
             int tiles = world.RoadToDepot(building.Tile).Count;
@@ -669,7 +673,7 @@ namespace Eirora.Client.UI
                     ? Texts.RoadGives(behind, product)
                     : "bärarna går dubbelt så fort";
                 AddAction("Väg till förrådet", $"{Logistics.RoadStone * tiles} sten och {Logistics.RoadHours * tiles} h arbete · {gives}",
-                    world.Stock(Resource.Stone) >= Logistics.RoadStone * tiles, () => Run(new BuildRoad(building.Tile)));
+                    world.CanAfford(new Dictionary<Resource, int> { [Resource.Stone] = Logistics.RoadStone * tiles }, building.Tile), () => Run(new BuildRoad(building.Tile)));
             }
 
             if (spec.Recipe is { Inputs: { Count: > 0 } } recipe)
@@ -737,7 +741,7 @@ namespace Eirora.Client.UI
             Text("sheet-text", _sheet, home
                 ? "Det som är reserverat tar förädlingen inte. Byggen betalar ändå ur det."
                 : sails
-                    ? "Skeppen tar hem varorna uppifrån och lämnar det som är reserverat."
+                    ? "Skeppen tar hem varorna uppifrån och lämnar det som är reserverat. Öns byggen betalar ändå ur det."
                     : "Skeppen tar hem varorna uppifrån när sjövägen öppnar, och lämnar det som är reserverat.");
 
             for (int i = 0; i < order.Count; i++)
@@ -813,7 +817,7 @@ namespace Eirora.Client.UI
             {
                 int tiles = road.Tiles.Count;
                 AddAction($"Väg till {Texts.Name(road.From.Kind).ToLowerInvariant()}", $"{Logistics.RoadStone * tiles} sten och {Logistics.RoadHours * tiles} h arbete · {Texts.Gains(road.Gains)}",
-                    world.Stock(Resource.Stone) >= Logistics.RoadStone * tiles, () => Run(new BuildRoad(road.From.Tile)));
+                    world.CanAfford(new Dictionary<Resource, int> { [Resource.Stone] = Logistics.RoadStone * tiles }, road.From.Tile), () => Run(new BuildRoad(road.From.Tile)));
             }
 
             if (carriers.Storehouse is { } storehouse)
@@ -821,7 +825,7 @@ namespace Eirora.Client.UI
                 var spec = world.Content.For(BuildingKind.Storehouse);
                 string staffed = carriers.VillagerFree ? string.Empty : " när en bybo blir ledig";
                 AddAction($"Förråd intill {Texts.Name(storehouse.Beside.Kind).ToLowerInvariant()}", $"{Texts.Cost(spec)} · {Texts.Gains(storehouse.Gains)}{staffed}",
-                    Affordable(world, spec), () => Run(new Build(BuildingKind.Storehouse, storehouse.Site)));
+                    Affordable(world, spec, storehouse.Site), () => Run(new Build(BuildingKind.Storehouse, storehouse.Site)));
             }
 
             if (depot.Staffed && !depot.WorkdayToday)
@@ -881,6 +885,8 @@ namespace Eirora.Client.UI
             bool awake = world.Phase == Phase.Active;
             Text("sheet-subtitle", _sheet, world.FreeVillagers == 0
                 ? "Inga lediga bybor bygger nu. Pausa en byggnad, så bygger dess bybor."
+                : world.Settlements.Count > 1
+                ? $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger i köns ordning."
                 : $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger på det första projektet.");
             for (int i = 0; i < projects.Count && i < QueueShown; i++)
             {
@@ -911,8 +917,8 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>
-        /// The jetty: on the home island the expedition and every sea route with the goods waiting for the ships; on
-        /// another island its own route and store (economy-v1.md, section 5).
+        /// The jetty: on the home island the expedition and every sea route with its island's settlement and the goods
+        /// waiting for the ships; on another island its settlement, route and store (economy-v2.md, section 6).
         /// </summary>
         private void JettyActions(World world, Building building)
         {
@@ -920,8 +926,9 @@ namespace Eirora.Client.UI
             {
                 string name = Texts.IslandName(world, building.Island);
                 bool sailing = world.SeaRoutes.Any(r => r.From == building.Island);
+                SettlementLines(world, building.Island);
                 Text("sheet-text", _sheet, sailing
-                    ? $"Skeppen tar hem varorna från {name}, {SeaRoute.UnitsPerGameDay} per dygn."
+                    ? $"Skeppen seglar mellan {name} och Hemön med {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
                     : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
                 Text("sheet-text", _sheet, Waiting(world, building.Island, sailing) is string goods
                     ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
@@ -956,13 +963,18 @@ namespace Eirora.Client.UI
             if (world.SeaRoutes.Count > 0)
             {
                 Text("sheet-text", _sheet, world.SeaRoutes.Count == 1
-                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen tar hem {SeaRoute.UnitsPerGameDay} varor per dygn."
-                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen tar hem {SeaRoute.UnitsPerGameDay} varor per dygn från varje ö.");
+                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
+                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag på varje, åt båda hållen tillsammans.");
             }
 
             foreach (var route in world.SeaRoutes)
             {
                 string island = Capital(Texts.IslandName(world, route.From));
+                if (world.SettlementOn(route.From) is IslandSettlement settlement)
+                {
+                    Text("sheet-text", _sheet, Texts.Settlement(world, settlement) + ".");
+                }
+
                 Text("sheet-text", _sheet, Waiting(world, route.From, forShips: true) is string goods
                     ? $"{island}: {goods} väntar på skeppen."
                     : $"{island}: inget väntar på skeppen.");
@@ -971,15 +983,34 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>
-        /// The goods in an island's store, such as "12 fisk och 5 sten", or null when it is empty; for the ships only what
-        /// is not reserved, in the order they take it home (TASK-046).
+        /// An island's own settlement (TASK-050, D-106): its villagers and homes, and while the village is awake why it
+        /// does not grow and who could move there.
+        /// </summary>
+        private void SettlementLines(World world, string island)
+        {
+            if (world.SettlementOn(island) is not IslandSettlement settlement)
+            {
+                return;
+            }
+
+            Text("sheet-text", _sheet, Texts.Settlement(world, settlement) + ".");
+            foreach (var line in _diagnostics?.SettlementOn(island) is { } diagnosis ? Texts.Growth(diagnosis) : Enumerable.Empty<string>())
+            {
+                Text("sheet-text", _sheet, line);
+            }
+        }
+
+        /// <summary>
+        /// The goods in an island's store, such as "12 fisk och 5 sten", or null when it is empty; for the ships, without
+        /// the two days' food that the island's villagers keep (economy-v2.md, section 6) and what is reserved there, in the
+        /// order they take them home (TASK-046).
         /// </summary>
         private static string? Waiting(World world, string island, bool forShips)
         {
-            long Left(Resource r) => world.Stock(island, r) - (forShips ? world.ReservationOf(island, r) : 0);
             var goods = (forShips ? world.ImportOrder(island) : Enum.GetValues(typeof(Resource)).Cast<Resource>())
-                .Where(r => Left(r) > 0)
-                .Select(r => $"{Left(r)} {Texts.Name(r, Left(r))}")
+                .Select(r => (Resource: r, Units: forShips ? world.ForTheShips(island, r) : world.Stock(island, r)))
+                .Where(g => g.Units > 0)
+                .Select(g => $"{g.Units} {Texts.Name(g.Resource, g.Units)}")
                 .ToList();
             return goods.Count == 0 ? null : Texts.List(goods);
         }
@@ -1063,7 +1094,7 @@ namespace Eirora.Client.UI
         private void ReportSheet()
         {
             Text("sheet-title", _sheet, "Sedan gryningen");
-            var lines = Texts.Report(_sinceDawn).ToList();
+            var lines = Texts.Report(_world!, _sinceDawn).ToList();
             if (lines.Count == 0)
             {
                 Text("report-line", _sheet, "Byn arbetar i lugn takt.");
@@ -1074,13 +1105,29 @@ namespace Eirora.Client.UI
                 Text("report-line", _sheet, line);
             }
 
-            // Worth a look: what holds each island back most, which leads to the building (UX-02, TASK-043).
-            foreach (var island in _world!.Islands)
+            // Each settlement once there is more than one (TASK-050).
+            if (_world!.Settlements.Count > 1)
+            {
+                foreach (var settlement in _world.Settlements)
+                {
+                    Text("report-line", _sheet, Texts.Settlement(_world, settlement) + ".");
+                }
+            }
+
+            // Worth a look: what holds each island back most, which leads to the building (UX-02, TASK-043), and an
+            // island's settlement that stands still, which leads to its jetty.
+            foreach (var island in _world.Islands)
             {
                 if (_diagnostics?.BottleneckOn(island) is { } bottleneck)
                 {
                     string title = island == _world.HomeIsland ? "Flaskhals just nu" : $"Flaskhals på {Texts.IslandName(_world, island)}";
                     AddAction(title, Texts.Bottleneck(bottleneck), true, () => Select(bottleneck.Building.Building.Tile));
+                }
+
+                if (island != _world.HomeIsland && _diagnostics?.SettlementOn(island) is { StandsStill: true } still
+                    && _world.Buildings.FirstOrDefault(b => b.Kind == BuildingKind.Jetty && b.Island == island) is { } jetty)
+                {
+                    AddAction($"{Capital(Texts.IslandName(_world, island))} står still", Texts.Growth(still).First(), true, () => Select(jetty.Tile));
                 }
             }
 
@@ -1170,8 +1217,9 @@ namespace Eirora.Client.UI
             return -1;
         }
 
-        private static bool Affordable(World world, BuildingSpec spec) =>
-            spec.Cost.All(c => world.Stock(c.Key) >= c.Value) && world.Available(Force.BuildPower) >= spec.BuildPower;
+        /// <summary>Whether work on a tile can be paid: from its island's store or the home island's, and with Build Power.</summary>
+        private static bool Affordable(World world, BuildingSpec spec, Hex tile) =>
+            world.CanAfford(spec.Cost, tile) && world.Available(Force.BuildPower) >= spec.BuildPower;
 
         private static int RestEnd(World world) =>
             (world.RestSchedule.StartMinuteOfDay + world.RestSchedule.DurationMinutes) % 1440;

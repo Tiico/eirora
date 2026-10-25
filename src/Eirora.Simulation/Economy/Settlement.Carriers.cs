@@ -332,7 +332,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// At dawn, once the buildings are staffed, each staffed depot in the staffing order takes as many more carriers as
-        /// its buildings' goods need, up to its cap, from the villagers no building needs (D-109).
+        /// its buildings' goods need, up to its cap, from the villagers of its own island's settlement that no building
+        /// needs (D-106, D-109).
         /// </summary>
         private void HireCarriers(int activeTicks)
         {
@@ -344,7 +345,7 @@ namespace Eirora.Simulation.Economy
                 }
 
                 int more = Wanted(depot, activeTicks) - depot.Carriers;
-                int free = FreeVillagers;
+                int free = FreeVillagersOf(_settlements[depot.Island]);
                 depot.Carriers += more > 0 ? (more < free ? more : free) : 0;
             }
         }
@@ -379,7 +380,7 @@ namespace Eirora.Simulation.Economy
                 }
 
                 var store = _stores[depot.Island];
-                _reserved.TryGetValue(depot.Island, out var reserved);
+                var reserved = _settlements[depot.Island].Reserved;
                 long capacity = StorageCapacity(depot.Island);
                 _jobs.Clear();
                 foreach (var (building, recipe, trip) in served)

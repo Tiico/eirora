@@ -12,13 +12,14 @@ namespace Eirora.Simulation.Tests.Economy;
 /// <summary>
 /// Each island built on has its own store, and each island with a jetty its own sea route home (TASK-045, LOG-04,
 /// economy-v1.md, section 5): the ships carry 40 units a game day on each route, and they only move goods between the
-/// stores (INV-R1, INV-R2).
+/// stores (INV-R1, INV-R2). Each island's settlement here has one villager at its jetty and food for the two days
+/// that the ships keep there, so they carry out only what it eats (economy-v2.md, section 6; <see cref="SettlementTests"/>).
 /// </summary>
 public sealed class SeaRouteTests
 {
     private const long Day = 24 * 3600;
     private const int StoragePerStorehouse = 150; // economy-v1.md, section 2.
-    private const int StorageAtJetty = 150;
+    private const int StorageAtJetty = 50; // economy-v2.md, section 6.
 
     // The goods the villagers neither make nor use in a world where only the ships work; they eat fish and grain and
     // wear wadmal at dawn.
@@ -27,19 +28,21 @@ public sealed class SeaRouteTests
     [Fact]
     public void AGameDayOnThreeIslandsShipsFortyUnitsOnEachRouteAndKeepsEveryGood()
     {
-        var world = OnlyShips((island, r) => island == Archipelago.Home ? 0 : 60);
+        var world = OnlyShips((island, r) => island == Archipelago.Home ? 0 : 50);
         Assert.Equal([Archipelago.Home, Archipelago.First, Archipelago.Second], world.Islands);
         Assert.Equal(new[] { (Archipelago.First, Archipelago.Home), (Archipelago.Second, Archipelago.Home) }, world.SeaRoutes.Select(r => (r.From, r.To)));
         var before = Stores.Of(world);
 
         world.AdvanceTo(Shift(world.Now, Day));
 
-        // The routes ship in the goods' fixed order: 40 timber from each island, and the planks wait (TASK-046).
+        // At dawn each island's villager eats a fish and a second moves in, so the ships carry out three fish, for two
+        // days for both, and home 37 timber, in the goods' fixed order; the planks wait (TASK-046).
         var after = Stores.Of(world);
-        Assert.Equal(Quantity.Units(SeaRoute.UnitsPerGameDay), before.Total(Archipelago.First) - after.Total(Archipelago.First));
-        Assert.Equal(Quantity.Units(SeaRoute.UnitsPerGameDay), before.Total(Archipelago.Second) - after.Total(Archipelago.Second));
-        Assert.Equal(Quantity.Units(2 * SeaRoute.UnitsPerGameDay), world.Settlement.Stock(Resource.Timber));
-        Assert.Equal(Quantity.Units(60), world.Settlement.Stock(Archipelago.First, Resource.Planks));
+        Assert.All([Archipelago.First, Archipelago.Second], island => Assert.Equal((2, Quantity.Units(4)), (world.SettlementOn(island)!.Villagers, world.Settlement.Stock(island, Resource.Fish))));
+        Assert.Equal(Quantity.Units(SeaRoute.UnitsPerGameDay - 3), before.Total(Archipelago.First) - after.Total(Archipelago.First));
+        Assert.Equal(Quantity.Units(SeaRoute.UnitsPerGameDay - 3), before.Total(Archipelago.Second) - after.Total(Archipelago.Second));
+        Assert.Equal(Quantity.Units(2 * (SeaRoute.UnitsPerGameDay - 3)), world.Settlement.Stock(Resource.Timber));
+        Assert.Equal(Quantity.Units(50), world.Settlement.Stock(Archipelago.First, Resource.Planks));
         after.AssertSameGoodsAs(before);
     }
 
@@ -67,14 +70,14 @@ public sealed class SeaRouteTests
     [Fact]
     public void TheRoutesFillTheHomeStoreInMapOrder()
     {
-        // Room at home for 30 more planks, and 60 waiting on each of the other islands.
-        var world = OnlyShips((island, r) => r == Resource.Planks ? island == Archipelago.Home ? 120 : 60 : 0);
+        // Room at home for 30 more planks, and 50 waiting on each of the other islands.
+        var world = OnlyShips((island, r) => r == Resource.Planks ? island == Archipelago.Home ? StoragePerStorehouse + StorageAtJetty - 30 : 50 : 0);
 
         world.AdvanceTo(Shift(world.Now, Day));
 
-        long first = Quantity.Units(60) - world.Settlement.Stock(Archipelago.First, Resource.Planks);
-        long second = Quantity.Units(60) - world.Settlement.Stock(Archipelago.Second, Resource.Planks);
-        Assert.Equal(Quantity.Units(StoragePerStorehouse), world.Settlement.Stock(Resource.Planks));
+        long first = Quantity.Units(50) - world.Settlement.Stock(Archipelago.First, Resource.Planks);
+        long second = Quantity.Units(50) - world.Settlement.Stock(Archipelago.Second, Resource.Planks);
+        Assert.Equal(Quantity.Units(StoragePerStorehouse + StorageAtJetty), world.Settlement.Stock(Resource.Planks));
         Assert.Equal(Quantity.Units(30), first + second);
         Assert.InRange(first - second, 0, Quantity.Units(SeaRoute.UnitsPerGameDay) / 64);
     }
@@ -82,13 +85,13 @@ public sealed class SeaRouteTests
     [Fact]
     public void WithoutAJettyAtHomeNoShipSailsAndTheGoodsWait()
     {
-        var world = OnlyShips((island, r) => island == Archipelago.Home ? 0 : 60, homeJetty: false);
+        var world = OnlyShips((island, r) => island == Archipelago.Home ? 0 : 50, homeJetty: false);
         Assert.Empty(world.SeaRoutes);
 
         world.AdvanceTo(Shift(world.Now, Day));
 
-        Assert.Equal(Quantity.Units(60), world.Settlement.Stock(Archipelago.First, Resource.Timber));
-        Assert.Equal(Quantity.Units(60), world.Settlement.Stock(Archipelago.Second, Resource.Timber));
+        Assert.Equal(Quantity.Units(50), world.Settlement.Stock(Archipelago.First, Resource.Timber));
+        Assert.Equal(Quantity.Units(50), world.Settlement.Stock(Archipelago.Second, Resource.Timber));
     }
 
     [Fact]
@@ -97,17 +100,24 @@ public sealed class SeaRouteTests
         var world = Archipelago.Create(At("2026-10-14 14:00", 2), Night);
         world.AdvanceTo(At("2026-10-15 08:00", 2));
         Assert.Equal([Archipelago.Home], world.Islands);
-        var landing = Archipelago.Map.Features.LandOf(Archipelago.Second).First(Archipelago.Map.Features.IsHarborSpot);
-        Assert.True(world.Apply("steps", new RecordSelfCare(world.GameDay, Habit.Workouts, ContributionSource.Verified, 3)).Accepted);
+        var map = Archipelago.Map;
+        var harbour = map.Features.LandOf(Archipelago.Home).First(h => map.Features.IsHarborSpot(h) && world.CheckBuild(BuildingKind.Jetty, h) == Rejection.None);
+        var landing = map.Features.LandOf(Archipelago.Second).First(map.Features.IsHarborSpot);
+        Assert.Equal(Rejection.SiteUnavailable, world.CheckBuild(BuildingKind.Jetty, landing)); // Ships sail from a jetty at home.
+        Assert.True(world.Apply("workouts", new RecordSelfCare(world.GameDay, Habit.Workouts, ContributionSource.Verified, 3)).Accepted);
+        Assert.True(world.Apply("home", new Build(BuildingKind.Jetty, harbour)).Accepted);
+        world.AdvanceTo(Shift(world.Now, Day));
+        Assert.True(world.Apply("more", new RecordSelfCare(world.GameDay, Habit.Workouts, ContributionSource.Verified, 3)).Accepted);
         Assert.True(world.Apply("jetty", new Build(BuildingKind.Jetty, landing)).Accepted);
         Assert.Equal([Archipelago.Home], world.Islands);
 
-        world.AdvanceTo(Shift(world.Now, 3 * Day));
+        world.AdvanceTo(Shift(world.Now, Day / 2));
 
         Assert.Equal(Archipelago.Second, world.BuildingAt(landing)!.Island);
         Assert.Equal([Archipelago.Home, Archipelago.Second], world.Islands);
-        Assert.All(Enum.GetValues<Resource>(), r => Assert.Equal(0, world.Stock(Archipelago.Second, r)));
-        Assert.Empty(world.SeaRoutes); // The home island has no jetty yet.
+        var settlement = world.SettlementOn(Archipelago.Second)!;
+        Assert.Equal((0, IslandSettlement.SettlerHousing), (settlement.Villagers, settlement.Housing));
+        Assert.Single(world.SeaRoutes);
     }
 
     [Fact]
@@ -123,6 +133,16 @@ public sealed class SeaRouteTests
     }
 
     [Fact]
+    public void BuildersSailFromAJettyAtHome()
+    {
+        var world = OnlyShips((island, r) => 0, homeJetty: false);
+        Hex Free(string island) => Archipelago.Map.Features.LandOf(island).First(h => (world.UsesOf(h) & TileUse.Land) != 0 && world.BuildingAt(h) is null);
+
+        Assert.Equal(Rejection.SiteUnavailable, world.CheckBuild(BuildingKind.Lookout, Free(Archipelago.Second)));
+        Assert.Equal(Rejection.None, world.CheckBuild(BuildingKind.Lookout, Free(Archipelago.Home)));
+    }
+
+    [Fact]
     public void AStateWhoseStoresAreNotTheMapsIslandsInOrderIsRefused()
     {
         string state = OnlyShips((island, r) => 1).Fingerprint();
@@ -132,13 +152,18 @@ public sealed class SeaRouteTests
         Assert.Throws<FormatException>(() => Read(Without(state, "stock home ")));
         Assert.Throws<FormatException>(() => Read(Without(state, "stock second ")));
         Assert.Throws<FormatException>(() => Read(Without(state, "stock second Wadmal ")));
+        Assert.Throws<FormatException>(() => Read(Without(state, "settlement second ")));
+        Assert.Throws<FormatException>(() => Read(state.Replace("settlement first 1\nsettlement second 1", "settlement second 1\nsettlement first 1", StringComparison.Ordinal)));
+        Assert.Throws<FormatException>(() => Read(state.Replace("settlement second 1", "settlement second -1", StringComparison.Ordinal)));
+        Assert.Throws<FormatException>(() => Read(state.Replace("settlement second 1", "settlement second 0", StringComparison.Ordinal))); // Its jetty's villager.
     }
 
     /// <summary>
     /// A world on the archipelago where nothing works but the ships: at <paramref name="secondOfDay"/> past midnight
     /// UTC on a day when the villagers are awake, with the founding's storehouse at home, a jetty on each island and
     /// as many storehouses on each as <paramref name="storehouses"/> says, and the goods <paramref name="stock"/> gives
-    /// in whole units; the founding's other buildings are taken away. Written into its state.
+    /// in whole units; the founding's other buildings are taken away. The other islands' settlements have a villager
+    /// each, at its jetty, and two fish. Written into its state.
     /// </summary>
     internal static World OnlyShips(
         Func<string, Resource, int> stock,
@@ -161,7 +186,7 @@ public sealed class SeaRouteTests
             if (island == Archipelago.Home ? homeJetty : island != Archipelago.First || firstJetty)
             {
                 var landing = map.Features.LandOf(island).First(h => map.Features.IsHarborSpot(h) && world.BuildingAt(h) is null);
-                buildings.Add(Line(BuildingKind.Jetty, landing));
+                buildings.Add(Line(BuildingKind.Jetty, landing, island != Archipelago.Home));
                 free[island] = new Queue<Hex>(free[island].Where(h => h != landing));
             }
 
@@ -175,17 +200,18 @@ public sealed class SeaRouteTests
         int at = lines.FindIndex(l => l.StartsWith("stock ", StringComparison.Ordinal));
         lines.RemoveAll(l => l.StartsWith("stock ", StringComparison.Ordinal) || (l.StartsWith("building ", StringComparison.Ordinal) && !l.StartsWith("building Storehouse ", StringComparison.Ordinal)));
         lines.InsertRange(at, map.Islands.Where(i => islands.Contains(i.Id)).SelectMany(i => Enum.GetValues<Resource>().Select(r =>
-            $"stock {i.Id} {r} {Quantity.Units(s_kept.Contains(r) ? stock(i.Id, r) : i.Id == Archipelago.Home ? 100 : 0)}")));
+            $"stock {i.Id} {r} {Quantity.Units(s_kept.Contains(r) ? stock(i.Id, r) : i.Id == Archipelago.Home ? 100 : r == Resource.Fish ? 2 : 0)}")));
+        lines.InsertRange(at, [$"settlement {Archipelago.First} 1", $"settlement {Archipelago.Second} 1"]);
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return Read(string.Join('\n', lines));
 
-        static string Line(BuildingKind kind, Hex tile) => $"building {kind} {tile.Q} {tile.R} 1 0 0 0 0 0 4 0 0 0 0 0 0";
+        static string Line(BuildingKind kind, Hex tile, bool staffed = false) => $"building {kind} {tile.Q} {tile.R} 1 {(staffed ? 1 : 0)} 0 0 0 {(staffed ? 1 : 0)} 4 0 0 0 0 0 0";
     }
 
     private static int Capacity(string island, int[] storehouses)
     {
         int index = Array.IndexOf([Archipelago.Home, Archipelago.First, Archipelago.Second], island);
-        return (Math.Max(storehouses[index], island == Archipelago.Home ? 1 : 0) * StoragePerStorehouse) + (island == Archipelago.Home ? 0 : StorageAtJetty);
+        return (Math.Max(storehouses[index], island == Archipelago.Home ? 1 : 0) * StoragePerStorehouse) + StorageAtJetty;
     }
 
     private static World Read(string state)

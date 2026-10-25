@@ -221,8 +221,8 @@ public sealed class SaveTests
     }
 
     /// <summary>
-    /// Gives a hand-changed save a matching hash, and its snapshots too; <paramref name="edit"/> changes each section
-    /// first, so that an edit may change a section's length, as one to rules 10 does.
+    /// Gives a hand-changed save a matching hash, and its snapshots too; <paramref name="edit"/> changes each section's
+    /// text first, so that a change of length is framed right.
     /// </summary>
     private static string Reseal(string save, int format = Save.FormatVersion, Func<string, string>? edit = null)
     {
@@ -235,9 +235,7 @@ public sealed class SaveTests
             int lineEnd = body.IndexOf('\n', at);
             var fields = body[at..lineEnd].Split(' ');
             int length = int.Parse(fields[1], CultureInfo.InvariantCulture);
-            string text = body.Substring(lineEnd + 1, length);
-            at = lineEnd + 1 + length;
-            text = edit?.Invoke(text) ?? text;
+            string text = edit is null ? body.Substring(lineEnd + 1, length) : edit(body.Substring(lineEnd + 1, length));
             if (text.StartsWith("eirora-snapshot", StringComparison.Ordinal))
             {
                 var lines = text.Split('\n');
@@ -247,6 +245,7 @@ public sealed class SaveTests
             }
 
             resealed.Append(fields[0]).Append(' ').Append(text.Length).Append('\n').Append(text);
+            at = lineEnd + 1 + length;
         }
 
         return Sealed(format, resealed.ToString());

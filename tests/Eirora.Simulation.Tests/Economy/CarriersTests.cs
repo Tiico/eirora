@@ -500,10 +500,8 @@ public sealed class CarriersTests
 
         if (villagers is int count)
         {
-            int at = lines.FindIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal));
-            var parts = lines[at].Split(' ');
-            parts[1] = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            lines[at] = string.Join(' ', parts);
+            int at = lines.FindIndex(l => l.StartsWith($"settlement {world.HomeIsland} ", StringComparison.Ordinal));
+            lines[at] = $"settlement {world.HomeIsland} {count.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
         }
 
         if (roads is not null)

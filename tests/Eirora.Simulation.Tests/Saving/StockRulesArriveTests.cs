@@ -8,12 +8,12 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests.Saving;
 
 /// <summary>
-/// Rules 8 → 9 (TASK-046): every processing building gets the minimum stock of 20 that all processing left, the sea
-/// routes keep the fixed order and nothing is reserved, so a world goes on as it did under rules 8 (ADR-0006).
+/// Rules 9 → 10 (TASK-046): every processing building gets the minimum stock of 20 that all processing left, the sea
+/// routes keep the fixed order and nothing is reserved, so a world goes on as it did under rules 9 (ADR-0006).
 /// </summary>
 public sealed class StockRulesArriveTests
 {
-    private const string Golden = "save-3-rules-8";
+    private const string Golden = "save-3-rules-9";
 
     private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
@@ -23,7 +23,7 @@ public sealed class StockRulesArriveTests
     public void EveryProcessingBuildingLeavesTwentyAndTheShipsKeepTheFixedOrder()
     {
         byte[] bytes = GoldenSaveTests.Bytes(Golden);
-        Assert.Contains("rules 8", SaveSections.Text(Encoding.UTF8.GetString(bytes), "latest").Split('\n'));
+        Assert.Contains("rules 9", SaveSections.Text(Encoding.UTF8.GetString(bytes), "latest").Split('\n'));
 
         var world = Save.Load(bytes).World;
 
@@ -38,12 +38,12 @@ public sealed class StockRulesArriveTests
     }
 
     /// <summary>
-    /// Acceptance: the world stays the same. The <c>.week</c> file of the golden save from rules 8 is that code's world a
+    /// Acceptance: the world stays the same. The <c>.week</c> file of the golden save from rules 9 is that code's world a
     /// week later; the save migrated and played a week gives that world migrated. A later rules version that changes the
     /// week writes the file again in the change that bumps the rules, so the review sees what changed (ADR-0006).
     /// </summary>
     [Fact]
-    public void AWorldFromRulesEightGivesTheSameWeekAsUnderRulesEight()
+    public void AWorldFromRulesNineGivesTheSameWeekAsUnderRulesNine()
     {
         var save = Save.Load(GoldenSaveTests.Bytes(Golden));
         Assert.True(save.ChangedOnLoad);
@@ -54,42 +54,47 @@ public sealed class StockRulesArriveTests
         }
 
         string week = File.ReadAllText(Path.Combine(s_folder, Golden + ".week"), Encoding.UTF8);
-        Assert.Equal(RoadsAreTilesTests.Migrated(week, 8, RulesVersion.Current, save.World.Map), save.World.Fingerprint());
+        Assert.Equal(RoadsAreTilesTests.Migrated(week, 9, RulesVersion.Current, save.World.Map), save.World.Fingerprint());
     }
 
-    // A world built under rules 9 without stock rules of the player's, written as rules 8 wrote it, migrates back to itself.
+    // A world built under rules 10 without stock rules of the player's, written as rules 9 wrote it, migrates back to itself.
     [Theory]
     [InlineData(0)]
     [InlineData(3)]
     [InlineData(5)]
-    public void ARulesEightStateMigratesBackToItself(int seed)
+    public void ARulesNineStateMigratesBackToItself(int seed)
     {
         var world = BuiltOutWorld.GenerateSave(seed).World;
         string state = WithoutPlayersRules(world.Fingerprint());
         var map = world.Map;
 
-        Assert.Equal(state, new StockRulesArrive().Migrate(RulesEight(state), map));
+        Assert.Equal(state, new StockRulesArrive().Migrate(RulesNine(state), map));
         var reader = new StateReader(state);
         World.Read(reader, map);
         reader.End();
     }
 
     [Fact]
-    public void ABuildingLineThatIsNotOfRulesEightIsRefused()
+    public void ABuildingLineThatIsNotOfRulesNineIsRefused()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
 
         Assert.Throws<FormatException>(() => new StockRulesArrive().Migrate(world.Fingerprint(), PrototypeHome.Map));
     }
 
-    /// <summary>A state of rules 9 as rules 8 wrote it: no minimum stock on the buildings, no reservations and no import orders.</summary>
-    internal static string RulesEight(string state) => string.Join(
+    /// <summary>
+    /// A state of rules 10 as rules 9 wrote it: no minimum stock on the buildings, no reservations and no import orders;
+    /// a state of rules 9 stays as it is.
+    /// </summary>
+    internal static string RulesNine(string state) => string.Join(
         "\n",
         state.Split('\n')
             .Where(line => !line.StartsWith("reserved ", StringComparison.Ordinal) && !line.StartsWith("imports ", StringComparison.Ordinal))
-            .Select(line => line.StartsWith("building ", StringComparison.Ordinal) ? line[..line.LastIndexOf(' ')] : line));
+            .Select(line => line.StartsWith("building ", StringComparison.Ordinal) && line.Split(' ').Length == BuildingFields ? line[..line.LastIndexOf(' ')] : line));
 
-    /// <summary>The state with the standard minimum stock everywhere and nothing reserved or reordered, as rules 8 played.</summary>
+    private const int BuildingFields = 17; // A building line of rules 10, its kind and tile counted.
+
+    /// <summary>The state with the standard minimum stock everywhere and nothing reserved or reordered, as rules 9 played.</summary>
     private static string WithoutPlayersRules(string state) => string.Join(
         "\n",
         state.Split('\n')

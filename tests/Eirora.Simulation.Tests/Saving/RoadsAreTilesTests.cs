@@ -129,8 +129,10 @@ public sealed class RoadsAreTilesTests
         Assert.Contains($"stock {PrototypeHome.Home} Stone {(20 * Unit) + paid - (2 * Unit * laid)}", migrated);
     }
 
+    // The stone the store has no room for waits for rules 9's migration, which puts it at the home island's depots, so
+    // none is lost (review of #166).
     [Fact]
-    public void TheStoneGoesBackOnlyAsFarAsTheStoreHasRoom()
+    public void TheStoneTheStoreHasNoRoomForWaitsAtTheDepot()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
         var lines = RulesSeven(world.Fingerprint()).Split('\n').ToList();
@@ -142,8 +144,11 @@ public sealed class RoadsAreTilesTests
         lines[woodcutter] = string.Join(' ', fields);
 
         string migrated = new RoadsAreTiles().Migrate(string.Join('\n', lines), PrototypeHome.Map);
+        Assert.Contains($"stock {PrototypeHome.Home} Stone {151 * Unit}", migrated.Split('\n'));
 
-        Assert.Contains($"stock {PrototypeHome.Home} Stone {150 * Unit}", migrated.Split('\n'));
+        var settled = new SettlementsPerIsland().Migrate(migrated, PrototypeHome.Map).Split('\n');
+        Assert.Contains($"stock {PrototypeHome.Home} Stone {150 * Unit}", settled);
+        Assert.Contains($"at-depot {PrototypeHome.Home} Stone {1 * Unit}", settled);
     }
 
     // A world of rules 8 that rules 7 could have written, with no roads, one carrier a depot and nothing waiting, comes back as it was.
@@ -153,7 +158,7 @@ public sealed class RoadsAreTilesTests
     public void AWorldWithoutRoadsMigratesToItself(bool archipelago)
     {
         var world = archipelago ? Archipelago.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night) : World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        string state = StockRulesArriveTests.RulesEight(world.Fingerprint());
+        string state = SettlementsPerIslandTests.RulesEight(world.Fingerprint());
 
         Assert.Equal(state, new RoadsAreTiles().Migrate(RulesSeven(state), world.Map));
     }
@@ -165,16 +170,17 @@ public sealed class RoadsAreTilesTests
         string rulesSeven = RulesSeven(world.Fingerprint());
 
         Assert.Throws<FormatException>(() => new RoadsAreTiles().Migrate(rulesSeven, Archipelago.Map));
-        Assert.Throws<FormatException>(() => new RoadsAreTiles().Migrate(StockRulesArriveTests.RulesEight(world.Fingerprint()), PrototypeHome.Map));
+        Assert.Throws<FormatException>(() => new RoadsAreTiles().Migrate(SettlementsPerIslandTests.RulesEight(world.Fingerprint()), PrototypeHome.Map));
     }
 
     /// <summary>
-    /// A state of rules 8 as rules 7 wrote it, for a world with no roads, one carrier a depot and nothing at its
-    /// buildings: no road on any building, no carriers, cap, priority or outbox, and no road or held lines.
+    /// A state of rules 8 (or of rules 9, through <see cref="SettlementsPerIslandTests.RulesEight"/>) as rules 7 wrote it,
+    /// for a world with no roads, one carrier a depot and nothing at its buildings: no road on any building, no carriers,
+    /// cap, priority or outbox, and no road or held lines.
     /// </summary>
     internal static string RulesSeven(string state) => string.Join(
         "\n",
-        StockRulesArriveTests.RulesEight(state).Split('\n')
+        (state.Contains("\neconomy ", StringComparison.Ordinal) ? SettlementsPerIslandTests.RulesEight(state) : state).Split('\n')
             .Where(line => !line.StartsWith("road ", StringComparison.Ordinal) && !line.StartsWith("held ", StringComparison.Ordinal))
             .Select(line =>
             {

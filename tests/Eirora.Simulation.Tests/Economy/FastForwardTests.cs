@@ -108,17 +108,15 @@ public sealed class FastForwardTests
             [typeof(Settlement)] =
             [
                 // Recorded.
-                "_stores", "_islands", "_buildings", "_projects", "_felled", "_roads", "_expeditionLeft", "<Villagers>k__BackingField", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
+                "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_buildings", "_projects", "_felled", "_roads", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
 
                 // Fixed for the world.
-                "_map", "_home", "_founding", "_content",
-
-                // Set only by commands, which never run in a tick (TASK-046).
-                "_reserved", "_imports",
+                "_map", "_home", "_founding", "_content", "_mapIndex",
 
                 // Derived, or scratch for a single call.
-                "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_regrowing", "_jobs", "_before", "_after",
+                "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_regrowing", "_jobs", "_before", "_after", "_unstaffed", "_labour", "_pools",
             ],
+            [typeof(IslandSettlement)] = ["<Villagers>k__BackingField", "<Island>k__BackingField", "_economy", "<Reserved>k__BackingField", "<Imports>k__BackingField"],
             [typeof(Building)] =
             [
                 "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
@@ -210,7 +208,7 @@ public sealed class FastForwardTests
         long Capacity(string island) => Quantity.Units(world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
         {
             BuildingKind.Storehouse => 150,
-            BuildingKind.Jetty when island != world.HomeIsland => 150,
+            BuildingKind.Jetty => 50,
             _ => 0,
         }));
 
@@ -223,7 +221,7 @@ public sealed class FastForwardTests
                 return $"stock {parts[1]} {parts[2]} {Capacity(parts[1])}";
             }
 
-            return parts[0] == "settlement" && voyage > 0 ? $"settlement {parts[1]} {parts[2]} {voyage}" : line;
+            return parts[0] == "economy" && voyage > 0 ? $"economy {parts[1]} {voyage}" : line;
         });
 
         var reader = new StateReader(string.Join('\n', lines));

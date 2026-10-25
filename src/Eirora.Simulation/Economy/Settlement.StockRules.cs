@@ -17,23 +17,16 @@ namespace Eirora.Simulation.Economy
         private static readonly Resource[] s_fixedOrder = (Resource[])Enum.GetValues(typeof(Resource));
         private static readonly ReadOnlyCollection<Resource> s_fixedOrderShown = Array.AsReadOnly(s_fixedOrder);
 
-        // Whole units reserved by resource, only on the islands with a reservation.
-        private readonly Dictionary<string, int[]> _reserved = new(StringComparer.Ordinal);
-
-        // The order the ships take an island's goods home in, only where the player has changed the fixed order; never
-        // changed in place, so that it can be shown as it is.
-        private readonly Dictionary<string, Resource[]> _imports = new(StringComparer.Ordinal);
-
         /// <summary>Whether an island has a store of its own, which it has once something is built there.</summary>
         public bool HasStore(string? island) => island is not null && _stores.ContainsKey(island);
 
         /// <summary>Whole units of a resource that neither the ships nor processing take from an island's store.</summary>
         public int ReservationOf(string island, Resource resource) =>
-            _reserved.TryGetValue(island, out var reserved) ? reserved[(int)resource] : 0;
+            _settlements.TryGetValue(island, out var settlement) && settlement.Reserved is int[] reserved ? reserved[(int)resource] : 0;
 
         /// <summary>The order the ships take an island's goods home in: the player's, or the resources' fixed order.</summary>
         public IReadOnlyList<Resource> ImportOrder(string island) =>
-            _imports.TryGetValue(island, out var order) ? Array.AsReadOnly(order) : s_fixedOrderShown;
+            _settlements.TryGetValue(island, out var settlement) && settlement.Imports is Resource[] order ? Array.AsReadOnly(order) : s_fixedOrderShown;
 
         /// <summary>Whole units of each resource an island's store holds.</summary>
         public int StorageUnits(string island) => (int)Quantity.Whole(StorageCapacity(island));
@@ -44,17 +37,10 @@ namespace Eirora.Simulation.Economy
         /// <summary>Reserves whole units of a resource on an island, which has a store.</summary>
         public void SetReservation(string island, Resource resource, int units)
         {
-            if (!_reserved.TryGetValue(island, out var reserved))
-            {
-                reserved = new int[s_resourceCount];
-                _reserved.Add(island, reserved);
-            }
-
+            var settlement = _settlements[island];
+            var reserved = settlement.Reserved ?? new int[s_resourceCount];
             reserved[(int)resource] = units;
-            if (Array.TrueForAll(reserved, r => r == 0))
-            {
-                _reserved.Remove(island);
-            }
+            settlement.Reserved = Array.TrueForAll(reserved, r => r == 0) ? null : reserved;
         }
 
         /// <summary>Moves a resource to <paramref name="place"/> in an island's import order, counted from 0.</summary>
@@ -63,14 +49,7 @@ namespace Eirora.Simulation.Economy
             var order = new List<Resource>(ImportOrder(island));
             order.Remove(resource);
             order.Insert(place, resource);
-            if (IsFixedOrder(order))
-            {
-                _imports.Remove(island);
-            }
-            else
-            {
-                _imports[island] = order.ToArray();
-            }
+            _settlements[island].Imports = IsFixedOrder(order) ? null : order.ToArray();
         }
 
         /// <summary>
@@ -79,8 +58,7 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private (long Kept, KeptBy By) Leaves(Building processing, Resource input)
         {
-            _reserved.TryGetValue(processing.Island, out var reserved);
-            return Leaves(processing, input, reserved);
+            return Leaves(processing, input, _settlements[processing.Island].Reserved);
         }
 
         /// <summary>
@@ -94,15 +72,18 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>The order the ships take an island's goods home in, as the array they go through every quarter hour.</summary>
-        private Resource[] ShippingOrder(string island) => _imports.TryGetValue(island, out var order) ? order : s_fixedOrder;
+        private static Resource[] ShippingOrder(IslandSettlement settlement) => settlement.Imports ?? s_fixedOrder;
 
         /// <summary>
-        /// Millionths of a unit of a resource in an island's store that the ships may take: all but what is
-        /// <paramref name="reserved"/> there, the island's reservations or null when it has none.
+        /// Millionths of a unit of a resource in an island's store that the ships may take home: all but the larger of
+        /// what is <paramref name="reserved"/> there (the island's reservations, or null when it has none) and what of
+        /// <paramref name="food"/> the island keeps for its settlement (<see cref="Kept"/>), as D-125 has it for processing.
         /// </summary>
-        private static long Shippable(long[] store, int[]? reserved, Resource resource)
+        private static long Shippable(long[] store, int[]? reserved, Resource resource, long food)
         {
-            long left = store[(int)resource] - (reserved is null ? 0 : Quantity.Units(reserved[(int)resource]));
+            long kept = Kept(store, resource, food);
+            long reservation = reserved is null ? 0 : Quantity.Units(reserved[(int)resource]);
+            long left = store[(int)resource] - (reservation > kept ? reservation : kept);
             return left > 0 ? left : 0;
         }
 
@@ -120,12 +101,12 @@ namespace Eirora.Simulation.Economy
             return true;
         }
 
-        /// <summary>The reservations and import orders, the islands in map order, after the stores.</summary>
+        /// <summary>The reservations and import orders, the islands in map order, after the stores and what is owed.</summary>
         private void WriteStockRules(StateWriter writer)
         {
             foreach (var island in _islands)
             {
-                for (int resource = 0; _reserved.TryGetValue(island, out var reserved) && resource < s_resourceCount; resource++)
+                for (int resource = 0; _settlements[island].Reserved is int[] reserved && resource < s_resourceCount; resource++)
                 {
                     if (reserved[resource] > 0)
                     {
@@ -136,7 +117,7 @@ namespace Eirora.Simulation.Economy
 
             foreach (var island in _islands)
             {
-                if (_imports.TryGetValue(island, out var order))
+                if (_settlements[island].Imports is Resource[] order)
                 {
                     var line = writer.Line("imports").Text(island);
                     foreach (var resource in order)
@@ -186,7 +167,7 @@ namespace Eirora.Simulation.Economy
                     throw new FormatException($"The import order on {island} is not an order of every resource after the previous island's.");
                 }
 
-                _imports.Add(island, order);
+                _settlements[island].Imports = order;
                 previous = index;
             }
         }

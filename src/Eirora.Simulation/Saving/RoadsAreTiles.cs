@@ -14,7 +14,8 @@ namespace Eirora.Simulation.Saving
     /// the nearest one when no staffed one is reached, along the shortest way over land, so its carriers walk the whole
     /// way on the road. Rules 7 charged 2 stone for each step to the nearest depot; the stone for each step that gets no
     /// new road tile, the last into the depot and those another road already lies on, goes back to the home island's
-    /// store as far as it has room.</item>
+    /// store. What its room cannot take waits there for rules 9's migration to put at the home island's depots
+    /// (<see cref="SettlementsPerIsland"/>), so no stone is lost (review of #166).</item>
     /// <item>A road in the queue becomes a road project on each of those tiles that has no road, laid or queued, with the
     /// work it had left shared between them, at most a tile's 4 hours each, and gives back its stone the same way.</item>
     /// <item>A staffed storehouse or jetty gets one carrier, its villager, and takes more at the next dawn; every depot may
@@ -31,7 +32,6 @@ namespace Eirora.Simulation.Saving
     {
         private const int BuildingFields = 10;
         private const long StonePerStep = 2_000_000;
-        private const long StorePerStorehouse = 150_000_000;
         private const long WorkPerTile = 4000;
         private const long StepTime = 250_000;
         private const long RoadStepTime = 125_000;
@@ -73,7 +73,6 @@ namespace Eirora.Simulation.Saving
             List<Hex> RoadOf(Hex from) => Way(map, from, staffed) is { Found: true } way ? way.Tiles : Way(map, from, depots).Tiles;
             long Paid(Hex from) => Way(map, from, depots) is { Found: true } way ? StonePerStep * (way.Tiles.Count + 1) : 0;
 
-            int storehouses = buildings.Count(b => b.Kind == "Storehouse" && (IslandOf(map, b.Tile) ?? home) == home);
             var roads = new SortedSet<Hex>();
             long refund = 0;
             int afterQueue = -1;
@@ -157,7 +156,7 @@ namespace Eirora.Simulation.Saving
                 }
             }
 
-            GiveBack(lines, home, refund, storehouses * StorePerStorehouse);
+            GiveBack(lines, home, refund);
 
             // A road no longer names the building it was for.
             for (int i = 0; i < lines.Count; i++)
@@ -302,8 +301,11 @@ namespace Eirora.Simulation.Saving
         private static bool Queued(List<string> lines, Hex tile) =>
             lines.Any(l => l == $"project Road {Text(tile.Q)} {Text(tile.R)}" || l.StartsWith($"project Road {Text(tile.Q)} {Text(tile.R)} ", StringComparison.Ordinal));
 
-        /// <summary>Puts the stone back in the home island's store, as far as it has room (INV-R1).</summary>
-        private static void GiveBack(List<string> lines, string home, long stone, long capacity)
+        /// <summary>
+        /// Puts the stone back in the home island's store, all of it: beyond its room it waits for rules 9's migration to
+        /// put it at the depots, which keeps INV-R1 and loses nothing (INV-R2).
+        /// </summary>
+        private static void GiveBack(List<string> lines, string home, long stone)
         {
             int at = lines.FindIndex(l => l.StartsWith($"stock {home} Stone ", StringComparison.Ordinal));
             if (at < 0)
@@ -312,9 +314,7 @@ namespace Eirora.Simulation.Saving
             }
 
             long stock = long.Parse(lines[at].Split(' ')[3], NumberStyles.None, CultureInfo.InvariantCulture);
-            long room = capacity - stock;
-            stock += stone < room ? stone : room > 0 ? room : 0;
-            lines[at] = $"stock {home} Stone {Text(stock)}";
+            lines[at] = $"stock {home} Stone {Text(stock + stone)}";
         }
 
         private static bool IsDepot(string kind) => kind is "Storehouse" or "Jetty";
