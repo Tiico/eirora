@@ -27,6 +27,9 @@ namespace Eirora.Simulation.Economy
         private readonly Dictionary<Hex, List<(Building Building, Recipe Recipe, long Time)>> _served = new();
         private bool _servedKnown;
         private readonly List<Job> _jobs = new();
+        // At dawn: what each depot's buildings need by the depot's tile, and each island's villagers left to carry.
+        private readonly Dictionary<Hex, long> _needs = new();
+        private readonly Dictionary<string, int> _free = new(System.StringComparer.Ordinal);
 
         /// <summary>The tiles with a road, in map order.</summary>
         public IReadOnlyCollection<Hex> Roads => _roads;
@@ -289,6 +292,25 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
+        /// <see cref="NeedAt"/> for every depot at once, by its tile, in one pass over the buildings (#173). The carriers
+        /// that a depot lets go or takes at dawn change no other depot's need: a building's goods only ever need the
+        /// depot it belongs to.
+        /// </summary>
+        private void FindNeeds(int activeTicks)
+        {
+            _needs.Clear();
+            foreach (var building in _buildings)
+            {
+                var trip = TripFrom(building.Tile);
+                if (!IsDepot(building.Kind) && trip.Reaches)
+                {
+                    _needs.TryGetValue(trip.Depot, out long need);
+                    _needs[trip.Depot] = need + NeedOf(building, trip, activeTicks);
+                }
+            }
+        }
+
+        /// <summary>
         /// Millionths of a unit of its product a building makes in an active hour at its level and without a workday:
         /// for a field or a sheep farm what grows over the whole game day, harvested in the active hours.
         /// </summary>
@@ -321,11 +343,12 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private void ReleaseCarriers(int activeTicks)
         {
+            FindNeeds(activeTicks);
             foreach (var depot in _buildings)
             {
-                if (IsDepot(depot.Kind) && depot.Staffed && Wanted(depot, activeTicks) < depot.Carriers)
+                if (IsDepot(depot.Kind) && depot.Staffed && Wanted(depot) < depot.Carriers)
                 {
-                    depot.Carriers = Wanted(depot, activeTicks);
+                    depot.Carriers = Wanted(depot);
                 }
             }
         }
@@ -337,6 +360,10 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private void HireCarriers(int activeTicks)
         {
+            // The buildings are staffed anew since the carriers were let go, so what they need is found again; each island's
+            // free villagers are counted once and lessened by those its depots take.
+            FindNeeds(activeTicks);
+            _free.Clear();
             foreach (var depot in _buildings)
             {
                 if (!IsDepot(depot.Kind) || !depot.Staffed)
@@ -344,16 +371,22 @@ namespace Eirora.Simulation.Economy
                     continue;
                 }
 
-                int more = Wanted(depot, activeTicks) - depot.Carriers;
-                int free = FreeVillagersOf(_settlements[depot.Island]);
-                depot.Carriers += more > 0 ? (more < free ? more : free) : 0;
+                int more = Wanted(depot) - depot.Carriers;
+                if (!_free.TryGetValue(depot.Island, out int free))
+                {
+                    free = FreeVillagersOf(_settlements[depot.Island]);
+                }
+
+                int hired = more > 0 ? (more < free ? more : free) : 0;
+                depot.Carriers += hired;
+                _free[depot.Island] = free - hired;
             }
         }
 
-        /// <summary>The carriers a depot's buildings' goods need, one to its cap.</summary>
-        private int Wanted(Building depot, int activeTicks)
+        /// <summary>The carriers a depot's buildings' goods need as <see cref="FindNeeds"/> last found it, one to its cap.</summary>
+        private int Wanted(Building depot)
         {
-            long need = NeedAt(depot, activeTicks);
+            _needs.TryGetValue(depot.Tile, out long need);
             int want = (int)((need + Quantity.PerUnit - 1) / Quantity.PerUnit);
             return want < 1 ? 1 : want > depot.CarrierCap ? depot.CarrierCap : want;
         }
