@@ -163,9 +163,9 @@ Kalkylen har regeln i `World.demolition` och `World.demolish`.
 **Att flytta en byggnad lönar sig bara med vad den bättre platsen ger.**
 Balansbotarnas *Närområdet, flyttad* spelar Närområdet men river startbyns skogshuggare när kartläggningen hittat den rikaste skogen och bygger den igen där, för 3 timmer netto och 8 timmars arbete.
 På prototypens karta ligger flytten 6 % över Närområdet efter en vecka men lika efter fyra, eftersom Närområdet ändå bygger en skogshuggare vid den rikaste skogen.
-På tolv genererade kartor slutar flytten efter fyra veckor i median 7 % och som mest 15 % över Närområdet, och på fyra av dem lika eller under, eftersom startbyns skogshuggare där står på slät mark intill skogen och inte vid den rikaste.
-Flytten är alltså ett engångslyft för en illa placerad byggnad, inte en strategi att upprepa.
-Testet `MovingABuildingByDemolishingItPaysAtMostWhatTheBetterSiteGives` håller vinsten under en femtedel, så att en regeländring som gör flytten mer lönsam syns.
+Före TASK-064 slutade flytten på tolv genererade kartor efter fyra veckor i median 7 % och som mest 15 % över Närområdet, eftersom startbyns skogshuggare stod på slät mark intill skogen och inte vid den rikaste.
+Sedan grundandet ställer den vid den rikaste skogen inom räckhåll (avsnitt 6, *Grundandet på en genererad karta*) ger flytten på samma kartor i median −0,5 % och som mest −0,04 %, och på prototypens karta lika.
+Testet `MovingTheStartWoodcutterGainsNextToNothingOverTheFoundedOne` håller vinsten under 2 % i median och under 5 % på varje karta, så att en regeländring som gör flytten lönsam igen syns.
 
 ## 4. Bybor, basbehov och vila
 
@@ -343,8 +343,13 @@ Startkrafter från den guidade turen: 100 Utforskning, 100 Styrka, 40 Ork (D-45)
 Prototypens handgjorda karta behåller sin by, sina kartläggningar och Nyön, så att varje värld på den spelas upp som förut.
 En genererad karta har inga utpekade platser, så grundandet följer av kartan med samma regel varje gång (TASK-033, `Founding`):
 
-- Förrådet, fiskeboden, åkern och skogshuggaren står på närmaste ruta till startrutan där de kan arbeta.
-  De väljer gräs eller strand när det går, så att skog, åker och betesmark finns kvar åt kartläggningarna.
+- Förrådet, fiskeboden och åkern står på närmaste ruta till startrutan där de kan arbeta.
+  Förrådet väljer gräs eller strand när det går, så att skog, åker och betesmark finns kvar åt kartläggningarna.
+- Skogshuggaren står där skogen den når är rikast, inom tre steg över land från förrådet (TASK-064, #169).
+  Rikast är först de två skogsrutor den fäller samtidigt och sedan alla skogsrutor den når, eftersom den fäller de andra när de två är fällda och växer igen (avsnitt 3.1); en ruta med 40 timmer räcker bara några dygn.
+  Bland lika rika väljer den närmare förrådet, sedan gräs eller strand och sedan kartans ordning.
+  Den står aldrig på en ruta som en kartläggning döljer och räknar inte de rutorna; finns ingen plats inom tre steg står den på närmaste.
+- Fiskeboden och åkern prövades med samma regel men står kvar på närmaste ruta, eftersom generator v1 ger allt fiskevatten och all åker på startön samma rikedom; på 24 kartor gav regeln dem samma utvecklingsvärde efter fyra veckor.
 - *Kartlägg närområdet* visar ett berg att bryta sten i och två skogsrutor, de som ligger längst från starten.
 - *Kartlägg kusten* visar den åker och det fiskevatten vid startön som ligger längst från starten.
 - Expeditionen hittar den närmaste ön 8–12 steg sjövägen som är värd resan: minst sex landrutor och någon rik mark.
@@ -354,8 +359,10 @@ Generator v1 lägger den rika marken ute på öarna (MAP-03), så kartläggninga
 Lika långt bort avgörs av kartans ordning, så samma karta alltid ger samma grundande.
 
 Grundandet sparas inte, så en sparad värld på en genererad karta läser sina kartläggningar och sin expeditions ö ur regeln.
-En ändrad regel skulle alltså ändra världar som redan spelas.
-Därför kräver en ändring en ny version av regeln bredvid den gamla, vald efter kartans generator och version ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
+En ändrad regel för dem skulle alltså ändra världar som redan spelas.
+Därför kräver en sådan ändring en ny version av regeln bredvid den gamla, vald efter kartans generator och version ([ADR-0010](../adr/0010-world-map-format-and-generator-version.md)).
+Startbyns byggnader läses bara när världen skapas och står sedan i tillståndet, så var de står kan ändras utan ny version och påverkar bara nya världar.
+Kartläggningarna väljs därför fortfarande kring startbyn som den stod före TASK-064, med alla fyra byggnader på närmaste ruta, så att varje värld som redan spelas läser samma kartläggningar.
 De gyllene grundandena (`tests/Eirora.Simulation.Tests/WorldGeneration/Golden/foundings.txt`) fångar varje ändring.
 
 ### Beslut om var krafterna ska riktas
