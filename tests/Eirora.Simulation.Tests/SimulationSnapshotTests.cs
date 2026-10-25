@@ -93,6 +93,7 @@ public sealed class SimulationSnapshotTests
             new BuildingDemolished(13, BuildingKind.Sawmill, new Hex(-1, 0)),
             new VillagersRose(14, 2, PopulationTier.Farmers, "home"),
             new StepUnlocked(15, 1),
+            new KnarrLaunched(16, "home", 2),
         };
         var writer = new StateWriter();
         foreach (var sample in samples)

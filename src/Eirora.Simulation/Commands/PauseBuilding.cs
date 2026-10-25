@@ -3,7 +3,7 @@ using Eirora.Simulation.Map;
 namespace Eirora.Simulation.Commands
 {
     /// <summary>
-    /// Pauses a producing building: it is not staffed and its villagers build instead, until it is resumed. Free of
+    /// Pauses a producing building or a shipyard: it is not staffed and its villagers build instead, until it is resumed. Free of
     /// forces, like all planning (D-23).
     /// </summary>
     public sealed class PauseBuilding : GameCommand
@@ -19,7 +19,7 @@ namespace Eirora.Simulation.Commands
         {
             var settlement = world.Settlement;
             var building = settlement.BuildingAt(Tile);
-            if (building is null || !settlement.Content.For(building.Kind).Produces)
+            if (building is null || !settlement.Content.For(building.Kind).Pausable)
             {
                 return Rejection.NoBuildingThere;
             }

@@ -29,6 +29,7 @@ stock home Hide 48722189
 stock home Honey 20000000
 stock home Mead 1156942
 stock home Ale 22170904
+stock home Tar 0
 stock first Fish 20000000
 stock first Grain 0
 stock first Timber 5000000
@@ -41,6 +42,7 @@ stock first Hide 6000000
 stock first Honey 0
 stock first Mead 0
 stock first Ale 0
+stock first Tar 0
 stock second Fish 22000000
 stock second Grain 0
 stock second Timber 0
@@ -53,11 +55,12 @@ stock second Hide 0
 stock second Honey 0
 stock second Mead 0
 stock second Ale 0
+stock second Tar 0
 owed first 15000000
 owed second 20000000
 reserved home Stone 30
 reserved first Wool 10
-imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale
+imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale Tar
 building FishingHut 6 -4 1 1 0 0 0 0 0 1 1875000 1 3 1 0
 building Storehouse 0 0 1 1 0 0 0 4 4 0 0 0 0 0 0
 building FishingHut -2 -1 2 1 0 0 0 0 0 0 2843750 1 0 0 0

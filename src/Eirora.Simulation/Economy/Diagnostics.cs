@@ -206,7 +206,16 @@ namespace Eirora.Simulation.Economy
 
         public SeaRoute Route { get; }
 
-        /// <summary>Millionths of a unit the ships carry home at most an active hour, shared by every resource.</summary>
+        /// <summary>
+        /// The knarrs that carry on the route, its own island's and the home island's, each adding to its capacity
+        /// (economy-v2.md, section 4).
+        /// </summary>
+        public int Knarrs => Route.Knarrs;
+
+        /// <summary>
+        /// Millionths of a unit the ships carry at most an active hour, both ways and shared by every resource, with the
+        /// route's knarrs.
+        /// </summary>
         public long CapacityPerHour { get; }
 
         /// <summary>

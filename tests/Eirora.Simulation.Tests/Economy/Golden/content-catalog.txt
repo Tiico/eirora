@@ -1,4 +1,4 @@
-content 3
+content 4
 upgrade work 16 power 50 staff 0 site None housing 0 levels 1 step 0 tier Crofters houses Crofters hand-build 0
 cost Planks 10
 cost Stone 5
@@ -71,6 +71,18 @@ cost Timber 15
 cost Stone 5
 recipe Mead per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
 input Honey 1
+building TarKiln work 16 power 0 staff 1 site Forest housing 0 levels 2 step 3 tier Farmers houses Crofters hand-build 0
+cost Timber 10
+cost Stone 5
+recipe Tar per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
+input Timber 2
+building Shipyard work 40 power 80 staff 2 site HarborSpot housing 0 levels 1 step 3 tier Craftsmen houses Crofters hand-build 0
+cost Timber 20
+cost Planks 20
+cost Stone 10
+knarrs work 32 per-day 10 most 4 reserve 20
+knarr-cost Planks 10
+knarr-cost Tar 5
 need Food Fish Game Grain
 need Clothes Wadmal Hide
 need Drink Mead Ale
@@ -83,5 +95,6 @@ tier Craftsmen step 2 builds 2
 uses Food per-thousand 1000
 uses Clothes per-thousand 500
 uses Drink per-thousand 500
-step 1 villagers 20 of Crofters 0
-step 2 villagers 30 of Farmers 6
+step 1 villagers 20 of Crofters 0 sea-route 0
+step 2 villagers 30 of Farmers 6 sea-route 0
+step 3 villagers 45 of Craftsmen 6 sea-route 1

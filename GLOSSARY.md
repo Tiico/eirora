@@ -177,7 +177,7 @@ En ruta där bärarna går dubbelt så fort; vägar läggs ruta för ruta och hj
 _Avoid_: stig, gata
 
 **Knarr** (`Knarr`):
-Ett lastskepp som varvet bygger och som ökar sjövägarnas kapacitet till och från varvets ö.
+Ett lastskepp som varvet bygger och som ökar sjövägarnas kapacitet till och från varvets ö, med 10 varor per dag och högst fyra på en sjöväg; en knarr går aldrig förlorad.
 _Avoid_: skepp (när knarren som kapacitet avses), båt
 
 ## Egenvård och krafter

@@ -66,6 +66,7 @@ namespace Eirora.Client.Tests
                 "Bigård | 0,4 honung/h dygnet runt",
                 "Bryggeri | 2 säd → 1 öl per 2 h",
                 "Mjöderi | 1 honung → 1 mjöd per 2 h",
+                "Tjärdal | 2 timmer → 1 tjära per 2 h",
             }));
         }
 

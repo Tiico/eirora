@@ -31,7 +31,7 @@ namespace Eirora.Simulation.Economy
         /// <summary>Whole units of each resource an island's store holds.</summary>
         public int StorageUnits(string island) => (int)Quantity.Whole(StorageCapacity(island));
 
-        /// <summary>Sets how much of its raw materials a processing building leaves in the store.</summary>
+        /// <summary>Sets how much of its materials a processing building or a shipyard leaves in the store.</summary>
         public static void SetReserve(Building processing, int units) => processing.Reserve = units;
 
         /// <summary>Reserves whole units of a resource on an island, which has a store.</summary>

@@ -66,7 +66,7 @@ public sealed class CraftsmenArriveTests
         world.AdvanceTo(new TimeReading(now.UtcSeconds + (days * 24 * 3600), now.ZoneId, now.OffsetSeconds));
         string state = world.Fingerprint();
 
-        Assert.Equal(state, new CraftsmenArrive().Migrate(RulesThirteen(state), PrototypeHome.Map));
+        Assert.Equal(SeafaringArrivesTests.RulesFourteen(state), new CraftsmenArrive().Migrate(RulesThirteen(state), PrototypeHome.Map));
         var reader = new StateReader(state);
         World.Read(reader, PrototypeHome.Map);
         reader.End();
@@ -101,15 +101,16 @@ public sealed class CraftsmenArriveTests
     }
 
     /// <summary>
-    /// A state of rules 14 or later as rules 13 wrote it: no craftsmen on each settlement's line, no step beyond 1, and no
-    /// honey, mead or ale in the stores or in an import order; a state of rules 13 or earlier stays as it is.
+    /// A state of rules 14 or later as rules 13 wrote it, through <see cref="SeafaringArrivesTests.RulesFourteen"/>: no
+    /// craftsmen on each settlement's line, no step beyond 1, and no honey, mead or ale in the stores or in an import
+    /// order; a state of rules 13 or earlier stays as it is.
     /// </summary>
     internal static string RulesThirteen(string state)
     {
-        var lines = state.Split('\n').ToList();
+        var lines = SeafaringArrivesTests.RulesFourteen(state).Split('\n').ToList();
         if (!lines.Any(l => l.StartsWith("settlement ", StringComparison.Ordinal) && l.Split(' ').Length == 5))
         {
-            return state;
+            return string.Join('\n', lines);
         }
 
         int economy = lines.FindIndex(l => l.StartsWith("economy ", StringComparison.Ordinal));

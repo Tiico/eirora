@@ -29,6 +29,7 @@ stock home Hide 0
 stock home Honey 0
 stock home Mead 0
 stock home Ale 0
+stock home Tar 0
 stock first Fish 0
 stock first Grain 0
 stock first Timber 0
@@ -41,6 +42,7 @@ stock first Hide 0
 stock first Honey 0
 stock first Mead 0
 stock first Ale 0
+stock first Tar 0
 stock second Fish 0
 stock second Grain 8062500
 stock second Timber 0
@@ -53,6 +55,7 @@ stock second Hide 0
 stock second Honey 0
 stock second Mead 0
 stock second Ale 0
+stock second Tar 0
 building Woodcutter 2 0 1 1 0 0 0 0 0 1 0 1 0 0 0
 building Weavery -1 5 1 1 0 0 0 0 0 1 0 1 0 0 20
 held Wool 4000000

@@ -35,7 +35,7 @@ public sealed class ProductionRateTests
     [
         BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.Quarry, BuildingKind.SheepFarm,
         BuildingKind.Sawmill, BuildingKind.Weavery, BuildingKind.HuntingLodge, BuildingKind.Tannery,
-        BuildingKind.Apiary, BuildingKind.Brewery, BuildingKind.Meadery,
+        BuildingKind.Apiary, BuildingKind.Brewery, BuildingKind.Meadery, BuildingKind.TarKiln,
     ];
 
     [Fact]
@@ -157,6 +157,17 @@ public sealed class ProductionRateTests
         village.AssertDayGain(2, drink, buildings: 1);
     }
 
+    // Step 3's tar (TASK-063): a farmer burns tar of the timber in store at a tar kiln by the forest next to the store.
+    [Fact]
+    public void TarFromAFarmerWithTimberInStore()
+    {
+        var village = new Village(step: 3, farmers: 1, stock: (Resource.Timber, 100));
+        village.Dawn(1);
+        village.Apply(new Build(BuildingKind.TarKiln, s_forestNextToTheStore));
+
+        village.AssertDayGain(2, Resource.Tar, buildings: 1);
+    }
+
     /// <summary>A world on the prototype's map without self-care, played day by day as <see cref="BalanceRun"/> plays it.</summary>
     private sealed class Village
     {
@@ -164,7 +175,8 @@ public sealed class ProductionRateTests
         private int _key;
 
         /// <param name="step">
-        /// The step the world has reached, as a world of 20 villagers, or of 30 with 6 farmers, would (TASK-061, TASK-062).
+        /// The step the world has reached, as a world of 20 villagers, of 30 with 6 farmers, or of 45 with 6 craftsmen and a
+        /// sea route would (TASK-061, TASK-062, TASK-063).
         /// </param>
         /// <param name="farmers">How many of the start's twelve villagers are farmers.</param>
         /// <param name="stock">A resource in the home island's store, in whole units, in place of the start's.</param>

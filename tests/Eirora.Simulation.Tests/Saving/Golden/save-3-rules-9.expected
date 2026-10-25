@@ -29,6 +29,7 @@ stock home Hide 0
 stock home Honey 0
 stock home Mead 0
 stock home Ale 0
+stock home Tar 0
 stock first Fish 2399995
 stock first Grain 6100005
 stock first Timber 0
@@ -41,6 +42,7 @@ stock first Hide 0
 stock first Honey 0
 stock first Mead 0
 stock first Ale 0
+stock first Tar 0
 stock second Fish 199993
 stock second Grain 6300007
 stock second Timber 750000
@@ -53,6 +55,7 @@ stock second Hide 0
 stock second Honey 0
 stock second Mead 0
 stock second Ale 0
+stock second Tar 0
 owed second 20000000
 building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0 0
 building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0 0

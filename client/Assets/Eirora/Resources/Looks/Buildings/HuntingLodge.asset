@@ -32,9 +32,9 @@ MonoBehaviour:
         mixWith: 19
         mix: 0.25
       trim:
-        swatch: 19
+        swatch: 12
         mixWith: 19
-        mix: 0
+        mix: 0.35
       glow: 0
       mesh: {fileID: 0}
       piece: {fileID: 0}

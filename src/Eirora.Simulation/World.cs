@@ -207,6 +207,9 @@ namespace Eirora.Simulation
         /// <summary>A tile of the island the first expedition finds, or null when the map has none worth the journey.</summary>
         public Hex? ExpeditionFinds => _settlement.Founding.ExpeditionFinds;
 
+        /// <summary>The knarrs an island's shipyards have built, which are never lost (GLOSSARY: Knarr; INV-V1).</summary>
+        public int Knarrs(string island) => _settlement.Knarrs(island);
+
         /// <summary>The sea routes that ships sail, in map order: one between each island with a jetty and the home island.</summary>
         public IReadOnlyList<SeaRoute> SeaRoutes => _settlement.SeaRoutes;
 

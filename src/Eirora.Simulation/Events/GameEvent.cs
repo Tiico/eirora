@@ -116,6 +116,26 @@ namespace Eirora.Simulation.Events
     }
 
     /// <summary>
+    /// A shipyard finished a knarr, which carries more on the sea routes to and from its island from now on and is never
+    /// lost (GLOSSARY: Knarr; economy-v2.md, section 4, INV-V1).
+    /// </summary>
+    public sealed class KnarrLaunched : GameEvent
+    {
+        public KnarrLaunched(long utcSeconds, string island, int knarrs)
+            : base(utcSeconds)
+        {
+            Island = island;
+            Knarrs = knarrs;
+        }
+
+        /// <summary>The map's id of the shipyard's island.</summary>
+        public string Island { get; }
+
+        /// <summary>The knarrs the island has with this one.</summary>
+        public int Knarrs { get; }
+    }
+
+    /// <summary>
     /// A free villager moved over a sea route to a settlement whose buildings lacked villagers (D-106; economy-v2.md,
     /// section 6).
     /// </summary>

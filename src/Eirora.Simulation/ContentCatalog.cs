@@ -146,6 +146,15 @@ namespace Eirora.Simulation
                 (BuildingKind.Meadery, new(
                     Materials(timber: 15, stone: 5), workHours: 24, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 2,
                     tier: PopulationTier.Farmers, recipe: new(Resource.Mead, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Honey, 1) }))),
+
+                // Step 3, Seafaring (economy-v2.md, section 4). The shipyard cannot be built by hand (D-117).
+                (BuildingKind.TarKiln, new(
+                    Materials(timber: 10, stone: 5), workHours: 16, buildPower: 0, staff: 1, TileUse.Forest, maxLevel: 2, step: 3,
+                    tier: PopulationTier.Farmers, recipe: new(Resource.Tar, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Timber, 2) }))),
+                (BuildingKind.Shipyard, new(
+                    Materials(timber: 20, planks: 20, stone: 10), workHours: 40, buildPower: 80, staff: 2, TileUse.HarborSpot, step: 3,
+                    tier: PopulationTier.Craftsmen,
+                    knarrs: new(new Dictionary<Resource, int> { [Resource.Planks] = 10, [Resource.Tar] = 5 }, workHours: 32, unitsPerGameDay: 10, most: 4))),
             },
             needs: new[]
             {
@@ -163,6 +172,7 @@ namespace Eirora.Simulation
             {
                 new UnlockSpec(1, villagers: 20),
                 new UnlockSpec(2, villagers: 30, PopulationTier.Farmers, ofTier: 6),
+                new UnlockSpec(3, villagers: 45, PopulationTier.Craftsmen, ofTier: 6, seaRoute: true),
             });
 
         public int Version { get; }
@@ -259,7 +269,8 @@ namespace Eirora.Simulation
 
             foreach (var step in Steps)
             {
-                writer.Line("step").Long(step.Step).Text("villagers").Long(step.Villagers).Text("of").Enum(step.Tier).Long(step.OfTier);
+                writer.Line("step").Long(step.Step).Text("villagers").Long(step.Villagers).Text("of").Enum(step.Tier).Long(step.OfTier)
+                    .Text("sea-route").Bool(step.SeaRoute);
             }
 
             return writer.ToString();
@@ -287,6 +298,18 @@ namespace Eirora.Simulation
                 foreach (var input in recipe.Inputs)
                 {
                     writer.Line("input").Enum(input.Resource).Long(input.PerProduct);
+                }
+            }
+
+            if (spec.Knarrs is KnarrSpec knarrs)
+            {
+                writer.Line("knarrs").Text("work").Long(knarrs.WorkHours).Text("per-day").Long(knarrs.UnitsPerGameDay).Text("most").Long(knarrs.Most).Text("reserve").Long(knarrs.Reserve);
+                foreach (Resource resource in Enum.GetValues(typeof(Resource)))
+                {
+                    if (knarrs.Cost.TryGetValue(resource, out int amount))
+                    {
+                        writer.Line("knarr-cost").Enum(resource).Long(amount);
+                    }
                 }
             }
         }

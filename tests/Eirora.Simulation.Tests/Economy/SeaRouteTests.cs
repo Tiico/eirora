@@ -240,7 +240,7 @@ public sealed class SeaRouteTests
     private static TimeReading Shift(TimeReading reading, long seconds) => new(reading.UtcSeconds + seconds, reading.ZoneId, reading.OffsetSeconds);
 
     /// <summary>The goods the ships move, on each island with a store.</summary>
-    private sealed class Stores
+    internal sealed class Stores
     {
         private readonly Dictionary<string, long[]> _stock;
 

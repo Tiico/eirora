@@ -119,11 +119,11 @@ public sealed class FastForwardTests
             [typeof(Settlement)] =
             [
                 // Recorded.
-                "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_buildings", "_projects", "_felled", "_roads", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
+                "_stores", "_islands", "_settlements", "_atDepots", "_owed", "_knarrs", "_buildings", "_projects", "_felled", "_roads", "_expeditionLeft", "<SurveysDone>k__BackingField", "<Fog>k__BackingField",
                 "<Step>k__BackingField",
 
                 // Fixed for the world.
-                "_map", "_home", "_founding", "_content", "_mapIndex", "_tiers",
+                "_map", "_home", "_founding", "_content", "_mapIndex", "_tiers", "_knarr",
 
                 // Derived, or scratch for a single call.
                 "_buildingAt", "_capacity", "_housing", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_jobs", "_needs", "_free", "_before", "_unstaffed", "_labour", "_pools",
@@ -134,6 +134,7 @@ public sealed class FastForwardTests
             [
                 "<Level>k__BackingField", "<Staffed>k__BackingField", "<Paused>k__BackingField", "<WorkdayToday>k__BackingField", "<Ripe>k__BackingField",
                 "<Carriers>k__BackingField", "<CarrierCap>k__BackingField", "<CarriedFirst>k__BackingField", "<Depot>k__BackingField", "<Waiting>k__BackingField", "<Held>k__BackingField",
+                "<KnarrWorkLeft>k__BackingField",
                 "<Kind>k__BackingField", "<Tile>k__BackingField", "<Island>k__BackingField",
 
                 // Set only by a command, which never runs in a tick (TASK-046).

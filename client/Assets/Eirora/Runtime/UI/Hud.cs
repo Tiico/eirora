@@ -725,6 +725,17 @@ namespace Eirora.Client.UI
                     Text("sheet-text", _sheet, purpose);
                 }
 
+                if (spec.Knarrs is KnarrSpec knarr)
+                {
+                    foreach (var line in Texts.Knarrs(world, building, knarr))
+                    {
+                        Text("sheet-text", _sheet, line);
+                    }
+
+                    // The shipyard leaves its minimum stock of a knarr's materials, as processing does (PR #185).
+                    ReserveActions(world, building, knarr.Cost.Keys.OrderBy(r => r).ToArray());
+                }
+
                 // A tier's homes tell how many live there and what they lack, or why no one rises to them (TASK-061).
                 if (spec.Housing > 0 && spec.Houses != PopulationTier.Crofters && world.SettlementOn(building.Island) is { } settlement)
                 {
@@ -772,25 +783,25 @@ namespace Eirora.Client.UI
 
             if (spec.Recipe is { Inputs: { Count: > 0 } } recipe)
             {
-                ReserveActions(world, building, recipe.Inputs[0].Resource);
+                ReserveActions(world, building, new[] { recipe.Inputs[0].Resource });
             }
         }
 
         /// <summary>
-        /// A processing building's minimum stock (LOG-06, TASK-046): how much of its raw material always stays in the store
-        /// for building, from nothing to what the store holds, and the island's reservation when that keeps more. Free
-        /// planning, so it shows no force.
+        /// A processing building's or a shipyard's minimum stock (LOG-06, TASK-046): how much of each of its materials
+        /// always stays in the store for building, from nothing to what the store holds, and the island's reservation when
+        /// that keeps more. Free planning, so it shows no force.
         /// </summary>
-        private void ReserveActions(World world, Building building, Resource input)
+        private void ReserveActions(World world, Building building, IReadOnlyList<Resource> materials)
         {
             int reserve = building.Reserve, capacity = world.StorageUnits(building.Island);
             var row = Container("row", _sheet);
             var label = Container("row-label", row);
             Text("row-title", label, "Minimilager");
-            Text("row-detail", label, Texts.Reserve(building, world.ReservationOf(building.Island, input), Texts.IslandName(world, building.Island)));
+            Text("row-detail", label, Texts.Reserve(building, materials.Max(m => world.ReservationOf(building.Island, m)), Texts.IslandName(world, building.Island)));
             var stepper = Container("stepper", row);
             Button("stepper-button", stepper, "−", () => Run(new SetReserve(building.Tile, Lower(reserve, capacity)))).SetEnabled(reserve > 0);
-            Text("stepper-value", stepper, $"{reserve} {Texts.Name(input)}");
+            Text("stepper-value", stepper, materials.Count == 1 ? $"{reserve} {Texts.Name(materials[0])}" : $"{reserve} av varje");
             Button("stepper-button", stepper, "+", () => Run(new SetReserve(building.Tile, Raise(reserve, capacity)))).SetEnabled(reserve < capacity);
         }
 
@@ -971,7 +982,7 @@ namespace Eirora.Client.UI
             {
                 AddAction("Återuppta", "Bemannas igen på sin plats i bemanningen · ingen kraft", true, () => Run(new ResumeBuilding(building.Tile)));
             }
-            else if (spec.Produces)
+            else if (spec.Pausable)
             {
                 AddAction("Pausa", $"{Capital(Texts.Villagers(spec.Staff))} bygger i stället · ingen kraft", true, () => Run(new PauseBuilding(building.Tile)));
             }
@@ -1046,10 +1057,11 @@ namespace Eirora.Client.UI
             if (building.Island != world.HomeIsland)
             {
                 string name = Texts.IslandName(world, building.Island);
-                bool sailing = world.SeaRoutes.Any(r => r.From == building.Island);
+                var route = world.SeaRoutes.FirstOrDefault(r => r.From == building.Island);
+                bool sailing = route is not null;
                 SettlementLines(world, building.Island);
-                Text("sheet-text", _sheet, sailing
-                    ? $"Skeppen seglar mellan {name} och Hemön med {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
+                Text("sheet-text", _sheet, route is not null
+                    ? $"Skeppen seglar mellan {name} och Hemön med {Texts.Capacity(route)}, åt båda hållen tillsammans."
                     : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
                 Text("sheet-text", _sheet, Waiting(world, building.Island, sailing) is string goods
                     ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
@@ -1083,9 +1095,12 @@ namespace Eirora.Client.UI
 
             if (world.SeaRoutes.Count > 0)
             {
+                // Knarrs of the home island's shipyards carry on every route, another island's only on its own (economy-v2.md, section 4).
                 Text("sheet-text", _sheet, world.SeaRoutes.Count == 1
-                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
-                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag på varje, åt båda hållen tillsammans.");
+                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {Texts.Capacity(world.SeaRoutes[0])}, åt båda hållen tillsammans."
+                    : world.SeaRoutes.All(r => r.PerGameDay == world.SeaRoutes[0].PerGameDay)
+                    ? $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {Texts.Capacity(world.SeaRoutes[0])} på varje, åt båda hållen tillsammans."
+                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {Texts.List(world.SeaRoutes.Select(r => $"{Texts.Capacity(r)} till {Texts.IslandName(world, r.From)}"))}, åt båda hållen tillsammans.");
             }
 
             foreach (var route in world.SeaRoutes)

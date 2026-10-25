@@ -72,6 +72,7 @@ Varje lagrad mängd ligger mellan 0 och lagrets kapacitet.
 Resurser skapas och förbrukas bara av definierade källor: recept, byggkostnader, basbehov, fynd, handel och rivningens återbetalning.
 Transport inom världen flyttar resurser men ändrar inte summan.
 *Test:* för varje resurs är förändringen i totalt lager lika med summan av händelsernas deltan, och transporthändelser summerar till noll.
+Från TASK-063 ändrar knarrarna bara hur mycket sjövägen bär, inte varornas summa; `SeafaringTests` prövar det med alla varor och knarrar på tre öar.
 
 **INV-R3 Inget förfall.**
 Lagrade varor försvinner aldrig bara för att tiden går (D-17).
@@ -89,6 +90,7 @@ Den prövar mat, kläder och, sedan TASK-062, dryck: öl ur åkern och mjöd ur 
 När tiden går minskar aldrig antalet bybor, byggnader, byggnadsnivåer, bosättningar, utforskade rutor, avslutad forskning, epokframsteg eller historik (D-08, D-17).
 Bara ett uttryckligt rivningskommando från spelaren kan minska något av dem (D-38), och då bara den rivna byggnaden och dess nivå (TASK-047).
 *Test:* för varje sådant attribut `M` gäller `M(advance(S, Δt)) ≥ M(S)`, och efter varje godkänt kommando `M(apply(S, c)) ≥ M(S)` med den byggnad som en rivning tog bort undantagen.
+Från TASK-063 gäller det också öarnas knarrar, som inte heller går förlorade när varvet rivs.
 
 **INV-V2 Arbetsfördelning.**
 Summan av bybor i arbetsgrupper är högst antalet bybor, och ingen arbetsgrupp har ett negativt antal.
@@ -104,6 +106,7 @@ Hur länge spelaren än är borta utan egenvård och kommandon är världen efte
 *Test:* sammansatt test av INV-R1, INV-R3 och INV-V1 för `Δt` upp till ett år med noll bidrag (AC-02).
 Från TASK-049 också i utbyggda världar med byggkö, expedition till sjöss, sjöväg, fulla lager och långsamma processer, med och utan egenvård och med sena bidrag, tillsammans med INV-T5 och INV-D4.
 Från TASK-044 också med pausade byggnader och spelarens bemanningsordning och byggkö: under frånvaron förblir det pausade pausat, ordningarna står kvar och aldrig färre bybor arbetar.
+Från TASK-063 tar framspolningens jämförelse med öarnas knarrar och varvets arbete på nästa knarr, och ett år borta bygger varvet de knarrar lagret räcker till, högst fyra.
 Från TASK-045 också i världar på en genererad karta med lager på tre öar och två sjövägar.
 Från TASK-051 också med bärare, varor som väntar i byggnadernas utlager och råvara framme vid förädlingen, vägar och vägar i kön: bärarna flyttar bara varor mellan byggnaderna och lagren, och inget flyttas under vilan.
 Från TASK-050 också med en bosättning per ö, byggnader som väntar på bybor som flyttar, byggmaterial som sjövägen ännu ska bära och varor från regelversion 7 som väntar vid förrådet på plats i lagret.

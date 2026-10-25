@@ -29,6 +29,7 @@ namespace Eirora.Simulation.Economy
             var made = new long[_buildings.Count];
             var supply = new long[_buildings.Count];
             next.Produce(made, supply);
+            next.BuildKnarrs(0, new List<Events.GameEvent>());
             next.Carry();
             var seaRoutes = DiagnoseSeaRoutes(next._stores);
 
@@ -504,7 +505,7 @@ namespace Eirora.Simulation.Economy
         {
             var routes = new List<SeaRouteDiagnosis>();
             var home = stores[_home];
-            long capacity = StorageCapacity(_home);
+            long homeCapacity = StorageCapacity(_home);
             foreach (var island in _islands)
             {
                 if (!HasSeaRoute(island))
@@ -513,7 +514,8 @@ namespace Eirora.Simulation.Economy
                 }
 
                 // What the route owes for building and the food it takes out come first.
-                long room = SeaRoutePerTick;
+                long capacity = SeaRoomPerTick(island);
+                long room = capacity;
                 long owed = Min(room, _owed[_mapIndex[island]]);
                 room -= owed;
                 var settlement = _settlements[island];
@@ -547,10 +549,10 @@ namespace Eirora.Simulation.Economy
                 {
                     var resource = order[i];
                     long wanted = Min(room, Shippable(from, reserved, resource, keeps));
-                    long moved = Add(home, resource, wanted, capacity);
+                    long moved = Add(home, resource, wanted, homeCapacity);
                     if (moved < wanted)
                     {
-                        hindrances.Add(new StoreFull(resource, (int)Quantity.Whole(capacity), PerHour(wanted - moved)));
+                        hindrances.Add(new StoreFull(resource, (int)Quantity.Whole(homeCapacity), PerHour(wanted - moved)));
                     }
 
                     from[(int)resource] -= moved;
@@ -562,7 +564,7 @@ namespace Eirora.Simulation.Economy
                 {
                     var resource = order[i];
                     long held = reserved[(int)resource] > 0 ? Max(from[(int)resource] - Kept(from, resource, keeps), 0) : 0;
-                    long more = Min(Min(room, held), Max(capacity - home[(int)resource], 0));
+                    long more = Min(Min(room, held), Max(homeCapacity - home[(int)resource], 0));
                     if (more > 0)
                     {
                         hindrances.Add(new Reserved(resource, reserved[(int)resource], PerHour(more)));
@@ -571,7 +573,7 @@ namespace Eirora.Simulation.Economy
                 }
 
                 routes.Add(new SeaRouteDiagnosis(
-                    new SeaRoute(island, _home), PerHour(SeaRoutePerTick), PerHour(SeaRoutePerTick - room), waiting, hindrances, Quantity.Whole(_owed[_mapIndex[island]] + Quantity.PerUnit - 1), PerHour(supplies)));
+                    Route(island), PerHour(capacity), PerHour(capacity - room), waiting, hindrances, Quantity.Whole(_owed[_mapIndex[island]] + Quantity.PerUnit - 1), PerHour(supplies)));
             }
 
             return routes;
@@ -763,6 +765,7 @@ namespace Eirora.Simulation.Economy
             }
 
             _owed.CopyTo(copy._owed, 0);
+            _knarrs.CopyTo(copy._knarrs, 0);
 
             foreach (var building in _buildings)
             {
