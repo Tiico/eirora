@@ -189,7 +189,7 @@ namespace Eirora.Client.App
             foreach (var (island, name) in new[] { (world.HomeIsland, "19-jetty-home"), (PrototypeHome.Nyon, "20-jetty-nyon") })
             {
                 var jetty = world.Buildings.First(b => b.Kind == BuildingKind.Jetty && b.Island == island).Tile;
-                client.Focus(jetty.Center());
+                client.Focus(jetty.Center() + AboveTheSheet);
                 client.Hud.Select(jetty);
                 yield return Capture(client, folder, name);
             }
