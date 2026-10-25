@@ -215,9 +215,9 @@ public sealed class InvariantPropertyTests
             }
         }
 
-        Assert.Equal(20, accepted.Count); // Every kind of command.
+        Assert.Equal(21, accepted.Count); // Every kind of command.
         Rejection[] wantedRejections =
-            [Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued, Rejection.LastStorehouse, Rejection.NoSuchIsland];
+            [Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued, Rejection.LastStorehouse, Rejection.NoSuchIsland, Rejection.NotByHand];
         Assert.Equal([], wantedRejections.Except(rejections));
         string[] wantedRecords =
             ["cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-away", "owed", "road", "held", "building-demolished", "reserved"];

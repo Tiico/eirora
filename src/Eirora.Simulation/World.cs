@@ -114,6 +114,14 @@ namespace Eirora.Simulation
         /// <summary>The building queue, first in line first.</summary>
         public IReadOnlyList<Project> Projects => _settlement.Projects;
 
+        /// <summary>
+        /// The game day at whose dawn a building built by hand stands (D-65); the game day of its next dawn and on for
+        /// work by the free villagers is not told, since it depends on them.
+        /// </summary>
+        public int StandsOnGameDay(Project project) => project.ByHand
+            ? GameDay + project.DaysLeft
+            : throw new ArgumentException("Only a building built by hand stands on a given day.", nameof(project));
+
         /// <summary>The buildings this world knows and what they cost and produce (ADR-0006).</summary>
         public ContentCatalog Content => _settlement.Content;
 

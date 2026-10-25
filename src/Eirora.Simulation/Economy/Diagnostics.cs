@@ -23,8 +23,10 @@ namespace Eirora.Simulation.Economy
             IReadOnlyList<SeaRouteDiagnosis> seaRoutes,
             IReadOnlyList<SettlementDiagnosis> settlements,
             IReadOnlyDictionary<string, long[]> nextStores,
-            bool queueStandsStill)
+            bool queueStandsStill,
+            IReadOnlyList<Project> byHand)
         {
+            ByHand = byHand;
             Buildings = buildings;
             Depots = depots;
             NextStores = nextStores;
@@ -53,6 +55,12 @@ namespace Eirora.Simulation.Economy
         /// can lower a depot's cap to let some build.
         /// </summary>
         public bool QueueStandsStill { get; }
+
+        /// <summary>
+        /// The buildings built by hand, in the queue's order (D-65): each takes none of the free villagers' work and stands
+        /// at the dawn its <see cref="Project.DaysLeft"/> tells.
+        /// </summary>
+        public IReadOnlyList<Project> ByHand { get; }
 
         /// <summary>Every sea route that ships sail, in map order, as <see cref="World.SeaRoutes"/> lists them.</summary>
         public IReadOnlyList<SeaRouteDiagnosis> SeaRoutes { get; }

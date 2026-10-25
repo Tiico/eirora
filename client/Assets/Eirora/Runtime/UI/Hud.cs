@@ -614,9 +614,20 @@ namespace Eirora.Client.UI
                 return;
             }
 
+            if (project is { ByHand: true })
+            {
+                // Built by hand in a fixed time (D-65): no villagers' work, no place in the queue's order, and no rushing.
+                Text("sheet-title", _sheet, $"{Texts.Name(project.Building!.Value)} byggs med handkraft");
+                Text("sheet-subtitle", _sheet, $"{ground} · {Texts.WorkLeft(project)}");
+                Text("sheet-text", _sheet, $"Byborna bygger på sin fritid, utan Styrka och utan de lediga byborna i byggkön. Den står klar i gryningen dygn {world.StandsOnGameDay(project)}.");
+                return;
+            }
+
             if (project is not null)
             {
-                int place = IndexOf(world.Projects, project);
+                // Its place among the work of the free villagers, which a building built by hand is not part of.
+                var worked = world.Projects.Where(p => !p.ByHand).ToList();
+                int place = IndexOf(worked, project);
                 Text("sheet-title", _sheet, project.Building is BuildingKind kind ? $"{Texts.Name(kind)} byggs" : "Väg byggs");
                 Text("sheet-subtitle", _sheet, $"{ground} · {Texts.WorkLeft(project)}");
                 Text("sheet-text", _sheet, place == 0
@@ -651,6 +662,12 @@ namespace Eirora.Client.UI
             {
                 var spec = world.Content.For(kind);
                 AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec, tile), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
+
+                // Building by hand is the other way, as large as the first (D-65; epoch-1.md, section 3).
+                if (spec.HandBuild)
+                {
+                    AddAction($"{Texts.Name(kind)} med handkraft", Texts.HandCost(spec), world.CanAfford(spec.Cost, tile), () => Run(new BuildByHand(kind, tile)), "Utan Styrka");
+                }
             }
 
             // A road lies on any land, so it waits behind the fold with the buildings that any land takes.
@@ -971,14 +988,16 @@ namespace Eirora.Client.UI
                 : world.Settlements.Count > 1
                 ? $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger i köns ordning."
                 : $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger på det första projektet.");
+            // A building built by hand takes none of the free villagers' work (D-65): the first one they work on is built now.
+            var first = projects.FirstOrDefault(p => !p.ByHand);
             for (int i = 0; i < projects.Count && i < QueueShown; i++)
             {
                 var project = projects[i];
                 var item = Container("queue-item", _sheet);
                 var text = Container("queue-text", item);
                 Text("queue-title", text, Texts.Project(project));
-                Text("queue-detail", text, i == 0 ? $"Byggs nu · {Texts.WorkLeft(project)}" : Capital(Texts.WorkLeft(project)));
-                if (i > 0 && awake)
+                Text("queue-detail", text, project.ByHand ? $"Med handkraft · {Texts.WorkLeft(project)}" : project == first ? $"Byggs nu · {Texts.WorkLeft(project)}" : Capital(Texts.WorkLeft(project)));
+                if (project != first && !project.ByHand && awake)
                 {
                     Button("queue-button", item, "Först", () => Run(new QueueFirst(project.Kind, project.Tile)));
                 }
@@ -989,11 +1008,11 @@ namespace Eirora.Client.UI
                 Text("sheet-text", _sheet, $"Och {projects.Count - QueueShown} till. Tryck på ett bygge på ön för att flytta det först.");
             }
 
-            if (awake)
+            if (awake && first is not null)
             {
                 AddAction("Skynda på", $"{Rush.Cost} Ork · {Rush.Hours} h arbete på det första", world.Available(Force.DawnPower) >= Rush.Cost, () => Run(new Rush()));
             }
-            else
+            else if (!awake)
             {
                 Text("sheet-text", _sheet, "Byborna sover. Kön går att ordna efter gryningen.");
             }

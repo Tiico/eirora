@@ -30,6 +30,11 @@ namespace Eirora.Simulation.Commands
                 return Rejection.NotQueued;
             }
 
+            if (project.ByHand)
+            {
+                return Rejection.BuiltByHand;
+            }
+
             if (settlement.Projects[0] == project)
             {
                 return Rejection.AlreadyDone;

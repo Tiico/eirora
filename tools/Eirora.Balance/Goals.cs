@@ -71,14 +71,19 @@ public sealed class SendExpeditionOnce : Goal
     }
 }
 
-/// <summary>Builds one building where <see cref="Placement"/> chooses among the free sites the map offers.</summary>
+/// <summary>
+/// Builds one building where <see cref="Placement"/> chooses among the free sites the map offers; with
+/// <see cref="ByHand"/>, by hand when the Build Power does not suffice and the catalog lets it (D-65), as the epoch model
+/// does for a player whose Build Power does not grow (epoch-1.md, section 5).
+/// </summary>
 public sealed class BuildOne : Goal
 {
-    public BuildOne(BuildingKind building, Placement placement, Where where = Where.Home)
+    public BuildOne(BuildingKind building, Placement placement, Where where = Where.Home, bool byHand = false)
     {
         Building = building;
         Placement = placement;
         Where = where;
+        ByHand = byHand;
     }
 
     public BuildingKind Building { get; }
@@ -87,7 +92,9 @@ public sealed class BuildOne : Goal
 
     public Where Where { get; }
 
-    public override string Name => Where == Where.Home ? Names.Of(Building) : $"{Names.Of(Building)} på {Names.Of(Where)}";
+    public bool ByHand { get; }
+
+    public override string Name => (Where == Where.Home ? Names.Of(Building) : $"{Names.Of(Building)} på {Names.Of(Where)}") + (ByHand ? " eller med handkraft" : string.Empty);
 
     internal override GoalStatus Pursue(Turn turn)
     {
@@ -116,7 +123,9 @@ public sealed class BuildOne : Goal
             }
 
             var site = Placements.Choose(Placement, Building, ready, turn.Sites, turn.World.Map.Start);
-            return turn.Apply(new Build(Building, site)).Accepted ? GoalStatus.Done : GoalStatus.Pending;
+            var spec = turn.World.Content.For(Building);
+            bool byHand = ByHand && spec.HandBuild && turn.World.Available(Force.BuildPower) < spec.BuildPower;
+            return turn.Apply(byHand ? new BuildByHand(Building, site) : new Build(Building, site)).Accepted ? GoalStatus.Done : GoalStatus.Pending;
         }
 
         return GoalStatus.Skipped;
@@ -231,14 +240,14 @@ public sealed class WorkdayOn : DailyMove
     }
 }
 
-/// <summary>Rushes the first project in the queue (economy-v1.md, section 6).</summary>
+/// <summary>Rushes the first project in the queue that the villagers work on (economy-v1.md, section 6); one built by hand is not.</summary>
 public sealed class RushFirst : DailyMove
 {
     public override string Name => "skynda på";
 
     internal override void Make(Turn turn)
     {
-        if (turn.World.Projects.Count > 0)
+        if (turn.World.Projects.Any(p => !p.ByHand))
         {
             turn.Apply(new Rush());
         }
@@ -247,7 +256,7 @@ public sealed class RushFirst : DailyMove
 
 /// <summary>
 /// Moves the first queued building of a kind first in the building queue, until one of its kind stands on its island
-/// (economy-v1.md, section 4.1); the work it already has goes with it.
+/// (economy-v1.md, section 4.1); the work it already has goes with it. One built by hand has no place in the order.
 /// </summary>
 public sealed class QueueFirstUntilBuilt : DailyMove
 {
@@ -260,7 +269,7 @@ public sealed class QueueFirstUntilBuilt : DailyMove
     internal override void Make(Turn turn)
     {
         var world = turn.World;
-        if (world.Projects.FirstOrDefault(p => p.Kind == ProjectKind.Build && p.Building == Building) is not Project project
+        if (world.Projects.FirstOrDefault(p => p.Kind == ProjectKind.Build && p.Building == Building && !p.ByHand) is not Project project
             || world.Buildings.Any(b => b.Kind == Building && b.Island == world.IslandOf(project.Tile))
             || world.Projects[0] == project)
         {

@@ -179,6 +179,13 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>
+        /// What building by hand costs (D-65): the materials and the game days until it stands, as the epoch's button says
+        /// it, <c>Bygg med handkraft · 7 dygn</c>; that it takes no force stands beside the name.
+        /// </summary>
+        public static string HandCost(BuildingSpec spec) =>
+            string.Join(" · ", spec.Cost.Select(c => $"{c.Value} {Name(c.Key, c.Value)}").Append($"{spec.HandBuildDays} dygn"));
+
+        /// <summary>
         /// What a building does in short, as the table in economy-v1.md (section 3) says it: from its recipe or housing in
         /// the content catalog, and for the storehouse, the jetty and the lookout from the rules. Null for a building that
         /// does none of these.
@@ -216,8 +223,10 @@ namespace Eirora.Client.UI
             _ => Name(project.Building!.Value),
         };
 
-        /// <summary>The work hours a project has left, rounded up.</summary>
-        public static string WorkLeft(Project project) => $"{(project.WorkLeft + 999) / 1000} h arbete kvar";
+        /// <summary>The work hours a project has left, rounded up, or when a building built by hand stands (D-65).</summary>
+        public static string WorkLeft(Project project) => project.ByHand
+            ? project.DaysLeft == 1 ? "klar i gryningen" : $"klar om {project.DaysLeft} dygn"
+            : $"{(project.WorkLeft + 999) / 1000} h arbete kvar";
 
         /// <summary>A number of villagers: "en bybo", "två bybor".</summary>
         public static string Villagers(int count) => count == 1 ? "en bybo" : $"{Count(count)} bybor";
@@ -515,6 +524,8 @@ namespace Eirora.Client.UI
             Rejection.LastStorehouse => "Hemöns sista förråd står kvar, eftersom allt betalas ur dess lager.",
             Rejection.NoSuchIsland => "Ön har inget eget lager än.",
             Rejection.NotUnlocked => "Det kan byggas när byn har vuxit.",
+            Rejection.NotByHand => "Det här går inte att bygga med handkraft.",
+            Rejection.BuiltByHand => "Det byggs med handkraft och står klart på sin dag, hur kön än ordnas.",
             _ => "Det gick inte just nu.",
         };
 

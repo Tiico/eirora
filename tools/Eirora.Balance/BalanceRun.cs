@@ -82,6 +82,7 @@ public static class BalanceRun
             tally.DawnPowerLeft.Add(world.Available(Force.DawnPower));
             PassTheDay(world, dawn, day == spec.Days, hours => plan.Note(world, day), () => invariants.Check(world, day));
             tally.Values.Add(Measures.Value(world));
+            tally.SeaRouteOn ??= world.SeaRoutes.Count > 0 ? day : null;
         }
 
         return new RunResult(spec, world, startValue, plan, tally, invariants.Hours);
@@ -168,6 +169,7 @@ public sealed class RunResult
         Used = [.. tally.Spent];
         Saved = [.. new[] { Force.Exploration, Force.BuildPower, Force.DawnPower }.Select(world.Available)];
         PlanFinishedOn = plan.FinishedOn;
+        SeaRouteOn = tally.SeaRouteOn;
         GoalsDone = plan.Count(GoalStatus.Done);
         GoalsSkipped = [.. plan.Skipped()];
         GoalsPending = [.. plan.Pending()];
@@ -217,6 +219,9 @@ public sealed class RunResult
 
     /// <summary>The game day the plan's last goal was done or skipped, or null if it never was.</summary>
     public int? PlanFinishedOn { get; }
+
+    /// <summary>The first game day that ended with a sea route, or null if none was opened (epoch-1.md, section 5).</summary>
+    public int? SeaRouteOn { get; }
 
     public int GoalsDone { get; }
 

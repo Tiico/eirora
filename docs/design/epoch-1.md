@@ -138,6 +138,8 @@ Kalkylens spelare bemannar förråd, bryggor och förädling före fler fiskebod
   När kasen tänds har den en större by än de andra, eftersom byn hunnit växa längre.
 - **Utan träning nås milstolpen vecka 11,** med handkraft för bryggor, väveri och alla tre etapperna (D-65).
   Utan handkraft skulle den spelaren aldrig få en sjöväg till Nyön, och den låga profilen skulle inte nå elden på 20 veckor.
+  I simuleringen spelar balansboten *Utan träning, handkraft* början (TASK-065): Hemöns brygga och sågverket tar den guidade turens Styrka, väveriet och bryggan på Nyön byggs med handkraft, och sjövägen till Nyön öppnas dygn 11, vecka 2 som i tabellen.
+  Vårdkasen finns ännu inte i simuleringen, så resten av tempot utan träning prövas när etapperna byggs.
 - **Utan egenvård nås milstolpen inte,** men världen står still utan att förfalla (D-17).
   Byn växer ändå till 60 bybor med stugor, och extraarbetet på grundnivån ger ett beslut varje morgon.
 

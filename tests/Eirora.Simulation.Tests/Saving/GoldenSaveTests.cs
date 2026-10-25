@@ -18,6 +18,10 @@ public sealed class GoldenSaveTests
 {
     private const string Prototype = "prototype-journal-rules-1";
 
+    // A world on the archipelago (BuiltOutWorld) whose scenario reaches every state the golden save keeps; seed 55 no
+    // longer leaves a building paused or a depot with more than one carrier since TASK-064 moved the start woodcutter.
+    private const int GoldenSeed = 35;
+
     private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
     public static TheoryData<string> Saves =>
@@ -98,11 +102,12 @@ public sealed class GoldenSaveTests
     /// from rules 9 on with villagers in each island's settlement and materials owed on a sea route (TASK-050); from
     /// rules 10 on also with a storehouse demolished (TASK-047); from rules 11 on also with a minimum stock of the
     /// player's, reservations and an import order (TASK-046); from rules 12 on also with step 1 unlocked, farmers, and a
-    /// farmstead, a hunting lodge and a tannery with game in store (TASK-061).
+    /// farmstead, a hunting lodge and a tannery with game in store (TASK-061); from rules 13 on also with a weavery built
+    /// by hand (TASK-065).
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(55);
+        var save = BuiltOutWorld.GenerateSave(GoldenSeed);
         var world = save.World;
         WithFarmers(save);
 
@@ -120,6 +125,8 @@ public sealed class GoldenSaveTests
             && world.Demolition(b.Tile)!.Rejection == Rejection.None);
         Assert.True(save.Apply("golden-demolish", new Demolish(depot.Tile)).Accepted);
         WithStockRules(save);
+        var weavery = Scenario.SitesOf(world).First(h => world.CheckBuild(BuildingKind.Weavery, h) == Rejection.None && world.CanAfford(world.Content.For(BuildingKind.Weavery).Cost, h));
+        Assert.True(save.Apply("golden-by-hand", new BuildByHand(BuildingKind.Weavery, weavery)).Accepted);
         Assert.Equal(2, world.SeaRoutes.Count);
         Assert.Contains(world.Buildings, b => b.Paused);
         Assert.NotEmpty(world.Roads);
@@ -137,6 +144,7 @@ public sealed class GoldenSaveTests
         Assert.Contains(world.Settlements, s => s.VillagersOf(PopulationTier.Farmers) > 0);
         Assert.All([BuildingKind.Farmstead, BuildingKind.HuntingLodge, BuildingKind.Tannery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
         Assert.Contains(world.Islands, i => world.Stock(i, Resource.Game) > 0);
+        Assert.Contains(world.Projects, p => p.ByHand);
 
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
