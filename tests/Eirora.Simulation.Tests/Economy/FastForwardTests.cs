@@ -30,7 +30,7 @@ public sealed class FastForwardTests
     /// built-out worlds; in the rest only the slow processes move, so they are skipped.
     /// </summary>
     /// <remarks>
-    /// On 24 October 2026 the six worlds worked 81 % of them (108 005 of 133 590). With the skip broken they work every
+    /// On 25 October 2026 the six worlds worked 78 % of them (103 772 of 133 590). With the skip broken they work every
     /// one, as the year scene's world does anyway: its expedition and its queue change something every quarter hour.
     /// </remarks>
     private const double MostWorkedShare = 0.9;
