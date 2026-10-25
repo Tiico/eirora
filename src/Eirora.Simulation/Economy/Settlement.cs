@@ -56,14 +56,14 @@ namespace Eirora.Simulation.Economy
         private readonly Dictionary<Hex, Building> _buildingAt = new(); // Only looked up, never iterated.
         private readonly List<Project> _projects = new();
 
-        // Timber left on the forest tiles that are not full, in map order; every other forest tile holds ForestPerTile.
-        private readonly SortedDictionary<Hex, long> _felled = new();
+        // Timber left on the forest tiles that are not full, in map order; every other forest tile holds ForestPerTile. A
+        // sorted list, so the quarter hours go through it by index without allocating (#173).
+        private readonly SortedList<Hex, long> _felled = new();
         private readonly WorldMap _map;
         private readonly string _home;
         private readonly Founding _founding;
         private readonly ContentCatalog _content;
         private readonly List<Hex> _woods = new();
-        private readonly List<Hex> _regrowing = new();
         private long[] _before = new long[64]; // The state before and after a tick's work (RecordState).
         private long[] _after = new long[64];
         private readonly Dictionary<string, long> _capacity = new(StringComparer.Ordinal); // Forgotten whenever a building is added.
@@ -651,11 +651,12 @@ namespace Eirora.Simulation.Economy
             state[i++] = _roads.Count;
 
             state[i++] = _felled.Count;
-            foreach (var forest in _felled)
+            for (int forest = 0; forest < _felled.Count; forest++)
             {
-                state[i++] = forest.Key.Q;
-                state[i++] = forest.Key.R;
-                state[i++] = forest.Value;
+                var tile = _felled.Keys[forest];
+                state[i++] = tile.Q;
+                state[i++] = tile.R;
+                state[i++] = _felled.Values[forest];
             }
 
             return i;
@@ -1074,18 +1075,16 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public void GrowSlowProcesses(int ticks)
         {
-            _regrowing.Clear();
-            _regrowing.AddRange(_felled.Keys);
-            foreach (var tile in _regrowing)
+            for (int forest = _felled.Count - 1; forest >= 0; forest--)
             {
-                long grown = _felled[tile] + (ticks * ForestRegrowthPerTick);
+                long grown = _felled.Values[forest] + (ticks * ForestRegrowthPerTick);
                 if (grown < ForestPerTile)
                 {
-                    _felled[tile] = grown;
+                    _felled[_felled.Keys[forest]] = grown;
                 }
                 else
                 {
-                    _felled.Remove(tile);
+                    _felled.RemoveAt(forest);
                 }
             }
 
