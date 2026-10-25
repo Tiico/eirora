@@ -14,10 +14,10 @@ rest 1780550100 America/New_York -18000
 force Exploration 1003 3
 force BuildPower 50 24
 force DawnPower 1512 8
-economy 2 0
-settlement home 12
-settlement first 4
-settlement second 7
+economy 2 0 0
+settlement home 12 0
+settlement first 4 0
+settlement second 7 0
 stock home Fish 59687500
 stock home Grain 0
 stock home Timber 10406250
@@ -25,6 +25,8 @@ stock home Planks 30171875
 stock home Stone 51968750
 stock home Wool 77000000
 stock home Wadmal 0
+stock home Game 0
+stock home Hide 0
 stock first Fish 0
 stock first Grain 0
 stock first Timber 0
@@ -32,6 +34,8 @@ stock first Planks 0
 stock first Stone 0
 stock first Wool 0
 stock first Wadmal 0
+stock first Game 0
+stock first Hide 0
 stock second Fish 0
 stock second Grain 0
 stock second Timber 67062500
@@ -39,6 +43,8 @@ stock second Planks 0
 stock second Stone 0
 stock second Wool 0
 stock second Wadmal 0
+stock second Game 0
+stock second Hide 0
 building Field 1 -1 1 0 0 0 1 0 0 0 0 1 0 0 0
 building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0 0
 building FishingHut -2 -1 1 0 0 0 1 0 0 0 0 1 0 0 0

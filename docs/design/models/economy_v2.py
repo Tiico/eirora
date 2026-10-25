@@ -140,6 +140,7 @@ RECIPES = {
 GAME_PER_TILE = 0.25   # vilt per timme och oexploaterad skogsruta som jaktstugan når
 GAME_TILES = 4
 RESERVE = 20           # minimilager som förädlingen lämnar kvar (LOG-06)
+RESERVES = {"Garveri": 5}  # garveriet lämnar 5 vilt, som också är mat (produktägaren 2026-10-25, PR #180)
 
 # Varvet bygger knarrar som ökar kapaciteten på sjövägarna till och från sin ö.
 KNARR_COST = {"plankor": 10, "tjära": 5}
@@ -469,7 +470,7 @@ class World:
         return True
 
     def hire_carriers(self):
-        """Vid gryningen tar varje förråd så många bärare som varorna kräver, av de lediga torparna.
+        """Vid gryningen tar varje förråd så många bärare som varorna kräver, av de lediga byborna av alla nivåer.
 
         Bärarna räcker alltid till minst en; överblivna bärare blir lediga och bygger. Står något
         i byggkön lämnar förrådet KEEP_BUILDERS lediga bybor åt den.
@@ -484,7 +485,7 @@ class World:
                     d.carriers = want
                 elif want > d.carriers:
                     spare = sum(self.free(s)) - (KEEP_BUILDERS if self.projects else 0)
-                    d.carriers += max(0, min(want - d.carriers, self.free(s)[0], spare))
+                    d.carriers += max(0, min(want - d.carriers, spare))
                 self.staff()
 
     def explore_cost(self, base):
@@ -807,7 +808,7 @@ class World:
                         jobs.append((b.out / OUTPUT_BUFFER, "hämta", b, rate))
                     if b.kind in RECIPES and b.staffed:
                         res = RECIPES[b.kind][0]
-                        want = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVE))
+                        want = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVES.get(b.kind, RESERVE)))
                         if want > 1e-9:
                             jobs.append((want / INPUT_BUFFER, "lämna", b, rate))
                 jobs.sort(key=lambda j: (INPUT_FIRST and j[1] != "lämna", -j[0]))
@@ -822,7 +823,7 @@ class World:
                         s.stock[res] += n
                     else:
                         res = RECIPES[b.kind][0]
-                        n = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVE), left * rate)
+                        n = min(INPUT_BUFFER - b.inp, max(0.0, s.stock[res] - RESERVES.get(b.kind, RESERVE)), left * rate)
                         s.stock[res] -= n
                         b.inp += n
                     left -= n / rate
@@ -1275,7 +1276,7 @@ def run(strategy, profile, days=DAYS, w=None, start=0, values=None):
 
 # --- Samma strategi med mer egenvård (D-34) ----------------------------------------------------
 
-D34_TOLERANCE = 0.001  # största dipp ett enskilt dygn (D-119): strax över de 0,07 % kalkylen mäter, så att en försämring syns
+D34_TOLERANCE = 0.001  # största dipp en vecka eller ett enskilt dygn (D-119): strax över det kalkylen mäter, så att en försämring syns
 COMMANDS = ("build", "upgrade", "road", "carrier_cap", "survey", "expedition", "workday", "rush")
 
 
@@ -1634,8 +1635,9 @@ def main():
         low, high = same_decisions(strat, "måttlig", "hög", LONG_DAYS)
         worst = min(low, key=lambda d: (high[d] / low[d], d))
         below = sum(1 for d in low if high[d] < low[d] - 1e-6)
-        # D-119: D-34 gäller över veckor, och ett enskilt dygn får vara högst D34_TOLERANCE mindre.
-        assert all(high[d] >= low[d] - 1e-6 for d in range(DAYS, LONG_DAYS + 1, DAYS)), "D-34 över veckor (D-119)"
+        # D-119: D-34 gäller över veckor och dygn, och både en vecka och ett enskilt dygn får vara högst
+        # D34_TOLERANCE mindre (produktägaren 2026-10-25, PR #180).
+        assert all(high[d] >= (1 - D34_TOLERANCE) * low[d] for d in range(DAYS, LONG_DAYS + 1, DAYS)), "D-34 över veckor (D-119)"
         assert high[worst] >= (1 - D34_TOLERANCE) * low[worst], "dippen med mer egenvård (D-119)"
         print(f"| {name} | " + " | ".join(f"{low[d]:.0f} / {high[d]:.0f}" for d in (7, 14, 28, 42))
               + f" | dygn {worst}: {high[worst] / low[worst] - 1:+.2%} | {below} |")

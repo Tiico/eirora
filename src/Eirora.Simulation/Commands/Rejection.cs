@@ -65,5 +65,8 @@ namespace Eirora.Simulation.Commands
 
         /// <summary>The island has no store, or for an import order no ships sail home from it.</summary>
         NoSuchIsland,
+
+        /// <summary>The building belongs to an unlocked step the world has not reached yet (economy-v2.md, section 5).</summary>
+        NotUnlocked,
     }
 }

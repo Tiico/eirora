@@ -8,8 +8,9 @@ namespace Eirora.Simulation
 {
     /// <summary>
     /// The game's content at <see cref="ContentVersion"/>: what each building costs, needs and produces
-    /// (economy-v1.md, section 3). The settlement reads it instead of knowing any building's numbers, and the client
-    /// and the server compile the same catalog from the same source (ADR-0004).
+    /// (economy-v1.md, section 3), the population tiers and their needs, and the steps that unlock them (economy-v2.md,
+    /// sections 2–5). The settlement reads it instead of knowing any building's numbers, and the client and the server
+    /// compile the same catalog from the same source (ADR-0004).
     /// </summary>
     /// <remarks>
     /// Content is only added: a new building bumps <see cref="ContentVersion"/>, and changing how existing content works
@@ -22,15 +23,53 @@ namespace Eirora.Simulation
         private readonly List<BuildingKind> _buildings = new();
         private readonly BuildingSpec?[] _byKind; // The specs by kind, which the simulation looks up for every building every quarter hour (#173).
 
-        private ContentCatalog(int version, BuildingSpec upgrade, IEnumerable<(BuildingKind Kind, BuildingSpec Spec)> buildings)
+        private ContentCatalog(
+            int version,
+            BuildingSpec upgrade,
+            IEnumerable<(BuildingKind Kind, BuildingSpec Spec)> buildings,
+            IReadOnlyList<NeedSpec> needs,
+            IReadOnlyList<TierSpec> tiers,
+            IReadOnlyList<UnlockSpec> steps)
         {
             Version = version;
             Upgrade = upgrade;
+            Needs = needs;
+            Tiers = tiers;
+            Steps = steps;
+            for (int i = 0; i < tiers.Count; i++)
+            {
+                if (tiers[i].Tier != (PopulationTier)i || (i > 0 && tiers[i].Step <= tiers[i - 1].Step) || tiers[i].Step > steps.Count)
+                {
+                    throw new ArgumentException("The tiers come in order, each at a later step that the catalog has.", nameof(tiers));
+                }
+            }
+
+            for (int i = 0; i < steps.Count; i++)
+            {
+                if (steps[i].Step != i + 1)
+                {
+                    throw new ArgumentException("The steps are numbered from 1 in order.", nameof(steps));
+                }
+            }
+
+            for (int i = 0; i < needs.Count; i++)
+            {
+                if (needs[i].Need != (Need)i)
+                {
+                    throw new ArgumentException("The needs come in order, each once.", nameof(needs));
+                }
+            }
+
             foreach (var (kind, spec) in buildings)
             {
                 if (_specs.ContainsKey(kind))
                 {
                     throw new ArgumentException($"{kind} is in the catalog twice.", nameof(buildings));
+                }
+
+                if (spec.Step > steps.Count || (int)spec.Tier >= tiers.Count || (spec.Housing > 0 && (int)spec.Houses >= tiers.Count))
+                {
+                    throw new ArgumentException($"{kind} is unlocked by a step, or staffed or housing a tier, that the catalog lacks.", nameof(buildings));
                 }
 
                 _specs[kind] = spec;
@@ -79,10 +118,32 @@ namespace Eirora.Simulation
                     recipe: new(Resource.Planks, perHour: 1_000_000, inputs: new[] { new Ingredient(Resource.Timber, 2) }))),
                 (BuildingKind.Weavery, new(
                     Materials(planks: 10, stone: 5), workHours: 24, buildPower: 60, staff: 2, TileUse.Land, maxLevel: 2,
-                    recipe: new(Resource.Wadmal, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Wool, 2) }))),
-                (BuildingKind.Jetty, new(Materials(timber: 15, planks: 10), workHours: 24, buildPower: 60, staff: 1, TileUse.HarborSpot)),
+                    recipe: new(Resource.Wadmal, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Wool, 2) }), handBuild: true)),
+                (BuildingKind.Jetty, new(Materials(timber: 15, planks: 10), workHours: 24, buildPower: 60, staff: 1, TileUse.HarborSpot, handBuild: true)),
                 (BuildingKind.Lookout, new(Materials(stone: 10), workHours: 12, buildPower: 40, staff: 0, TileUse.Land)),
-            });
+
+                // Step 1, Farmers (economy-v2.md, section 4).
+                (BuildingKind.Farmstead, new(
+                    Materials(timber: 20, stone: 10), workHours: 32, buildPower: 0, staff: 0, TileUse.Land, housing: 6, step: 1,
+                    houses: PopulationTier.Farmers)),
+                (BuildingKind.HuntingLodge, new(
+                    Materials(timber: 8), workHours: 8, buildPower: 0, staff: 2, TileUse.Forest, maxLevel: 2, step: 1,
+                    recipe: new(Resource.Game, perHour: 250_000, richness: true, huntTiles: 4))),
+                (BuildingKind.Tannery, new(
+                    Materials(timber: 10, stone: 5), workHours: 16, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 1,
+                    recipe: new(Resource.Hide, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Game, 2) }, reserve: 5))),
+            },
+            needs: new[]
+            {
+                new NeedSpec(Need.Food, Resource.Fish, Resource.Game, Resource.Grain),
+                new NeedSpec(Need.Clothes, Resource.Wadmal, Resource.Hide),
+            },
+            tiers: new[]
+            {
+                new TierSpec(PopulationTier.Crofters, step: 0, (Need.Food, 1000)),
+                new TierSpec(PopulationTier.Farmers, step: 1, (Need.Food, 1000), (Need.Clothes, 500)),
+            },
+            steps: new[] { new UnlockSpec(1, villagers: 20) });
 
         public int Version { get; }
 
@@ -92,10 +153,47 @@ namespace Eirora.Simulation
         /// <summary>Upgrading any producing building to level 2: +50 % production.</summary>
         public BuildingSpec Upgrade { get; }
 
+        /// <summary>Every need, in the order of <see cref="Need"/>, with the goods that meet it.</summary>
+        public IReadOnlyList<NeedSpec> Needs { get; }
+
+        /// <summary>Every population tier, in the order of <see cref="PopulationTier"/>, each at a later step.</summary>
+        public IReadOnlyList<TierSpec> Tiers { get; }
+
+        /// <summary>The steps after the start, in order, which open one after the other (D-105).</summary>
+        public IReadOnlyList<UnlockSpec> Steps { get; }
+
+        public NeedSpec For(Need need) => Needs[(int)need];
+
+        public TierSpec For(PopulationTier tier) => Tiers[(int)tier];
+
         public BuildingSpec For(BuildingKind kind) =>
             (uint)kind < (uint)_byKind.Length && _byKind[(int)kind] is BuildingSpec spec
                 ? spec
                 : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown building.");
+
+        /// <summary>This catalog with other needs, as the content validator's tests give it (INV-R4).</summary>
+        internal ContentCatalog WithNeeds(IReadOnlyList<NeedSpec> needs)
+        {
+            var buildings = new List<(BuildingKind, BuildingSpec)>();
+            foreach (var known in _buildings)
+            {
+                buildings.Add((known, _specs[known]));
+            }
+
+            return new ContentCatalog(Version, Upgrade, buildings, needs, Tiers, Steps);
+        }
+
+        /// <summary>This catalog with a building's spec replaced, as the content validator's tests give it (INV-R4).</summary>
+        internal ContentCatalog Replacing(BuildingKind kind, BuildingSpec spec)
+        {
+            var buildings = new List<(BuildingKind, BuildingSpec)>();
+            foreach (var known in _buildings)
+            {
+                buildings.Add((known, known == kind ? spec : _specs[known]));
+            }
+
+            return new ContentCatalog(Version, Upgrade, buildings, Needs, Tiers, Steps);
+        }
 
         /// <summary>This catalog with one building more, as content is added (ADR-0006).</summary>
         internal ContentCatalog With(BuildingKind kind, BuildingSpec spec)
@@ -107,7 +205,7 @@ namespace Eirora.Simulation
             }
 
             buildings.Add((kind, spec));
-            return new ContentCatalog(Version, Upgrade, buildings);
+            return new ContentCatalog(Version, Upgrade, buildings, Needs, Tiers, Steps);
         }
 
         /// <summary>The catalog in canonical text, one record per line, so that a change to it is plain to see.</summary>
@@ -121,6 +219,29 @@ namespace Eirora.Simulation
                 Write(writer.Line("building").Enum(kind), _specs[kind]);
             }
 
+            foreach (var need in Needs)
+            {
+                var line = writer.Line("need").Enum(need.Need);
+                foreach (var good in need.Goods)
+                {
+                    line.Enum(good);
+                }
+            }
+
+            foreach (var tier in Tiers)
+            {
+                writer.Line("tier").Enum(tier.Tier).Text("step").Long(tier.Step);
+                foreach (var need in tier.Needs)
+                {
+                    writer.Line("uses").Enum(need.Need).Text("per-thousand").Long(need.PerThousand);
+                }
+            }
+
+            foreach (var step in Steps)
+            {
+                writer.Line("step").Long(step.Step).Text("villagers").Long(step.Villagers);
+            }
+
             return writer.ToString();
         }
 
@@ -128,7 +249,8 @@ namespace Eirora.Simulation
         {
             // Each number is named, so that the checked-in text reads like the table in economy-v1.md.
             writer.Text("work").Long(spec.WorkHours).Text("power").Long(spec.BuildPower).Text("staff").Long(spec.Staff)
-                .Text("site").Enum(spec.Requirement).Text("housing").Long(spec.Housing).Text("levels").Long(spec.MaxLevel);
+                .Text("site").Enum(spec.Requirement).Text("housing").Long(spec.Housing).Text("levels").Long(spec.MaxLevel)
+                .Text("step").Long(spec.Step).Text("tier").Enum(spec.Tier).Text("houses").Enum(spec.Houses).Text("hand-build").Bool(spec.HandBuild);
             foreach (Resource resource in Enum.GetValues(typeof(Resource)))
             {
                 if (spec.Cost.TryGetValue(resource, out int amount))
@@ -140,7 +262,8 @@ namespace Eirora.Simulation
             if (spec.Recipe is Recipe recipe)
             {
                 writer.Line("recipe").Enum(recipe.Product).Text("per-hour").Long(recipe.PerHour).Text("richness").Bool(recipe.Richness)
-                    .Text("grows-per-hour").Long(recipe.GrowsPerHour).Text("forest-tiles").Long(recipe.ForestTiles);
+                    .Text("grows-per-hour").Long(recipe.GrowsPerHour).Text("forest-tiles").Long(recipe.ForestTiles)
+                    .Text("hunt-tiles").Long(recipe.HuntTiles).Text("reserve").Long(recipe.Reserve);
                 foreach (var input in recipe.Inputs)
                 {
                     writer.Line("input").Enum(input.Resource).Long(input.PerProduct);

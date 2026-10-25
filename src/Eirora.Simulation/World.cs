@@ -78,6 +78,12 @@ namespace Eirora.Simulation
         /// <summary>Villagers living in every settlement together (GLOSSARY: Bybor).</summary>
         public int Villagers => _settlement.Villagers;
 
+        /// <summary>
+        /// The unlocked step the whole world has reached (GLOSSARY: Upplåsning; D-114): 0 at the start, and never lower
+        /// again (INV-V1); <see cref="Content"/> tells what each step opens.
+        /// </summary>
+        public int Step => _settlement.Step;
+
         /// <summary>How many villagers every settlement together can house.</summary>
         public int Housing => _settlement.Housing;
 

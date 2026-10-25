@@ -50,8 +50,8 @@ public sealed class LongAbsenceTests
     public void AnAbsenceOfAnyLengthBreaksNothing(int seed)
     {
         var random = new Random(seed);
-        var left = BuiltOutWorld.Generate(seed);
-        left = random.Next(4) == 0 ? FromRulesEight(left, random) : left;
+        // A world from rules 8 is one that those rules could have had, without the population tiers (TASK-061).
+        var left = random.Next(4) == 0 ? FromRulesEight(BuiltOutWorld.BeforeTiers(seed).World, random) : BuiltOutWorld.Generate(seed);
         long until = left.Now.UtcSeconds + AbsenceLength(random);
         var before = Measures.Of(left);
 
@@ -111,6 +111,11 @@ public sealed class LongAbsenceTests
     [Fact]
     public void AnAbsenceWhereAProjectFurtherBackFinishesFirstBreaksNothing() => AnAbsenceOfAnyLengthBreaksNothing(-11);
 
+    // Seed 14 leaves a world from rules 8 with goods waiting at a depot, which move into the store as the ships make room,
+    // so the slow processes' check counts them where they wait (TASK-061).
+    [Fact]
+    public void AnAbsenceWhereGoodsWaitAtADepotBreaksNothing() => AnAbsenceOfAnyLengthBreaksNothing(14);
+
     // The property proves little unless the build-out leaves worlds with work in flight.
     [Fact]
     public void BuiltOutWorldsAreLeftWithWorkInFlight()
@@ -139,7 +144,7 @@ public sealed class LongAbsenceTests
             See("villagers off the home island", world.Settlements.Any(s => s.Island != world.HomeIsland && s.Villagers > 0));
             See("buildings lacking villagers off the home island", world.Diagnose().Settlements.Any(s => s.Settlement.Island != world.HomeIsland && s.MissingStaff > 0));
             See("materials owed", world.Islands.Any(i => world.Settlement.Owed(i) > 0));
-            var migrated = FromRulesEight(world, new Random(seed));
+            var migrated = FromRulesEight(BuiltOutWorld.BeforeTiers(seed).World, new Random(seed));
             See("goods waiting at a depot", migrated.Islands.Any(i => s_resources.Any(r => migrated.Settlement.AtDepot(i, r) > 0)));
             See("full store", world.Islands.Any(i => s_resources.Any(r => Capacity(world, i) > 0 && world.Settlement.Stock(i, r) == Capacity(world, i))));
             See("felled forest", world.Fingerprint().Contains("\nforest ", StringComparison.Ordinal));
@@ -418,8 +423,8 @@ public sealed class LongAbsenceTests
         /// <summary>
         /// A store shrinks with time only by what recipes and basic needs consume (INV-R3), and the carriers only move goods
         /// between a building and a store (INV-R2): the sawmill takes two timber
-        /// for a plank, the weavery two wool for a wadmal, and each dawn every villager eats one fish or grain and
-        /// comfort takes two wadmal in each settlement. The ships only move goods between the islands, and goods waiting at
+        /// for a plank, the weavery two wool for a wadmal, the tannery two game for a hide, and each dawn every villager eats
+        /// one fish, game or grain, and comfort takes two clothes and the farmers half one each in each settlement. The ships only move goods between the islands, and goods waiting at
         /// a depot only move into its store. Nothing changes while the villagers rest throughout (INV-T4).
         /// </summary>
         public void AssertOnlyConsumedSince(Stocks earlier, int dawns, int villagers, int settlements, bool restingThroughout)
@@ -430,13 +435,17 @@ public sealed class LongAbsenceTests
                 Assert.Equal(earlier._where, _where);
             }
 
-            long wadmalMade = Change(Resource.Wadmal) + Quantity.Units(ComfortPerDawn * dawns * settlements);
+            // Clothes are wadmal or hide: comfort and the farmers' half each, rounded up in each settlement, at most.
+            long clothes = Quantity.Units((((ComfortPerDawn + 1) * settlements) + (villagers / 2)) * (long)dawns);
+            long wadmalMade = Change(Resource.Wadmal) + clothes;
+            long hideMade = Change(Resource.Hide) + clothes;
+            long food = Change(Resource.Fish) + Change(Resource.Grain) + Change(Resource.Game);
             Assert.True(Change(Resource.Planks) >= 0, $"planks {Change(Resource.Planks)}");
             Assert.True(Change(Resource.Stone) >= 0, $"stone {Change(Resource.Stone)}");
             Assert.True(Change(Resource.Timber) >= -2 * Change(Resource.Planks), $"timber {Change(Resource.Timber)} for {Change(Resource.Planks)} planks");
-            Assert.True(wadmalMade >= 0, $"wadmal {Change(Resource.Wadmal)} over {dawns} dawns");
+            Assert.True(Change(Resource.Wadmal) + Change(Resource.Hide) + clothes >= 0, $"wadmal {Change(Resource.Wadmal)} and hide {Change(Resource.Hide)} over {dawns} dawns");
             Assert.True(Change(Resource.Wool) >= -2 * wadmalMade, $"wool {Change(Resource.Wool)} for {wadmalMade} wadmal");
-            Assert.True(Change(Resource.Fish) + Change(Resource.Grain) >= -Quantity.Units((long)villagers * dawns), $"food {Change(Resource.Fish) + Change(Resource.Grain)} over {dawns} dawns");
+            Assert.True(food >= -Quantity.Units((long)villagers * dawns) - (2 * hideMade), $"food {food} over {dawns} dawns and {hideMade} hide");
         }
     }
 
@@ -447,7 +456,7 @@ public sealed class LongAbsenceTests
     private sealed class Reserved
     {
         // What the villagers eat and wear at dawn, which a reservation does not keep from them.
-        private static readonly Resource[] s_needed = [Resource.Fish, Resource.Grain, Resource.Wadmal];
+        private static readonly Resource[] s_needed = [Resource.Fish, Resource.Grain, Resource.Game, Resource.Wadmal, Resource.Hide];
 
         private readonly Dictionary<Hex, int> _reserves;
         private readonly string _rules;
@@ -543,7 +552,7 @@ public sealed class LongAbsenceTests
         private static (long Crops, long Forest, long ForestGrowth, int GameDay) Read(World w, WorldMap map)
         {
             var forestTiles = Enumerable.Range(0, map.Disc.Count).Select(i => map.Disc[i]).Where(h => map.TerrainAt(h) == Terrain.Forest).ToList();
-            long Total(Resource r) => w.Islands.Sum(i => w.Settlement.Stock(i, r))
+            long Total(Resource r) => w.Islands.Sum(i => w.Settlement.Stock(i, r) + w.Settlement.AtDepot(i, r))
                 + w.Buildings.Where(b => w.Content.For(b.Kind).Recipe?.Product == r).Sum(b => b.Waiting)
                 + w.Buildings.Sum(b => b.Held?[(int)r] ?? 0);
 

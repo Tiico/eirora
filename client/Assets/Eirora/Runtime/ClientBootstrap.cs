@@ -49,7 +49,8 @@ namespace Eirora.Client
 
             var document = gameObject.AddComponent<UIDocument>();
             document.panelSettings = PanelSettings();
-            _hud = new Hud(document.rootVisualElement, command => _session.Apply(command), new HealthControls(this));
+            var introductions = new Introductions(Path.Combine(Application.persistentDataPath, Introductions.File));
+            _hud = new Hud(document.rootVisualElement, command => _session.Apply(command), new HealthControls(this), introductions);
             _hud.SelectionChanged += hex => _island.Select(hex);
 
             _rig = new CameraRig(_camera, _hud.IsOverInterface);

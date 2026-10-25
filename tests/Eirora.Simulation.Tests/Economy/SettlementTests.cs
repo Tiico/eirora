@@ -300,7 +300,7 @@ public sealed class SettlementTests
         var lines = world.Fingerprint().TrimEnd('\n').Split('\n').ToList();
         foreach (var (island, villagers) in settlements)
         {
-            lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {island} {villagers}");
+            lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {island} {villagers} 0");
             lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1, Enum.GetValues<Resource>().Select(r => $"stock {island} {r} 0"));
         }
 

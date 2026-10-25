@@ -15,7 +15,7 @@ public sealed class RoadsAreTilesTests
 {
     private const long Unit = Quantity.PerUnit;
 
-    private static readonly Resource[] s_resources = Enum.GetValues<Resource>();
+    private static readonly Resource[] s_resources = PopulationTiersArriveTests.RulesElevenResources; // The goods of rules 7.
 
     // Acceptance, on a world a player could have saved: the golden save from rules 7, five of whose buildings had roads.
     [Fact]

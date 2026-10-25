@@ -20,7 +20,11 @@ namespace Eirora.Simulation.Economy
             TileUse requirement,
             int housing = 0,
             int maxLevel = 1,
-            Recipe? recipe = null)
+            Recipe? recipe = null,
+            int step = 0,
+            PopulationTier tier = PopulationTier.Crofters,
+            PopulationTier houses = PopulationTier.Crofters,
+            bool handBuild = false)
         {
             Cost = cost;
             WorkHours = workHours;
@@ -30,6 +34,10 @@ namespace Eirora.Simulation.Economy
             Housing = housing;
             MaxLevel = maxLevel;
             Recipe = recipe;
+            Step = step;
+            Tier = tier;
+            Houses = houses;
+            HandBuild = handBuild;
 
             // By resource rather than over the cost, whose order is the dictionary's (docs/development.md#determinism).
             foreach (Resource resource in Enum.GetValues(typeof(Resource)))
@@ -40,7 +48,7 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            if (workHours < 1 || buildPower < 0 || staff < 0 || housing < 0 || maxLevel < 1)
+            if (workHours < 1 || buildPower < 0 || staff < 0 || housing < 0 || maxLevel < 1 || step < 0)
             {
                 throw new ArgumentException("A building takes work, at least level 1 and nothing negative.");
             }
@@ -73,6 +81,21 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>What it produces, or null when it produces nothing.</summary>
         public Recipe? Recipe { get; }
+
+        /// <summary>The unlocked step from which it can be built (economy-v2.md, section 5); 0 from the start.</summary>
+        public int Step { get; }
+
+        /// <summary>The lowest population tier whose villagers can staff it; every higher tier can too (economy-v2.md, section 2).</summary>
+        public PopulationTier Tier { get; }
+
+        /// <summary>The population tier its <see cref="Housing"/> is for.</summary>
+        public PopulationTier Houses { get; }
+
+        /// <summary>
+        /// Whether it can be built by hand without its Build Power, in a fixed time (GLOSSARY: Handkraft; D-65), which
+        /// the content validator counts as made without forces (INV-R4).
+        /// </summary>
+        public bool HandBuild { get; }
 
         /// <summary>Whether it produces, so that it can be upgraded, given a road and worked.</summary>
         public bool Produces => Recipe is not null;

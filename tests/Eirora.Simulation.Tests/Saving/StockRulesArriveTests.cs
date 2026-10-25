@@ -38,9 +38,10 @@ public sealed class StockRulesArriveTests
     }
 
     /// <summary>
-    /// Acceptance: the world stays the same. The <c>.week</c> file of the golden save from rules 10 is that code's world a
-    /// week later; the save migrated and played a week gives that world migrated. A later rules version that changes the
-    /// week writes the file again in the change that bumps the rules, so the review sees what changed (ADR-0006).
+    /// Acceptance: the world stays the same. The <c>.week</c> file of the golden save from rules 10 is its world a week
+    /// later, as the rules 10 code played it until rules 12 changed the week (TASK-061): since then it is the current
+    /// rules' week. A later rules version that changes the week writes the file again in the change that bumps the rules,
+    /// so the review sees what changed (ADR-0006).
     /// </summary>
     [Fact]
     public void AWorldFromRulesTenGivesTheSameWeekAsUnderRulesTen()
@@ -53,22 +54,29 @@ public sealed class StockRulesArriveTests
             save.AdvanceTo(new TimeReading(now.UtcSeconds + (day * 24 * 3600), now.ZoneId, now.OffsetSeconds));
         }
 
-        string week = File.ReadAllText(Path.Combine(s_folder, Golden + ".week"), Encoding.UTF8);
-        Assert.Equal(RoadsAreTilesTests.Migrated(week, 10, RulesVersion.Current, save.World.Map), save.World.Fingerprint());
+        string week = Path.Combine(s_folder, Golden + ".week");
+        if (!File.Exists(week))
+        {
+            File.WriteAllText(week, save.World.Fingerprint(), new UTF8Encoding(false));
+            Assert.Fail($"Wrote {week}; review it and commit it.");
+        }
+
+        Assert.Equal(File.ReadAllText(week, Encoding.UTF8), save.World.Fingerprint());
     }
 
-    // A world built under rules 11 without stock rules of the player's, written as rules 10 wrote it, migrates back to itself.
+    // A world built under the current rules without stock rules of the player's, written as rules 10 wrote it, migrates
+    // back to itself as rules 11 wrote it.
     [Theory]
     [InlineData(0)]
     [InlineData(3)]
     [InlineData(5)]
     public void ARulesTenStateMigratesBackToItself(int seed)
     {
-        var world = BuiltOutWorld.GenerateSave(seed).World;
+        var world = BuiltOutWorld.BeforeTiers(seed).World;
         string state = WithoutPlayersRules(world.Fingerprint());
         var map = world.Map;
 
-        Assert.Equal(state, new StockRulesArrive().Migrate(RulesTen(state), map));
+        Assert.Equal(PopulationTiersArriveTests.RulesEleven(state), new StockRulesArrive().Migrate(RulesTen(state), map));
         var reader = new StateReader(state);
         World.Read(reader, map);
         reader.End();
@@ -83,12 +91,12 @@ public sealed class StockRulesArriveTests
     }
 
     /// <summary>
-    /// A state of rules 11 as rules 10 wrote it: no minimum stock on the buildings, no reservations and no import orders;
-    /// a state of rules 10 or earlier stays as it is.
+    /// A state of rules 11 or later as rules 10 wrote it: no minimum stock on the buildings, no reservations and no import
+    /// orders; a state of rules 10 or earlier stays as it is.
     /// </summary>
     internal static string RulesTen(string state) => string.Join(
         "\n",
-        state.Split('\n')
+        PopulationTiersArriveTests.RulesEleven(state).Split('\n')
             .Where(line => !line.StartsWith("reserved ", StringComparison.Ordinal) && !line.StartsWith("imports ", StringComparison.Ordinal))
             .Select(line => line.StartsWith("building ", StringComparison.Ordinal) && line.Split(' ').Length == BuildingFields ? line[..line.LastIndexOf(' ')] : line));
 

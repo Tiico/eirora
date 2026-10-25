@@ -80,6 +80,42 @@ namespace Eirora.Simulation.Events
     }
 
     /// <summary>
+    /// Villagers of a settlement rose to a population tier, because its needs were met and there was room and goods for
+    /// them (economy-v2.md, section 2; D-115). They never go back (D-39).
+    /// </summary>
+    public sealed class VillagersRose : GameEvent
+    {
+        public VillagersRose(long utcSeconds, int count, PopulationTier tier, string island)
+            : base(utcSeconds)
+        {
+            Count = count;
+            Tier = tier;
+            Island = island;
+        }
+
+        public int Count { get; }
+
+        /// <summary>The tier they rose to, from the one below it.</summary>
+        public PopulationTier Tier { get; }
+
+        /// <summary>The map's id of the settlement's island.</summary>
+        public string Island { get; }
+    }
+
+    /// <summary>
+    /// A step unlocked for the whole world at dawn, since a settlement met its condition (D-105, D-114): its tier,
+    /// needs and buildings are there from now on, and an introduction tells the player (PRG-02).
+    /// </summary>
+    public sealed class StepUnlocked : GameEvent
+    {
+        public StepUnlocked(long utcSeconds, int step)
+            : base(utcSeconds) => Step = step;
+
+        /// <summary>The step's number, from 1.</summary>
+        public int Step { get; }
+    }
+
+    /// <summary>
     /// A free villager moved over a sea route to a settlement whose buildings lacked villagers (D-106; economy-v2.md,
     /// section 6).
     /// </summary>

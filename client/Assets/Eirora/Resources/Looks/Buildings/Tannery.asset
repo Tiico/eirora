@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a8e675e070e4e979e9765c13cbcbf6f, type: 3}
+  m_Name: Tannery
+  m_EditorClassIdentifier: Eirora.Client::Eirora.Client.Look.BuildingLook
+  triangleBudget: 200
+  kind: 14
+  levels:
+  - name: 
+    extendsPrevious: 1
+    removes: []
+    parts:
+    - id: tannery
+      shape: 0
+      position: {x: 0, y: 0, z: -0.1}
+      yaw: -5
+      size: {x: 0.56, y: 0.36, z: 0.42}
+      roof: 0.3
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 19
+        mix: 0.1
+      trim:
+        swatch: 8
+        mixWith: 19
+        mix: 0
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: windows
+      shape: 4
+      position: {x: 0, y: 0, z: -0.1}
+      yaw: -5
+      size: {x: 1, y: 1, z: 0.42}
+      roof: 0
+      sides: 5
+      count: 2
+      paint:
+        swatch: 16
+        mixWith: 19
+        mix: 0
+      trim:
+        swatch: 19
+        mixWith: 19
+        mix: 0
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: vat-1
+      shape: 1
+      position: {x: 0.26, y: 0, z: 0.28}
+      yaw: 0
+      size: {x: 0.14, y: 0.1, z: 0.14}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 19
+        mix: 0.3
+      trim:
+        swatch: 19
+        mixWith: 19
+        mix: 0
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: vat-2
+      shape: 1
+      position: {x: 0.04, y: 0, z: 0.32}
+      yaw: 0
+      size: {x: 0.14, y: 0.1, z: 0.14}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 19
+        mix: 0.3
+      trim:
+        swatch: 19
+        mixWith: 19
+        mix: 0
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: hides
+      shape: 1
+      position: {x: -0.26, y: 0, z: 0.26}
+      yaw: -5
+      size: {x: 0.16, y: 0.05, z: 0.12}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 2
+        mixWith: 19
+        mix: 0.3
+      trim:
+        swatch: 14
+        mixWith: 19
+        mix: 0
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+  - name: 
+    extendsPrevious: 1
+    removes: []
+    parts: []

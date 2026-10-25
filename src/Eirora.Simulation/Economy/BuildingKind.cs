@@ -1,6 +1,9 @@
 namespace Eirora.Simulation.Economy
 {
-    /// <summary>The buildings of economy v1 (economy-v1.md, section 3).</summary>
+    /// <summary>
+    /// The buildings of economy v1 (economy-v1.md, section 3) and of the unlocked steps of economy v2 (economy-v2.md,
+    /// section 4), each added after the others so that a save's names keep their meaning.
+    /// </summary>
     public enum BuildingKind
     {
         /// <summary>Housing for eight, costs Build Power (långhus).</summary>
@@ -38,5 +41,14 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Surveys and expeditions cost a quarter less Exploration (utkikstorn).</summary>
         Lookout,
+
+        /// <summary>Housing for six farmers (bondgård; step 1, Farmers).</summary>
+        Farmstead,
+
+        /// <summary>Game from the forest around it, which hunting does not fell (jaktstuga; step 1, Farmers).</summary>
+        HuntingLodge,
+
+        /// <summary>Hide from game (garveri; step 1, Farmers).</summary>
+        Tannery,
     }
 }

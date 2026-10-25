@@ -1,6 +1,7 @@
 using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
@@ -96,12 +97,14 @@ public sealed class GoldenSaveTests
     /// processing, a depot with more than one carrier and one with a lower cap, and a building carried first (TASK-051);
     /// from rules 9 on with villagers in each island's settlement and materials owed on a sea route (TASK-050); from
     /// rules 10 on also with a storehouse demolished (TASK-047); from rules 11 on also with a minimum stock of the
-    /// player's, reservations and an import order (TASK-046).
+    /// player's, reservations and an import order (TASK-046); from rules 12 on also with step 1 unlocked, farmers, and a
+    /// farmstead, a hunting lodge and a tannery with game in store (TASK-061).
     /// </summary>
     private static void Write(string name)
     {
         var save = BuiltOutWorld.GenerateSave(55);
         var world = save.World;
+        WithFarmers(save);
 
         // A cottage on the second island, which its store cannot pay, so the ships owe the home island's materials.
         while (world.Phase == Phase.Resting)
@@ -130,10 +133,72 @@ public sealed class GoldenSaveTests
         Assert.Contains(world.Buildings, b => b.Held is not null && b.Reserve != StockRules.StandardReserve);
         Assert.Contains(world.Islands, i => Enum.GetValues<Resource>().Any(r => world.ReservationOf(i, r) > 0));
         Assert.Contains(world.Islands, i => !world.ImportOrder(i).SequenceEqual(Enum.GetValues<Resource>()));
+        Assert.Equal(1, world.Step);
+        Assert.Contains(world.Settlements, s => s.VillagersOf(PopulationTier.Farmers) > 0);
+        Assert.All([BuildingKind.Farmstead, BuildingKind.HuntingLodge, BuildingKind.Tannery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
+        Assert.Contains(world.Islands, i => world.Stock(i, Resource.Game) > 0);
 
         Directory.CreateDirectory(s_folder);
         File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
         File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
+    }
+
+    /// <summary>
+    /// The farmers of step 1 (TASK-061): a farmstead, a hunting lodge and a tannery at home, played until crofters have
+    /// risen to farmers and the store holds game and hide, so that the golden save keeps the tiers and the new goods.
+    /// </summary>
+    private static void WithFarmers(Save save)
+    {
+        var world = save.World;
+        int key = 0;
+        foreach (var kind in new[] { BuildingKind.Farmstead, BuildingKind.HuntingLodge, BuildingKind.Tannery })
+        {
+            // While the villagers are awake and the home island's store can pay for it.
+            while (world.Phase != Phase.Active || !world.CanAfford(world.Content.For(kind).Cost, Hex.Origin))
+            {
+                save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 900, world.Now.ZoneId, world.Now.OffsetSeconds));
+            }
+
+            var site = Scenario.SitesOf(world).First(h => world.IslandOf(h) == world.HomeIsland && world.CheckBuild(kind, h) == Rejection.None);
+            var built = save.Apply($"golden-farmers-{key++}", new Build(kind, site));
+            Assert.True(built.Accepted, $"{kind} was refused: {built.Rejection}.");
+        }
+
+        // Once the lodge and the tannery are built, there is game for hide and hide for clothes.
+        while (world.Projects.Any(p => p.Building is BuildingKind.HuntingLodge or BuildingKind.Tannery))
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 3600, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        while (world.Phase != Phase.Active)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 900, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        // The home island's sawmills and quarries pause, so that their villagers hunt and tan, and the food keeps coming.
+        var pausing = world.Buildings.Where(b => b.Island == world.HomeIsland && b.Kind is BuildingKind.Sawmill or BuildingKind.Quarry && !b.Paused).ToList();
+        foreach (var paused in pausing)
+        {
+            Assert.True(save.Apply($"golden-farmers-{key++}", new PauseBuilding(paused.Tile)).Accepted, $"The {paused.Kind} was not paused.");
+        }
+
+        for (int hour = 0; hour < 21 * 24 && !(world.Settlements.Any(s => s.VillagersOf(PopulationTier.Farmers) > 0) && world.Stock(Resource.Hide) > 0 && world.Stock(Resource.Game) > 0); hour++)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 3600, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        // Then they work again, and at the next dawn the depots hire carriers of every tier for their goods (D-109).
+        while (world.Phase != Phase.Active)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 900, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        foreach (var paused in pausing)
+        {
+            Assert.True(save.Apply($"golden-farmers-{key++}", new ResumeBuilding(paused.Tile)).Accepted, $"The {paused.Kind} was not resumed.");
+        }
+
+        save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (24 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
     }
 
     /// <summary>

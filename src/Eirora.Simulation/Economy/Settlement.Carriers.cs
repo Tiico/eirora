@@ -318,6 +318,11 @@ namespace Eirora.Simulation.Economy
                 return Scale(TileRate(recipe.GrowsPerHour, recipe, building.Tile), level) * Recipe.TicksPerHour * 24 / activeTicks;
             }
 
+            if (recipe.HuntTiles > 0)
+            {
+                return Scale(HuntPerTick(building, recipe) * Recipe.TicksPerHour, level);
+            }
+
             if (recipe.ForestTiles == 0)
             {
                 return Scale(TileRate(recipe.PerHour, recipe, building.Tile), level);
@@ -351,8 +356,9 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// At dawn, once the buildings are staffed, each staffed depot in the staffing order takes as many more carriers as
-        /// its buildings' goods need, up to its cap, from the villagers of its own island's settlement that no building
-        /// needs (D-106, D-109).
+        /// its buildings' goods need, up to its cap, from the villagers of every tier of its own island's settlement that no
+        /// building needs, since a villager can do the work of its tier and those below (D-106, D-109; economy-v2.md,
+        /// section 2).
         /// </summary>
         private void HireCarriers(int activeTicks)
         {

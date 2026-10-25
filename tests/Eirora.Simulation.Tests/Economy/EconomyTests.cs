@@ -14,7 +14,7 @@ namespace Eirora.Simulation.Tests.Economy;
 public sealed class EconomyTests
 {
     private const long Hour = 3600;
-    private static readonly long[] s_startingStock = [30, 0, 40, 20, 20, 0, 0];
+    private static readonly long[] s_startingStock = [30, 0, 40, 20, 20, 0, 0, 0, 0];
     private static readonly string[] s_startingBuildings = ["Storehouse@(0, 0)", "FishingHut@(1, 0)", "Field@(0, 1)", "Woodcutter@(1, -1)"];
     private static readonly Hex[] s_firstSurvey = [M2, F3, new(-3, 1)];
     private static int s_key;
@@ -110,7 +110,11 @@ public sealed class EconomyTests
     [Fact]
     public void OnlyProducingBuildingsHaveASecondLevel()
     {
-        BuildingKind[] producing = [BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.SheepFarm, BuildingKind.Quarry, BuildingKind.Sawmill, BuildingKind.Weavery];
+        BuildingKind[] producing =
+        [
+            BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.SheepFarm, BuildingKind.Quarry, BuildingKind.Sawmill, BuildingKind.Weavery,
+            BuildingKind.HuntingLodge, BuildingKind.Tannery,
+        ];
 
         Assert.All(Enum.GetValues<BuildingKind>(), kind => Assert.Equal(producing.Contains(kind) ? 2 : 1, ContentCatalog.Current.For(kind).MaxLevel));
     }

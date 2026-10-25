@@ -53,6 +53,9 @@ namespace Eirora.Client.App
             var cloud = new CloudSaveSync(account, session, new DeviceCloudSyncStorage(new MemorySecureStore(), null), () => Task.CompletedTask);
             client.Hud.UseCloudSync(cloud);
 
+            // The introductions as on a phone that has seen none, whatever this machine's player has seen.
+            client.Hud.UseIntroductions(new Introductions(null));
+
             session.Begin(new RestSchedule(23 * 60, 8 * 60));
             foreach (string refusal in ScriptedWeek.Play(session, clock))
             {
@@ -256,9 +259,21 @@ namespace Eirora.Client.App
             Application.Quit();
         }
 
+        /// <summary>
+        /// Captures the screen; an introduction that has come since the last shot gets one of its own first, named after
+        /// the view it covers, and is closed (PRG-02).
+        /// </summary>
         private static IEnumerator Capture(ClientBootstrap client, string folder, string name)
         {
             yield return client.Frames(3);
+            if (client.Hud.ShowsIntroduction)
+            {
+                ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + "-introduction.png"));
+                yield return client.Frames(3);
+                client.Hud.CloseIntroduction();
+                yield return client.Frames(3);
+            }
+
             ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + ".png"));
             yield return client.Frames(3);
         }

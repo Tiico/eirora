@@ -7,7 +7,10 @@ namespace Eirora.Simulation.Economy
     /// </summary>
     public static class StockRules
     {
-        /// <summary>Whole units of its raw material that a new processing building leaves in the store (economy-v1.md, section 5).</summary>
+        /// <summary>
+        /// Whole units of its raw material that a new processing building leaves in the store (economy-v1.md, section 5),
+        /// unless its recipe says otherwise: the tannery leaves 5 game, which is also food (TASK-061).
+        /// </summary>
         public const int StandardReserve = 20;
     }
 

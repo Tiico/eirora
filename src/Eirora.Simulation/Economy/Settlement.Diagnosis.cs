@@ -129,11 +129,12 @@ namespace Eirora.Simulation.Economy
         private SettlementDiagnosis DiagnoseSettlement(IslandSettlement settlement, Bottleneck? bottleneck)
         {
             var store = _stores[settlement.Island];
-            long food = store[(int)Resource.Fish] + store[(int)Resource.Grain];
-            bool room = HousingOf(settlement) > settlement.Villagers;
+            long food = Available(store, Need.Food);
+            bool fed = settlement.Villagers > 0 && food >= Quantity.Units(settlement.Villagers);
+            bool room = MayMoveToAny(settlement);
             var growth = settlement.Villagers == 0 ? Growth.Empty
-                : food < Quantity.Units(settlement.Villagers) ? Growth.Hungry
-                : !room ? Growth.Full
+                : !fed ? Growth.Hungry
+                : CroftersRoom(settlement) <= 0 ? Growth.Full
                 : Growth.Grows;
             int nearby = 0;
             foreach (var island in _islands)
@@ -141,7 +142,53 @@ namespace Eirora.Simulation.Economy
                 nearby += Linked(island, settlement.Island) ? FreeVillagersOf(_settlements[island]) : 0;
             }
 
-            return new SettlementDiagnosis(settlement, Quantity.Whole(food), growth, room, MissingStaffOn(settlement.Island), nearby, bottleneck);
+            var tiers = new List<TierDiagnosis>(_tiers - 1);
+            for (int tier = 1; tier < _tiers; tier++)
+            {
+                tiers.Add(DiagnoseTier(settlement, store, (PopulationTier)tier, fed));
+            }
+
+            return new SettlementDiagnosis(settlement, Quantity.Whole(food), growth, room, MissingStaffOn(settlement.Island), nearby, bottleneck, tiers);
+        }
+
+        /// <summary>
+        /// Whether villagers would rise to a tier if dawn came now (economy-v2.md, section 2): the first need its villagers
+        /// would lack, and the first thing that keeps the tier below from rising, in the order dawn checks them.
+        /// </summary>
+        private TierDiagnosis DiagnoseTier(IslandSettlement settlement, long[] store, PopulationTier tier, bool fed)
+        {
+            var spec = _content.For(tier);
+            int villagers = settlement.VillagersOf(tier);
+            Need? lacks = null;
+            foreach (var need in spec.Needs)
+            {
+                if (need.Need != Need.Food && villagers > 0 && lacks is null && Available(store, need.Need) < Quantity.Units(spec.Uses(need.Need, villagers)))
+                {
+                    lacks = need.Need;
+                }
+            }
+
+            // What the new ones would need is what is left once the tier has its own.
+            Need? lacksForNew = null;
+            foreach (var need in spec.Needs)
+            {
+                long left = Available(store, need.Need) - Quantity.Units(spec.Uses(need.Need, villagers));
+                if (need.Need != Need.Food && lacksForNew is null && left < Quantity.Units(spec.Uses(need.Need, 1)))
+                {
+                    lacksForNew = need.Need;
+                }
+            }
+
+            int room = HousingOf(settlement, tier) - villagers;
+            int below = settlement.VillagersOf((PopulationTier)((int)tier - 1));
+            var rising = Step < spec.Step ? Rising.Locked
+                : !fed ? Rising.Hungry
+                : lacks is not null ? Rising.LacksNeed
+                : room <= 0 ? Rising.NoHousing
+                : below == 0 ? Rising.NoneBelow
+                : lacksForNew is not null ? Rising.LacksNeed
+                : Rising.Rises;
+            return new TierDiagnosis(tier, villagers, HousingOf(settlement, tier), lacks, rising, rising == Rising.LacksNeed ? lacks ?? lacksForNew : null);
         }
 
         private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, long made, long supply, int activeTicks, Reach reach, Dictionary<Hex, Advice> advice)
@@ -447,9 +494,16 @@ namespace Eirora.Simulation.Economy
                 long room = SeaRoutePerTick;
                 long owed = Min(room, _owed[_mapIndex[island]]);
                 room -= owed;
-                long food = Quantity.Units(FoodDays * _settlements[island].Villagers);
-                long supplies = SupplyFood(home, stores[island], StorageCapacity(island), food, room);
+                var settlement = _settlements[island];
+                long supplies = 0;
+                foreach (var need in _content.Needs)
+                {
+                    supplies += Supply(home, stores[island], StorageCapacity(island), need, Quantity.Units(FoodDays * Housed(settlement, need.Need)), room - supplies);
+                }
+
                 room -= supplies;
+
+                var keeps = Keeps(settlement);
 
                 // What the island has above what it keeps, in its store now.
                 var waiting = new List<(Resource, long)>();
@@ -458,7 +512,7 @@ namespace Eirora.Simulation.Economy
                 var reserved = _settlements[island].Reserved;
                 foreach (var resource in order)
                 {
-                    long shippable = Quantity.Whole(Shippable(now, reserved, resource, food));
+                    long shippable = Quantity.Whole(Shippable(now, reserved, resource, keeps));
                     if (shippable > 0)
                     {
                         waiting.Add((resource, shippable));
@@ -470,7 +524,7 @@ namespace Eirora.Simulation.Economy
                 for (int i = 0; i < order.Count && room > 0; i++)
                 {
                     var resource = order[i];
-                    long wanted = Min(room, Shippable(from, reserved, resource, food));
+                    long wanted = Min(room, Shippable(from, reserved, resource, keeps));
                     long moved = Add(home, resource, wanted, capacity);
                     if (moved < wanted)
                     {
@@ -481,11 +535,11 @@ namespace Eirora.Simulation.Economy
                     room -= moved;
                 }
 
-                // What the ships would take besides, in the same order, were nothing reserved: all above the food it keeps.
+                // What the ships would take besides, in the same order, were nothing reserved: all above the needs it keeps.
                 for (int i = 0; i < order.Count && room > 0 && reserved is not null; i++)
                 {
                     var resource = order[i];
-                    long held = reserved[(int)resource] > 0 ? Max(from[(int)resource] - Kept(from, resource, food), 0) : 0;
+                    long held = reserved[(int)resource] > 0 ? Max(from[(int)resource] - Kept(from, resource, keeps), 0) : 0;
                     long more = Min(Min(room, held), Max(capacity - home[(int)resource], 0));
                     if (more > 0)
                     {
@@ -564,6 +618,11 @@ namespace Eirora.Simulation.Economy
             if (recipe.IsSlowProcess)
             {
                 return Scale(TileRate(recipe.GrowsPerTick, recipe, building.Tile), level, workday);
+            }
+
+            if (recipe.HuntTiles > 0)
+            {
+                return Scale(HuntPerTick(building, recipe), level, workday);
             }
 
             if (recipe.ForestTiles == 0)
@@ -658,18 +717,23 @@ namespace Eirora.Simulation.Economy
         /// <summary>The settlement as it is, for the diagnosis to play a quarter hour of work on; the fog is shared, since work never lifts it.</summary>
         private Settlement CopyForWork()
         {
-            var copy = new Settlement(_map, Fog, _founding, _content) { SurveysDone = SurveysDone };
+            var copy = new Settlement(_map, Fog, _founding, _content) { SurveysDone = SurveysDone, Step = Step };
             foreach (var island in _islands)
             {
                 copy._stores.Add(island, (long[])_stores[island].Clone());
                 copy._islands.Add(island);
                 var settlement = _settlements[island];
-                copy._settlements.Add(island, new IslandSettlement(copy, island)
+                var twin = new IslandSettlement(copy, island, _tiers)
                 {
-                    Villagers = settlement.Villagers,
                     Reserved = (int[]?)settlement.Reserved?.Clone(),
                     Imports = settlement.Imports,
-                });
+                };
+                for (int tier = 0; tier < _tiers; tier++)
+                {
+                    twin.Add((PopulationTier)tier, settlement.VillagersOf((PopulationTier)tier));
+                }
+
+                copy._settlements.Add(island, twin);
                 if (_atDepots.TryGetValue(island, out var atDepots))
                 {
                     copy._atDepots.Add(island, (long[])atDepots.Clone());

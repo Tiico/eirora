@@ -118,6 +118,7 @@ namespace Eirora.Simulation.Economy
             _buildings.Remove(building);
             _buildingAt.Remove(building.Tile);
             _capacity.Clear();
+            _housing.Clear();
             ForgetTrips();
             StaffBuildings();
         }

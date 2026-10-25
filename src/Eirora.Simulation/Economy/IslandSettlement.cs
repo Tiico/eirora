@@ -17,24 +17,53 @@ namespace Eirora.Simulation.Economy
         public const int SettlerHousing = 4;
 
         private readonly Settlement _economy;
+        private readonly int[] _tiers; // The villagers of each population tier.
 
-        internal IslandSettlement(Settlement economy, string island)
+        internal IslandSettlement(Settlement economy, string island, int tiers)
         {
             _economy = economy;
             Island = island;
+            _tiers = new int[tiers];
         }
 
         /// <summary>The map's id of its island; an island has at most one settlement.</summary>
         public string Island { get; }
 
-        /// <summary>The villagers who live here (GLOSSARY: Bybor).</summary>
-        public int Villagers { get; internal set; }
+        /// <summary>The villagers who live here (GLOSSARY: Bybor), of every population tier.</summary>
+        public int Villagers
+        {
+            get
+            {
+                int villagers = 0;
+                foreach (int count in _tiers)
+                {
+                    villagers += count;
+                }
 
-        /// <summary>How many villagers it can house: what it was founded with and its island's cottages and longhouses.</summary>
+                return villagers;
+            }
+        }
+
+        /// <summary>
+        /// How many villagers it can house: what it was founded with, its island's cottages and longhouses and the housing
+        /// of every other tier.
+        /// </summary>
         public int Housing => _economy.HousingOf(this);
+
+        /// <summary>The villagers of a population tier who live here (economy-v2.md, section 2).</summary>
+        public int VillagersOf(PopulationTier tier) => (int)tier < _tiers.Length ? _tiers[(int)tier] : 0;
+
+        /// <summary>The housing for a population tier on the island; the crofters' is what it was founded with, cottages and longhouses.</summary>
+        public int HousingOf(PopulationTier tier) => _economy.HousingOf(this, tier);
+
+        /// <summary>The crofters' housing that no one lives in, which a farmer without a farmstead of its own lives in too (D-124).</summary>
+        public int CroftersRoom => _economy.CroftersRoom(this);
 
         /// <summary>Villagers not working in a building on the island; they build.</summary>
         public int FreeVillagers => _economy.FreeVillagersOf(this);
+
+        /// <summary>Adds villagers of a tier, or takes them away with a negative <paramref name="count"/>.</summary>
+        internal void Add(PopulationTier tier, int count) => _tiers[(int)tier] += count;
 
         /// <summary>
         /// Whole units of each resource that neither the ships take home nor processing takes from the island's store

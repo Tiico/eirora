@@ -48,6 +48,8 @@ namespace Eirora.Client.UI
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
         private VisualElement? _setup;
+        private Introductions _introductions;
+        private VisualElement? _introduction; // The introduction card while it is shown.
         private World? _world;
         private Diagnostics? _diagnostics;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
@@ -57,10 +59,12 @@ namespace Eirora.Client.UI
         private string? _store; // The island whose store sheet is open.
         private Resource _good; // The good chosen on it, whose reservation the sheet sets.
 
-        public Hud(VisualElement root, Func<GameCommand, CommandResult> apply, IHealthControls? health = null)
+        /// <param name="introductions">The introductions seen on this device; only while the app runs when null.</param>
+        public Hud(VisualElement root, Func<GameCommand, CommandResult> apply, IHealthControls? health = null, Introductions? introductions = null)
         {
             _apply = apply;
             _health = health;
+            _introductions = introductions ?? new Introductions(null);
             _root = root;
             _root.styleSheets.Add(Resources.Load<StyleSheet>("UI/Eirora"));
             _root.pickingMode = PickingMode.Ignore;
@@ -203,9 +207,9 @@ namespace Eirora.Client.UI
                 _forceValues[force].text = world.Available(force).ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
 
-            // One label per resource, spread over the card's width and wrapping rather than running off it.
+            // One label per resource the village has met, spread over the card's width and wrapping rather than running off it.
             _resources.Clear();
-            foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>())
+            foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>().Where(r => Met(world, r)))
             {
                 Text("resource", _resources, $"{Capital(Texts.Name(resource))} {world.Stock(resource)}");
             }
@@ -225,6 +229,51 @@ namespace Eirora.Client.UI
             }
 
             ShowSheet();
+            ShowIntroduction(world);
+        }
+
+        /// <summary>
+        /// Whether the village has met a resource: it has some, or a building of a step the world has reached makes or uses
+        /// it, so that game and hide join the bar with step 1 (economy-v2.md, section 5).
+        /// </summary>
+        private static bool Met(World world, Resource resource) =>
+            world.Islands.Any(i => world.Stock(i, resource) > 0)
+            || world.Content.Buildings.Any(k => world.Content.For(k) is { Recipe: { } recipe } spec && spec.Step <= world.Step && (recipe.Product == resource || recipe.Uses(resource)));
+
+        /// <summary>Whether an introduction is shown over the island.</summary>
+        public bool ShowsIntroduction => _introduction is not null;
+
+        /// <summary>Uses other introductions seen, such as none for the screenshot tour.</summary>
+        public void UseIntroductions(Introductions introductions) => _introductions = introductions;
+
+        /// <summary>Closes the introduction shown, as its button does.</summary>
+        public void CloseIntroduction()
+        {
+            if (_introduction is { } card)
+            {
+                _middle.Remove(card);
+                _introduction = null;
+            }
+        }
+
+        /// <summary>
+        /// The guide's introduction of a system that has just reached the player (PRG-02), on a card over the island while
+        /// the village is awake: at most one a game day, and one that waits comes the next time.
+        /// </summary>
+        private void ShowIntroduction(World world)
+        {
+            if (_introduction is not null || _setup is not null || world.Phase != Phase.Active || _introductions.Due(world) is not Introduction due)
+            {
+                return;
+            }
+
+            var (title, text) = Texts.Introduction(due);
+            var card = Container("card introduction", _middle);
+            _introduction = card;
+            Text("introduction-title", card, title);
+            Text("sheet-text", card, text);
+            Button("button button-wide", card, "Fortsätt", CloseIntroduction);
+            _introductions.Shown(due, world);
         }
 
         /// <summary>
@@ -650,6 +699,16 @@ namespace Eirora.Client.UI
                     Text("sheet-text", _sheet, purpose);
                 }
 
+                // A tier's homes tell how many live there and what they lack, or why no one rises to them (TASK-061).
+                if (spec.Housing > 0 && spec.Houses != PopulationTier.Crofters && world.SettlementOn(building.Island) is { } settlement)
+                {
+                    Text("sheet-text", _sheet, Texts.TierHomes(world, settlement, spec.Houses));
+                    foreach (var line in _diagnostics?.SettlementOn(building.Island)?.TierOf(spec.Houses) is { } tier ? Texts.Rising(tier, world.Content) : Enumerable.Empty<string>())
+                    {
+                        Text("sheet-text", _sheet, line);
+                    }
+                }
+
                 if (Logistics.IsDepot(building.Kind))
                 {
                     CarrierActions(world, building);
@@ -764,7 +823,13 @@ namespace Eirora.Client.UI
 
             for (int i = 0; i < order.Count; i++)
             {
+                // A good the village has yet to meet is left out, as on the bar; it stays in its place in the order.
                 var good = order[i];
+                if (!Met(world, good))
+                {
+                    continue;
+                }
+
                 int reserved = world.ReservationOf(island, good);
                 var item = Container(good == _good ? "good good-chosen" : "good", _sheet);
                 var pick = Button("good-pick", item, string.Empty, () =>
@@ -1012,7 +1077,12 @@ namespace Eirora.Client.UI
             }
 
             Text("sheet-text", _sheet, Texts.Settlement(world, settlement) + ".");
-            foreach (var line in _diagnostics?.SettlementOn(island) is { } diagnosis ? Texts.Growth(diagnosis) : Enumerable.Empty<string>())
+            if (_diagnostics?.SettlementOn(island) is not { } diagnosis)
+            {
+                return;
+            }
+
+            foreach (var line in Texts.Growth(diagnosis).Concat(diagnosis.Tiers.SelectMany(t => Texts.Rising(t, world.Content))))
             {
                 Text("sheet-text", _sheet, line);
             }
@@ -1136,6 +1206,13 @@ namespace Eirora.Client.UI
             // island's settlement that stands still, which leads to its jetty.
             foreach (var island in _world.Islands)
             {
+                // A tier that lacks a need, which leads to its homes: no one goes back, but no one more rises (TASK-061).
+                if (_diagnostics?.SettlementOn(island)?.Tiers.FirstOrDefault(t => t.Lacks is not null) is { } lacking
+                    && _world.Buildings.FirstOrDefault(b => b.Island == island && _world.Content.For(b.Kind) is { Housing: > 0 } spec && spec.Houses == lacking.Tier) is { } homes)
+                {
+                    AddAction($"{Capital(Texts.Name(lacking.Tier))} saknar {Texts.NeedName(lacking.Lacks!.Value)}", Texts.Rising(lacking, _world.Content).First(), true, () => Select(homes.Tile));
+                }
+
                 if (_diagnostics?.BottleneckOn(island) is { } bottleneck)
                 {
                     string title = island == _world.HomeIsland ? "Flaskhals just nu" : $"Flaskhals på {Texts.IslandName(_world, island)}";
