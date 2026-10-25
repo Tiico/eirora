@@ -217,6 +217,21 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "20-paused");
             client.Hud.Select(null);
 
+            // Demolishing the upgraded sawmill asks first and shows exactly what comes back (TASK-047); it is not demolished.
+            client.Focus(ScriptedWeek.Sawmill.Center() + AboveTheSheet);
+            client.Hud.AskToDemolish(ScriptedWeek.Sawmill);
+            yield return Capture(client, folder, "24-demolition");
+            client.Hud.Select(null);
+
+            // A storehouse that cannot go yet, since the store left would not hold the island's goods (INV-R1).
+            if (session.World!.Buildings.FirstOrDefault(b => b.Kind == BuildingKind.Storehouse && session.World.Demolition(b.Tile)?.Rejection == Simulation.Commands.Rejection.NoRoomInStore) is { } full)
+            {
+                client.Focus(full.Tile.Center() + AboveTheSheet);
+                client.Hud.AskToDemolish(full.Tile);
+                yield return Capture(client, folder, "25-demolition-refused");
+                client.Hud.Select(null);
+            }
+
             // A new world on a generated map (TASK-033): the village at dawn, then the whole archipelago from afar.
             var generatedClock = new FixedClock(ScriptedWeek.At("2026-10-14 14:00"));
             var generated = new GameSession(generatedClock, null, () => new ProceduralArchipelagoV1().Generate(42));

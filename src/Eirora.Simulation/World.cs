@@ -194,6 +194,12 @@ namespace Eirora.Simulation
         /// <summary>Why a building cannot be built on a tile right now, or <see cref="Rejection.None"/>; costs aside.</summary>
         public Rejection CheckBuild(BuildingKind building, Hex tile) => _settlement.CheckBuild(building, tile);
 
+        /// <summary>
+        /// What demolishing the building on a tile would give back and lose, and whether it can be demolished now, for
+        /// the confirmation (D-38, D-108); null when no building stands there.
+        /// </summary>
+        public Demolition? Demolition(Hex tile) => _settlement.Demolition(tile);
+
         /// <summary>Whole units of timber left on a forest tile, at most <see cref="TimberPerForest"/>.</summary>
         public long TimberLeft(Hex tile) => Quantity.Whole(_settlement.ForestLeft(tile));
 

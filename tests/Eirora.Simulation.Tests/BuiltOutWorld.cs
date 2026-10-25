@@ -12,7 +12,8 @@ namespace Eirora.Simulation.Tests;
 /// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
 /// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
 /// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044),
-/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050).
+/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050), and now
+/// and then a building demolished just before leaving (TASK-047).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
@@ -153,6 +154,12 @@ internal static class BuiltOutWorld
             save.Apply($"out-{key++}", new LayRoad(roads[random.Next(roads.Count)]));
         }
 
+        // Or demolish a building, housing first, so that the village may be left with more villagers than room (D-39).
+        if (random.Next(3) == 0 && Demolished(world, random.Next(int.MaxValue)) is Hex demolished)
+        {
+            save.Apply($"out-{key++}", new Demolish(demolished));
+        }
+
         // The player may leave at any moment of the day, also just before or during the rest.
         save.AdvanceTo(Shift(world.Now, random.Next((int)(20 * Hour))));
         return save;
@@ -244,6 +251,15 @@ internal static class BuiltOutWorld
         return order.Count > 1 && order[pick % order.Count] is var moved && order[place % order.Count] != moved
             ? new Prioritize(moved.Tile, place % order.Count)
             : null;
+    }
+
+    /// <summary>The tile of a building that can be demolished now, housing when there is any, or none.</summary>
+    private static Hex? Demolished(World world, int pick)
+    {
+        var can = world.Buildings.Where(b => world.Demolition(b.Tile)!.Rejection == Rejection.None).ToList();
+        var housing = can.Where(b => world.Content.For(b.Kind).Housing > 0).ToList();
+        var from = housing.Count > 0 ? housing : can;
+        return from.Count > 0 ? from[pick % from.Count].Tile : null;
     }
 
     /// <summary>A project that is not first in the queue moved first, or none.</summary>

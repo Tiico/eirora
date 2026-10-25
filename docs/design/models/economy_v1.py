@@ -688,6 +688,55 @@ class World:
         self.projects.insert(0, p)
         return True
 
+    def demolition(self, kind, tile):
+        """Vad en rivning ger tillbaka (D-38, D-108, avsnitt 3.2), eller None när den nekas.
+
+        Hälften av materialet, uppgraderingen medräknad, avrundat nedåt per resurs, till öns lager så långt det
+        rymmer; ingen kraft. Varorna i byggnadens utlager och den råvara som burits fram går först till lagret och
+        måste rymmas i det lager som blir kvar (INV-R1, INV-R2), och Hemöns sista förråd står kvar.
+        """
+        p = coord(tile)
+        b = next((b for b in self.buildings if b.kind == kind and b.tile == p), None)
+        if b is None:
+            return None
+        island = TILES[p].island
+        if island == HOME and kind == "Förråd" and not any(
+                o is not b and o.kind == "Förråd" and TILES[o.tile].island == HOME for o in self.buildings):
+            return None
+        store = self.stock if island == HOME else self.remote_stock[island]
+        cap = self.storage_left(island, b)
+        goods = dict.fromkeys(RESOURCES, 0.0)
+        if b.kind in PRODUCERS:
+            goods[self.rate_resource(b)] += b.out
+        if b.kind in ("Sågverk", "Väveri"):
+            goods["timmer" if b.kind == "Sågverk" else "ull"] += b.inp
+        if any(store[r] + goods[r] > cap + 1e-9 for r in RESOURCES):
+            return None
+        upgrades = b.level - 1 + self.pending(f"Uppgradera {kind}@{tag(p)}")
+        refund = {r: (SPECS[kind].cost.get(r, 0) + upgrades * UPGRADE.cost.get(r, 0)) // 2 for r in RESOURCES}
+        returned = {r: min(n, int(cap - store[r] - goods[r] + 1e-9)) for r, n in refund.items()}
+        return b, store, goods, returned
+
+    def storage_left(self, island, without):
+        """Vad öns lager rymmer när byggnaden `without` är borta: förråden, och på andra öar också bryggorna
+        (avsnitt 5). Utan förråd eller brygga kvar rymmer det ingenting (INV-R1), som i simuleringen."""
+        kinds = ("Förråd",) if island == HOME else DEPOTS
+        return STORAGE_PER_DEPOT * sum(1 for o in self.buildings
+                                       if o is not without and o.kind in kinds and TILES[o.tile].island == island)
+
+    def demolish(self, kind, tile):
+        """Riv en byggnad: rutan blir ledig, dess bybor och bärare blir lediga och en uppgradering i kön följer med."""
+        found = self.demolition(kind, tile)
+        if found is None:
+            return False
+        b, store, goods, returned = found
+        for r in RESOURCES:
+            store[r] += goods[r] + returned[r]
+        self.buildings.remove(b)
+        self.projects = [p for p in self.projects if p.label != f"Uppgradera {kind}@{tag(b.tile)}"]
+        self.staff()
+        return True
+
     def rush(self):
         if not self.projects or not self.spend("G", DAWN_RUSH_COST):
             return False
@@ -922,6 +971,10 @@ class Settlements(World):
 
     def storage_cap(self):
         return self.cap(HOME)
+
+    def storage_left(self, island, without):
+        return self.cap(island) - (STORAGE_PER_DEPOT if without.kind == "Förråd"
+                                   else STORAGE_AT_JETTY if without.kind == "Brygga" else 0)
 
     def free_villagers(self, island=None):
         if island is None:

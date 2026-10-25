@@ -550,3 +550,11 @@ Produktägarens svar på frågorna i TASK-050 (PR #164):
   Utan det får Närområdet och Bygden aldrig någon bybo på Nyön, eftersom hemöns lediga bybor från vecka 2 är bönder och hantverkare.
 - Komforten med tyg gäller per bosättning, med 2 tyg ur öns eget lager, tills nivåerna kommer (avsnitt 6).
 - Nyöns egna bybor visas på bryggans blad och i rapporten; introduktion 6 byggs med introduktionssystemet i M5 ([ROADMAP](../../ROADMAP.md), M5 punkt 4).
+
+Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.
+
+- **D-128:** ett förråd eller en brygga nekas rivning bara när öns varor inte ryms i det lager som blir kvar; den del av återbetalningen som inte ryms visas och förloras.
+- **D-129:** Hemöns sista förråd kan inte rivas.
+- **D-130:** en uppgradering räknas till det byggnaden kostade, också en som står i byggkön.
+- **D-131:** startbyns byggnader ger tillbaka hälften av katalogens kostnad.
+- **D-132:** säd och ull som vuxit men inte skördats följer med åkern eller fårgården.

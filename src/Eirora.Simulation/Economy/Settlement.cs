@@ -1518,17 +1518,21 @@ namespace Eirora.Simulation.Economy
             int units = 0;
             foreach (var building in _buildings)
             {
-                if (building.Island == island)
-                {
-                    units += building.Kind == BuildingKind.Storehouse ? StoragePerStorehouse : 0;
-                    units += building.Kind == BuildingKind.Jetty ? StorageAtJetty : 0;
-                }
+                units += building.Island == island ? StorageUnits(building) : 0;
             }
 
             capacity = Quantity.Units(units);
             _capacity[island] = capacity;
             return capacity;
         }
+
+        /// <summary>Whole units of each resource a building adds to its island's store.</summary>
+        private static int StorageUnits(Building building) => building.Kind switch
+        {
+            BuildingKind.Storehouse => StoragePerStorehouse,
+            BuildingKind.Jetty => StorageAtJetty,
+            _ => 0,
+        };
 
         /// <summary>Production at level 2 is 150 % of level 1's.</summary>
         private static int LevelPercent(Building building) => building.Level == 2 ? 150 : 100;
