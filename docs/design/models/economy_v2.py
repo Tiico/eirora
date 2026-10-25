@@ -1276,7 +1276,7 @@ def run(strategy, profile, days=DAYS, w=None, start=0, values=None):
 
 # --- Samma strategi med mer egenvård (D-34) ----------------------------------------------------
 
-D34_TOLERANCE = 0.001  # största dipp ett enskilt dygn (D-119): strax över de 0,07 % kalkylen mäter, så att en försämring syns
+D34_TOLERANCE = 0.001  # största dipp en vecka eller ett enskilt dygn (D-119): strax över det kalkylen mäter, så att en försämring syns
 COMMANDS = ("build", "upgrade", "road", "carrier_cap", "survey", "expedition", "workday", "rush")
 
 
@@ -1635,8 +1635,9 @@ def main():
         low, high = same_decisions(strat, "måttlig", "hög", LONG_DAYS)
         worst = min(low, key=lambda d: (high[d] / low[d], d))
         below = sum(1 for d in low if high[d] < low[d] - 1e-6)
-        # D-119: D-34 gäller över veckor, och ett enskilt dygn får vara högst D34_TOLERANCE mindre.
-        assert all(high[d] >= low[d] - 1e-6 for d in range(DAYS, LONG_DAYS + 1, DAYS)), "D-34 över veckor (D-119)"
+        # D-119: D-34 gäller över veckor och dygn, och både en vecka och ett enskilt dygn får vara högst
+        # D34_TOLERANCE mindre (produktägaren 2026-10-25, PR #180).
+        assert all(high[d] >= (1 - D34_TOLERANCE) * low[d] for d in range(DAYS, LONG_DAYS + 1, DAYS)), "D-34 över veckor (D-119)"
         assert high[worst] >= (1 - D34_TOLERANCE) * low[worst], "dippen med mer egenvård (D-119)"
         print(f"| {name} | " + " | ".join(f"{low[d]:.0f} / {high[d]:.0f}" for d in (7, 14, 28, 42))
               + f" | dygn {worst}: {high[worst] / low[worst] - 1:+.2%} | {below} |")
