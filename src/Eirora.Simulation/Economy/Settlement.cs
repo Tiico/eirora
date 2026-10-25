@@ -53,6 +53,10 @@ namespace Eirora.Simulation.Economy
         // Materials paid from the home island's store for work on another island, which its sea route carries before
         // anything else, by the island's place in the map's list (D-106, D-113).
         private readonly long[] _owed;
+
+        // The knarrs each island's shipyards have built, by the island's place in the map's list; never fewer (INV-V1).
+        private readonly int[] _knarrs;
+        private readonly KnarrSpec? _knarr; // What a knarr adds to a sea route, the shipyard's; null in a catalog without one.
         private readonly Dictionary<string, int> _mapIndex = new(StringComparer.Ordinal);
         private readonly List<Building> _buildings = new();
         private readonly Dictionary<Hex, Building> _buildingAt = new(); // Only looked up, never iterated.
@@ -91,6 +95,12 @@ namespace Eirora.Simulation.Economy
             _keeps = new long[content.Needs.Count];
             Fog = fog;
             _owed = new long[map.Islands.Count];
+            _knarrs = new int[map.Islands.Count];
+            foreach (var kind in content.Buildings)
+            {
+                _knarr ??= content.For(kind).Knarrs;
+            }
+
             for (int i = 0; i < map.Islands.Count; i++)
             {
                 _mapIndex[map.Islands[i].Id] = i;
@@ -216,7 +226,7 @@ namespace Eirora.Simulation.Economy
                 {
                     if (HasSeaRoute(island))
                     {
-                        routes.Add(new SeaRoute(island, _home));
+                        routes.Add(Route(island));
                     }
                 }
 
@@ -280,6 +290,30 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Goods waiting at an island's depots for room in its store; nothing on most islands.</summary>
         public long AtDepot(string island, Resource resource) => _atDepots.TryGetValue(island, out var waiting) ? waiting[(int)resource] : 0;
+
+        /// <summary>The knarrs an island's shipyards have built, which are never lost (GLOSSARY: Knarr; INV-V1).</summary>
+        public int Knarrs(string island) => _mapIndex.TryGetValue(island, out int at) ? _knarrs[at] : 0;
+
+        /// <summary>
+        /// The knarrs that carry on the sea route from an island to the home island: those of both islands' shipyards, at
+        /// most what a route has room for (economy-v2.md, section 4).
+        /// </summary>
+        public int KnarrsOnRoute(string island)
+        {
+            int knarrs = Knarrs(island) + Knarrs(_home);
+            return _knarr is null || knarrs < _knarr.Most ? knarrs : _knarr.Most;
+        }
+
+        /// <summary>The sea route from an island to the home island, with its knarrs.</summary>
+        private SeaRoute Route(string island) =>
+            new(island, _home, KnarrsOnRoute(island), SeaRoute.UnitsPerGameDay + (KnarrsOnRoute(island) * (_knarr?.UnitsPerGameDay ?? 0)));
+
+        /// <summary>
+        /// What the ships carry on the sea route from an island in an active quarter hour, both ways together: the route's
+        /// own 40 a game day and each of its knarrs' 10 more (economy-v2.md, sections 4 and 6).
+        /// </summary>
+        private long SeaRoomPerTick(string island) =>
+            _knarr is null ? SeaRoutePerTick : SeaRoutePerTick + (KnarrsOnRoute(island) * SeaRoutePerTick * _knarr.UnitsPerGameDay / SeaRoute.UnitsPerGameDay);
 
         /// <summary>Materials paid from the home island for work on an island that its sea route has yet to carry, in millionths.</summary>
         public long Owed(string island) => _mapIndex.TryGetValue(island, out int at) ? _owed[at] : 0;
@@ -684,7 +718,7 @@ namespace Eirora.Simulation.Economy
 
             Unload();
             Build(utcSeconds, events);
-            Work();
+            Work(utcSeconds, events);
             Explore(utcSeconds, events);
 
             var after = new StateComparison(before);
@@ -694,19 +728,89 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// The work of a quarter hour with the villagers awake, after the building queue: the buildings make what they
-        /// can into their outboxes, the carriers carry, and the ships sail.
+        /// can into their outboxes, the shipyards build knarrs, the carriers carry, and the ships sail.
         /// </summary>
-        private void Work()
+        private void Work(long utcSeconds, List<GameEvent> events)
         {
             Produce();
+            BuildKnarrs(utcSeconds, events);
             Carry();
             Ship();
         }
 
         /// <summary>
+        /// Every staffed shipyard works a quarter hour on its knarr, one at a time (economy-v2.md, section 4). One that
+        /// builds none begins the next when its island's store holds what a knarr costs, paying it there, and its island
+        /// has fewer knarrs built and begun than a sea route has room for; so the shipyards go on until the island has
+        /// them all, and no more. A finished knarr belongs to the island and is never lost (INV-V1), and a shipyard that
+        /// is not staffed keeps the knarr it began until it is again.
+        /// </summary>
+        private void BuildKnarrs(long utcSeconds, List<GameEvent> events)
+        {
+            foreach (var shipyard in _buildings)
+            {
+                if (!shipyard.Staffed || _content.For(shipyard.Kind).Knarrs is not KnarrSpec knarr)
+                {
+                    continue;
+                }
+
+                int at = _mapIndex[shipyard.Island];
+                if (shipyard.KnarrWorkLeft == 0)
+                {
+                    var store = _stores[shipyard.Island];
+                    if (_knarrs[at] + KnarrsBegun(shipyard.Island) >= knarr.Most || !Holds(store, knarr.Cost))
+                    {
+                        continue;
+                    }
+
+                    for (int r = 0; r < s_resourceCount; r++)
+                    {
+                        store[r] -= Quantity.Units(CostOf(knarr.Cost, r));
+                    }
+
+                    shipyard.KnarrWorkLeft = knarr.WorkHours * 1000L;
+                }
+
+                shipyard.KnarrWorkLeft -= Min(WorkPerVillagerPerTick, shipyard.KnarrWorkLeft);
+                if (shipyard.KnarrWorkLeft == 0)
+                {
+                    _knarrs[at]++;
+                    events.Add(new KnarrLaunched(utcSeconds, shipyard.Island, _knarrs[at]));
+                }
+            }
+        }
+
+        /// <summary>The knarrs that an island's shipyards are building.</summary>
+        private int KnarrsBegun(string island)
+        {
+            int begun = 0;
+            foreach (var building in _buildings)
+            {
+                begun += building.Island == island && building.KnarrWorkLeft > 0 ? 1 : 0;
+            }
+
+            return begun;
+        }
+
+        /// <summary>Whether a store holds every whole unit of a cost.</summary>
+        private static bool Holds(long[] store, IReadOnlyDictionary<Resource, int> cost)
+        {
+            for (int r = 0; r < s_resourceCount; r++)
+            {
+                if (store[r] < Quantity.Units(CostOf(cost, r)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Puts every value of the state that a tick can change to <paramref name="state"/>, which records them or compares
         /// them with a recording and stops at the first that differs (#173): the surveys, the expedition, the fog, each
-        /// settlement's villagers, store and goods at its depots, what each sea route owes, each building, the queue, the
+        /// settlement's villagers, store and goods at its depots, what each sea route owes, each island's knarrs, each
+        /// building with the knarr a shipyard builds, the queue, the
         /// roads and the felled forest, each list after its length. Roads are only ever added, so their count tells every
         /// change. A test fails when a field is added to the economy, a settlement, a building, a project or the fog that is
         /// neither recorded here nor fixed or derived (FastForwardTests.EveryFieldThatATickCanChangeIsCompared).
@@ -714,7 +818,7 @@ namespace Eirora.Simulation.Economy
         private void RecordState<TState>(ref TState state)
             where TState : struct, IStateRecord
         {
-            state.Reserve(10 + (_islands.Count * (_tiers + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + (2 * _projects.Count) + (3 * _felled.Count));
+            state.Reserve(10 + (_islands.Count * (_tiers + (2 * s_resourceCount))) + (2 * _owed.Length) + ((13 + s_resourceCount) * _buildings.Count) + (2 * _projects.Count) + (3 * _felled.Count));
             state.Put(SurveysDone);
             state.Put(_expeditionLeft);
             state.Put(Fog.Lifts);
@@ -746,6 +850,11 @@ namespace Eirora.Simulation.Economy
                 state.Put(owed);
             }
 
+            foreach (int knarrs in _knarrs)
+            {
+                state.Put(knarrs);
+            }
+
             state.Put(_buildings.Count);
             foreach (var building in _buildings)
             {
@@ -760,6 +869,7 @@ namespace Eirora.Simulation.Economy
                 state.Put(building.Depot is Hex depot ? 1 + depot.Q : 0);
                 state.Put(building.Depot?.R ?? 0);
                 state.Put(building.Waiting);
+                state.Put(building.KnarrWorkLeft);
                 if (building.Held is long[] held)
                 {
                     for (int resource = 0; resource < s_resourceCount; resource++)
@@ -1116,20 +1226,23 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Each step whose condition a settlement now meets, its size and the villagers of a tier among them, unlocks for
-        /// the whole world, one after the other (D-105, D-114); villagers rise to its tier from the next dawn.
+        /// the whole world, one after the other (D-105, D-114), once a sea route joins the home island to another
+        /// settlement if the step asks for one (seafaring, economy-v2.md, section 5); villagers rise to its tier from the
+        /// next dawn.
         /// </summary>
         private void Unlock(long utcSeconds, List<GameEvent> events)
         {
             while (Step < _content.Steps.Count)
             {
                 var next = _content.Steps[Step];
-                bool met = false;
+                bool met = false, routed = !next.SeaRoute;
                 foreach (var island in _islands)
                 {
                     met |= next.IsMetBy(_settlements[island]);
+                    routed |= HasSeaRoute(island);
                 }
 
-                if (!met)
+                if (!met || !routed)
                 {
                     return;
                 }
@@ -1265,10 +1378,18 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
+            for (int i = 0; i < _knarrs.Length; i++)
+            {
+                if (_knarrs[i] > 0)
+                {
+                    writer.Line("knarrs").Text(_map.Islands[i].Id).Long(_knarrs[i]);
+                }
+            }
+
             WriteStockRules(writer);
 
             // Buildings and projects keep their order: the staffing order and the queue. What the carriers have brought a
-            // building follows it, one raw material a line.
+            // building follows it, one raw material a line, and then the work left on the knarr a shipyard builds.
             foreach (var b in _buildings)
             {
                 writer.Line("building").Enum(b.Kind).Long(b.Tile.Q).Long(b.Tile.R).Long(b.Level).Bool(b.Staffed).Bool(b.WorkdayToday).Long(b.Ripe).Bool(b.Paused)
@@ -1281,6 +1402,11 @@ namespace Eirora.Simulation.Economy
                     {
                         writer.Line("held").Enum((Resource)resource).Long(held[resource]);
                     }
+                }
+
+                if (b.KnarrWorkLeft > 0)
+                {
+                    writer.Line("knarr").Long(b.KnarrWorkLeft);
                 }
             }
 
@@ -1405,6 +1531,21 @@ namespace Eirora.Simulation.Economy
                 previousOwed = at;
             }
 
+            int previousKnarrs = -1;
+            while (reader.Next("knarrs"))
+            {
+                string island = reader.Text();
+                int at = IndexOf(map, island);
+                int knarrs = reader.Int();
+                if (at <= previousKnarrs || !settlement._stores.ContainsKey(island) || knarrs <= 0 || settlement._knarr is null || knarrs > settlement._knarr.Most)
+                {
+                    throw new FormatException($"{knarrs} knarrs on {island} is not after the previous island's knarrs, as many as a route takes.");
+                }
+
+                settlement._knarrs[at] = knarrs;
+                previousKnarrs = at;
+            }
+
             settlement.ReadStockRules(reader, map);
 
             while (reader.Next("building"))
@@ -1485,6 +1626,14 @@ namespace Eirora.Simulation.Economy
 
                     building.Held[(int)resource] = held;
                     last = (int)resource;
+                }
+
+                if (reader.Next("knarr"))
+                {
+                    long workLeft = reader.Long();
+                    building.KnarrWorkLeft = content.For(kind).Knarrs is KnarrSpec knarr && workLeft > 0 && workLeft <= knarr.WorkHours * 1000L
+                        ? workLeft
+                        : throw new FormatException($"{kind} on {tile} cannot have {workLeft} work left on a knarr.");
                 }
 
                 settlement._buildings.Add(building);
@@ -1921,7 +2070,8 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// The ships on each sea route, up to its capacity, which is shared both ways (economy-v2.md, section 6): first
+        /// The ships on each sea route, up to its capacity with its knarrs, which is shared both ways (economy-v2.md,
+        /// sections 4 and 6): first
         /// the materials the home island paid for work on the island, then out what the island's settlement needs for
         /// <see cref="FoodDays"/> game days, then the island's goods home in its import order, but as much food as that
         /// (<see cref="Kept"/>) and what is reserved there (TASK-046, D-126, D-127). The routes go in map order.
@@ -1939,7 +2089,7 @@ namespace Eirora.Simulation.Economy
 
                 var store = _stores[island];
                 int at = _mapIndex[island];
-                long room = SeaRoutePerTick;
+                long room = SeaRoomPerTick(island);
                 long owed = Min(room, _owed[at]);
                 _owed[at] -= owed;
                 room -= owed;

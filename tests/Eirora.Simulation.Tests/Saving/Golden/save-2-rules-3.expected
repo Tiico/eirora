@@ -27,6 +27,7 @@ stock home Hide 0
 stock home Honey 0
 stock home Mead 0
 stock home Ale 0
+stock home Tar 0
 building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0 0
 building FishingHut 1 0 2 1 0 0 0 0 0 0 0 1 0 0 0
 building Field 0 1 1 1 0 729625000 0 0 0 0 0 1 0 0 0

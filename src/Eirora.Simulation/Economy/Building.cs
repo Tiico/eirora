@@ -84,6 +84,15 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         internal long[]? Held { get; set; }
 
+        /// <summary>
+        /// Thousandths of an active hour of work left on the knarr a shipyard is building, whose materials are paid; 0 when
+        /// it builds none (economy-v2.md, section 4).
+        /// </summary>
+        internal long KnarrWorkLeft { get; set; }
+
+        /// <summary>Whole active hours, rounded up, left on the knarr a shipyard is building; 0 when it builds none.</summary>
+        public int KnarrHoursLeft => (int)((KnarrWorkLeft + 999) / 1000);
+
         /// <summary>Whole units of a raw material the carriers have brought to it.</summary>
         public long HeldUnits(Resource resource) => Held is null ? 0 : Quantity.Whole(Held[(int)resource]);
 
@@ -101,6 +110,7 @@ namespace Eirora.Simulation.Economy
             Ripe = Ripe,
             Waiting = Waiting,
             Held = (long[]?)Held?.Clone(),
+            KnarrWorkLeft = KnarrWorkLeft,
         };
     }
 }

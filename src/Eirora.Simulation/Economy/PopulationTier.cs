@@ -135,12 +135,13 @@ namespace Eirora.Simulation.Economy
 
     /// <summary>
     /// An unlocked step (GLOSSARY: Upplåsning; D-105, D-114): it opens to the whole world at the dawn when any settlement
-    /// has <see cref="Villagers"/>, of them <see cref="OfTier"/> of <see cref="Tier"/>, and is never locked again (INV-V1).
+    /// has <see cref="Villagers"/>, of them <see cref="OfTier"/> of <see cref="Tier"/>, and, for a step that asks for
+    /// <see cref="SeaRoute"/>, a sea route joins the home island to another settlement; it is never locked again (INV-V1).
     /// A step after the first asks that the tier below its own has got going (economy-v2.md, section 5).
     /// </summary>
     public sealed class UnlockSpec
     {
-        internal UnlockSpec(int step, int villagers, PopulationTier tier = PopulationTier.Crofters, int ofTier = 0)
+        internal UnlockSpec(int step, int villagers, PopulationTier tier = PopulationTier.Crofters, int ofTier = 0, bool seaRoute = false)
         {
             if (step < 1 || villagers < 1 || ofTier < 0 || ofTier > villagers)
             {
@@ -151,6 +152,7 @@ namespace Eirora.Simulation.Economy
             Villagers = villagers;
             Tier = tier;
             OfTier = ofTier;
+            SeaRoute = seaRoute;
         }
 
         /// <summary>Its number, from 1; step 0 is what a world has from the start.</summary>
@@ -165,7 +167,13 @@ namespace Eirora.Simulation.Economy
         /// <summary>The villagers of <see cref="Tier"/> among <see cref="Villagers"/>; 0 when any villagers will do.</summary>
         public int OfTier { get; }
 
-        /// <summary>Whether a settlement meets the condition.</summary>
+        /// <summary>
+        /// Whether the step also asks for a sea route between the home island and another settlement, since knarrs do
+        /// nothing without one (economy-v2.md, section 5).
+        /// </summary>
+        public bool SeaRoute { get; }
+
+        /// <summary>Whether a settlement meets the condition on its villagers; <see cref="SeaRoute"/> is the world's.</summary>
         public bool IsMetBy(IslandSettlement settlement) => settlement.Villagers >= Villagers && settlement.VillagersOf(Tier) >= OfTier;
     }
 }

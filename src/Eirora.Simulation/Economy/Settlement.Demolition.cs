@@ -32,7 +32,7 @@ namespace Eirora.Simulation.Economy
             for (int r = 0; r < s_resourceCount; r++)
             {
                 // The goods waiting at the building go to the store with the rest of the island's goods, and must fit there.
-                long goods = (recipe is not null && (int)recipe.Product == r ? building.Waiting : 0) + (building.Held?[r] ?? 0);
+                long goods = (recipe is not null && (int)recipe.Product == r ? building.Waiting : 0) + (building.Held?[r] ?? 0) + InKnarr(building, r);
                 long after = store[r] + goods;
                 emptied[r] = Quantity.Whole(goods);
                 if (after > capacity)
@@ -86,8 +86,8 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Demolishes a building that <see cref="Demolition(Hex)"/> found can be: the goods waiting at it and then what
-        /// comes back go to the island's store, an upgrade in the queue goes with it, the tile is free and its villagers
+        /// Demolishes a building that <see cref="Demolition(Hex)"/> found can be: the goods waiting at it, the materials of
+        /// the knarr a shipyard was building and then what comes back go to the island's store, an upgrade in the queue goes with it, the tile is free and its villagers
         /// and carriers are given out again. Buildings its carriers served belong to the depot they reach fastest now.
         /// </summary>
         public void Demolish(Demolition demolition)
@@ -101,7 +101,7 @@ namespace Eirora.Simulation.Economy
 
             for (int r = 0; r < s_resourceCount; r++)
             {
-                store[r] += (building.Held?[r] ?? 0) + Quantity.Units(demolition.Returned((Resource)r));
+                store[r] += (building.Held?[r] ?? 0) + InKnarr(building, r) + Quantity.Units(demolition.Returned((Resource)r));
             }
 
             if (Queued(building.Tile, ProjectKind.Upgrade) is { } upgrade)
@@ -135,6 +135,10 @@ namespace Eirora.Simulation.Economy
 
             return false;
         }
+
+        /// <summary>Millionths of a resource paid for the knarr a shipyard is building, which goes back with the rest when it is demolished.</summary>
+        private long InKnarr(Building building, int resource) =>
+            building.KnarrWorkLeft > 0 && _content.For(building.Kind).Knarrs is KnarrSpec knarr ? Quantity.Units(CostOf(knarr.Cost, resource)) : 0;
 
         private static long CostOf(IReadOnlyDictionary<Resource, int> cost, int resource) =>
             cost.TryGetValue((Resource)resource, out int amount) ? amount : 0;

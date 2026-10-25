@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 14;
+        public const int Current = 15;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -39,6 +39,11 @@ namespace Eirora.Simulation
         /// buildings, so no villager rises to craftsman and no drink is made when it replays; the only change is that step
         /// 2 unlocks at the first dawn a settlement has 30 villagers, of them 6 farmers, which the migration gives such a
         /// world too, so it replays to the same world.
+        /// Rules 15 added tar, the tar kiln, the shipyard and its knarrs, and step 3 (TASK-063). A journal from rules 14 holds
+        /// no command for their buildings, so no knarr is built and no sea route carries more when it replays; the only
+        /// change is that step 3 unlocks at the first dawn a settlement has 45 villagers, of them 6 craftsmen, and a sea
+        /// route joins the home island to another settlement, which the migration gives such a world too, so it replays to
+        /// the same world.
         /// </summary>
         public const int ReplaysJournalsFrom = 12;
     }

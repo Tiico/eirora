@@ -62,5 +62,11 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Mead from honey, staffed by farmers (mjöderi; step 2, Craftsmen).</summary>
         Meadery,
+
+        /// <summary>Tar from timber, staffed by farmers (tjärdal; step 3, Seafaring).</summary>
+        TarKiln,
+
+        /// <summary>Builds knarrs, which carry more on the sea routes to and from its island, staffed by craftsmen (varv; step 3, Seafaring).</summary>
+        Shipyard,
     }
 }

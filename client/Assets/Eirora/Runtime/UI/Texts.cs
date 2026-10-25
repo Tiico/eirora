@@ -42,6 +42,8 @@ namespace Eirora.Client.UI
             BuildingKind.Apiary => "Bigård",
             BuildingKind.Brewery => "Bryggeri",
             BuildingKind.Meadery => "Mjöderi",
+            BuildingKind.TarKiln => "Tjärdal",
+            BuildingKind.Shipyard => "Varv",
             _ => kind.ToString(),
         };
 
@@ -59,6 +61,7 @@ namespace Eirora.Client.UI
             Resource.Honey => "honung",
             Resource.Mead => "mjöd",
             Resource.Ale => "öl",
+            Resource.Tar => "tjära",
             _ => resource.ToString(),
         };
 
@@ -216,6 +219,11 @@ namespace Eirora.Client.UI
                 return spec.Houses == PopulationTier.Crofters ? $"+{spec.Housing} bostadsplatser" : $"+{spec.Housing} bostäder för {Name(spec.Houses)}";
             }
 
+            if (spec.Knarrs is KnarrSpec knarrs)
+            {
+                return $"Knarrar: +{knarrs.UnitsPerGameDay} per dag på sjövägarna, högst {Count(knarrs.Most)}";
+            }
+
             return kind switch
             {
                 BuildingKind.Storehouse => "Lager 150 per vara",
@@ -223,6 +231,59 @@ namespace Eirora.Client.UI
                 BuildingKind.Lookout => "25 % mindre Utforskning",
                 _ => null,
             };
+        }
+
+        /// <summary>
+        /// What the ships carry on a sea route a game day, as the jetty's sheet says it: "40 varor per dag", "60 varor per
+        /// dag med två knarrar" (economy-v2.md, section 4).
+        /// </summary>
+        public static string Capacity(SeaRoute route) =>
+            route.Knarrs == 0 ? $"{route.PerGameDay} varor per dag"
+            : route.Knarrs == 1 ? $"{route.PerGameDay} varor per dag med en knarr"
+            : $"{route.PerGameDay} varor per dag med {Count(route.Knarrs)} knarrar";
+
+        /// <summary>
+        /// The shipyard's knarrs, in sentences for its sheet: how many its island has, how far the next has come, and what
+        /// keeps it from beginning one (economy-v2.md, section 4).
+        /// </summary>
+        public static IEnumerable<string> Knarrs(World world, Building shipyard, KnarrSpec knarr)
+        {
+            int knarrs = world.Knarrs(shipyard.Island);
+            string island = IslandName(world, shipyard.Island);
+            yield return knarrs == 0 ? $"{Capital(island)} har ingen knarr än."
+                : knarrs == 1 ? $"{Capital(island)} har en knarr."
+                : $"{Capital(island)} har {Count(knarrs)} knarrar.";
+
+            int begun = world.Buildings.Count(b => b.Island == shipyard.Island && b.KnarrHoursLeft > 0);
+            if (shipyard.KnarrHoursLeft > 0)
+            {
+                yield return shipyard.Staffed
+                    ? $"Nästa knarr är klar om {shipyard.KnarrHoursLeft} timmar med vakna bybor."
+                    : $"Knarren väntar på hantverkare. {shipyard.KnarrHoursLeft} timmars arbete är kvar.";
+            }
+            else if (knarrs + begun >= knarr.Most)
+            {
+                yield return "Sjövägen rymmer inte fler knarrar härifrån.";
+            }
+            else if (!shipyard.Staffed)
+            {
+                yield return $"Varvet behöver {Count(world.Content.For(shipyard.Kind).Staff)} hantverkare för att bygga.";
+            }
+            else
+            {
+                var lacking = knarr.Cost
+                    .OrderBy(c => c.Key)
+                    .Select(c => (Resource: c.Key, Units: c.Value - world.Stock(shipyard.Island, c.Key)))
+                    .Where(c => c.Units > 0)
+                    .Select(c => $"{c.Units} {Name(c.Resource, c.Units)}")
+                    .ToList();
+                yield return $"Nästa knarr väntar på {List(lacking)} till i lagret.";
+            }
+
+            if (!world.SeaRoutes.Any(r => r.From == shipyard.Island || shipyard.Island == world.HomeIsland))
+            {
+                yield return "Knarrarna bär först när en sjöväg går hit.";
+            }
         }
 
         /// <summary>Whether a building that needs staff works, is paused or waits for villagers; null for one that needs none.</summary>
@@ -358,6 +419,12 @@ namespace Eirora.Client.UI
             if (spec.Housing > 0)
             {
                 return spec.Housing == 1 ? "Ger plats åt en bybo." : $"Ger plats åt {Count(spec.Housing)} bybor.";
+            }
+
+            if (spec.Knarrs is KnarrSpec knarrs)
+            {
+                return $"Bygger knarrar av {List(knarrs.Cost.OrderBy(c => c.Key).Select(c => $"{c.Value} {Name(c.Key, c.Value)}"))}, en i taget på {knarrs.WorkHours} timmar. Varje knarr bär {knarrs.UnitsPerGameDay} varor mer per dag "
+                    + $"på sjövägarna till och från ön, högst {Count(knarrs.Most)} på varje sjöväg.";
             }
 
             return kind switch
@@ -593,6 +660,8 @@ namespace Eirora.Client.UI
             BuildingKind.Apiary => "Bigården",
             BuildingKind.Brewery => "Bryggeriet",
             BuildingKind.Meadery => "Mjöderiet",
+            BuildingKind.TarKiln => "Tjärdalen",
+            BuildingKind.Shipyard => "Varvet",
             _ => kind.ToString(),
         };
 
@@ -801,6 +870,8 @@ namespace Eirora.Client.UI
             ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind.Jetty } done when world.IslandOf(done.Tile) is var island && island != world.HomeIsland =>
                 $"Bryggan på {IslandName(world, island)} är färdig.",
             SettlementFounded founded => $"{Capital(IslandName(world, founded.Island))} har en egen by, dit bybor flyttar över sjövägen.",
+            KnarrLaunched launched => $"Varvet på {IslandName(world, launched.Island)} har byggt {(launched.Knarrs == 1 ? "sin första knarr" : "en knarr till")}. "
+                + (launched.Island == world.HomeIsland ? "Alla sjövägar bär mer." : "Sjövägen därifrån bär mer."),
             _ => Describe(gameEvent),
         };
 
@@ -813,6 +884,7 @@ namespace Eirora.Client.UI
             VillagersRose rose => $"{Rose(rose)}.",
             StepUnlocked { Step: 1 } => "Byn har vuxit. Bondgård, jaktstuga och garveri kan byggas.",
             StepUnlocked { Step: 2 } => "Bönderna har det gott. Hantverkargård, bigård, bryggeri och mjöderi kan byggas.",
+            StepUnlocked { Step: 3 } => "Byn har blivit en hamn. Tjärdal och varv kan byggas.",
             ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind built } => $"{Name(built)} är färdig.",
             ProjectCompleted { Kind: ProjectKind.Upgrade, Building: BuildingKind upgraded } => $"{Name(upgraded)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
@@ -877,6 +949,7 @@ namespace Eirora.Client.UI
         {
             App.Introduction.Farmers => ("Bönder", "Byn har vuxit. Med kläder kan torpare bli bönder. De bor i bondgårdar, och tyg från väveriet eller skinn från garveriet klär dem."),
             App.Introduction.Craftsmen => ("Hantverkare", "Bönderna har det gott. Med dryck kan några bli hantverkare. De bor i hantverkargårdar och bygger dubbelt så fort, och öl från bryggeriet eller mjöd från mjöderiet släcker deras törst."),
+            App.Introduction.Seafaring => ("Sjöfart", "Med knarrar bär sjövägen mer. Ett varv vid hamnen bygger dem av plankor och tjära från tjärdalen, och hantverkarna arbetar där. Varje knarr bär tio varor mer per dag på sjövägarna till och från sin ö."),
             _ => (introduction.ToString(), string.Empty),
         };
 

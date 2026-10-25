@@ -38,6 +38,9 @@ namespace Eirora.Simulation.Events
                 case StepUnlocked e:
                     writer.Line("step-unlocked").Long(e.UtcSeconds).Long(e.Step);
                     break;
+                case KnarrLaunched e:
+                    writer.Line("knarr-launched").Long(e.UtcSeconds).Text(e.Island).Long(e.Knarrs);
+                    break;
                 case VillagerMoved e:
                     writer.Line("villager-moved").Long(e.UtcSeconds).Text(e.From).Text(e.To);
                     break;
@@ -111,6 +114,11 @@ namespace Eirora.Simulation.Events
             if (reader.Next("step-unlocked"))
             {
                 return new StepUnlocked(reader.Long(), reader.Int());
+            }
+
+            if (reader.Next("knarr-launched"))
+            {
+                return new KnarrLaunched(reader.Long(), reader.Text(), reader.Int());
             }
 
             if (reader.Next("villager-moved"))

@@ -80,8 +80,8 @@ internal static class Measures
     }
 
     /// <summary>
-    /// The development value: villagers × 15, half the weighted stock at home and three days of production
-    /// (economy-v1.md, section 7).
+    /// The development value: villagers × 15, half the weighted stock at home and of the knarrs' materials, also of one a
+    /// shipyard is building, and three days of production (economy-v1.md, section 7; economy_v2.py, value).
     /// </summary>
     public static long Value(World world)
     {
@@ -89,6 +89,17 @@ internal static class Measures
         foreach (var resource in Enum.GetValues<Resource>())
         {
             stock += Sites.Weights[(int)resource] * Quantity.Units(world.Stock(resource));
+        }
+
+        // A knarr is worth its materials while it is built too, or a shipyard that begins one a day earlier would look
+        // like a smaller world (D-119).
+        foreach (var kind in world.Content.Buildings)
+        {
+            if (world.Content.For(kind).Knarrs is KnarrSpec knarr)
+            {
+                long knarrs = world.Islands.Sum(world.Knarrs) + world.Buildings.Count(b => b.Kind == kind && b.KnarrHoursLeft > 0);
+                stock += knarrs * knarr.Cost.Sum(c => Sites.Weights[(int)c.Key] * Quantity.Units(c.Value));
+            }
         }
 
         return Quantity.Units(world.Villagers * VillagerValue) + (stock / 2) + (3 * DailyOutput(world));

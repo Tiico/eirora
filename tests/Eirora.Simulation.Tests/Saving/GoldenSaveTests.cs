@@ -1,6 +1,7 @@
 using System.Text;
 using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Forces;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
@@ -104,7 +105,8 @@ public sealed class GoldenSaveTests
     /// player's, reservations and an import order (TASK-046); from rules 12 on also with step 1 unlocked, farmers, and a
     /// farmstead, a hunting lodge and a tannery with game in store (TASK-061); from rules 13 on also with a weavery built
     /// by hand (TASK-065); from rules 14 on also with step 2 unlocked, craftsmen, and a craftsmen's house, an apiary, a
-    /// brewery and a meadery with honey, mead and ale in store (TASK-062).
+    /// brewery and a meadery with honey, mead and ale in store (TASK-062); from rules 15 on also with step 3 unlocked, a
+    /// tar kiln and a shipyard, knarrs and one being built (TASK-063).
     /// </summary>
     private static void Write(string name)
     {
@@ -122,6 +124,13 @@ public sealed class GoldenSaveTests
         WithFarmers(save);
         WithCraftsmen(save);
 
+        // A storehouse demolished, so that the corpus holds a depot's demolition and the buildings it served (TASK-047),
+        // before the village grows so large that every depot carries with more than one.
+        var depot = world.Buildings.First(b => b.Kind == BuildingKind.Storehouse && b.Carriers <= 1 && b.CarrierCap == Logistics.MostCarriers
+            && world.Demolition(b.Tile)!.Rejection == Rejection.None);
+        Assert.True(save.Apply("golden-demolish", new Demolish(depot.Tile)).Accepted);
+        WithSeafaring(save);
+
         // A cottage on the second island, which its store cannot pay, so the ships owe the home island's materials.
         while (world.Phase == Phase.Resting)
         {
@@ -131,10 +140,6 @@ public sealed class GoldenSaveTests
         var site = world.Map.Features.LandOf(Archipelago.Second).First(h => world.CheckBuild(BuildingKind.Cottage, h) == Rejection.None);
         Assert.True(save.Apply("golden-owed", new Build(BuildingKind.Cottage, site)).Accepted);
 
-        // A storehouse demolished, so that the corpus holds a depot's demolition and the buildings it served (TASK-047).
-        var depot = world.Buildings.First(b => b.Kind == BuildingKind.Storehouse && b.Carriers <= 1 && b.CarrierCap == Logistics.MostCarriers
-            && world.Demolition(b.Tile)!.Rejection == Rejection.None);
-        Assert.True(save.Apply("golden-demolish", new Demolish(depot.Tile)).Accepted);
         WithStockRules(save);
         var weavery = Scenario.SitesOf(world).First(h => world.CheckBuild(BuildingKind.Weavery, h) == Rejection.None && world.CanAfford(world.Content.For(BuildingKind.Weavery).Cost, h));
         Assert.True(save.Apply("golden-by-hand", new BuildByHand(BuildingKind.Weavery, weavery)).Accepted);
@@ -155,10 +160,13 @@ public sealed class GoldenSaveTests
         Assert.All([BuildingKind.Farmstead, BuildingKind.HuntingLodge, BuildingKind.Tannery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
         Assert.Contains(world.Islands, i => world.Stock(i, Resource.Game) > 0);
         Assert.Contains(world.Projects, p => p.ByHand);
-        Assert.Equal(2, world.Step);
         Assert.Contains(world.Settlements, s => s.VillagersOf(PopulationTier.Craftsmen) > 0);
         Assert.All([BuildingKind.CraftsmensHouse, BuildingKind.Apiary, BuildingKind.Brewery, BuildingKind.Meadery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
         Assert.All([Resource.Honey, Resource.Mead, Resource.Ale], good => Assert.Contains(world.Islands, i => world.Stock(i, good) > 0));
+        Assert.Equal(3, world.Step);
+        Assert.All([BuildingKind.TarKiln, BuildingKind.Shipyard], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
+        Assert.Contains(world.Islands, i => world.Knarrs(i) > 0);
+        Assert.Contains(world.Buildings, b => b.KnarrHoursLeft > 0);
         return save;
     }
 
@@ -281,6 +289,39 @@ public sealed class GoldenSaveTests
         Assert.True(save.Apply($"golden-craftsmen-{key++}", new SetCarrierCap(away.Tile, 2)).Accepted, "The cap was not lowered.");
 
         save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (3 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
+    }
+
+    /// <summary>
+    /// Seafaring, step 3 (TASK-063): a cottage and a farmstead at home make room until the village has 45 villagers, of them
+    /// 6 craftsmen, and the sea routes are there already; then a tar kiln and a shipyard at home, played until a knarr is
+    /// launched and the next is being built, so that the golden save keeps the knarrs and the shipyard's work.
+    /// </summary>
+    private static void WithSeafaring(Save save)
+    {
+        var world = save.World;
+        int key = 0;
+        Build(save, BuildingKind.Cottage, $"golden-seafaring-{key++}");
+        Build(save, BuildingKind.Farmstead, $"golden-seafaring-{key++}");
+        for (int day = 0; day < 56 && world.Step < 3; day++)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (24 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        Assert.Equal(3, world.Step);
+        Build(save, BuildingKind.TarKiln, $"golden-seafaring-{key++}");
+
+        // The shipyard takes Build Power, which workouts give (D-117).
+        for (int day = 0; day < 14 && world.Available(Force.BuildPower) < world.Content.For(BuildingKind.Shipyard).BuildPower; day++)
+        {
+            Assert.True(save.Apply($"golden-seafaring-{key++}", new RecordSelfCare(world.GameDay, Habit.Workouts, ContributionSource.Verified, 3)).Accepted);
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (24 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        Build(save, BuildingKind.Shipyard, $"golden-seafaring-{key++}");
+        for (int hour = 0; hour < 28 * 24 && !(world.Islands.Any(i => world.Knarrs(i) > 0) && world.Buildings.Any(b => b.KnarrHoursLeft > 0)); hour++)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 3600, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
     }
 
     /// <summary>Builds on the home island once the villagers are awake and its store can pay.</summary>

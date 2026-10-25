@@ -13,6 +13,12 @@ namespace Eirora.Client.App
 
         /// <summary>8a: a settlement has 30 villagers, of them 6 farmers, and farmers can become craftsmen (economy-v2.md, section 5).</summary>
         Craftsmen,
+
+        /// <summary>
+        /// 9a: a settlement has 45 villagers, of them 6 craftsmen, and a sea route; the shipyard builds knarrs (economy-v2.md,
+        /// section 5).
+        /// </summary>
+        Seafaring,
     }
 
     /// <summary>
@@ -29,6 +35,7 @@ namespace Eirora.Client.App
         {
             (Introduction.Farmers, world => world.Step >= 1),
             (Introduction.Craftsmen, world => world.Step >= 2),
+            (Introduction.Seafaring, world => world.Step >= 3),
         };
 
         private readonly string? _path;

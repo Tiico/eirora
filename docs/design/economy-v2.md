@@ -155,6 +155,9 @@ Steg 0 är ekonomi v1 oförändrad, utom att bryggan får ett litet lager och at
 - Tjärdalen står vid skogen men tar sitt timmer ur förrådet, som sågverket.
 - Varvet bygger en knarr i taget av 10 plankor och 5 tjära på 32 aktiva timmar.
   Eftersom alla sjövägar i epok 1 går till hemön lyfter ett varv på hemön alla öars sjövägar, och ett varv på en annan ö bara den öns.
+  En sjöväg bär högst fyra knarrar, hemöns och dess egen ös tillsammans, och en ös varv påbörjar ingen knarr när ön har fyra byggda och påbörjade.
+  Varvet betalar knarren ur sin ös lager när det påbörjar den, som byggmaterial, så minimilagret och reserveringen hindrar det inte (D-127).
+  Ett varv utan hantverkare behåller den knarr det påbörjat, och ett varv som rivs lämnar knarrens material till öns lager; knarrarna står kvar, eftersom en knarr aldrig går förlorad (INV-V1).
 - Nivå 2, rika rutor och extraarbete skalar produktionen som i v1, även de långsamma processernas tillväxt (D-103).
 
 ### Byggplatser
@@ -271,6 +274,8 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
   Regelversion 12 (TASK-061, #156) har nivåerna och steg 1: komforten tar 2 kläder bara när en andra torpare får plats, och en sparning från regelversion 11 får alla bybor som torpare och steg 1 upplåst om en bosättning redan har 20 bybor.
   Regelversion 14 (TASK-062, #157) har hantverkarna, behovet dryck och steg 2: en sparning från regelversion 13 får inga hantverkare och steg 2 upplåst om steg 1 är det och en bosättning redan har 30 bybor, varav 6 bönder.
   En journal från regelversion 13 spelas upp, eftersom den inte kan innehålla något bygge för steg 2 och därför bara skiljer sig i att steg 2 låses upp, som migrationen också gör.
+  Regelversion 15 (TASK-063, #158) har tjäran, tjärdalen, varvet med knarrarna och steg 3: en sparning från regelversion 14 får ingen tjära och inga knarrar, och steg 3 upplåst om steg 2 är det, en bosättning redan har 45 bybor, varav 6 hantverkare, och en brygga på hemön och en på en annan bosättnings ö ger en sjöväg.
+  En journal från regelversion 14 spelas upp av samma skäl som en från regelversion 13.
 
 I de sex veckorna i avsnitt 10 växer Nyön till 16–20 bybor, och i fyra av sex körningar med Nyön stiger 6–12 av dem till bönder med kläder från hemön; ön har bara sex landrutor, så mer ryms inte.
 D-106 gör havet långsammare än i v1, eftersom Nyöns byggnader inte längre kan bemannas från hemön.

@@ -725,6 +725,14 @@ namespace Eirora.Client.UI
                     Text("sheet-text", _sheet, purpose);
                 }
 
+                if (spec.Knarrs is KnarrSpec knarr)
+                {
+                    foreach (var line in Texts.Knarrs(world, building, knarr))
+                    {
+                        Text("sheet-text", _sheet, line);
+                    }
+                }
+
                 // A tier's homes tell how many live there and what they lack, or why no one rises to them (TASK-061).
                 if (spec.Housing > 0 && spec.Houses != PopulationTier.Crofters && world.SettlementOn(building.Island) is { } settlement)
                 {
@@ -971,7 +979,7 @@ namespace Eirora.Client.UI
             {
                 AddAction("Återuppta", "Bemannas igen på sin plats i bemanningen · ingen kraft", true, () => Run(new ResumeBuilding(building.Tile)));
             }
-            else if (spec.Produces)
+            else if (spec.Pausable)
             {
                 AddAction("Pausa", $"{Capital(Texts.Villagers(spec.Staff))} bygger i stället · ingen kraft", true, () => Run(new PauseBuilding(building.Tile)));
             }
@@ -1046,10 +1054,11 @@ namespace Eirora.Client.UI
             if (building.Island != world.HomeIsland)
             {
                 string name = Texts.IslandName(world, building.Island);
-                bool sailing = world.SeaRoutes.Any(r => r.From == building.Island);
+                var route = world.SeaRoutes.FirstOrDefault(r => r.From == building.Island);
+                bool sailing = route is not null;
                 SettlementLines(world, building.Island);
-                Text("sheet-text", _sheet, sailing
-                    ? $"Skeppen seglar mellan {name} och Hemön med {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
+                Text("sheet-text", _sheet, route is not null
+                    ? $"Skeppen seglar mellan {name} och Hemön med {Texts.Capacity(route)}, åt båda hållen tillsammans."
                     : "Bygg en brygga på Hemön, så seglar skeppen hit och tar varorna hem.");
                 Text("sheet-text", _sheet, Waiting(world, building.Island, sailing) is string goods
                     ? (sailing ? "Väntar på skeppen: " : "I lagret: ") + goods + "."
@@ -1083,9 +1092,12 @@ namespace Eirora.Client.UI
 
             if (world.SeaRoutes.Count > 0)
             {
+                // Knarrs of the home island's shipyards carry on every route, another island's only on its own (economy-v2.md, section 4).
                 Text("sheet-text", _sheet, world.SeaRoutes.Count == 1
-                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag, åt båda hållen tillsammans."
-                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {SeaRoute.UnitsPerGameDay} varor per dag på varje, åt båda hållen tillsammans.");
+                    ? $"Sjövägen till {Texts.IslandName(world, world.SeaRoutes[0].From)} är öppen. Skeppen bär {Texts.Capacity(world.SeaRoutes[0])}, åt båda hållen tillsammans."
+                    : world.SeaRoutes.All(r => r.PerGameDay == world.SeaRoutes[0].PerGameDay)
+                    ? $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {Texts.Capacity(world.SeaRoutes[0])} på varje, åt båda hållen tillsammans."
+                    : $"{world.SeaRoutes.Count} sjövägar är öppna. Skeppen bär {Texts.List(world.SeaRoutes.Select(r => $"{Texts.Capacity(r)} till {Texts.IslandName(world, r.From)}"))}, åt båda hållen tillsammans.");
             }
 
             foreach (var route in world.SeaRoutes)

@@ -41,5 +41,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Drink from breweries, as mead is (öl; step 2, Craftsmen).</summary>
         Ale,
+
+        /// <summary>What shipyards build knarrs of, with planks, from tar kilns (tjära; step 3, Seafaring).</summary>
+        Tar,
     }
 }

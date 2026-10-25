@@ -1,0 +1,151 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a8e675e070e4e979e9765c13cbcbf6f, type: 3}
+  m_Name: TarKiln
+  m_EditorClassIdentifier: Eirora.Client::Eirora.Client.Look.BuildingLook
+  triangleBudget: 200
+  kind: 19
+  levels:
+  - name: 
+    extendsPrevious: 1
+    removes: []
+    parts:
+    - id: mound
+      shape: 2
+      position: {x: 0.26, y: 0, z: -0.3}
+      yaw: 0
+      size: {x: 0.3, y: 0.16, z: 0.3}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 13
+        mixWith: 19
+        mix: 0.45
+      trim:
+        swatch: 13
+        mixWith: 19
+        mix: 0.55
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: hut
+      shape: 0
+      position: {x: -0.5, y: 0, z: -0.02}
+      yaw: 30
+      size: {x: 0.26, y: 0.18, z: 0.22}
+      roof: 0.14
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 19
+        mix: 0.1
+      trim:
+        swatch: 12
+        mixWith: 19
+        mix: 0.45
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: logs
+      shape: 1
+      position: {x: 0.5, y: 0, z: 0.12}
+      yaw: 60
+      size: {x: 0.3, y: 0.07, z: 0.12}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 20
+        mix: 0.1
+      trim:
+        swatch: 12
+        mixWith: 19
+        mix: 0.35
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: barrel-1
+      shape: 1
+      position: {x: -0.28, y: 0, z: -0.3}
+      yaw: 0
+      size: {x: 0.1, y: 0.12, z: 0.1}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 19
+        mix: 0.5
+      trim:
+        swatch: 12
+        mixWith: 19
+        mix: 0.65
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+  - name: 
+    extendsPrevious: 1
+    removes: []
+    parts:
+    - id: mound-2
+      shape: 2
+      position: {x: -0.04, y: 0, z: -0.52}
+      yaw: 0
+      size: {x: 0.22, y: 0.12, z: 0.22}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 13
+        mixWith: 19
+        mix: 0.45
+      trim:
+        swatch: 13
+        mixWith: 19
+        mix: 0.55
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0
+    - id: barrel-2
+      shape: 1
+      position: {x: -0.4, y: 0, z: -0.38}
+      yaw: 0
+      size: {x: 0.1, y: 0.12, z: 0.1}
+      roof: 0
+      sides: 5
+      count: 1
+      paint:
+        swatch: 12
+        mixWith: 19
+        mix: 0.5
+      trim:
+        swatch: 12
+        mixWith: 19
+        mix: 0.65
+      glow: 0
+      mesh: {fileID: 0}
+      piece: {fileID: 0}
+      spread: 0
+      growth: 0

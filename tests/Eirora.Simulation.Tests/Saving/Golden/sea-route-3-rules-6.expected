@@ -28,6 +28,7 @@ stock home Hide 0
 stock home Honey 0
 stock home Mead 0
 stock home Ale 0
+stock home Tar 0
 stock nyon Fish 0
 stock nyon Grain 0
 stock nyon Timber 0
@@ -40,6 +41,7 @@ stock nyon Hide 0
 stock nyon Honey 0
 stock nyon Mead 0
 stock nyon Ale 0
+stock nyon Tar 0
 building FishingHut 1 0 1 1 0 0 0 0 0 0 0 1 0 0 0
 building Field 0 1 2 0 0 0 1 0 0 0 0 1 0 0 0
 building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0 0

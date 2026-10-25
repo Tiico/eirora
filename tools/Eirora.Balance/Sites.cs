@@ -22,9 +22,9 @@ internal sealed class Sites
 
     /// <summary>
     /// Weights of the development value (economy_v1.py and economy_v2.py, WEIGHT), indexed by <see cref="Resource"/>:
-    /// game, hide, honey, mead and ale as the second model weighs them.
+    /// game, hide, honey, mead, ale and tar as the second model weighs them.
     /// </summary>
-    public static readonly int[] Weights = [1, 1, 1, 3, 2, 2, 6, 1, 6, 2, 8, 5];
+    public static readonly int[] Weights = [1, 1, 1, 3, 2, 2, 6, 1, 6, 2, 8, 5, 3];
 
     private readonly World _world;
     private readonly WorldMap _map;
