@@ -27,7 +27,8 @@ namespace Eirora.Simulation.Economy
         private readonly Dictionary<Hex, List<(Building Building, Recipe Recipe, long Time)>> _served = new();
         private bool _servedKnown;
         private readonly List<Job> _jobs = new();
-        // At dawn: what each depot's buildings need by the depot's tile, and each island's villagers left to carry.
+        // What each depot's buildings need by the depot's tile, as the last FindNeeds found it, and each island's
+        // villagers left to carry while the depots take carriers at dawn.
         private readonly Dictionary<Hex, long> _needs = new();
         private readonly Dictionary<string, int> _free = new(System.StringComparer.Ordinal);
 
@@ -275,24 +276,19 @@ namespace Eirora.Simulation.Economy
             return units * 2 * trip.Time / Quantity.Units(CarrierLoad);
         }
 
-        /// <summary>Millionths of carrier-hours an active hour that every building belonging to a depot needs.</summary>
+        /// <summary>
+        /// Millionths of carrier-hours an active hour that every building belonging to a depot needs: what the carriers
+        /// follow at dawn, from the same <see cref="FindNeeds"/>, so the depot's sheet can never show another need.
+        /// </summary>
         internal long NeedAt(Building depot, int activeTicks)
         {
-            long need = 0;
-            foreach (var building in _buildings)
-            {
-                var trip = TripFrom(building.Tile);
-                if (!IsDepot(building.Kind) && trip.Reaches && trip.Depot == depot.Tile)
-                {
-                    need += NeedOf(building, trip, activeTicks);
-                }
-            }
-
+            FindNeeds(activeTicks);
+            _needs.TryGetValue(depot.Tile, out long need);
             return need;
         }
 
         /// <summary>
-        /// <see cref="NeedAt"/> for every depot at once, by its tile, in one pass over the buildings (#173). The carriers
+        /// What every depot's buildings need, by the depot's tile, in one pass over the buildings (#173). The carriers
         /// that a depot lets go or takes at dawn change no other depot's need: a building's goods only ever need the
         /// depot it belongs to.
         /// </summary>
