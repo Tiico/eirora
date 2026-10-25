@@ -1478,13 +1478,13 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         private static long Process(Building building, Recipe recipe, long most, long room, out long made)
         {
-            foreach (var input in recipe.Inputs)
+            foreach (var input in recipe.InputSpan)
             {
                 most = Min(most, building.Held![(int)input.Resource] / input.PerProduct);
             }
 
             made = Min(most, room);
-            foreach (var input in recipe.Inputs)
+            foreach (var input in recipe.InputSpan)
             {
                 building.Held![(int)input.Resource] -= input.PerProduct * made;
             }

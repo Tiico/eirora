@@ -264,7 +264,7 @@ namespace Eirora.Simulation.Economy
 
             long made = NominalPerHour(building, recipe, activeTicks);
             long units = made;
-            foreach (var input in recipe.Inputs)
+            foreach (var input in recipe.InputSpan)
             {
                 units += made * input.PerProduct;
             }
@@ -391,7 +391,7 @@ namespace Eirora.Simulation.Economy
 
                     if (building.Staffed && building.Held is long[] held)
                     {
-                        foreach (var input in recipe.Inputs)
+                        foreach (var input in recipe.InputSpan)
                         {
                             long wanted = Min(Quantity.Units(InputUnits) - held[(int)input.Resource], store[(int)input.Resource] - Quantity.Units(ProcessingReserve));
                             if (wanted > 0)
