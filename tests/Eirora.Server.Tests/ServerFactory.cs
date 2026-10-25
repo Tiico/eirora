@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Eirora.Server.CloudSaves;
+using Eirora.Server.KeyTransfers;
 using Eirora.Server.SignIn;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -12,6 +14,8 @@ namespace Eirora.Server.Tests;
 /// <summary>The server against the test database, with stand-ins for Apple and Google and every log line captured.</summary>
 public sealed class ServerFactory(string connectionString) : WebApplicationFactory<Program>
 {
+    private static readonly Type[] s_pruning = [typeof(TokenPruning), typeof(LockedContributionPruning), typeof(KeyTransferPruning)];
+
     public TestProviders Providers { get; } = new();
 
     public AppleStub Apple { get; } = new();
@@ -33,13 +37,20 @@ public sealed class ServerFactory(string connectionString) : WebApplicationFacto
         builder.ConfigureLogging(logging => logging.AddProvider(new CapturingLoggerProvider(Logs)));
         builder.ConfigureTestServices(services =>
         {
+            // Every host prunes the shared database as it starts, which would delete rows that tests have made expired on
+            // purpose, so the tests that cover the pruning run it themselves.
+            foreach (var pruning in services.Where(d => d.ImplementationType is { } type && s_pruning.Contains(type)).ToList())
+            {
+                services.Remove(pruning);
+            }
+
             services.RemoveAll<ExternalProviders>();
             services.AddSingleton(Providers.ToExternalProviders());
             services.AddHttpClient<AppleIdClient>().ConfigurePrimaryHttpMessageHandler(Apple.CreateHandler);
         });
     }
 
-    private sealed class CapturingLoggerProvider(ConcurrentQueue<string> logs) : ILoggerProvider
+    internal sealed class CapturingLoggerProvider(ConcurrentQueue<string> logs) : ILoggerProvider
     {
         public ILogger CreateLogger(string categoryName) => new Logger(categoryName, logs);
 
