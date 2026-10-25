@@ -75,6 +75,7 @@ namespace Eirora.Simulation.Economy
         private readonly List<Hex> _grounds = new(); // Another hunting lodge's forest, as HuntPerTick compares it.
         private readonly long[] _keeps; // What an island keeps of each need from the ships (Keeps).
         private readonly Dictionary<string, long> _labour = new(StringComparer.Ordinal); // Each settlement's free villagers' work in a tick.
+        private readonly int[] _builders; // The free villagers of each tier, as LabourOf counts their work.
         private readonly List<string> _pools = new(); // The islands that build a project (PoolsOf).
         private long _expeditionLeft;
 
@@ -86,6 +87,7 @@ namespace Eirora.Simulation.Economy
             _content = content;
             _tiers = content.Tiers.Count;
             _met = new bool[_tiers];
+            _builders = new int[_tiers];
             _keeps = new long[content.Needs.Count];
             Fog = fog;
             _owed = new long[map.Islands.Count];
@@ -1113,8 +1115,8 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Each step whose condition a settlement now meets unlocks for the whole world, one after the other (D-105, D-114);
-        /// villagers rise to its tier from the next dawn.
+        /// Each step whose condition a settlement now meets, its size and the villagers of a tier among them, unlocks for
+        /// the whole world, one after the other (D-105, D-114); villagers rise to its tier from the next dawn.
         /// </summary>
         private void Unlock(long utcSeconds, List<GameEvent> events)
         {
@@ -1124,7 +1126,7 @@ namespace Eirora.Simulation.Economy
                 bool met = false;
                 foreach (var island in _islands)
                 {
-                    met |= _settlements[island].Villagers >= next.Villagers;
+                    met |= next.IsMetBy(_settlements[island]);
                 }
 
                 if (!met)
@@ -1604,7 +1606,8 @@ namespace Eirora.Simulation.Economy
         /// to the home island yet, the home island's villagers build, as the expedition has reached it: its first jetty
         /// before it has a settlement, or one that a world from rules 7 or earlier lacks. A project with no work left is
         /// finished wherever it stands. The work is what the free
-        /// villagers can do as the tick begins, however a finished project gives them out again.
+        /// villagers can do as the tick begins, however a finished project gives them out again, and a craftsman does twice
+        /// a crofter's (D-116).
         /// </summary>
         private void Build(long utcSeconds, List<GameEvent> events)
         {
@@ -1615,7 +1618,7 @@ namespace Eirora.Simulation.Economy
 
             foreach (var island in _islands)
             {
-                _labour[island] = FreeVillagersOf(_settlements[island]) * WorkPerVillagerPerTick;
+                _labour[island] = LabourOf(_settlements[island]);
             }
 
             for (int i = 0; i < _projects.Count;)
@@ -1674,6 +1677,22 @@ namespace Eirora.Simulation.Economy
             {
                 events.Add(new SettlementFounded(utcSeconds, IslandOf(project.Tile)));
             }
+        }
+
+        /// <summary>
+        /// Thousandths of a villager-hour of work on the queue that a settlement's free villagers give a tick, each as fast
+        /// as its tier builds: a craftsman twice as fast as the others (D-116).
+        /// </summary>
+        internal long LabourOf(IslandSettlement settlement)
+        {
+            FreeVillagersOf(settlement, _builders);
+            long labour = 0;
+            for (int tier = 0; tier < _tiers; tier++)
+            {
+                labour += _builders[tier] * _content.Tiers[tier].Builds * WorkPerVillagerPerTick;
+            }
+
+            return labour;
         }
 
         /// <summary>

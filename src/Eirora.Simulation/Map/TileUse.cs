@@ -32,5 +32,8 @@ namespace Eirora.Simulation.Map
 
         /// <summary>Land except a mountain next to shallow water that reaches the deep sea, for a jetty (D-89).</summary>
         HarborSpot = 128,
+
+        /// <summary>Grassland, land that is neither forest, farmland, pasture, beach nor mountain, for an apiary (äng; economy-v2.md, section 4).</summary>
+        Meadow = 256,
     }
 }

@@ -39,7 +39,7 @@ public sealed class HandBuildArrivesTests
         var world = BuiltOutWorld.Generate(seed);
         string state = world.Fingerprint();
 
-        Assert.Equal(state, new HandBuildArrives().Migrate(RulesTwelve(state), world.Map));
+        Assert.Equal(CraftsmenArriveTests.RulesThirteen(state), new HandBuildArrives().Migrate(RulesTwelve(state), world.Map));
         var reader = new StateReader(state);
         World.Read(reader, world.Map);
         reader.End();
@@ -61,12 +61,13 @@ public sealed class HandBuildArrivesTests
     }
 
     /// <summary>
-    /// A state of rules 13 or later with nothing built by hand as rules 12 wrote it: each project's line without its
-    /// dawns left; a state of rules 12 or earlier stays as it is.
+    /// A state of rules 13 or later with nothing built by hand as rules 12 wrote it, through
+    /// <see cref="CraftsmenArriveTests.RulesThirteen"/>: each project's line without its dawns left; a state of rules 12
+    /// or earlier stays as it is.
     /// </summary>
     internal static string RulesTwelve(string state)
     {
-        var lines = state.Split('\n');
+        var lines = CraftsmenArriveTests.RulesThirteen(state).Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
             var fields = lines[i].Split(' ');

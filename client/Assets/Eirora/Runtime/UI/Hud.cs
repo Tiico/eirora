@@ -240,6 +240,15 @@ namespace Eirora.Client.UI
             world.Islands.Any(i => world.Stock(i, resource) > 0)
             || world.Content.Buildings.Any(k => world.Content.For(k) is { Recipe: { } recipe } spec && spec.Step <= world.Step && (recipe.Product == resource || recipe.Uses(resource)));
 
+        /// <summary>
+        /// What a tile is good for, without the uses that only buildings of a step the world has yet to reach need, so that
+        /// a meadow is not named before an apiary can stand there (economy-v2.md, section 5).
+        /// </summary>
+        private static TileUse Unlocked(World world, TileUse uses) =>
+            world.Content.Buildings.Any(k => world.Content.For(k) is { Requirement: TileUse.Meadow } spec && spec.Step <= world.Step)
+                ? uses
+                : uses & ~TileUse.Meadow;
+
         /// <summary>Whether an introduction is shown over the island.</summary>
         public bool ShowsIntroduction => _introduction is not null;
 
@@ -644,7 +653,7 @@ namespace Eirora.Client.UI
             }
 
             Text("sheet-title", _sheet, ground);
-            Text("sheet-subtitle", _sheet, Texts.Uses(uses));
+            Text("sheet-subtitle", _sheet, Texts.Uses(Unlocked(world, uses)));
             if (world.Map.TerrainAt(tile) == MapTerrain.Forest)
             {
                 Text("sheet-text", _sheet, Texts.Timber(world.TimberLeft(tile)));
@@ -988,6 +997,16 @@ namespace Eirora.Client.UI
                 : world.Settlements.Count > 1
                 ? $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger i köns ordning."
                 : $"{Capital(Texts.FreeVillagers(world.FreeVillagers))} bygger på det första projektet.");
+
+            // Free craftsmen build twice as fast as the others (D-116), which the queue says so that it is seen.
+            int craftsmen = world.Settlements.Sum(s => s.FreeVillagersOf(PopulationTier.Craftsmen));
+            if (craftsmen > 0)
+            {
+                Text("sheet-text", _sheet, craftsmen == 1
+                    ? "En av dem är hantverkare och bygger dubbelt så fort."
+                    : $"{Capital(Texts.Count(craftsmen))} av dem är hantverkare och bygger dubbelt så fort.");
+            }
+
             // A building built by hand takes none of the free villagers' work (D-65): the first one they work on is built now.
             var first = projects.FirstOrDefault(p => !p.ByHand);
             for (int i = 0; i < projects.Count && i < QueueShown; i++)

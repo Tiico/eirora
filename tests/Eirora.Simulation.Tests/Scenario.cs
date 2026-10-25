@@ -156,6 +156,13 @@ internal sealed class Scenario
     /// <summary>Every kind of building that belongs to <paramref name="lastStep"/> or an earlier unlocked step, in their order.</summary>
     internal static BuildingKind[] Kinds(int lastStep) => [.. s_buildings.Where(k => ContentCatalog.Current.For(k).Step <= lastStep)];
 
+    /// <summary>
+    /// Every good that a building of <paramref name="lastStep"/> or an earlier step makes or uses, in their order, which
+    /// the stock rules are drawn from, so that a world built of the earlier steps draws as it did before the later ones.
+    /// </summary>
+    internal static Resource[] Resources(int lastStep) =>
+        [.. Enum.GetValues<Resource>().Where(r => Kinds(lastStep).Any(k => ContentCatalog.Current.For(k).Recipe is { } recipe && (recipe.Product == r || recipe.Uses(r))))];
+
     /// <summary>Where a suited building is sought: the islands that can be built on and their waters.</summary>
     internal static IReadOnlyList<Hex> SitesOf(World world) => world.Map.Hash == Archipelago.Map.Hash ? Archipelago.Sites : s_sites;
 
@@ -181,6 +188,7 @@ internal sealed class Scenario
     private static Func<World, GameCommand> Maker(Random random, bool stockRules, int lastStep, bool byHand)
     {
         var buildings = Kinds(lastStep);
+        var goods = Resources(lastStep);
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
         var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
@@ -215,8 +223,8 @@ internal sealed class Scenario
                 // The stock rules (TASK-046), from the same draws: an amount up to the store's capacity or past it, any
                 // resource, and a place in the import order or past it.
                 int units = suited ? pick % 61 : (pick % 400) - 50;
-                var resource = (Resource)(pick / 7 % Enum.GetValues<Resource>().Length);
-                int import = suited ? pick / 11 % Enum.GetValues<Resource>().Length : (pick / 11 % 12) - 2;
+                var resource = goods[pick / 7 % goods.Length];
+                int import = suited ? pick / 11 % goods.Length : (pick / 11 % 12) - 2;
                 return world => road switch
                 {
                     0 => new BuildRoad(suited ? BuiltSite(world, pick, b => world.RoadToDepot(b.Tile).Count > 0) ?? site : site),

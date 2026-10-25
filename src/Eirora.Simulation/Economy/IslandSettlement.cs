@@ -62,6 +62,14 @@ namespace Eirora.Simulation.Economy
         /// <summary>Villagers not working in a building on the island; they build.</summary>
         public int FreeVillagers => _economy.FreeVillagersOf(this);
 
+        /// <summary>The free villagers of a population tier, such as the craftsmen who build twice as fast (D-116).</summary>
+        public int FreeVillagersOf(PopulationTier tier)
+        {
+            var free = new int[_tiers.Length];
+            _economy.FreeVillagersOf(this, free);
+            return (int)tier < free.Length ? free[(int)tier] : 0;
+        }
+
         /// <summary>Adds villagers of a tier, or takes them away with a negative <paramref name="count"/>.</summary>
         internal void Add(PopulationTier tier, int count) => _tiers[(int)tier] += count;
 

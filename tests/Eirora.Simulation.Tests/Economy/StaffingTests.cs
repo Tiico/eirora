@@ -241,7 +241,7 @@ public sealed class StaffingTests
         world.AdvanceTo(at);
         var lines = world.Fingerprint().Split('\n').ToList();
         lines[lines.FindIndex(l => l.StartsWith("economy ", StringComparison.Ordinal))] = "economy 0 0 0";
-        lines[lines.FindIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal))] = $"settlement {world.HomeIsland} 12 0";
+        lines[lines.FindIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal))] = $"settlement {world.HomeIsland} 12 0 0";
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return World.Read(new StateReader(string.Join("\n", lines)), PrototypeHome.Map);
     }

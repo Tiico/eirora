@@ -50,5 +50,17 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Hide from game (garveri; step 1, Farmers).</summary>
         Tannery,
+
+        /// <summary>Housing for eight craftsmen (hantverkargård; step 2, Craftsmen).</summary>
+        CraftsmensHouse,
+
+        /// <summary>Honey that grows day and night on a meadow and is gathered by day (bigård; step 2, Craftsmen).</summary>
+        Apiary,
+
+        /// <summary>Ale from grain, staffed by farmers (bryggeri; step 2, Craftsmen).</summary>
+        Brewery,
+
+        /// <summary>Mead from honey, staffed by farmers (mjöderi; step 2, Craftsmen).</summary>
+        Meadery,
     }
 }

@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 13;
+        public const int Current = 14;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -35,6 +35,10 @@ namespace Eirora.Simulation
         /// Rules 13 let the catalog's hand-built buildings be built by hand in a fixed number of game days (TASK-065,
         /// D-65), a command that older rules cannot read and a project that the free villagers do not work on; a journal
         /// from rules 12 has no such command, so it replays to the same world.
+        /// Rules 14 added the craftsmen, drink and step 2 (TASK-062). A journal from rules 13 holds no command for their
+        /// buildings, so no villager rises to craftsman and no drink is made when it replays; the only change is that step
+        /// 2 unlocks at the first dawn a settlement has 30 villagers, of them 6 farmers, which the migration gives such a
+        /// world too, so it replays to the same world.
         /// </summary>
         public const int ReplaysJournalsFrom = 12;
     }

@@ -227,7 +227,13 @@ namespace Eirora.Simulation.Map
                 uses |= TileUse.Forest;
             }
 
-            uses |= terrain == Terrain.Farmland ? TileUse.Farmland : terrain == Terrain.Pasture ? TileUse.Pasture : TileUse.None;
+            uses |= terrain switch
+            {
+                Terrain.Farmland => TileUse.Farmland,
+                Terrain.Pasture => TileUse.Pasture,
+                Terrain.Grassland => TileUse.Meadow,
+                _ => TileUse.None,
+            };
             return HasNeighbour(hex, IsOpenShallows) ? uses | TileUse.HarborSpot : uses;
         }
 

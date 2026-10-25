@@ -103,13 +103,24 @@ public sealed class GoldenSaveTests
     /// rules 10 on also with a storehouse demolished (TASK-047); from rules 11 on also with a minimum stock of the
     /// player's, reservations and an import order (TASK-046); from rules 12 on also with step 1 unlocked, farmers, and a
     /// farmstead, a hunting lodge and a tannery with game in store (TASK-061); from rules 13 on also with a weavery built
-    /// by hand (TASK-065).
+    /// by hand (TASK-065); from rules 14 on also with step 2 unlocked, craftsmen, and a craftsmen's house, an apiary, a
+    /// brewery and a meadery with honey, mead and ale in store (TASK-062).
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(GoldenSeed);
+        var save = Golden();
+        Directory.CreateDirectory(s_folder);
+        File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
+        File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
+    }
+
+    private static Save Golden()
+    {
+        // Built out of steps 0 and 1 only, as the golden save of rules 13 was, so that each step's buildings come in order.
+        var save = BuiltOutWorld.GenerateSave(GoldenSeed, (BuiltOutWorld.SelfCare)(GoldenSeed % 3), archipelago: true, lastStep: 1);
         var world = save.World;
         WithFarmers(save);
+        WithCraftsmen(save);
 
         // A cottage on the second island, which its store cannot pay, so the ships owe the home island's materials.
         while (world.Phase == Phase.Resting)
@@ -140,15 +151,15 @@ public sealed class GoldenSaveTests
         Assert.Contains(world.Buildings, b => b.Held is not null && b.Reserve != StockRules.StandardReserve);
         Assert.Contains(world.Islands, i => Enum.GetValues<Resource>().Any(r => world.ReservationOf(i, r) > 0));
         Assert.Contains(world.Islands, i => !world.ImportOrder(i).SequenceEqual(Enum.GetValues<Resource>()));
-        Assert.Equal(1, world.Step);
         Assert.Contains(world.Settlements, s => s.VillagersOf(PopulationTier.Farmers) > 0);
         Assert.All([BuildingKind.Farmstead, BuildingKind.HuntingLodge, BuildingKind.Tannery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
         Assert.Contains(world.Islands, i => world.Stock(i, Resource.Game) > 0);
         Assert.Contains(world.Projects, p => p.ByHand);
-
-        Directory.CreateDirectory(s_folder);
-        File.WriteAllBytes(Path.Combine(s_folder, name + ".save"), save.ToBytes());
-        File.WriteAllText(Path.Combine(s_folder, name + ".expected"), Save.Load(save.ToBytes()).World.Fingerprint(), new UTF8Encoding(false));
+        Assert.Equal(2, world.Step);
+        Assert.Contains(world.Settlements, s => s.VillagersOf(PopulationTier.Craftsmen) > 0);
+        Assert.All([BuildingKind.CraftsmensHouse, BuildingKind.Apiary, BuildingKind.Brewery, BuildingKind.Meadery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
+        Assert.All([Resource.Honey, Resource.Mead, Resource.Ale], good => Assert.Contains(world.Islands, i => world.Stock(i, good) > 0));
+        return save;
     }
 
     /// <summary>
@@ -207,6 +218,83 @@ public sealed class GoldenSaveTests
         }
 
         save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (24 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
+    }
+
+    /// <summary>
+    /// The craftsmen of step 2 (TASK-062): once a settlement has 30 villagers, of them 6 farmers, a craftsmen's house, an
+    /// apiary on a meadow, a brewery and a meadery at home, played until farmers have risen to craftsmen and the store
+    /// holds honey, mead and ale, so that the golden save keeps the third tier and the new goods.
+    /// </summary>
+    private static void WithCraftsmen(Save save)
+    {
+        var world = save.World;
+        int key = 0;
+
+        // A cottage at home makes room for the crofters, so that the village soon has 30 villagers.
+        Build(save, BuildingKind.Cottage, $"golden-craftsmen-{key++}");
+        for (int day = 0; day < 42 && world.Step < 2; day++)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (24 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        Assert.Equal(2, world.Step);
+        foreach (var kind in new[] { BuildingKind.Apiary, BuildingKind.Meadery, BuildingKind.Brewery, BuildingKind.CraftsmensHouse })
+        {
+            Build(save, kind, $"golden-craftsmen-{key++}");
+        }
+
+        // The home island's buildings other than the fishing huts and the chains of hide and drink pause while the new ones
+        // are built and drink is made, so that their villagers build and carry, and they work again once craftsmen have risen.
+        BuildingKind[] working = [BuildingKind.FishingHut, BuildingKind.HuntingLodge, BuildingKind.Tannery, BuildingKind.Apiary, BuildingKind.Meadery, BuildingKind.Brewery];
+        var pausing = world.Buildings.Where(b => b.Island == world.HomeIsland && !b.Paused && world.Content.For(b.Kind).Produces && !working.Contains(b.Kind)).ToList();
+        foreach (var paused in pausing)
+        {
+            Assert.True(save.Apply($"golden-craftsmen-{key++}", new PauseBuilding(paused.Tile)).Accepted, $"The {paused.Kind} was not paused.");
+        }
+
+        // The home island's depots may take as many carriers as the goods need.
+        foreach (var depot in world.Buildings.Where(b => b.Island == world.HomeIsland && Logistics.IsDepot(b.Kind) && b.CarrierCap < Logistics.MostCarriers).ToList())
+        {
+            Assert.True(save.Apply($"golden-craftsmen-{key++}", new SetCarrierCap(depot.Tile, Logistics.MostCarriers)).Accepted, "The cap was not raised.");
+        }
+
+        for (int hour = 0; hour < 28 * 24 && !(world.Settlements.Any(s => s.VillagersOf(PopulationTier.Craftsmen) > 0)
+            && world.Stock(Resource.Honey) > 0 && world.Stock(Resource.Mead) > 0 && world.Stock(Resource.Ale) > 0); hour++)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 3600, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        // It ends a few hours into a day, while goods wait at the buildings for the carriers.
+        while (world.Phase != Phase.Active)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 900, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        // All but the first work again, so that the golden save keeps a paused building (TASK-044), and a depot away from
+        // home gets a cap of the player's below the most, as the home island's had (TASK-051).
+        foreach (var paused in pausing.Skip(1))
+        {
+            Assert.True(save.Apply($"golden-craftsmen-{key++}", new ResumeBuilding(paused.Tile)).Accepted, $"The {paused.Kind} was not resumed.");
+        }
+
+        var away = world.Buildings.First(b => b.Island != world.HomeIsland && Logistics.IsDepot(b.Kind));
+        Assert.True(save.Apply($"golden-craftsmen-{key++}", new SetCarrierCap(away.Tile, 2)).Accepted, "The cap was not lowered.");
+
+        save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + (3 * 3600), world.Now.ZoneId, world.Now.OffsetSeconds));
+    }
+
+    /// <summary>Builds on the home island once the villagers are awake and its store can pay.</summary>
+    private static void Build(Save save, BuildingKind kind, string key)
+    {
+        var world = save.World;
+        for (int quarter = 0; quarter < 7 * 96 && (world.Phase != Phase.Active || !world.CanAfford(world.Content.For(kind).Cost, Hex.Origin)); quarter++)
+        {
+            save.AdvanceTo(new TimeReading(world.Now.UtcSeconds + 900, world.Now.ZoneId, world.Now.OffsetSeconds));
+        }
+
+        var site = Scenario.SitesOf(world).First(h => world.IslandOf(h) == world.HomeIsland && world.CheckBuild(kind, h) == Rejection.None);
+        var built = save.Apply(key, new Build(kind, site));
+        Assert.True(built.Accepted, $"{kind} was refused: {built.Rejection}.");
     }
 
     /// <summary>

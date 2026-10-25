@@ -10,6 +10,9 @@ namespace Eirora.Client.App
     {
         /// <summary>6a: a settlement has 20 villagers, and crofters can become farmers (economy-v2.md, section 5).</summary>
         Farmers,
+
+        /// <summary>8a: a settlement has 30 villagers, of them 6 farmers, and farmers can become craftsmen (economy-v2.md, section 5).</summary>
+        Craftsmen,
     }
 
     /// <summary>
@@ -25,6 +28,7 @@ namespace Eirora.Client.App
         private static readonly (Introduction Introduction, Func<World, bool> Due)[] s_order =
         {
             (Introduction.Farmers, world => world.Step >= 1),
+            (Introduction.Craftsmen, world => world.Step >= 2),
         };
 
         private readonly string? _path;

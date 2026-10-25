@@ -109,7 +109,7 @@ namespace Eirora.Client.Tests
                 lines.InsertRange(
                     lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
                     Enum.GetValues(typeof(Resource)).Cast<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? 40 * Quantity.PerUnit : 0)}"));
-                lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {PrototypeHome.Nyon} 0 0");
+                lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {PrototypeHome.Nyon} 0 0 0");
                 Buildings(lines, $"building Jetty {jetty.Q} {jetty.R} 1 1 0 0 0 1 4 0 0 0 0 0 0", "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0 0");
             }));
             _hud.Select(jetty);
@@ -175,7 +175,7 @@ namespace Eirora.Client.Tests
             lines[lines.FindIndex(l => l.StartsWith($"stock home {resource} ", StringComparison.Ordinal))] = $"stock home {resource} {units * Quantity.PerUnit}";
 
         private static void Settlement(List<string> lines, int villagers) =>
-            lines[lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal))] = $"settlement home {villagers} 0";
+            lines[lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal))] = $"settlement home {villagers} 0 0";
 
         private static void Buildings(List<string> lines, params string[] buildings) =>
             lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);

@@ -113,14 +113,14 @@ public sealed class SimulationSnapshotTests
     public void AChangedByteIsCaught()
     {
         var bytes = SimulationSnapshot.Take(World.Create(At("2026-10-14 14:00", 2), Night)).ToBytes();
-        int villagers = Encoding.UTF8.GetString(bytes).IndexOf("settlement home 12 0", StringComparison.Ordinal);
+        int villagers = Encoding.UTF8.GetString(bytes).IndexOf("settlement home 12 0 0", StringComparison.Ordinal);
         bytes[villagers + "settlement home 1".Length] = (byte)'3';
 
         Assert.Throws<FormatException>(() => SimulationSnapshot.FromBytes(bytes));
     }
 
     [Theory]
-    [InlineData("settlement home 12 0\n", "settlement home 012 0\n")] // Not the canonical form of the number.
+    [InlineData("settlement home 12 0 0\n", "settlement home 012 0 0\n")] // Not the canonical form of the number.
     [InlineData("building Storehouse 0 0 ", "building Storehouse 99 0 ")] // A tile off the map.
     public void AStateThatDoesNotRestoreToItselfIsRejected(string original, string replacement)
     {

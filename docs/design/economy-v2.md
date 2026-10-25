@@ -151,6 +151,7 @@ Steg 0 är ekonomi v1 oförändrad, utom att bryggan får ett litet lager och at
 - Bigården är en långsam process som åkern: honungen växer dygnet runt och skattas under de aktiva timmarna (INV-T5).
 - Mjödet ur honung är dubbelt så effektivt som ölet ur säd, men bigården kräver äng nära förrådet, där bostäderna också vill stå.
 - Garveriet lämnar 5 vilt i lagret som minimilager i stället för förädlingens 20, eftersom vilt också är mat och en jaktstuga annars sällan når över 20 (produktägaren 2026-10-25, PR #180).
+- Bryggeriet lämnar på samma sätt 5 säd, eftersom säd också är mat och prototypens hemö bara har två åkerrutor (produktägaren 2026-10-25, PR #184).
 - Tjärdalen står vid skogen men tar sitt timmer ur förrådet, som sågverket.
 - Varvet bygger en knarr i taget av 10 plankor och 5 tjära på 32 aktiva timmar.
   Eftersom alla sjövägar i epok 1 går till hemön lyfter ett varv på hemön alla öars sjövägar, och ett varv på en annan ö bara den öns.
@@ -268,6 +269,8 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
 - **Före nivåerna.**
   Regelversion 9–11 (TASK-050) har bosättningarna men ännu inte nivåerna, så komforten från v1 gäller per bosättning: 2 tyg ur öns eget lager ger en bybo till.
   Regelversion 12 (TASK-061, #156) har nivåerna och steg 1: komforten tar 2 kläder bara när en andra torpare får plats, och en sparning från regelversion 11 får alla bybor som torpare och steg 1 upplåst om en bosättning redan har 20 bybor.
+  Regelversion 14 (TASK-062, #157) har hantverkarna, behovet dryck och steg 2: en sparning från regelversion 13 får inga hantverkare och steg 2 upplåst om steg 1 är det och en bosättning redan har 30 bybor, varav 6 bönder.
+  En journal från regelversion 13 spelas upp, eftersom den inte kan innehålla något bygge för steg 2 och därför bara skiljer sig i att steg 2 låses upp, som migrationen också gör.
 
 I de sex veckorna i avsnitt 10 växer Nyön till 16–20 bybor, och i fyra av sex körningar med Nyön stiger 6–12 av dem till bönder med kläder från hemön; ön har bara sex landrutor, så mer ryms inte.
 D-106 gör havet långsammare än i v1, eftersom Nyöns byggnader inte längre kan bemannas från hemön.

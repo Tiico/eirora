@@ -14,7 +14,7 @@ force Exploration 866 1
 force BuildPower 1200 9
 force DawnPower 8398 3
 economy 0 0 1
-settlement home 20 0
+settlement home 20 0 0
 stock home Fish 132343750
 stock home Grain 150000000
 stock home Timber 4000000
@@ -24,6 +24,9 @@ stock home Wool 0
 stock home Wadmal 0
 stock home Game 0
 stock home Hide 0
+stock home Honey 0
+stock home Mead 0
+stock home Ale 0
 building Storehouse 0 0 1 1 0 0 0 1 4 0 0 0 0 0 0
 building FishingHut 1 0 2 1 0 0 0 0 0 0 0 1 0 0 0
 building Woodcutter 1 -1 2 0 0 0 1 0 0 0 0 1 0 0 0
