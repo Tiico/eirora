@@ -44,6 +44,11 @@ public sealed class LongAbsenceTests
 
     private static readonly Resource[] s_resources = Enum.GetValues<Resource>();
 
+    // A world whose road on the home island is finished while the two fishing huts before it in the queue, on other
+    // islands, still wait: a build on one island does not wait for one on another (D-113).
+    [Fact]
+    public void AnAbsenceWhereALaterProjectIsFinishedFirstBreaksNothing() => AnAbsenceOfAnyLengthBreaksNothing(-11);
+
     [Property(MaxTest = 16)]
     public void AnAbsenceOfAnyLengthBreaksNothing(int seed)
     {
@@ -322,11 +327,25 @@ public sealed class LongAbsenceTests
             Assert.True(ExpeditionHoursLeft <= earlier.ExpeditionHoursLeft, $"expedition {earlier.ExpeditionHoursLeft} → {ExpeditionHoursLeft}");
 
             // The player's say holds: a completed building comes last in the staffing order, a completed project leaves
-            // the front of the queue, nothing is paused or resumed, and villagers only ever go to work (INV-V2).
+            // the queue and the rest keep their order, nothing is paused or resumed, and villagers only ever go to work
+            // (INV-V2). A project need not be at the front to be completed, since a build on one island does not wait for
+            // one on another (D-113).
             Assert.True(AtWork >= earlier.AtWork && AtWork <= Villagers, $"villagers at work {earlier.AtWork} → {AtWork} of {Villagers}");
             Assert.Equal(earlier.StaffingOrder, StaffingOrder.Take(earlier.StaffingOrder.Length));
             Assert.Equal(earlier.Paused, Paused);
-            Assert.Equal(earlier.Queue.Skip(earlier.Queue.Length - Queue.Length), Queue);
+            Assert.True(KeepsTheOrderOf(earlier.Queue, Queue), $"queue {string.Join(", ", earlier.Queue)} → {string.Join(", ", Queue)}");
+        }
+
+        /// <summary>Whether <paramref name="later"/> is <paramref name="earlier"/> with some of it left out and the rest in order.</summary>
+        private static bool KeepsTheOrderOf(string[] earlier, string[] later)
+        {
+            int at = 0;
+            foreach (string entry in earlier)
+            {
+                at += at < later.Length && later[at] == entry ? 1 : 0;
+            }
+
+            return at == later.Length;
         }
     }
 
