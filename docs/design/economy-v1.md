@@ -267,6 +267,7 @@ De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-
   En reservering på Hemön håller inte kvar Hemöns material till byggen på andra öar eller maten ut till dem.
   Skeppen lämnar det största av reserveringen och de två dygns mat som ön behåller, på samma sätt som förädlingen (D-125).
 - Ett minimilager eller en reservering kan vara större än lagret rymmer, om lagret blir mindre när en byggnad rivs; då lämnas allt kvar, och spelarens inställning står kvar tills spelaren ändrar den.
+  Spelaren kan alltid sänka den, och ”−” på bladet går då först ned till det lagret rymmer; bara en höjning över lagret nekas.
 
 Förädlingen lämnar det största av sitt minimilager och reserveringen på sin ö, så de två lägger sig inte på varandra (D-125).
 Diagnostiken säger vilket av dem som håller kvar råvaran, och en sjöväg som har plats över men lämnar varor för en reservering säger det också.
