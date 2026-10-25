@@ -140,18 +140,20 @@ public sealed class KeyTransferTests(ServerFixture fixture)
         Assert.Equal(HttpStatusCode.NoContent, await api.DeliverKeyTransferAsync(tokens.Access, transfer.Id, new KeyTransferDelivery(RandomNumberGenerator.GetBytes(KeyTransfer.MaxSealedKeyBytes))));
     }
 
-    // A transfer whose ten minutes ran out is as good as gone to both phones, and the pruning removes it.
+    // A transfer whose ten minutes ran out is as good as gone to both phones, and the pruning removes it. It runs out
+    // at a fixed moment long past, and is pruned on a clock held at that moment: the pruning deletes every transfer
+    // that has run out, so on the real clock it would reach other tests' transfers, and their timing would reach this.
     [Fact]
     public async Task ATransferRunsOutAfterTenMinutesAndIsPruned()
     {
         using var api = _server.CreateApi();
         var tokens = await api.SignInAsync(_server.Providers.SignIn(LoginProviders.Google));
         var (_, transfer) = await api.CreateKeyTransferAsync(tokens.Access, new KeyTransferRequest(TransferKeys.Generate().PublicKey));
-        var accountId = (await api.GetAccountAsync(tokens.Access)).Account!.Id;
+        var ranOut = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         await using (var db = _fixture.CreateDbContext())
         {
             await db.KeyTransfers.Where(t => t.Id == transfer!.Id)
-                .ExecuteUpdateAsync(t => t.SetProperty(x => x.ExpiresAt, DateTimeOffset.UtcNow.AddSeconds(-1)), Cancel);
+                .ExecuteUpdateAsync(t => t.SetProperty(x => x.ExpiresAt, ranOut), Cancel);
         }
 
         Assert.Equal(HttpStatusCode.NotFound, (await api.GetKeyTransferAsync(tokens.Access, transfer!.Id)).Status);
@@ -159,8 +161,9 @@ public sealed class KeyTransferTests(ServerFixture fixture)
         await using (var scope = _server.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<Data.EiroraDbContext>();
+            await new KeyTransferService(db, new FixedTime(ranOut.AddTicks(-TimeSpan.TicksPerMicrosecond))).PruneAsync(Cancel);
             Assert.True(await db.KeyTransfers.AnyAsync(t => t.Id == transfer.Id, Cancel));
-            await scope.ServiceProvider.GetRequiredService<KeyTransferService>().PruneAsync(Cancel);
+            await new KeyTransferService(db, new FixedTime(ranOut)).PruneAsync(Cancel);
             Assert.False(await db.KeyTransfers.AnyAsync(t => t.Id == transfer.Id, Cancel));
         }
     }
@@ -209,4 +212,9 @@ public sealed class KeyTransferTests(ServerFixture fixture)
 
     private static IEnumerable<byte[]> Chunks(byte[] bytes, int length) =>
         Enumerable.Range(0, bytes.Length - length + 1).Select(i => bytes.Skip(i).Take(length).ToArray());
+
+    private sealed class FixedTime(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
 }
