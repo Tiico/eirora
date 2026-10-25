@@ -20,6 +20,7 @@ namespace Eirora.Simulation
     {
         private readonly Dictionary<BuildingKind, BuildingSpec> _specs = new();
         private readonly List<BuildingKind> _buildings = new();
+        private readonly BuildingSpec?[] _byKind; // The specs by kind, which the simulation looks up for every building every quarter hour (#173).
 
         private ContentCatalog(int version, BuildingSpec upgrade, IEnumerable<(BuildingKind Kind, BuildingSpec Spec)> buildings)
         {
@@ -34,6 +35,18 @@ namespace Eirora.Simulation
 
                 _specs[kind] = spec;
                 _buildings.Add(kind);
+            }
+
+            int kinds = 0;
+            foreach (var kind in _buildings)
+            {
+                kinds = (int)kind >= kinds ? (int)kind + 1 : kinds;
+            }
+
+            _byKind = new BuildingSpec?[kinds];
+            foreach (var kind in _buildings)
+            {
+                _byKind[(int)kind] = _specs[kind];
             }
         }
 
@@ -80,7 +93,9 @@ namespace Eirora.Simulation
         public BuildingSpec Upgrade { get; }
 
         public BuildingSpec For(BuildingKind kind) =>
-            _specs.TryGetValue(kind, out var spec) ? spec : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown building.");
+            (uint)kind < (uint)_byKind.Length && _byKind[(int)kind] is BuildingSpec spec
+                ? spec
+                : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown building.");
 
         /// <summary>This catalog with one building more, as content is added (ADR-0006).</summary>
         internal ContentCatalog With(BuildingKind kind, BuildingSpec spec)
