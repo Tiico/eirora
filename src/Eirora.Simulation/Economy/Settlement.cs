@@ -64,8 +64,7 @@ namespace Eirora.Simulation.Economy
         private readonly Founding _founding;
         private readonly ContentCatalog _content;
         private readonly List<Hex> _woods = new();
-        private long[] _before = new long[64]; // The state before and after a tick's work (RecordState).
-        private long[] _after = new long[64];
+        private long[] _before = new long[64]; // The state before a tick's work (RecordState).
         private readonly Dictionary<string, long> _capacity = new(StringComparer.Ordinal); // Forgotten whenever a building is added.
         private readonly Dictionary<string, int> _unstaffed = new(StringComparer.Ordinal); // Villagers left as each island's are given out.
         private readonly Dictionary<string, long> _labour = new(StringComparer.Ordinal); // Each settlement's free villagers' work in a tick.
@@ -560,14 +559,18 @@ namespace Eirora.Simulation.Economy
         public bool Tick(long utcSeconds, List<GameEvent> events)
         {
             GrowSlowProcesses(1);
-            int recorded = RecordState(ref _before);
+            var before = new StateRecording(_before);
+            RecordState(ref before);
+            _before = before.Values;
 
             Unload();
             Build(utcSeconds, events);
             Work();
             Explore(utcSeconds, events);
 
-            return RecordState(ref _after) != recorded || !_before.AsSpan(0, recorded).SequenceEqual(_after.AsSpan(0, recorded));
+            var after = new StateComparison(before);
+            RecordState(ref after);
+            return after.Changed;
         }
 
         /// <summary>
@@ -582,84 +585,166 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Writes every value of the state that a tick can change into <paramref name="state"/>, which grows as needed,
-        /// and returns how many: the surveys, the expedition, the fog, each settlement's villagers, store and goods at its
-        /// depots, what each sea route owes, each building, the queue, the roads and the felled forest, each list after its
-        /// length. Roads are only ever added, so their count tells every change. A test fails when a field is added to the
-        /// economy, a settlement, a building, a project or the fog that is neither recorded here nor fixed or derived
-        /// (FastForwardTests.EveryFieldThatATickCanChangeIsCompared).
+        /// Puts every value of the state that a tick can change to <paramref name="state"/>, which records them or compares
+        /// them with a recording and stops at the first that differs (#173): the surveys, the expedition, the fog, each
+        /// settlement's villagers, store and goods at its depots, what each sea route owes, each building, the queue, the
+        /// roads and the felled forest, each list after its length. Roads are only ever added, so their count tells every
+        /// change. A test fails when a field is added to the economy, a settlement, a building, a project or the fog that is
+        /// neither recorded here nor fixed or derived (FastForwardTests.EveryFieldThatATickCanChangeIsCompared).
         /// </summary>
-        private int RecordState(ref long[] state)
+        private void RecordState<TState>(ref TState state)
+            where TState : struct, IStateRecord
         {
-            int needed = 9 + (_islands.Count * (1 + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count);
-            if (state.Length < needed)
-            {
-                state = new long[2 * needed];
-            }
-
-            int i = 0;
-            state[i++] = SurveysDone;
-            state[i++] = _expeditionLeft;
-            state[i++] = Fog.Lifts;
-            state[i++] = _islands.Count;
+            state.Reserve(9 + (_islands.Count * (1 + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count));
+            state.Put(SurveysDone);
+            state.Put(_expeditionLeft);
+            state.Put(Fog.Lifts);
+            state.Put(_islands.Count);
             foreach (var island in _islands)
             {
-                state[i++] = _settlements[island].Villagers;
+                state.Put(_settlements[island].Villagers);
                 var store = _stores[island];
                 _atDepots.TryGetValue(island, out var atDepots);
                 for (int resource = 0; resource < s_resourceCount; resource++)
                 {
-                    state[i++] = store[resource];
-                    state[i++] = atDepots is null ? 0 : atDepots[resource];
+                    state.Put(store[resource]);
+                    state.Put(atDepots is null ? 0 : atDepots[resource]);
                 }
+            }
+
+            if (state.Differs)
+            {
+                return;
             }
 
             foreach (long owed in _owed)
             {
-                state[i++] = owed;
+                state.Put(owed);
             }
 
-            state[i++] = _buildings.Count;
+            state.Put(_buildings.Count);
             foreach (var building in _buildings)
             {
-                state[i++] = building.Level;
-                state[i++] = building.Staffed ? 1 : 0;
-                state[i++] = building.Paused ? 1 : 0;
-                state[i++] = building.WorkdayToday ? 1 : 0;
-                state[i++] = building.Ripe;
-                state[i++] = building.Carriers;
-                state[i++] = building.CarrierCap;
-                state[i++] = building.CarriedFirst ? 1 : 0;
-                state[i++] = building.Depot is Hex depot ? 1 + depot.Q : 0;
-                state[i++] = building.Depot?.R ?? 0;
-                state[i++] = building.Waiting;
+                state.Put(building.Level);
+                state.Put(building.Staffed ? 1 : 0);
+                state.Put(building.Paused ? 1 : 0);
+                state.Put(building.WorkdayToday ? 1 : 0);
+                state.Put(building.Ripe);
+                state.Put(building.Carriers);
+                state.Put(building.CarrierCap);
+                state.Put(building.CarriedFirst ? 1 : 0);
+                state.Put(building.Depot is Hex depot ? 1 + depot.Q : 0);
+                state.Put(building.Depot?.R ?? 0);
+                state.Put(building.Waiting);
                 if (building.Held is long[] held)
                 {
                     for (int resource = 0; resource < s_resourceCount; resource++)
                     {
-                        state[i++] = held[resource];
+                        state.Put(held[resource]);
                     }
+                }
+
+                if (state.Differs)
+                {
+                    return;
                 }
             }
 
-            state[i++] = _projects.Count;
+            state.Put(_projects.Count);
             foreach (var project in _projects)
             {
-                state[i++] = project.WorkLeft;
+                state.Put(project.WorkLeft);
             }
 
-            state[i++] = _roads.Count;
+            state.Put(_roads.Count);
 
-            state[i++] = _felled.Count;
+            state.Put(_felled.Count);
             for (int forest = 0; forest < _felled.Count; forest++)
             {
                 var tile = _felled.Keys[forest];
-                state[i++] = tile.Q;
-                state[i++] = tile.R;
-                state[i++] = _felled.Values[forest];
+                state.Put(tile.Q);
+                state.Put(tile.R);
+                state.Put(_felled.Values[forest]);
+            }
+        }
+
+        /// <summary>Where <see cref="RecordState"/> puts the state's values.</summary>
+        private interface IStateRecord
+        {
+            /// <summary>Whether a value put differs from the recording, after which the rest need not be put.</summary>
+            bool Differs { get; }
+
+            /// <summary>Makes room for at least <paramref name="values"/> values.</summary>
+            void Reserve(int values);
+
+            void Put(long value);
+        }
+
+        /// <summary>The state's values recorded in an array that grows as needed.</summary>
+        private struct StateRecording : IStateRecord
+        {
+            public StateRecording(long[] values)
+            {
+                Values = values;
+                Count = 0;
             }
 
-            return i;
+            public long[] Values { get; private set; }
+
+            public int Count { get; private set; }
+
+            public bool Differs => false;
+
+            public void Reserve(int values)
+            {
+                if (Values.Length < values)
+                {
+                    Values = new long[2 * values];
+                }
+            }
+
+            public void Put(long value) => Values[Count++] = value;
+        }
+
+        /// <summary>The state's values compared, in the same order, with a recording.</summary>
+        private struct StateComparison : IStateRecord
+        {
+            private readonly long[] _recorded;
+            private readonly int _count;
+            private int _at;
+
+            public StateComparison(StateRecording recording)
+            {
+                _recorded = recording.Values;
+                _count = recording.Count;
+                _at = 0;
+                Differs = false;
+            }
+
+            public bool Differs { get; private set; }
+
+            /// <summary>Whether the state differs from the recording, in a value or in how many values it has.</summary>
+            public bool Changed => Differs || _at != _count;
+
+            public void Reserve(int values)
+            {
+            }
+
+            public void Put(long value)
+            {
+                if (Differs)
+                {
+                    return;
+                }
+
+                if (_at == _count || _recorded[_at] != value)
+                {
+                    Differs = true;
+                    return;
+                }
+
+                _at++;
+            }
         }
 
         /// <summary>
