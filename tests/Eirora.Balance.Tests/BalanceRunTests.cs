@@ -99,12 +99,14 @@ public sealed class BalanceRunTests
     }
 
     // Moving a building by demolishing it and building it again costs half its materials and all its force (D-108), so it
-    // pays only what the better site gives (economy-v1.md, section 3.2; TASK-047): the start woodcutter moved to the
-    // richest forest gains at most a fifth over Närområdet in four weeks, on the prototype's map and on twelve generated
-    // ones, and the bot keeps the invariants with the demolition between two checks.
+    // pays only what the better site gives (economy-v1.md, section 3.2; TASK-047). The founding puts the start woodcutter
+    // by the richest woods in reach (TASK-064), so moving it gains next to nothing over Närområdet in four weeks: under
+    // 2 % in median and 5 % at most on twelve generated maps, and under 5 % on the prototype's map. The bot keeps the
+    // invariants with the demolition between two checks.
     [Fact]
-    public void MovingABuildingByDemolishingItPaysAtMostWhatTheBetterSiteGives()
+    public void MovingTheStartWoodcutterGainsNextToNothingOverTheFoundedOne()
     {
+        var gains = new List<double>();
         var maps = new[] { MapChoice.Prototype }.Concat(Enumerable.Range(0, 12).Select(seed => MapChoice.Generated((ulong)seed)));
         foreach (var map in maps)
         {
@@ -115,8 +117,17 @@ public sealed class BalanceRunTests
             Assert.True(moved.PlanFinishedOn is not null, $"{name}: moving is stuck on {string.Join(", ", moved.GoalsPending)}.");
             Assert.Contains(moved.Decisions, d => d.Command is Simulation.Commands.Demolish);
             Assert.Equal(28 * 24, moved.HoursChecked);
-            Assert.True(moved.Values[^1] * 5 <= near.Values[^1] * 6, $"{name}: moving ends at {moved.Values[^1]} against {near.Values[^1]}.");
+            double gain = (double)(moved.Values[^1] - near.Values[^1]) / near.Values[^1];
+            Assert.True(gain < 0.05, $"{name}: moving ends at {moved.Values[^1]} against {near.Values[^1]}.");
+            if (map.Seed is not null)
+            {
+                gains.Add(gain);
+            }
         }
+
+        gains.Sort();
+        double median = (gains[5] + gains[6]) / 2;
+        Assert.True(median < 0.02, $"Moving gains {median:P1} in median: {string.Join(", ", gains.Select(g => g.ToString("P1", CultureInfo.InvariantCulture)))}.");
     }
 
     [Fact]

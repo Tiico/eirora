@@ -59,6 +59,43 @@ public sealed class FoundingTests
         }
     }
 
+    // The start woodcutter stands by the richest woods in reach of the storehouse (TASK-064): no site where a woodcutter
+    // could be built within three steps fells richer woods at once, or as richly reaches more of them, read through the
+    // world as a player would see it.
+    [Fact]
+    public void EveryGeneratedMapOfTwoHundredSeedsFoundsTheWoodcutterByTheRichestWoodsInReach()
+    {
+        for (ulong seed = 0; seed < 200; seed++)
+        {
+            var map = s_generator.Generate(seed);
+            var world = World.Create(map, At("2026-10-14 14:00", 2), Night);
+            var woodcutter = world.Buildings.Single(b => b.Kind == BuildingKind.Woodcutter).Tile;
+            var founded = WoodsOf(world, woodcutter);
+
+            Assert.True(world.TripFrom(woodcutter).Steps <= Founding.WoodcutterReach, $"Seed {seed}: the woodcutter at {woodcutter} is out of reach.");
+            foreach (var tile in map.Features.LandOf(map.IslandAt(map.Start)!))
+            {
+                if (world.CheckBuild(BuildingKind.Woodcutter, tile) == Rejection.None && world.TripFrom(tile).Steps <= Founding.WoodcutterReach)
+                {
+                    Assert.True(WoodsOf(world, tile).CompareTo(founded) <= 0, $"Seed {seed}: a woodcutter at {tile} reaches richer woods than at {woodcutter}.");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void TheSameSeedFoundsTheSameVillage()
+    {
+        foreach (ulong seed in new[] { 0UL, 3UL, 7UL, 20261018UL })
+        {
+            var first = Founding.For(new ProceduralArchipelagoV1().Generate(seed));
+            var second = Founding.For(new ProceduralArchipelagoV1().Generate(seed));
+
+            Assert.Equal(first.StartBuildings, second.StartBuildings);
+            Assert.Equal(first.Surveys.SelectMany(s => s.Reveals), second.Surveys.SelectMany(s => s.Reveals));
+        }
+    }
+
     [Fact]
     public void EveryGeneratedMapOfTwoHundredSeedsHidesTwoSurveysOnTheStartIsland()
     {
@@ -147,6 +184,23 @@ public sealed class FoundingTests
 
         Assert.Equal(founding.ExpeditionIsland, Assert.Single(events.OfType<ExpeditionReturned>()).Island);
         Assert.True(world.IsKnown(world.ExpeditionFinds!.Value));
+    }
+
+    /// <summary>
+    /// The richness of the woods a woodcutter on a tile fells at once, then of all it reaches: known forest on it and its
+    /// neighbours that no other building stands on.
+    /// </summary>
+    private static (long AtOnce, long Lasting) WoodsOf(World world, Hex tile)
+    {
+        var map = world.Map;
+        var woods = Enumerable.Range(-1, Hex.Directions + 1)
+            .Select(d => d < 0 ? tile : tile.Neighbour(d))
+            .Where(h => map.Contains(h) && map.TerrainAt(h) == Terrain.Forest && world.IsKnown(h) && (h == tile || world.BuildingAt(h) is null))
+            .Select(h => (long)map.RichnessAt(h))
+            .OrderDescending()
+            .ToList();
+        int fells = world.Content.For(BuildingKind.Woodcutter).Recipe!.ForestTiles;
+        return (woods.Take(fells).Sum(), woods.Sum());
     }
 
     private static CommandResult Apply(World world, GameCommand command) =>
