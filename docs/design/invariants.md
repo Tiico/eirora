@@ -105,6 +105,8 @@ Från TASK-044 också med pausade byggnader och spelarens bemanningsordning och 
 Från TASK-045 också i världar på en genererad karta med lager på tre öar och två sjövägar.
 Från TASK-051 också med bärare, varor som väntar i byggnadernas utlager och råvara framme vid förädlingen, vägar och vägar i kön: bärarna flyttar bara varor mellan byggnaderna och lagren, och inget flyttas under vilan.
 Från TASK-050 också med en bosättning per ö, byggnader som väntar på bybor som flyttar, byggmaterial som sjövägen ännu ska bära och varor från regelversion 7 som väntar vid förrådet på plats i lagret.
+Sedan TASK-050 är byggkön inte strikt först in, först ut: varje bygge får arbete av de bybor som når det, så ett bygge längre bak kan bli färdigt först (D-113).
+Under frånvaron lämnar ett bygge därför kön bara när det är färdigt, med `ProjectCompleted`, och står som byggnad, uppgradering eller väg; resten av kön behåller sin ordning (#175).
 Från TASK-047 också i världar där spelaren just har rivit en byggnad, ibland en bostad så att byborna är fler än bostäderna: ingen bybo försvinner och byn växer inte förrän det finns plats (D-39).
 
 Framspolningen hoppar över kvartar där bara långsamma processer rör sig: vilotiden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
