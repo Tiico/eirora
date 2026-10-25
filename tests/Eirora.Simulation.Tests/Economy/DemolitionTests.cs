@@ -299,14 +299,39 @@ public sealed class DemolitionTests
         Assert.False(demolition.EndsExpeditions);
     }
 
-    /// <summary>The start village with a jetty at home and one on Nyön, whose store holds <paramref name="fish"/>.</summary>
-    private static World OnNyon(int fish) => Village(
+    // The villagers of a demolished building are freed in its own island's settlement (D-106), and only there.
+    [Fact]
+    public void TheVillagersOfADemolishedBuildingAreFreedInTheirOwnSettlement()
+    {
+        var world = OnNyon(0, 2, "building SheepFarm 10 1 1 1 0 0 0 0 0 0 0 0 0 0");
+        var home = world.SettlementOn(world.HomeIsland)!;
+        var nyon = world.SettlementOn(PrototypeHome.Nyon)!;
+        (int Home, int Nyon) free = (home.FreeVillagers, nyon.FreeVillagers);
+        Assert.Equal(0, free.Nyon);
+
+        var demolition = world.Demolition(N1)!;
+        Assert.True(Apply(world, new Demolish(N1)).Accepted);
+
+        Assert.Equal(1, demolition.MoreBuilders);
+        Assert.Equal((free.Home, 1), (home.FreeVillagers, nyon.FreeVillagers));
+        Assert.Equal((12, 2), (home.Villagers, nyon.Villagers));
+    }
+
+    /// <summary>
+    /// The start village with a jetty at home and one on Nyön, whose settlement has <paramref name="villagers"/>, the first
+    /// of them its jetty's carrier, and whose store holds <paramref name="fish"/>, and <paramref name="buildings"/> after them.
+    /// </summary>
+    private static World OnNyon(int fish, int villagers = 0, params string[] buildings) => Village(
         At("2026-10-15 07:00", 2),
         12,
-        ["building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0", "building Jetty 10 0 1 1 0 0 0 1 4 0 0 0 0 0"],
-        lines => lines.InsertRange(
-            lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
-            Enum.GetValues<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? fish * Quantity.PerUnit : 0)}")));
+        ["building Jetty 1 1 1 1 0 0 0 1 4 0 0 0 0 0", villagers > 0 ? "building Jetty 10 0 1 1 0 0 0 1 4 0 0 0 0 0" : "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0", .. buildings],
+        lines =>
+        {
+            lines.InsertRange(
+                lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
+                Enum.GetValues<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? fish * Quantity.PerUnit : 0)}"));
+            lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {PrototypeHome.Nyon} {villagers}");
+        });
 
     private static Dictionary<Resource, long> Stocks(World world) => Enum.GetValues<Resource>().ToDictionary(r => r, world.Stock);
 
@@ -331,7 +356,7 @@ public sealed class DemolitionTests
         var world = World.Create(At("2026-10-14 14:00", 2), Night);
         world.AdvanceTo(at);
         var lines = world.Fingerprint().Split('\n').ToList();
-        lines[lines.FindIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal))] = $"settlement {villagers} 0 0";
+        lines[lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal))] = $"settlement home {villagers}";
         edit(lines);
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return World.Read(new StateReader(string.Join("\n", lines)), PrototypeHome.Map);

@@ -81,7 +81,7 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public IReadOnlyList<Building> Unstaffs { get; internal set; } = Array.Empty<Building>();
 
-        /// <summary>How many more villagers build once it is gone, after the staffing has been given out again.</summary>
+        /// <summary>How many more of its settlement's villagers build once it is gone, after the staffing has been given out again.</summary>
         public int MoreBuilders { get; internal set; }
 
         /// <summary>The islands, by the map's id, whose sea route home closes with it: a jetty on the island or the home island's last one.</summary>

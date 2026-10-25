@@ -700,15 +700,11 @@ class World:
         if b is None:
             return None
         island = TILES[p].island
-        rest = [o for o in self.buildings if o is not b]
-        if island == HOME:
-            if kind == "Förråd" and not any(o.kind == "Förråd" and TILES[o.tile].island == HOME for o in rest):
-                return None
-            store, cap = self.stock, STORAGE_PER_DEPOT * sum(1 for o in rest if o.kind == "Förråd")
-        else:
-            store = self.remote_stock[island]
-            # Utan förråd eller brygga kvar rymmer öns lager ingenting (INV-R1), som i simuleringen.
-            cap = STORAGE_PER_DEPOT * sum(1 for o in rest if o.kind in DEPOTS and TILES[o.tile].island == island)
+        if island == HOME and kind == "Förråd" and not any(
+                o is not b and o.kind == "Förråd" and TILES[o.tile].island == HOME for o in self.buildings):
+            return None
+        store = self.stock if island == HOME else self.remote_stock[island]
+        cap = self.storage_left(island, b)
         goods = dict.fromkeys(RESOURCES, 0.0)
         if b.kind in PRODUCERS:
             goods[self.rate_resource(b)] += b.out
@@ -720,6 +716,13 @@ class World:
         refund = {r: (SPECS[kind].cost.get(r, 0) + upgrades * UPGRADE.cost.get(r, 0)) // 2 for r in RESOURCES}
         returned = {r: min(n, int(cap - store[r] - goods[r] + 1e-9)) for r, n in refund.items()}
         return b, store, goods, returned
+
+    def storage_left(self, island, without):
+        """Vad öns lager rymmer när byggnaden `without` är borta: förråden, och på andra öar också bryggorna
+        (avsnitt 5). Utan förråd eller brygga kvar rymmer det ingenting (INV-R1), som i simuleringen."""
+        kinds = ("Förråd",) if island == HOME else DEPOTS
+        return STORAGE_PER_DEPOT * sum(1 for o in self.buildings
+                                       if o is not without and o.kind in kinds and TILES[o.tile].island == island)
 
     def demolish(self, kind, tile):
         """Riv en byggnad: rutan blir ledig, dess bybor och bärare blir lediga och en uppgradering i kön följer med."""
@@ -918,6 +921,279 @@ class World:
         stock = sum(WEIGHT[r] * v for r, v in self.stock.items())
         return self.villagers * VILLAGER_VALUE + stock / 2 + 3 * self.daily_output()
 
+# --- En bosättning per ö (D-106, D-113, D-121–D-124; TASK-050) ----------------------------
+
+STORAGE_AT_JETTY = 50  # per resurs och brygga, också på Hemön (ekonomi v2, avsnitt 6)
+SETTLER_HOUSING = 4    # bostäder i bryggan som anlägger en bosättning på en annan ö
+FOOD_DAYS = 2          # dygns mat som skeppen håller på en ö innan dess varor går hem
+
+
+class Settlements(World):
+    """Ekonomi v1 med bärare och spelets bosättningar från regelversion 9 (ekonomi v2, avsnitt 6).
+
+    Varje ö med en brygga har en egen bosättning med egna bybor, bostäder och lager. Byborna
+    bemannar bara byggnader på sin ö, bär bara för dess förråd och bryggor och äter ur dess lager;
+    en tom bosättning växer inte, utan byborna kommer genom flytten, högst en per gryning i hela
+    världen (D-121). Lediga bybor bygger på sin ö och på öar som sjövägen förbinder med deras, och
+    Hemön bygger på en ö som ingen sjöväg når än. Bygget betalas ur öns lager när det räcker, annars
+    ur Hemöns, och det materialet tar plats på sjövägen före allt annat. Sjövägen bär först mat för
+    två dygn ut till ön och sedan öns varor hem, och ön behåller två dygns mat sammanlagt.
+    """
+
+    def __init__(self):
+        super().__init__(carriers=True)
+
+    @property
+    def villagers(self):
+        return sum(self.people.values())
+
+    @villagers.setter
+    def villagers(self, value):
+        self.people = {HOME: value}  # bara när världen skapas
+        self.sea_debt = {}
+        self._site = HOME
+
+    def island(self, b):
+        return TILES[b.tile].island
+
+    def housing(self, island=None):
+        if island is None:
+            return sum(self.housing(i) for i in self.people)
+        base = START_HOUSING if island == HOME else SETTLER_HOUSING
+        return base + sum(HOUSING.get(b.kind, 0) for b in self.buildings if self.island(b) == island)
+
+    def store(self, island):
+        return self.stock if island == HOME else self.remote_stock[island]
+
+    def cap(self, island):
+        return sum(STORAGE_PER_DEPOT if b.kind == "Förråd" else STORAGE_AT_JETTY if b.kind == "Brygga" else 0
+                   for b in self.buildings if self.island(b) == island)
+
+    def storage_cap(self):
+        return self.cap(HOME)
+
+    def storage_left(self, island, without):
+        return self.cap(island) - (STORAGE_PER_DEPOT if without.kind == "Förråd"
+                                   else STORAGE_AT_JETTY if without.kind == "Brygga" else 0)
+
+    def free_villagers(self, island=None):
+        if island is None:
+            return sum(self.free_villagers(i) for i in self.people)
+        return self.people[island] - sum(b.carriers if b.kind in DEPOTS else SPECS[b.kind].staff
+                                         for b in self.buildings if b.staffed and self.island(b) == island)
+
+    def missing(self, island):
+        return sum(SPECS[b.kind].staff for b in self.buildings
+                   if self.island(b) == island and SPECS[b.kind].staff and not b.staffed and not b.paused)
+
+    def linked(self, a, b):
+        return a != b and HOME in (a, b) and self.has("Brygga", a) and self.has("Brygga", b)
+
+    def staff(self):
+        # Den första bryggan på en ö anlägger dess bosättning, utan bybor (D-106).
+        for b in self.buildings:
+            if b.kind in DEPOTS and self.island(b) not in self.people:
+                self.people[self.island(b)] = 0
+        free = dict(self.people)
+        for b in self.buildings:
+            if b.carriers > 1:
+                free[self.island(b)] -= b.carriers - 1
+        for b in self.buildings:
+            need = SPECS[b.kind].staff
+            b.staffed = bool(need) and not b.paused and free[self.island(b)] >= need
+            free[self.island(b)] -= need if b.staffed else 0
+            if b.kind in DEPOTS:
+                b.carriers = 0 if not b.staffed else max(1, b.carriers)
+        self._times.clear()
+
+    def hire_carriers(self):
+        """Som i World, men varje förråd och brygga tar bärare ur sin egen ös lediga bybor (D-106)."""
+        need = self.carrier_load()
+        for d in self.buildings:
+            if d.kind not in DEPOTS or not d.staffed:
+                continue
+            want = max(1, min(d.cap, math.ceil(need.get(d.tile, 0.0) - 1e-9)))
+            if want < d.carriers:
+                d.carriers = want
+            elif want > d.carriers:
+                d.carriers += max(0, min(want - d.carriers, self.free_villagers(self.island(d))))
+
+    def build(self, kind, tile):
+        self._site = TILES[coord(tile)].island
+        if self._site != HOME and not self.has("Brygga", HOME):
+            return False  # byggarna seglar från en brygga på Hemön (D-122)
+        return super().build(kind, tile)
+
+    def upgrade(self, kind, tile):
+        self._site = TILES[coord(tile)].island
+        return super().upgrade(kind, tile)
+
+    def road(self, kind, tile):
+        self._site = TILES[coord(tile)].island
+        return super().road(kind, tile)
+
+    def pay(self, cost, bp):
+        island = self._site
+        payer = next((i for i in (island, HOME) if i in self.people
+                      and all(self.store(i)[r] >= n for r, n in cost.items())), None)
+        if payer is None or self.forces["B"] < bp:
+            return False
+        for r, n in cost.items():
+            self.store(payer)[r] -= n
+        if payer != island:
+            self.sea_debt[island] = self.sea_debt.get(island, 0.0) + sum(cost.values())
+        self.forces["B"] -= bp
+        self.spent["B"] += bp
+        return True
+
+    def dawn(self, day, profile):
+        p = PROFILES[profile]
+        for f, amount in (("U", p["U"]), ("G", p["G"]), ("B", p["B"][day])):
+            before = self.forces[f]
+            self.forces[f] = credit(before, amount, f)
+            self.credited[f] += self.forces[f] - before
+        self.boosted = set()
+        for island in list(self.people):
+            store, need = self.store(island), self.people[island]
+            for r in FOOD:
+                take = min(store[r], need)
+                store[r] -= take
+                need -= take
+            fed = need == 0 and self.people[island] > 0
+            comfort = fed and store["tyg"] >= 2
+            if comfort:
+                store["tyg"] -= 2
+            growth = (1 if fed else 0) + (1 if comfort else 0)
+            self.people[island] = min(max(self.people[island], self.housing(island)), self.people[island] + growth)
+        self.staff()
+        self.migrate()
+        self.hire_carriers()
+
+    def migrate(self):
+        """Högst en ledig bybo flyttar, dit byggnaderna saknar flest bybor, från den förbundna
+        bosättning som har flest lediga (D-106, D-123)."""
+        wanting = sorted((i for i in self.people if self.missing(i) and self.housing(i) > self.people[i]),
+                         key=lambda i: -self.missing(i))
+        for to in wanting:
+            senders = [i for i in self.people if self.linked(i, to) and self.free_villagers(i) > 0]
+            if senders:
+                sender = max(senders, key=lambda i: self.free_villagers(i))
+                self.people[sender] -= 1
+                self.people[to] += 1
+                self.staff()
+                return
+
+    def project_island(self, project):
+        q, r = project.label.split("@")[1].split(",")
+        return TILES[(int(q), int(r))].island
+
+    def pools(self, project):
+        island = self.project_island(project)
+        pools = [island] if island in self.people else []
+        if island != HOME and not self.linked(island, HOME):
+            return pools + [HOME]  # expeditionen har nått dit
+        return pools + [i for i in self.people if self.linked(island, i)]
+
+    def carry_hour(self):
+        """Som i World, men varje ös bärare bär till dess eget lager, med dess kapacitet."""
+        served = {}
+        for b in self.buildings:
+            if b.kind in DEPOTS or b.kind not in PRODUCERS:
+                continue
+            t, depot = self.travel(b.tile)
+            if depot is not None:
+                served.setdefault(depot, []).append((b, t))
+        for depot in self.buildings:
+            if depot.kind not in DEPOTS or not depot.carriers:
+                continue
+            island = self.island(depot)
+            store, room = self.store(island), self.cap(island)
+            hours = depot.carriers * (1.5 if (depot.kind, depot.tile) in self.boosted else 1.0)
+            self.carrier_hours += hours
+            jobs = []
+            for b, t in served.get(depot.tile, []):
+                rate = CARRIER_LOAD / (2 * t)
+                if b.out > 1e-9:
+                    jobs.append((b.out / OUTPUT_BUFFER, "hämta", b, rate))
+                if b.kind in ("Sågverk", "Väveri") and b.staffed:
+                    res = "timmer" if b.kind == "Sågverk" else "ull"
+                    want = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - RESERVE))
+                    if want > 1e-9:
+                        jobs.append((want / INPUT_BUFFER, "lämna", b, rate))
+            jobs.sort(key=lambda j: -j[0])
+            left = hours
+            for _, what, b, rate in jobs:
+                if left <= 1e-9:
+                    break
+                res = self.rate_resource(b) if what == "hämta" else ("timmer" if b.kind == "Sågverk" else "ull")
+                if what == "hämta":
+                    n = min(b.out, left * rate, max(0.0, room - store[res]))
+                    b.out -= n
+                    store[res] += n
+                else:
+                    n = min(INPUT_BUFFER - b.inp, max(0.0, store[res] - RESERVE), left * rate)
+                    store[res] -= n
+                    b.inp += n
+                left -= n / rate
+            self.carried_hours += hours - left
+
+    def hour(self, active):
+        for p in self.forest:
+            self.forest[p] = min(FOREST_PER_TILE, self.forest[p] + FOREST_REGROWTH)
+        for b in self.buildings:
+            if not b.staffed:
+                continue
+            if b.kind == "Åker":
+                b.buffer += 0.5 * TILES[b.tile].richness * self.boost(b)
+            if b.kind == "Fårgård":
+                b.buffer += 0.4 * TILES[b.tile].richness * self.boost(b)
+        if not active:
+            return
+        if self.expedition_left:
+            self.expedition_left -= 1
+            if self.expedition_left == 0:
+                island, _, _ = EXPEDITIONS[self.expedition_target]
+                self.expedition_target += 1
+                self.revealed.update(p for p, t in TILES.items() if t.island == island)
+                self.remote_stock[island] = {r: 0.0 for r in RESOURCES}
+                self.log.append(f"Expeditionen hittade {island}")
+        # Byggen: varje projekt tar först sin ös lediga bybor, sedan de förbundna öarnas (D-113).
+        labour = {i: float(self.free_villagers(i)) for i in self.people}
+        for p in list(self.projects):
+            for i in self.pools(p):
+                used = min(labour.get(i, 0.0), p.work_left)
+                p.work_left -= used
+                labour[i] = labour.get(i, 0.0) - used
+            if p.work_left <= 0:
+                self.projects.remove(p)
+                p.on_done()
+                self.staff()
+        self.produce_hour_carried()
+        self.carry_hour()
+        # Sjövägarna: materialet till byggen, sedan mat ut för två dygn, sedan öns varor hem.
+        for island in self.people:
+            if not self.linked(island, HOME):
+                continue
+            remote, room = self.remote_stock[island], SEA_CAPACITY_PER_DAY / ACTIVE_HOURS
+            debt = min(room, self.sea_debt.get(island, 0.0))
+            self.sea_debt[island] = self.sea_debt.get(island, 0.0) - debt
+            room -= debt
+            food = FOOD_DAYS * self.people[island]
+            short = food - sum(remote[r] for r in FOOD)
+            for r in FOOD:
+                n = self.add(remote, r, max(0.0, min(room, short, self.stock[r])), self.cap(island))
+                self.stock[r] -= n
+                room -= n
+                short -= n
+            kept = {"fisk": min(remote["fisk"], food)}  # två dygns mat sammanlagt, i ätordningen
+            kept["säd"] = min(remote["säd"], max(0.0, food - remote["fisk"]))
+            for r in RESOURCES:
+                spare = remote[r] - kept.get(r, 0.0)
+                moved = self.add(self.stock, r, max(0.0, min(room, spare)), self.cap(HOME))
+                remote[r] -= moved
+                room -= moved
+
+
 # --- Strategier -------------------------------------------------------------------
 
 def survey_all(w):
@@ -1028,8 +1304,8 @@ def strategy_idle(w: World, day: int):
 
 # --- Körning ------------------------------------------------------------------------
 
-def run(strategy, profile, carriers=False):
-    w = World(carriers=carriers)
+def run(strategy, profile, carriers=False, world=None):
+    w = world() if world else World(carriers=carriers)
     monotone = lambda: (w.villagers, len(w.buildings), sum(b.level for b in w.buildings),
                         len(w.revealed))
     for day in range(DAYS):
@@ -1065,14 +1341,14 @@ def main():
         land = sum(TILES[p].terrain in LAND for p in tiles)
         print(f"| {island} | {land} | " + " | ".join(
             str(sum(k in uses(p) for p in tiles)) for k in kinds) + " |")
-    base = World(carriers=True).value()
+    base = Settlements().value()
     print(f"\nStartvärde: {base:.0f}\n")
     print("| Körning | Profil | Bybor | Byggnader | Nivå 2 | Öar | Plankor | Sten | Tyg "
           "| Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft "
           "| Bärarnas tid |")
     print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for name, strat, profile in runs:
-        w = run(strat, profile, carriers=True)
+        w = run(strat, profile, world=Settlements)
         s = w.snapshot()
         used = sum(w.spent.values())
         gain = w.value() - base

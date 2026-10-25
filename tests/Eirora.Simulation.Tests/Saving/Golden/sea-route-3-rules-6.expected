@@ -13,12 +13,14 @@ day-start 23 1781172900
 force Exploration 410 3
 force BuildPower 430 27
 force DawnPower 1612 10
-settlement 35 2 0
+economy 2 0
+settlement home 30
+settlement nyon 5
 stock home Fish 274125000
 stock home Grain 6250000
 stock home Timber 10734638
 stock home Planks 76070181
-stock home Stone 450000000
+stock home Stone 454000000
 stock home Wool 383512500
 stock home Wadmal 1218750
 stock nyon Fish 0

@@ -17,8 +17,11 @@ namespace Eirora.Balance;
 /// </remarks>
 internal sealed class Invariants
 {
-    /// <summary>What each storehouse holds of each resource, and a jetty off the home island for the ship (economy-v1.md, section 5).</summary>
+    /// <summary>What each storehouse holds of each resource (economy-v1.md, section 2).</summary>
     public const int StoragePerDepot = 150;
+
+    /// <summary>What each jetty holds of each resource for the ships (economy-v2.md, section 6).</summary>
+    public const int StorageAtJetty = 50;
 
     private static readonly string[] s_monotone = ["villagers", "housing", "buildings", "levels", "roads", "known tiles"];
     private static readonly Force[] s_forces = [Force.Exploration, Force.BuildPower, Force.DawnPower];
@@ -122,9 +125,12 @@ internal sealed class Invariants
     /// What a store on an island can hold; a world starts with a storehouse on the home island, so its starting stock
     /// always fits.
     /// </summary>
-    private static long Capacity(World world, string island) =>
-        StoragePerDepot * world.Buildings.Count(b => b.Island == island
-            && (b.Kind == BuildingKind.Storehouse || (b.Kind == BuildingKind.Jetty && island != world.HomeIsland)));
+    private static long Capacity(World world, string island) => world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
+    {
+        BuildingKind.Storehouse => StoragePerDepot,
+        BuildingKind.Jetty => StorageAtJetty,
+        _ => 0,
+    });
 
     private static int[] Forces(World world) => [.. s_forces.Select(world.Available)];
 

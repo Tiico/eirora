@@ -126,10 +126,10 @@ namespace Eirora.Client.UI
                 Text("sheet-text", _sheet, "Utan brygga på Hemön kan ingen expedition skickas.");
             }
 
-            int housing = world.Housing - spec.Housing;
-            if (spec.Housing > 0 && world.Villagers > housing)
+            // Housing and villagers are the island's settlement's (D-106).
+            if (spec.Housing > 0 && world.SettlementOn(building.Island) is { } settlement && settlement.Villagers > settlement.Housing - spec.Housing)
             {
-                Text("sheet-text", _sheet, $"Sedan finns bostäder för {housing} av {world.Villagers} bybor. Ingen flyttar, men byn växer inte förrän det finns plats.");
+                Text("sheet-text", _sheet, $"{Capital(Texts.IslandName(world, building.Island))} har sedan bostäder för {settlement.Housing - spec.Housing} av {settlement.Villagers} bybor. Ingen flyttar, men byn växer inte förrän det finns plats.");
             }
 
             Text("sheet-text", _sheet, Freed(world.Map, building.Tile));

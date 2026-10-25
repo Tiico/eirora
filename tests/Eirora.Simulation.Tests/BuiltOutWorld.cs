@@ -11,8 +11,9 @@ namespace Eirora.Simulation.Tests;
 /// <summary>
 /// A world from <see cref="Scenario"/> built out over days of play and then left with work in flight: a building queue in
 /// the player's order, an expedition at sea or the sea route open, workdays, paused buildings and a staffing order of the
-/// player's, felled forest, ripening fields and sheep, now and then stores filled to the brim, and now and then a building
-/// demolished just before leaving (TASK-049, TASK-044, TASK-047).
+/// player's, felled forest, ripening fields and sheep, and now and then stores filled to the brim (TASK-049, TASK-044),
+/// settlements on other islands with buildings that lack villagers and materials the ships still owe (TASK-050), and now
+/// and then a building demolished just before leaving (TASK-047).
 /// </summary>
 /// <remarks>
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
@@ -117,12 +118,21 @@ internal static class BuiltOutWorld
             }
         }
 
+        // Now and then a building on another island with a settlement, which its own store or the home island's pays;
+        // the ships carry the home island's materials before anything else (D-106, D-113).
+        var settled = world.Islands.Where(i => i != world.HomeIsland && world.Settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
+        if (random.Next(2) == 0 && settled.Count > 0
+            && FreeSite(world, random.Next(int.MaxValue), c => world.Settlement.IslandOf(c.Site) == settled[key % settled.Count]) is { } away)
+        {
+            save.Apply($"out-{key++}", new Build(away.Kind, away.Site));
+        }
+
         if (BuiltSite(world, random.Next(int.MaxValue), b => b.Staffed && !b.WorkdayToday) is Hex worked)
         {
             save.Apply($"out-{key++}", new Workday(worked));
         }
 
-        // Before leaving, the player may pause a building, give another villagers first or put a project first.
+        // Before leaving, the player may pause a building, give another villagers first, put a project first or lay a road.
         if (random.Next(2) == 0 && BuiltSite(world, random.Next(int.MaxValue), b => !b.Paused) is Hex paused)
         {
             save.Apply($"out-{key++}", new PauseBuilding(paused));
@@ -136,6 +146,12 @@ internal static class BuiltOutWorld
         if (random.Next(2) == 0 && QueueMove(world, random.Next(int.MaxValue)) is { } first)
         {
             save.Apply($"out-{key++}", first);
+        }
+
+        // Or lay a road, which the villagers build while the player is away.
+        if (random.Next(2) == 0 && Scenario.SitesOf(world).Where(t => world.CheckRoad(t) == Rejection.None).ToList() is { Count: > 0 } roads)
+        {
+            save.Apply($"out-{key++}", new LayRoad(roads[random.Next(roads.Count)]));
         }
 
         // Or demolish a building, housing first, so that the village may be left with more villagers than room (D-39).
@@ -259,8 +275,8 @@ internal static class BuiltOutWorld
     private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, Func<(BuildingKind Kind, Hex Site), bool> wanted)
     {
         var free = s_buildings
-            .Where(k => world.Settlement.CanAfford(world.Content.For(k).Cost))
-            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile)).Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None).ToList())
+            .Select(k => Scenario.SitesOf(world).Select(tile => (Kind: k, Site: tile))
+                .Where(c => wanted(c) && world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site)).ToList())
             .Where(sites => sites.Count > 0)
             .ToList();
         if (free.Count == 0)

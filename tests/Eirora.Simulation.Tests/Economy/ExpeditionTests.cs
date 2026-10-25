@@ -88,15 +88,21 @@ public sealed class ExpeditionTests
         Assert.Equal(Rejection.None, Apply(world, new Build(BuildingKind.Storehouse, E1)).Rejection); // Room at home.
         world.AdvanceTo(Shift(world.Now, 24 * 3));
         Assert.Equal(PrototypeHome.Nyon, Assert.Single(world.SeaRoutes).From);
+        Assert.Equal(0, world.Settlement.Owed(PrototypeHome.Nyon)); // The materials for Nyön's buildings have sailed.
+        Assert.True(world.BuildingAt(N2)!.Staffed && world.BuildingAt(N1)!.Staffed, "Nyön's villagers do not staff its quarry and sheep farm.");
 
         long Home() => world.Stock(Resource.Stone) + world.Stock(Resource.Wool);
         long Nyon() => world.Stock(PrototypeHome.Nyon, Resource.Stone) + world.Stock(PrototypeHome.Nyon, Resource.Wool);
-        long homeBefore = Home(), nyonBefore = Nyon();
+        long Food() => world.Stock(PrototypeHome.Nyon, Resource.Fish) + world.Stock(PrototypeHome.Nyon, Resource.Grain);
+        long homeBefore = Home(), nyonBefore = Nyon(), foodBefore = Food();
+        int eating = world.SettlementOn(PrototypeHome.Nyon)!.Villagers;
         world.AdvanceTo(Shift(world.Now, 24));
 
-        // A rich quarry and a rich pasture make about 43 a day on Nyön; the ships carry 40 and the rest waits there.
-        // Stock is read in whole units, so the measured day can differ by one either way.
-        Assert.InRange(Home() - homeBefore, 39, 41);
+        // A rich quarry and a rich pasture make about 43 a day on Nyön; the ships carry 40, food for Nyön's villagers
+        // out and the island's goods home, and the rest waits there (economy-v2.md, section 6). Stock is read in whole
+        // units, so the measured day can differ by one or two either way.
+        long foodOut = Food() - foodBefore + eating;
+        Assert.InRange(Home() - homeBefore + foodOut, 38, 42);
         Assert.True(Nyon() - nyonBefore >= 2, $"Nyön {nyonBefore} → {Nyon()}");
     }
 

@@ -79,7 +79,7 @@ namespace Eirora.Simulation.Economy
 
             demolition.Staffs = staffs;
             demolition.Unstaffs = unstaffs;
-            demolition.MoreBuilders = without.FreeVillagers - FreeVillagers;
+            demolition.MoreBuilders = without.FreeVillagersOf(without._settlements[building.Island]) - FreeVillagersOf(_settlements[building.Island]);
             demolition.ClosesSeaRoutes = closed;
             demolition.EndsExpeditions = building.Kind == BuildingKind.Jetty && building.Island == _home && !without.HasBuilt(BuildingKind.Jetty, _home);
             return demolition;

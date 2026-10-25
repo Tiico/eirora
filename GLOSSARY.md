@@ -73,8 +73,9 @@ _Avoid_: fog of war, mörker
 
 ## Civilisation och ekonomi
 
-**Bosättning** (`Settlement`):
+**Bosättning** (`IslandSettlement`):
 En ös byggnader, bybor, bostäder och lager, anlagd av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
+Byborna bemannar bara byggnader på sin ö, och högst en ledig bybo i hela världen flyttar till en annan bosättning per gryning, över sjövägen.
 _Avoid_: by, stad (som generella termer), grundande (som är det en ny värld börjar med)
 
 **Bybor** (`Villagers`):
