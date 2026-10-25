@@ -1,0 +1,488 @@
+map 641fc6a76e80571e133d523dd2a771e9f17aed8f2ae438b94e4e310326341e0e
+cycle 1770281460 America/New_York -18000 Active 31 330 360
+created 1767567600
+day-start 23 1769531400
+day-start 24 1769617800
+day-start 25 1769704200
+day-start 26 1769790600
+day-start 27 1769877000
+day-start 28 1769963400
+day-start 29 1770049800
+day-start 30 1770136200
+day-start 31 1770222600
+force Exploration 2384 3
+force BuildPower 495 39
+force DawnPower 2280 8
+economy 2 0 2
+settlement home 30 8 2
+settlement first 4 6 0
+settlement second 11 0 0
+stock home Fish 350000000
+stock home Grain 284000000
+stock home Timber 122343238
+stock home Planks 41397079
+stock home Stone 204843750
+stock home Wool 7000000
+stock home Wadmal 0
+stock home Game 193663246
+stock home Hide 48722189
+stock home Honey 20000000
+stock home Mead 1156942
+stock home Ale 22170904
+stock first Fish 20000000
+stock first Grain 0
+stock first Timber 5000000
+stock first Planks 0
+stock first Stone 2000000
+stock first Wool 0
+stock first Wadmal 0
+stock first Game 0
+stock first Hide 6000000
+stock first Honey 0
+stock first Mead 0
+stock first Ale 0
+stock second Fish 22000000
+stock second Grain 0
+stock second Timber 0
+stock second Planks 0
+stock second Stone 0
+stock second Wool 0
+stock second Wadmal 0
+stock second Game 0
+stock second Hide 0
+stock second Honey 0
+stock second Mead 0
+stock second Ale 0
+owed first 15000000
+owed second 20000000
+reserved home Stone 30
+reserved first Wool 10
+imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale
+building FishingHut 6 -4 1 1 0 0 0 0 0 1 1875000 1 3 1 0
+building Storehouse 0 0 1 1 0 0 0 4 4 0 0 0 0 0 0
+building FishingHut -2 -1 2 1 0 0 0 0 0 0 2843750 1 0 0 0
+building Field 1 -1 2 0 0 4669277 1 0 0 0 0 1 0 0 0
+building Woodcutter 2 0 1 1 0 0 0 0 0 0 2000000 1 0 0 0
+building Woodcutter 2 -3 1 1 0 0 0 0 0 0 2154197 1 0 0 0
+building Longhouse -1 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Sawmill -3 3 1 1 0 0 0 0 0 0 750000 1 0 0 15
+held Timber 3500000
+building Woodcutter 0 -3 1 1 0 0 0 0 0 1 0 1 0 0 0
+building Quarry 0 4 1 1 0 0 0 0 0 0 2375000 1 0 0 0
+building SheepFarm -1 4 2 0 0 400000 1 0 0 0 1000000 1 0 0 0
+building HuntingLodge 3 -1 2 1 0 0 0 0 0 0 0 1 3 1 0
+building Woodcutter 2 -2 1 1 0 0 0 0 0 0 1062500 1 0 0 0
+building Jetty -5 2 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Lookout -2 1 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Storehouse 3 1 1 1 0 0 0 2 4 0 0 0 0 0 0
+building Farmstead -2 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Jetty 15 -12 1 1 0 0 0 1 2 0 0 0 0 0 0
+building Cottage 4 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Cottage 2 -1 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Jetty -18 10 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Weavery 0 1 1 1 0 0 0 0 0 0 0 1 0 0 20
+building Farmstead 15 -10 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Longhouse -18 8 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Lookout 15 -11 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Cottage 0 3 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Jetty -20 10 1 1 0 0 0 1 4 0 0 0 0 0 0
+building Tannery 1 -3 1 1 0 0 0 0 0 0 250000 1 0 0 5
+held Game 3666666
+building Quarry 17 -13 1 1 0 0 0 0 0 0 0 1 15 -12 0
+building Farmstead 2 -6 1 0 0 0 0 0 0 0 0 0 0 0 0
+building HuntingLodge 1 -4 1 1 0 0 0 0 0 0 0 1 0 0 0
+building Tannery 1 -5 1 1 0 0 0 0 0 0 1625000 1 0 0 5
+held Game 3319438
+building Cottage 2 -5 1 0 0 0 0 0 0 0 0 0 0 0 0
+building Apiary 3 -5 1 1 0 0 0 0 0 0 1787503 1 0 0 0
+building Meadery -1 -4 1 1 0 0 0 0 0 0 2218058 1 0 0 20
+held Honey 237497
+building Brewery 0 -4 1 1 0 0 0 0 0 0 2329096 1 0 0 5
+held Grain 4000000
+building CraftsmensHouse 3 -4 1 0 0 0 0 0 0 0 0 0 0 0 0
+project Build Cottage -18 7 32000 0
+project Build Weavery 18 -13 0 7
+road 16 -11
+road 1 -4
+road -2 0
+road -1 0
+forest 2 -3 16812538
+forest 2 0 39687500
+forest 3 0 39687500
+forest 2 1 39625000
+fog 00000000000000000000000000000000000000000000000000000000000000000000000000000000380000000f80000000fc00000003e000000007800000000700000000000000000c0000000003c000000000fc000000000ff8000000003fe0000000007fc0000000007fc0000000007fe000000000ffe000000001ffc000000003ff0000000007f0000000007f0000007006e000001e000000000f800000000fc00000000fc00000001f0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+selfcare 1 Workouts Verified 2
+selfcare 2 Sleep SelfReported 357
+selfcare 3 Steps Verified 20018
+selfcare 10 Steps Verified 23473
+selfcare 10 Workouts Verified 2
+selfcare 10 Sleep Verified 363
+selfcare 11 Steps Verified 21954
+selfcare 11 Workouts Verified 1
+selfcare 11 Sleep Verified 452
+selfcare 12 Steps Verified 19976
+selfcare 12 Workouts Verified 3
+selfcare 12 Sleep Verified 488
+selfcare 13 Steps Verified 44868
+selfcare 13 Workouts Verified 1
+selfcare 13 Sleep Verified 418
+selfcare 14 Steps Verified 49495
+selfcare 14 Workouts Verified 3
+selfcare 14 Sleep Verified 479
+selfcare 15 Steps Verified 26539
+selfcare 15 Workouts Verified 2
+selfcare 15 Sleep Verified 446
+selfcare 16 Steps Verified 18336
+selfcare 16 Workouts Verified 1
+selfcare 16 Sleep Verified 505
+selfcare 17 Steps Verified 24424
+selfcare 17 Workouts Verified 3
+selfcare 17 Sleep Verified 450
+selfcare 18 Steps Verified 44006
+selfcare 18 Workouts Verified 2
+selfcare 18 Sleep Verified 394
+selfcare 19 Steps Verified 24939
+selfcare 19 Workouts Verified 3
+selfcare 19 Sleep Verified 376
+selfcare 20 Steps Verified 21612
+selfcare 20 Workouts Verified 1
+selfcare 20 Sleep Verified 523
+selfcare 21 Steps Verified 49761
+selfcare 21 Workouts Verified 2
+selfcare 21 Sleep Verified 535
+selfcare 22 Steps Verified 26811
+selfcare 22 Workouts Verified 1
+selfcare 22 Sleep Verified 457
+credited 0 Sleep 40
+credited 1 Workouts 190
+credited 1 Sleep 40
+credited 2 Sleep 87
+credited 3 Steps 110
+credited 3 Sleep 40
+credited 4 Sleep 40
+credited 5 Sleep 40
+credited 6 Sleep 40
+credited 7 Sleep 40
+credited 8 Sleep 40
+credited 9 Sleep 40
+credited 10 Steps 110
+credited 10 Workouts 190
+credited 10 Sleep 88
+credited 11 Steps 110
+credited 11 Workouts 80
+credited 11 Sleep 97
+credited 12 Steps 109
+credited 12 Workouts 75
+credited 12 Sleep 98
+credited 13 Steps 110
+credited 13 Workouts 0
+credited 13 Sleep 95
+credited 14 Steps 110
+credited 14 Workouts 0
+credited 14 Sleep 97
+credited 15 Steps 110
+credited 15 Workouts 0
+credited 15 Sleep 96
+credited 16 Steps 107
+credited 16 Workouts 0
+credited 16 Sleep 98
+credited 17 Steps 110
+credited 17 Workouts 190
+credited 17 Sleep 97
+credited 18 Steps 110
+credited 18 Workouts 80
+credited 18 Sleep 92
+credited 19 Steps 110
+credited 19 Workouts 75
+credited 19 Sleep 90
+credited 20 Steps 110
+credited 20 Workouts 0
+credited 20 Sleep 99
+credited 21 Steps 110
+credited 21 Workouts 0
+credited 21 Sleep 99
+credited 22 Steps 110
+credited 22 Workouts 0
+credited 22 Sleep 97
+credited 23 Sleep 40
+credited 24 Sleep 40
+credited 25 Sleep 40
+credited 26 Sleep 40
+credited 27 Sleep 40
+credited 28 Sleep 40
+credited 29 Sleep 40
+credited 30 Sleep 40
+credited 31 Sleep 40
+gained 1 Workouts 380
+gained 1 Sleep 80
+gained 2 Sleep 127
+gained 3 Steps 220
+gained 3 Sleep 80
+gained 4 Sleep 80
+gained 5 Sleep 80
+gained 6 Sleep 80
+gained 7 Sleep 60
+gained 8 Sleep 40
+gained 9 Sleep 47
+gained 10 Steps 220
+gained 10 Workouts 380
+gained 10 Sleep 88
+gained 11 Steps 190
+gained 11 Workouts 160
+gained 11 Sleep 97
+gained 12 Steps 154
+gained 12 Workouts 150
+gained 12 Sleep 98
+gained 13 Steps 110
+gained 13 Sleep 95
+gained 14 Steps 210
+gained 14 Sleep 97
+gained 15 Steps 195
+gained 15 Sleep 96
+gained 16 Steps 107
+gained 16 Sleep 95
+gained 17 Steps 110
+gained 17 Workouts 380
+gained 17 Sleep 0
+gained 18 Steps 110
+gained 18 Workouts 155
+gained 18 Sleep 40
+gained 19 Steps 110
+gained 19 Workouts 150
+gained 19 Sleep 40
+gained 20 Steps 110
+gained 20 Sleep 0
+gained 21 Steps 110
+gained 21 Sleep 0
+gained 22 Steps 110
+gained 22 Sleep 0
+gained 23 Sleep 40
+gained 24 Sleep 40
+gained 25 Sleep 40
+gained 26 Sleep 0
+gained 27 Sleep 0
+gained 28 Sleep 0
+gained 29 Sleep 0
+gained 30 Sleep 0
+gained 31 Sleep 0
+spends-at-credit 1 Workouts 3
+spends-at-credit 1 Sleep 0
+spends-at-credit 2 Sleep 0
+spends-at-credit 3 Steps 0
+spends-at-credit 3 Sleep 0
+spends-at-credit 4 Sleep 0
+spends-at-credit 5 Sleep 0
+spends-at-credit 6 Sleep 0
+spends-at-credit 7 Sleep 0
+spends-at-credit 8 Sleep 0
+spends-at-credit 9 Sleep 2
+spends-at-credit 10 Steps 0
+spends-at-credit 10 Workouts 3
+spends-at-credit 10 Sleep 2
+spends-at-credit 11 Steps 0
+spends-at-credit 11 Workouts 5
+spends-at-credit 11 Sleep 2
+spends-at-credit 12 Steps 1
+spends-at-credit 12 Workouts 8
+spends-at-credit 12 Sleep 3
+spends-at-credit 13 Steps 1
+spends-at-credit 13 Sleep 4
+spends-at-credit 14 Steps 2
+spends-at-credit 14 Sleep 4
+spends-at-credit 15 Steps 3
+spends-at-credit 15 Sleep 4
+spends-at-credit 16 Steps 3
+spends-at-credit 16 Sleep 4
+spends-at-credit 17 Steps 3
+spends-at-credit 17 Workouts 15
+spends-at-credit 17 Sleep 4
+spends-at-credit 18 Steps 3
+spends-at-credit 18 Workouts 16
+spends-at-credit 18 Sleep 5
+spends-at-credit 19 Steps 3
+spends-at-credit 19 Workouts 18
+spends-at-credit 19 Sleep 6
+spends-at-credit 20 Steps 3
+spends-at-credit 20 Sleep 6
+spends-at-credit 21 Steps 3
+spends-at-credit 21 Sleep 6
+spends-at-credit 22 Steps 3
+spends-at-credit 22 Sleep 6
+spends-at-credit 23 Sleep 7
+spends-at-credit 24 Sleep 8
+spends-at-credit 25 Sleep 8
+spends-at-credit 26 Sleep 8
+spends-at-credit 27 Sleep 8
+spends-at-credit 28 Sleep 8
+spends-at-credit 29 Sleep 8
+spends-at-credit 30 Sleep 8
+spends-at-credit 31 Sleep 8
+command golden-by-hand 0
+command golden-craftsmen-0 0
+command golden-craftsmen-1 0
+command golden-craftsmen-10 0
+command golden-craftsmen-11 0
+command golden-craftsmen-12 0
+command golden-craftsmen-13 0
+command golden-craftsmen-14 0
+command golden-craftsmen-15 0
+command golden-craftsmen-16 0
+command golden-craftsmen-17 0
+command golden-craftsmen-18 0
+command golden-craftsmen-19 0
+command golden-craftsmen-2 0
+command golden-craftsmen-20 0
+command golden-craftsmen-21 0
+command golden-craftsmen-3 0
+command golden-craftsmen-4 0
+command golden-craftsmen-5 0
+command golden-craftsmen-6 0
+command golden-craftsmen-7 0
+command golden-craftsmen-8 0
+command golden-craftsmen-9 0
+command golden-demolish 1
+building-demolished 1770281460 Storehouse 16 -10
+command golden-farmers-0 0
+command golden-farmers-1 0
+command golden-farmers-2 0
+command golden-farmers-3 0
+command golden-farmers-4 0
+command golden-farmers-5 0
+command golden-farmers-6 0
+command golden-owed 0
+command golden-reserve 0
+command golden-stone 0
+command golden-stone-home 0
+command golden-wool 0
+command k1 0
+command k15 1
+force-credited 1767838319 BuildPower 190
+command k16 0
+command k18 1
+force-credited 1767838319 Exploration 110
+command k2 0
+command k22 1
+force-credited 1768220664 DawnPower 23
+command k23 0
+command k4 0
+command k9 0
+command out-0 1
+force-credited 1768422563 Exploration 110
+command out-1 1
+force-credited 1768422563 BuildPower 190
+command out-10 0
+command out-11 1
+tiles-revealed 1768503647 5 -2 4 -2 3 1
+command out-13 0
+command out-14 0
+command out-15 0
+command out-16 1
+force-credited 1768588583 Exploration 77
+command out-17 1
+force-credited 1768588583 BuildPower 75
+command out-18 1
+force-credited 1768588583 DawnPower 29
+command out-19 0
+command out-2 1
+force-credited 1768422563 DawnPower 24
+command out-20 0
+command out-21 0
+command out-22 0
+command out-23 1
+force-credited 1768673588 Exploration 55
+command out-24 0
+command out-25 1
+force-credited 1768673588 DawnPower 28
+command out-26 0
+command out-27 0
+command out-28 1
+force-credited 1768763441 Exploration 105
+command out-29 0
+command out-3 0
+command out-30 1
+force-credited 1768763441 DawnPower 28
+command out-31 0
+command out-32 1
+tiles-revealed 1768763441 0 2 2 -7
+command out-33 0
+command out-34 1
+force-credited 1768855088 Exploration 97
+command out-35 0
+command out-36 1
+force-credited 1768855088 DawnPower 28
+command out-37 0
+command out-39 0
+command out-4 0
+command out-41 0
+command out-42 1
+force-credited 1768937145 Exploration 54
+command out-43 0
+command out-44 1
+force-credited 1768937145 DawnPower 28
+command out-46 0
+command out-47 1
+force-credited 1769026178 Exploration 55
+command out-48 1
+force-credited 1769026178 BuildPower 190
+command out-49 1
+force-credited 1769026178 DawnPower 0
+command out-5 0
+command out-51 0
+command out-52 0
+command out-53 0
+command out-54 1
+force-credited 1769101784 Exploration 55
+command out-55 1
+force-credited 1769101784 BuildPower 77
+command out-56 1
+force-credited 1769101784 DawnPower 0
+command out-57 0
+command out-58 0
+command out-59 0
+command out-6 1
+force-credited 1768503647 Exploration 95
+command out-62 1
+force-credited 1769198818 Exploration 55
+command out-63 1
+force-credited 1769198818 BuildPower 75
+command out-64 1
+force-credited 1769198818 DawnPower 0
+command out-66 0
+command out-67 1
+force-credited 1769280761 Exploration 55
+command out-68 0
+command out-69 1
+force-credited 1769280761 DawnPower 0
+command out-7 1
+force-credited 1768503647 BuildPower 80
+command out-70 0
+command out-71 0
+command out-72 0
+command out-73 1
+force-credited 1769360405 Exploration 55
+command out-74 0
+command out-75 1
+force-credited 1769360405 DawnPower 0
+command out-76 0
+command out-77 0
+command out-78 1
+force-credited 1769455970 Exploration 55
+command out-79 0
+command out-8 1
+force-credited 1768503647 DawnPower 28
+command out-80 1
+force-credited 1769455970 DawnPower 0
+command out-81 0
+command out-82 0
+command out-83 0
+command out-84 0
+command out-85 0
+command out-87 0
+command out-88 0
+command out-89 0
+command out-9 0
+command out-90 0
+command out-91 0
+command out-92 0
+command out-93 0
+command out-94 0

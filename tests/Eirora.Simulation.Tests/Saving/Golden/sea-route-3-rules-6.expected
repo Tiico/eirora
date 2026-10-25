@@ -68,7 +68,7 @@ building Longhouse -2 2 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Quarry 11 0 1 1 0 0 0 0 0 0 0 1 10 0 0
 building Weavery -1 -1 1 1 0 0 0 0 0 0 0 1 0 0 20
 building Jetty -4 2 1 1 0 0 0 1 4 0 0 0 0 0 0
-project Build Weavery -1 4 14000
+project Build Weavery -1 4 14000 0
 road -1 -1
 road 0 -1
 road -1 1

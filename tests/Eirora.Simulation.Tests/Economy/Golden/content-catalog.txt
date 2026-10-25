@@ -34,12 +34,12 @@ cost Timber 15
 cost Stone 5
 recipe Planks per-hour 1000000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
 input Timber 2
-building Weavery work 24 power 60 staff 2 site Land housing 0 levels 2 step 0 tier Crofters houses Crofters hand-build 1
+building Weavery work 24 power 60 staff 2 site Land housing 0 levels 2 step 0 tier Crofters houses Crofters hand-build 7
 cost Planks 10
 cost Stone 5
 recipe Wadmal per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
 input Wool 2
-building Jetty work 24 power 60 staff 1 site HarborSpot housing 0 levels 1 step 0 tier Crofters houses Crofters hand-build 1
+building Jetty work 24 power 60 staff 1 site HarborSpot housing 0 levels 1 step 0 tier Crofters houses Crofters hand-build 7
 cost Timber 15
 cost Planks 10
 building Lookout work 12 power 40 staff 0 site Land housing 0 levels 1 step 0 tier Crofters houses Crofters hand-build 0
@@ -64,7 +64,7 @@ recipe Honey per-hour 2000000 richness 1 grows-per-hour 400000 forest-tiles 0 hu
 building Brewery work 16 power 0 staff 2 site Land housing 0 levels 2 step 2 tier Farmers houses Crofters hand-build 0
 cost Timber 15
 cost Stone 5
-recipe Ale per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
+recipe Ale per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 5
 input Grain 2
 building Meadery work 24 power 0 staff 2 site Land housing 0 levels 2 step 2 tier Farmers houses Crofters hand-build 0
 cost Timber 15

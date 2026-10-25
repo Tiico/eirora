@@ -24,7 +24,7 @@ namespace Eirora.Simulation.Economy
             int step = 0,
             PopulationTier tier = PopulationTier.Crofters,
             PopulationTier houses = PopulationTier.Crofters,
-            bool handBuild = false)
+            int handBuildDays = 0)
         {
             Cost = cost;
             WorkHours = workHours;
@@ -37,7 +37,7 @@ namespace Eirora.Simulation.Economy
             Step = step;
             Tier = tier;
             Houses = houses;
-            HandBuild = handBuild;
+            HandBuildDays = handBuildDays;
 
             // By resource rather than over the cost, whose order is the dictionary's (docs/development.md#determinism).
             foreach (Resource resource in Enum.GetValues(typeof(Resource)))
@@ -48,7 +48,7 @@ namespace Eirora.Simulation.Economy
                 }
             }
 
-            if (workHours < 1 || buildPower < 0 || staff < 0 || housing < 0 || maxLevel < 1 || step < 0)
+            if (workHours < 1 || buildPower < 0 || staff < 0 || housing < 0 || maxLevel < 1 || step < 0 || handBuildDays < 0)
             {
                 throw new ArgumentException("A building takes work, at least level 1 and nothing negative.");
             }
@@ -92,10 +92,16 @@ namespace Eirora.Simulation.Economy
         public PopulationTier Houses { get; }
 
         /// <summary>
-        /// Whether it can be built by hand without its Build Power, in a fixed time (GLOSSARY: Handkraft; D-65), which
-        /// the content validator counts as made without forces (INV-R4).
+        /// The game days it takes to build by hand, without its Build Power and the free villagers' work (GLOSSARY:
+        /// Handkraft; D-65); 0 when it cannot be built by hand.
         /// </summary>
-        public bool HandBuild { get; }
+        public int HandBuildDays { get; }
+
+        /// <summary>
+        /// Whether it can be built by hand in a fixed time (<see cref="HandBuildDays"/>), which the content validator
+        /// counts as made without forces (INV-R4).
+        /// </summary>
+        public bool HandBuild => HandBuildDays > 0;
 
         /// <summary>Whether it produces, so that it can be upgraded, given a road and worked.</summary>
         public bool Produces => Recipe is not null;

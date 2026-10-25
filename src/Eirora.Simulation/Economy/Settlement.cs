@@ -536,6 +536,23 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public void Queue(ProjectKind kind, BuildingKind? building, Hex tile, IReadOnlyDictionary<Resource, int> cost, int workHours)
         {
+            Pay(tile, cost);
+            _projects.Add(new Project(kind, building, tile, workHours * 1000L));
+        }
+
+        /// <summary>
+        /// Pays and queues a building built by hand (D-65): it takes none of the free villagers' work and stands at the
+        /// dawn <see cref="BuildingSpec.HandBuildDays"/> game days later. The caller has checked tile and cost.
+        /// </summary>
+        public void QueueByHand(BuildingKind building, Hex tile)
+        {
+            var spec = _content.For(building);
+            Pay(tile, spec.Cost);
+            _projects.Add(new Project(ProjectKind.Build, building, tile, 0, spec.HandBuildDays));
+        }
+
+        private void Pay(Hex tile, IReadOnlyDictionary<Resource, int> cost)
+        {
             string island = IslandOf(tile);
             string payer = PayerFor(cost, island) ?? throw new InvalidOperationException("The work cannot be paid.");
 
@@ -552,8 +569,6 @@ namespace Eirora.Simulation.Economy
                     }
                 }
             }
-
-            _projects.Add(new Project(kind, building, tile, workHours * 1000L));
         }
 
         /// <summary>Lifts the fog from the next survey area (economy-v1.md, section 6).</summary>
@@ -627,10 +642,27 @@ namespace Eirora.Simulation.Economy
             _projects.Insert(0, project);
         }
 
-        /// <summary>Shortens the first project in the queue by up to <paramref name="hours"/> hours of work.</summary>
+        /// <summary>The first project in the queue that the free villagers work on, or null; one built by hand is not (D-65).</summary>
+        public Project? FirstWorked
+        {
+            get
+            {
+                foreach (var project in _projects)
+                {
+                    if (!project.ByHand)
+                    {
+                        return project;
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>Shortens the first project the free villagers work on by up to <paramref name="hours"/> hours of work.</summary>
         public void Rush(int hours)
         {
-            var first = _projects[0];
+            var first = FirstWorked ?? throw new InvalidOperationException("No project in the queue is worked on.");
             first.WorkLeft = first.WorkLeft > hours * 1000L ? first.WorkLeft - (hours * 1000L) : 0;
         }
 
@@ -682,7 +714,7 @@ namespace Eirora.Simulation.Economy
         private void RecordState<TState>(ref TState state)
             where TState : struct, IStateRecord
         {
-            state.Reserve(10 + (_islands.Count * (_tiers + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + _projects.Count + (3 * _felled.Count));
+            state.Reserve(10 + (_islands.Count * (_tiers + (2 * s_resourceCount))) + _owed.Length + ((12 + s_resourceCount) * _buildings.Count) + (2 * _projects.Count) + (3 * _felled.Count));
             state.Put(SurveysDone);
             state.Put(_expeditionLeft);
             state.Put(Fog.Lifts);
@@ -746,6 +778,7 @@ namespace Eirora.Simulation.Economy
             foreach (var project in _projects)
             {
                 state.Put(project.WorkLeft);
+                state.Put(project.DaysLeft);
             }
 
             state.Put(_roads.Count);
@@ -840,8 +873,9 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>
-        /// Dawn in the order of economy-v2.md, section 2: in each settlement the villagers eat from its own store, its tiers
-        /// use up their needs, up to two villagers rise to each tier whose needs were met, and it grows if it can; then
+        /// Dawn in the order of economy-v2.md, section 2, once the buildings built by hand whose last dawn it is stand
+        /// (D-65): in each settlement the villagers eat from its own store, its tiers use up their needs, up to two
+        /// villagers rise to each tier whose needs were met, and it grows if it can; then
         /// today's workdays end, the villagers are given out again, a villager may move over a sea route, the depots take
         /// the carriers they need for a game day of <paramref name="activeTicks"/> waking quarter hours, each from its own
         /// island's free villagers of every tier (sections 6 and 7), and a step whose condition is met unlocks. Missing food stops only
@@ -851,6 +885,8 @@ namespace Eirora.Simulation.Economy
         /// </summary>
         public void Dawn(long utcSeconds, List<GameEvent> events, int activeTicks)
         {
+            // What was built by hand stands first, so that a jetty's settlement and the new housing count from this dawn.
+            BuildByHand(utcSeconds, events);
             foreach (var island in _islands)
             {
                 var settlement = _settlements[island];
@@ -1257,7 +1293,7 @@ namespace Eirora.Simulation.Economy
                     line.Enum(kind);
                 }
 
-                line.Long(p.Tile.Q).Long(p.Tile.R).Long(p.WorkLeft);
+                line.Long(p.Tile.Q).Long(p.Tile.R).Long(p.WorkLeft).Long(p.DaysLeft);
             }
 
             foreach (var road in _roads)
@@ -1469,7 +1505,18 @@ namespace Eirora.Simulation.Economy
             {
                 var kind = reader.Enum<ProjectKind>();
                 BuildingKind? building = kind == ProjectKind.Road ? null : reader.Enum<BuildingKind>();
-                settlement._projects.Add(new Project(kind, building, settlement.TileOf(reader), reader.Long()));
+                var tile = settlement.TileOf(reader);
+                long workLeft = reader.Long();
+                int daysLeft = reader.Int();
+
+                // Built by hand is a building of its kind with dawns left and no work (D-65); the villagers' work has no dawns.
+                bool byHand = daysLeft > 0 && kind == ProjectKind.Build && workLeft == 0 && daysLeft <= content.For(building!.Value).HandBuildDays;
+                if (daysLeft < 0 || (daysLeft > 0 && !byHand))
+                {
+                    throw new FormatException($"The project on {tile} cannot be built by hand with {daysLeft} dawns left.");
+                }
+
+                settlement._projects.Add(new Project(kind, building, tile, workLeft, daysLeft));
             }
 
             Hex? road = null;
@@ -1577,6 +1624,12 @@ namespace Eirora.Simulation.Economy
             for (int i = 0; i < _projects.Count;)
             {
                 var project = _projects[i];
+                if (project.ByHand)
+                {
+                    i++;
+                    continue;
+                }
+
                 foreach (var island in PoolsOf(project, _pools))
                 {
                     Work(project, island);
@@ -1589,15 +1642,40 @@ namespace Eirora.Simulation.Economy
                 }
 
                 _projects.RemoveAt(i);
-                int settlements = _settlements.Count;
-                Finish(project);
-                events.Add(new ProjectCompleted(utcSeconds, project.Kind, project.Building, project.Tile));
-                if (_settlements.Count > settlements)
+                Finish(project, utcSeconds, events);
+                StaffBuildings();
+            }
+        }
+
+        /// <summary>
+        /// Counts a dawn off every building built by hand, and finishes those whose last dawn it is, in the queue's order
+        /// (D-65). The villagers are given out again by the dawn that follows.
+        /// </summary>
+        private void BuildByHand(long utcSeconds, List<GameEvent> events)
+        {
+            for (int i = 0; i < _projects.Count;)
+            {
+                var project = _projects[i];
+                if (!project.ByHand || --project.DaysLeft > 0)
                 {
-                    events.Add(new SettlementFounded(utcSeconds, IslandOf(project.Tile)));
+                    i++;
+                    continue;
                 }
 
-                StaffBuildings();
+                _projects.RemoveAt(i);
+                Finish(project, utcSeconds, events);
+            }
+        }
+
+        /// <summary>Finishes a project taken from the queue and tells it, and the settlement a first jetty founds.</summary>
+        private void Finish(Project project, long utcSeconds, List<GameEvent> events)
+        {
+            int settlements = _settlements.Count;
+            Finish(project);
+            events.Add(new ProjectCompleted(utcSeconds, project.Kind, project.Building, project.Tile));
+            if (_settlements.Count > settlements)
+            {
+                events.Add(new SettlementFounded(utcSeconds, IslandOf(project.Tile)));
             }
         }
 

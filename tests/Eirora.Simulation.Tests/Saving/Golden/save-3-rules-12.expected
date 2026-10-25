@@ -87,7 +87,7 @@ building Weavery 16 -10 1 1 0 0 0 0 0 0 0 1 17 -12 20
 building Farmstead 2 -6 1 0 0 0 0 0 0 0 0 0 0 0 0
 building HuntingLodge 1 -4 1 1 0 0 0 0 0 0 8000000 1 0 0 0
 building Tannery 1 -5 1 1 0 0 0 0 0 0 0 1 0 0 5
-project Build Cottage -19 8 32000
+project Build Cottage -19 8 32000 0
 road 15 -11
 road 0 -1
 road 1 0

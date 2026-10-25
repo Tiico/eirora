@@ -287,7 +287,7 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 
 - En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
   Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
-- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning) och `idle` (Ingen spelare).
+- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)) och `idle` (Ingen spelare).
   Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
 - Världen skapas en kvart före sin första gryning, så att dag 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
@@ -321,7 +321,7 @@ dotnet run -c Release --project tools/Eirora.Balance -- --maps generated --from 
 ```
 
 `--maps prototype` (standard) spelar prototypens karta.
-Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, samma beslut med hög egenvård i fyra veckor, produktionstakterna, determinismen och de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, sammanlagt några sekunder; längre körningar görs lokalt.
+Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, samma beslut med hög egenvård i fyra veckor, handkraften utan träning i fyra veckor (sjövägen till Nyön vecka 2 som i epok 1, D-65), produktionstakterna, determinismen och de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, sammanlagt några sekunder; längre körningar görs lokalt.
 Okända, upprepade eller överflödiga argument underkänns i stället för att tyst ge andra körningar.
 Ändras balansen med avsikt underkänns `TheBotsWeekIsTheOneEconomyV1Reports`, som skriver ut de nya raderna i samma format som tabellen i [avsnitt 7.1](./design/economy-v1.md#71-balansbotarna-i-simuleringen); byt raderna där mot dem.
 Verktygets egen rapport har fler kolumner och klistras inte in.

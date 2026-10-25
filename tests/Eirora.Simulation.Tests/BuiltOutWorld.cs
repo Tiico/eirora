@@ -60,7 +60,7 @@ internal static class BuiltOutWorld
     {
         var random = new Random(~seed);
         var buildings = Scenario.Kinds(lastStep);
-        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false, lastStep);
+        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false, lastStep, byHand: false);
         var save = scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)

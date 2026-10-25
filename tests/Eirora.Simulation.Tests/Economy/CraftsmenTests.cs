@@ -214,13 +214,14 @@ public sealed class CraftsmenTests
     }
 
     // The brewery makes ale of two grain and the meadery mead of one honey, each one every two hours (economy-v2.md,
-    // section 4), and both leave processing's minimum stock of 20 (LOG-06).
+    // section 4), and each leaves its minimum stock (LOG-06): the brewery 5 grain, as the tannery leaves 5 game, since grain
+    // is food too (product owner, 2026-10-25), and the meadery processing's 20 honey.
     [Theory]
-    [InlineData(BuildingKind.Brewery, Resource.Grain, Resource.Ale)]
-    [InlineData(BuildingKind.Meadery, Resource.Honey, Resource.Mead)]
-    public void TheBreweryAndTheMeaderyMakeDrink(BuildingKind kind, Resource raw, Resource drink)
+    [InlineData(BuildingKind.Brewery, Resource.Grain, Resource.Ale, 5)]
+    [InlineData(BuildingKind.Meadery, Resource.Honey, Resource.Mead, StockRules.StandardReserve)]
+    public void TheBreweryAndTheMeaderyMakeDrink(BuildingKind kind, Resource raw, Resource drink, int reserve)
     {
-        Assert.Equal(StockRules.StandardReserve, ContentCatalog.Current.For(kind).Recipe!.Reserve);
+        Assert.Equal(reserve, ContentCatalog.Current.For(kind).Recipe!.Reserve);
         var world = Village(
             crofters: 10,
             farmers: 2,
@@ -233,7 +234,7 @@ public sealed class CraftsmenTests
         world.AdvanceTo(At("2026-10-16 23:00", 2));
 
         Assert.True(world.Stock(drink) > 0, $"The {kind} made no {drink}.");
-        Assert.True(world.Stock(raw) >= StockRules.StandardReserve, $"The {kind} took the {raw} below its minimum stock: {world.Stock(raw)} left.");
+        Assert.True(world.Stock(raw) >= reserve, $"The {kind} took the {raw} below its minimum stock: {world.Stock(raw)} left.");
     }
 
     // The diagnosis says that the craftsmen lack drink (TASK-062), and that clothes go to the farmers first, as at dawn.

@@ -41,7 +41,7 @@ namespace Eirora.Client.Tests
 
             _hud.ShowMoreBuildings();
 
-            Assert.That(Actions(), Is.EqualTo(new[] { "Skogshuggare", "Långhus", "Stuga", "Förråd", "Sågverk", "Väveri", "Utkikstorn", "Lägg väg" }));
+            Assert.That(Actions(), Is.EqualTo(new[] { "Skogshuggare", "Långhus", "Stuga", "Förråd", "Sågverk", "Väveri", "Väveri med handkraft", "Utkikstorn", "Lägg väg" }));
         }
 
         [Test]
@@ -52,7 +52,7 @@ namespace Eirora.Client.Tests
 
             _hud.Select(new Hex(2, 1)); // A meadow by the forest and the shore.
 
-            Assert.That(Actions(), Is.EqualTo(new[] { "Skogshuggare", "Brygga", "Fler byggnader" }));
+            Assert.That(Actions(), Is.EqualTo(new[] { "Skogshuggare", "Brygga", "Brygga med handkraft", "Fler byggnader" }));
         }
 
         [Test]

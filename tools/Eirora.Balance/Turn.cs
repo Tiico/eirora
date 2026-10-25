@@ -88,4 +88,7 @@ internal sealed class Tally
 
     /// <summary>The development value at the end of each game day.</summary>
     public List<long> Values { get; } = [];
+
+    /// <summary>The first game day that ended with a sea route.</summary>
+    public int? SeaRouteOn { get; set; }
 }

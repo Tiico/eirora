@@ -6,8 +6,8 @@ using Eirora.Simulation.Map;
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
-    /// Rules 12 → 13 (TASK-062): every settlement has craftsmen too, and the stores hold honey, mead and ale
-    /// (economy-v2.md, sections 2–5). No villager of rules 12 is a craftsman, the stores have none of the new goods, an
+    /// Rules 13 → 14 (TASK-062): every settlement has craftsmen too, and the stores hold honey, mead and ale
+    /// (economy-v2.md, sections 2–5). No villager of rules 13 is a craftsman, the stores have none of the new goods, an
     /// import order takes them home last, and the unlocking goes on where the world stands: step 2 when step 1 is unlocked
     /// and a settlement already has 30 villagers, of them 6 farmers. For example <c>economy 2 0 1</c> →
     /// <c>economy 2 0 2</c>, <c>settlement hemon 24 6</c> → <c>settlement hemon 24 6 0</c>, and after
@@ -17,9 +17,9 @@ namespace Eirora.Simulation.Saving
     {
         private const int CraftsmenStep = 30; // Villagers of one settlement that unlock step 2, Craftsmen (economy-v2.md, section 5).
         private const int CraftsmenStepFarmers = 6; // The farmers among them.
-        private static readonly string[] s_newGoods = { "Honey", "Mead", "Ale" }; // The resources of rules 13 after Hide, rules 12's last.
+        private static readonly string[] s_newGoods = { "Honey", "Mead", "Ale" }; // The resources of rules 14 after Hide, rules 13's last.
 
-        public override int FromRules => 12;
+        public override int FromRules => 13;
 
         public override string Migrate(string state, WorldMap map)
         {
@@ -35,13 +35,13 @@ namespace Eirora.Simulation.Saving
                         economy = i;
                         break;
                     case "economy":
-                        throw new FormatException($"'{lines[i]}' is not the economy of rules 12.");
+                        throw new FormatException($"'{lines[i]}' is not the economy of rules 13.");
                     case "settlement" when fields.Length == 4 && Count(fields[2]) is int crofters && Count(fields[3]) is int farmers:
                         met |= crofters + farmers >= CraftsmenStep && farmers >= CraftsmenStepFarmers;
                         lines[i] = $"{lines[i]} 0";
                         break;
                     case "settlement":
-                        throw new FormatException($"'{lines[i]}' is not a settlement of rules 12.");
+                        throw new FormatException($"'{lines[i]}' is not a settlement of rules 13.");
                     case "stock" when fields.Length == 4 && fields[2] == "Hide":
                         foreach (string good in s_newGoods)
                         {
@@ -57,7 +57,7 @@ namespace Eirora.Simulation.Saving
 
             if (economy < 0)
             {
-                throw new FormatException("A state of rules 12 has an economy.");
+                throw new FormatException("A state of rules 13 has an economy.");
             }
 
             var economyFields = lines[economy].Split(' ');

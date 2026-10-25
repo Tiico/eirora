@@ -82,9 +82,9 @@ building Lookout -20 11 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Lookout 3 -3 1 0 0 0 0 0 0 0 0 0 0 0 0
 building Quarry -5 5 1 1 0 0 0 0 0 0 0 1 -4 4 0
 building FishingHut -2 6 1 0 0 0 0 0 0 0 0 1 -4 4 0
-project Build Weavery 16 -10 6000
-project Road 15 -11 4000
-project Build Cottage -19 8 32000
+project Build Weavery 16 -10 6000 0
+project Road 15 -11 4000 0
+project Build Cottage -19 8 32000 0
 road 0 -1
 road 1 0
 road 2 0

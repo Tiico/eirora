@@ -203,7 +203,7 @@ namespace Eirora.Client.Tests
                 if (queued)
                 {
                     lines.RemoveAll(l => l.StartsWith("project ", StringComparison.Ordinal));
-                    lines.Insert(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, "project Build Cottage 2 -2 32000");
+                    lines.Insert(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, "project Build Cottage 2 -2 32000 0");
                 }
             });
         }

@@ -8,26 +8,26 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests.Saving;
 
 /// <summary>
-/// Rules 12 → 13 (TASK-062): no villager is a craftsman, the stores have no honey, mead or ale, and the unlocking goes on
+/// Rules 13 → 14 (TASK-062): no villager is a craftsman, the stores have no honey, mead or ale, and the unlocking goes on
 /// where the world stands, so step 2 is unlocked when a settlement already has 30 villagers, of them 6 farmers (ADR-0006).
 /// </summary>
 public sealed class CraftsmenArriveTests
 {
-    private const string Golden = "save-3-rules-12";
+    private const string Golden = "save-3-rules-13";
 
     private static readonly string[] s_newGoods = [nameof(Resource.Honey), nameof(Resource.Mead), nameof(Resource.Ale)];
 
     // Acceptance: given a save from the previous rules version, when it is migrated, then the world is unchanged: the same
     // villagers of each tier, buildings and goods, no craftsmen and none of the new goods.
     [Fact]
-    public void ASaveFromRulesTwelveKeepsItsWorld()
+    public void ASaveFromRulesThirteenKeepsItsWorld()
     {
         byte[] bytes = GoldenSaveTests.Bytes(Golden);
         string before = SaveSections.Text(Encoding.UTF8.GetString(bytes), "latest");
 
         var world = Save.Load(bytes).World;
 
-        string after = RulesTwelve(world.Fingerprint());
+        string after = RulesThirteen(world.Fingerprint());
         Assert.Equal(Lines(before, "settlement "), Lines(after, "settlement "));
         Assert.Equal(Lines(before, "stock "), Lines(after, "stock "));
         Assert.Equal(Lines(before, "building "), Lines(after, "building "));
@@ -44,7 +44,7 @@ public sealed class CraftsmenArriveTests
     public void StepTwoIsUnlockedWhenTheConditionAlreadyHolds(int crofters, int farmers, int step, string migratedStep)
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        var lines = RulesTwelve(world.Fingerprint()).Split('\n').ToList();
+        var lines = RulesThirteen(world.Fingerprint()).Split('\n').ToList();
         int economy = lines.FindIndex(l => l.StartsWith("economy ", StringComparison.Ordinal));
         lines[economy] = $"{lines[economy][..lines[economy].LastIndexOf(' ')]} {step}";
         lines[lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal))] = $"settlement home {crofters} {farmers}";
@@ -55,45 +55,45 @@ public sealed class CraftsmenArriveTests
         Assert.Contains($"settlement home {crofters} {farmers} 0", migrated);
     }
 
-    // A world of the current rules without craftsmen and the new goods, written as rules 12 wrote it, migrates back to itself.
+    // A world of the current rules without craftsmen and the new goods, written as rules 13 wrote it, migrates back to itself.
     [Theory]
     [InlineData("2026-10-14 14:00", 0)]
     [InlineData("2026-10-14 14:00", 5)]
-    public void ARulesTwelveStateMigratesBackToItself(string start, int days)
+    public void ARulesThirteenStateMigratesBackToItself(string start, int days)
     {
         var world = World.Create(TestClock.At(start, 2), TestClock.Night);
         var now = world.Now;
         world.AdvanceTo(new TimeReading(now.UtcSeconds + (days * 24 * 3600), now.ZoneId, now.OffsetSeconds));
         string state = world.Fingerprint();
 
-        Assert.Equal(state, new CraftsmenArrive().Migrate(RulesTwelve(state), PrototypeHome.Map));
+        Assert.Equal(state, new CraftsmenArrive().Migrate(RulesThirteen(state), PrototypeHome.Map));
         var reader = new StateReader(state);
         World.Read(reader, PrototypeHome.Map);
         reader.End();
     }
 
-    // The new goods come last in an import order, after rules 12's.
+    // The new goods come last in an import order, after rules 13's.
     [Fact]
     public void AnImportOrderTakesTheNewGoodsLast()
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        var lines = RulesTwelve(world.Fingerprint()).Split('\n').ToList();
-        var rulesTwelve = Enum.GetValues<Resource>().Where(r => !s_newGoods.Contains(r.ToString())).Reverse();
-        lines.Insert(lines.FindIndex(l => l.StartsWith("building ", StringComparison.Ordinal)), $"imports home {string.Join(' ', rulesTwelve)}");
+        var lines = RulesThirteen(world.Fingerprint()).Split('\n').ToList();
+        var rulesThirteen = Enum.GetValues<Resource>().Where(r => !s_newGoods.Contains(r.ToString())).Reverse();
+        lines.Insert(lines.FindIndex(l => l.StartsWith("building ", StringComparison.Ordinal)), $"imports home {string.Join(' ', rulesThirteen)}");
 
         var migrated = new CraftsmenArrive().Migrate(string.Join('\n', lines), PrototypeHome.Map).Split('\n');
 
-        Assert.Contains($"imports home {string.Join(' ', rulesTwelve)} Honey Mead Ale", migrated);
+        Assert.Contains($"imports home {string.Join(' ', rulesThirteen)} Honey Mead Ale", migrated);
     }
 
     [Theory]
     [InlineData("economy 0 0")]
     [InlineData("settlement home 12 0 0")]
     [InlineData("settlement home 12")]
-    public void ALineThatIsNotOfRulesTwelveIsRefused(string line)
+    public void ALineThatIsNotOfRulesThirteenIsRefused(string line)
     {
         var world = World.Create(TestClock.At("2026-10-14 14:00", 2), TestClock.Night);
-        var lines = RulesTwelve(world.Fingerprint()).Split('\n').ToList();
+        var lines = RulesThirteen(world.Fingerprint()).Split('\n').ToList();
         int at = lines.FindIndex(l => l.StartsWith(line.Split(' ')[0] + " ", StringComparison.Ordinal));
         lines[at] = line;
 
@@ -101,10 +101,10 @@ public sealed class CraftsmenArriveTests
     }
 
     /// <summary>
-    /// A state of rules 13 or later as rules 12 wrote it: no craftsmen on each settlement's line, no step beyond 1, and no
-    /// honey, mead or ale in the stores or in an import order; a state of rules 12 or earlier stays as it is.
+    /// A state of rules 14 or later as rules 13 wrote it: no craftsmen on each settlement's line, no step beyond 1, and no
+    /// honey, mead or ale in the stores or in an import order; a state of rules 13 or earlier stays as it is.
     /// </summary>
-    internal static string RulesTwelve(string state)
+    internal static string RulesThirteen(string state)
     {
         var lines = state.Split('\n').ToList();
         if (!lines.Any(l => l.StartsWith("settlement ", StringComparison.Ordinal) && l.Split(' ').Length == 5))

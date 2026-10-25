@@ -41,7 +41,7 @@ building FishingHut 4 -4 1 0 0 0 0 0 0 0 0 1 0 0 0
 building Woodcutter -3 1 1 0 0 0 0 0 0 0 0 1 0 0 0
 building Woodcutter 1 -2 1 0 0 0 0 0 0 0 0 1 0 0 0
 building Jetty 1 2 1 1 0 0 0 1 4 0 0 0 0 0 0
-project Build Woodcutter -1 -1 8000
+project Build Woodcutter -1 -1 8000 0
 road 0 -3
 road 0 -2
 road 0 -1

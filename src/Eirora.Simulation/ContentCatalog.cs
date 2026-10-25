@@ -118,8 +118,8 @@ namespace Eirora.Simulation
                     recipe: new(Resource.Planks, perHour: 1_000_000, inputs: new[] { new Ingredient(Resource.Timber, 2) }))),
                 (BuildingKind.Weavery, new(
                     Materials(planks: 10, stone: 5), workHours: 24, buildPower: 60, staff: 2, TileUse.Land, maxLevel: 2,
-                    recipe: new(Resource.Wadmal, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Wool, 2) }), handBuild: true)),
-                (BuildingKind.Jetty, new(Materials(timber: 15, planks: 10), workHours: 24, buildPower: 60, staff: 1, TileUse.HarborSpot, handBuild: true)),
+                    recipe: new(Resource.Wadmal, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Wool, 2) }), handBuildDays: 7)),
+                (BuildingKind.Jetty, new(Materials(timber: 15, planks: 10), workHours: 24, buildPower: 60, staff: 1, TileUse.HarborSpot, handBuildDays: 7)),
                 (BuildingKind.Lookout, new(Materials(stone: 10), workHours: 12, buildPower: 40, staff: 0, TileUse.Land)),
 
                 // Step 1, Farmers (economy-v2.md, section 4).
@@ -142,7 +142,7 @@ namespace Eirora.Simulation
                     recipe: new(Resource.Honey, perHour: 2_000_000, richness: true, growsPerHour: 400_000))),
                 (BuildingKind.Brewery, new(
                     Materials(timber: 15, stone: 5), workHours: 16, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 2,
-                    tier: PopulationTier.Farmers, recipe: new(Resource.Ale, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Grain, 2) }))),
+                    tier: PopulationTier.Farmers, recipe: new(Resource.Ale, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Grain, 2) }, reserve: 5))),
                 (BuildingKind.Meadery, new(
                     Materials(timber: 15, stone: 5), workHours: 24, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 2,
                     tier: PopulationTier.Farmers, recipe: new(Resource.Mead, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Honey, 1) }))),
@@ -270,7 +270,7 @@ namespace Eirora.Simulation
             // Each number is named, so that the checked-in text reads like the table in economy-v1.md.
             writer.Text("work").Long(spec.WorkHours).Text("power").Long(spec.BuildPower).Text("staff").Long(spec.Staff)
                 .Text("site").Enum(spec.Requirement).Text("housing").Long(spec.Housing).Text("levels").Long(spec.MaxLevel)
-                .Text("step").Long(spec.Step).Text("tier").Enum(spec.Tier).Text("houses").Enum(spec.Houses).Text("hand-build").Bool(spec.HandBuild);
+                .Text("step").Long(spec.Step).Text("tier").Enum(spec.Tier).Text("houses").Enum(spec.Houses).Text("hand-build").Long(spec.HandBuildDays);
             foreach (Resource resource in Enum.GetValues(typeof(Resource)))
             {
                 if (spec.Cost.TryGetValue(resource, out int amount))
