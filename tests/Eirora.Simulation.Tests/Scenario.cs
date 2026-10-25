@@ -167,7 +167,7 @@ internal sealed class Scenario
         bool suited = random.Next(4) > 0;
         int pick = random.Next(int.MaxValue);
         var site = random.Next(10) < 7 ? s_named[random.Next(s_named.Length)] : new Hex(random.Next(-6, 7), random.Next(-6, 7));
-        switch (random.Next(12))
+        switch (random.Next(11))
         {
             case 0 or 1 or 2:
                 int back = suited ? random.Next(RecordSelfCare.DaysBack) : random.Next(-1, RecordSelfCare.DaysBack + 1);
@@ -225,11 +225,11 @@ internal sealed class Scenario
                         ? new QueueFirst(world.Projects[1 + (pick % (world.Projects.Count - 1))].Kind, world.Projects[1 + (pick % (world.Projects.Count - 1))].Tile)
                         : new QueueFirst(project, site),
                 };
-            case 10:
-                return world => new Demolish(suited && world.Buildings.Count > 0 ? world.Buildings[pick % world.Buildings.Count].Tile : site);
             default:
+                // A demolition in one case of three, drawn from what is already drawn, so the rest of the sequence stays.
                 var change = new RestSchedule(random.Next(96) * 15, (5 * 60) + (random.Next(13) * 30));
-                return _ => new ChangeRestSchedule(change);
+                return world => pick % 3 > 0 ? new ChangeRestSchedule(change)
+                    : new Demolish(suited && world.Buildings.Count > 0 ? world.Buildings[pick / 3 % world.Buildings.Count].Tile : site);
         }
     }
 

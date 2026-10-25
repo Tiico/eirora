@@ -138,6 +138,7 @@ public sealed class InvariantPropertyTests
         {
             string before = world.Fingerprint();
             var was = Measures.Of(world);
+            var villagersWere = world.Settlements.ToDictionary(s => s.Island, s => s.Villagers);
             if (input is Scenario.Command command)
             {
                 var made = command.For(world);
@@ -158,7 +159,9 @@ public sealed class InvariantPropertyTests
             Assert.True(world.Now.UtcSeconds >= was.UtcSeconds); // INV-D8.
             Assert.InRange(world.FreeVillagers, 0, world.Villagers); // INV-V2, and in each settlement.
             Assert.All(world.Settlements, s => Assert.InRange(s.FreeVillagers, 0, s.Villagers));
-            Assert.All(world.Settlements, s => Assert.InRange(s.Villagers, 0, s.Housing)); // Only a migrated world has more (SettlementsPerIslandTests).
+            // Only a migrated world (SettlementsPerIslandTests) or demolished housing (D-39) leaves more villagers than room,
+            // and then none move in.
+            Assert.All(world.Settlements, s => Assert.InRange(s.Villagers, 0, Math.Max(s.Housing, villagersWere.GetValueOrDefault(s.Island))));
             Assert.All(world.Islands, island => Assert.All(Enum.GetValues<Resource>(), r => Assert.InRange(world.Stock(island, r), 0, Capacity(world, island)))); // INV-R1.
             Assert.All(Enum.GetValues<Force>(), f => Assert.True(world.Available(f) >= 0)); // INV-F1.
 

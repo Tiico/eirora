@@ -118,7 +118,7 @@ namespace Eirora.Client.UI
             foreach (string island in demolition.ClosesSeaRoutes)
             {
                 Text("sheet-text", _sheet, $"Sjövägen till {Texts.IslandName(world, island)} stängs."
-                    + (Waiting(world, island) is string goods ? $" Där väntar {goods} tills en ny brygga står." : string.Empty));
+                    + (Waiting(world, island, forShips: true) is string goods ? $" Där väntar {goods} tills en ny brygga står." : string.Empty));
             }
 
             if (demolition.EndsExpeditions)

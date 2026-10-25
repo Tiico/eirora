@@ -99,7 +99,7 @@ public sealed class GoldenSaveTests
     /// </summary>
     private static void Write(string name)
     {
-        var save = BuiltOutWorld.GenerateSave(391);
+        var save = BuiltOutWorld.GenerateSave(55);
         var world = save.World;
 
         // A cottage on the second island, which its store cannot pay, so the ships owe the home island's materials.
