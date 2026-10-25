@@ -38,11 +38,33 @@ namespace Eirora.Client.Tests
                 new FogLifted(4, 7, -1),
             };
 
-            Assert.That(Texts.Report(events), Is.EqualTo(new[]
+            var world = World.Create(PrototypeHome.Map, new TimeReading(1_792_000_000, "Europe/Stockholm", 7200), new RestSchedule(23 * 60, 8 * 60));
+            Assert.That(Texts.Report(world, events), Is.EqualTo(new[]
             {
                 "Byn vaknade till dag 2.", "Dimman lättade över 3 rutor.", "Kartläggningen lyfte dimman över nya rutor.",
             }));
-            Assert.That(Texts.Report(new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en ruta." }));
+            Assert.That(Texts.Report(world, new GameEvent[] { new FogLifted(1, 6, 0) }), Is.EqualTo(new[] { "Dimman lättade över en ruta." }));
+        }
+
+        // Villagers move in and move between the settlements (TASK-050): the report says where. The first jetty on an
+        // island founds its settlement, and a second jetty there founds nothing.
+        [Test]
+        public void TheDailyReportSaysWhereVillagersMovedInAndMoved()
+        {
+            var world = World.Create(PrototypeHome.Map, new TimeReading(1_792_000_000, "Europe/Stockholm", 7200), new RestSchedule(23 * 60, 8 * 60));
+            var events = new GameEvent[]
+            {
+                new ProjectCompleted(1, ProjectKind.Build, BuildingKind.Jetty, new Hex(10, 0)), new SettlementFounded(1, PrototypeHome.Nyon),
+                new VillagersMovedIn(1, 1, PrototypeHome.Home), new VillagersMovedIn(1, 2, PrototypeHome.Nyon), new VillagerMoved(1, PrototypeHome.Home, PrototypeHome.Nyon),
+                new ProjectCompleted(1, ProjectKind.Build, BuildingKind.Jetty, new Hex(9, 1)),
+            };
+
+            Assert.That(Texts.Report(world, events), Is.EqualTo(new[]
+            {
+                "Bryggan på Nyön är färdig.", "Nyön har en egen by, dit bybor flyttar över sjövägen.",
+                "En ny bybo flyttade in.", "2 nya bybor flyttade in på Nyön.", "En bybo flyttade från Hemön till Nyön.",
+                "Bryggan på Nyön är färdig.",
+            }));
         }
 
         // Only the prototype's map has Nyön in the east; a generated world's island has no name and any direction.

@@ -29,7 +29,7 @@ namespace Eirora.Simulation.Commands
             }
 
             var spec = settlement.Content.Upgrade;
-            if (!settlement.CanAfford(spec.Cost))
+            if (!settlement.CanAfford(spec.Cost, Tile))
             {
                 return Rejection.InsufficientResources;
             }

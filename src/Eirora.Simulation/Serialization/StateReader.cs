@@ -25,7 +25,7 @@ namespace Eirora.Simulation.Serialization
 
             if (text.Length > 0 && text[text.Length - 1] != '\n')
             {
-                throw new FormatException("State text ends with a line break.");
+                throw new FormatException("State text does not end with a line break.");
             }
 
             _lines = text.Length == 0 ? Array.Empty<string>() : text.Substring(0, text.Length - 1).Split('\n');

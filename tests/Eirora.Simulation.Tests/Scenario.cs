@@ -14,7 +14,7 @@ namespace Eirora.Simulation.Tests;
 /// </summary>
 /// <remarks>
 /// Three in four commands are made to suit the world when they are applied (an affordable building on a site that takes
-/// it, a producing building that can still be upgraded, given a road to its depot, worked or paused, a tile that takes a
+/// it, now and then off the home island, a producing building that can still be upgraded, given a road to its depot, worked or paused, a tile that takes a
 /// road, a storehouse or a jetty to work or to cap the carriers of, a paused building to resume, a building and a place
 /// in the staffing order, a project that is not first in the queue, a tile at the fog's edge, self-care within the
 /// window), and three in four commands that would come
@@ -182,9 +182,10 @@ internal sealed class Scenario
                 return world => new RecordSelfCare(world.GameDay - back, habit, source, total);
             case 3 or 4:
                 var building = s_buildings[random.Next(s_buildings.Length)];
-                return world => suited && FreeSite(world, pick) is { } free ? new Build(free.Kind, free.Site) : new Build(building, site);
+                bool away = (pick >> 16) % 3 == 0; // From a draw already made, so that the other draws stay as they were.
+                return world => suited && FreeSite(world, pick, away) is { } free ? new Build(free.Kind, free.Site) : new Build(building, site);
             case 5:
-                return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.Settlement.CanAfford(world.Content.Upgrade.Cost)) ?? site : site);
+                return world => new Upgrade(suited ? BuiltSite(world, pick, b => b.Level < world.Content.For(b.Kind).MaxLevel && world.CanAfford(world.Content.Upgrade.Cost, b.Tile)) ?? site : site);
             case 6:
                 int road = random.Next(3);
                 int cap = suited ? 1 + random.Next(Logistics.MostCarriers) : random.Next(-1, Logistics.MostCarriers + 2);
@@ -230,13 +231,19 @@ internal sealed class Scenario
         }
     }
 
-    /// <summary>One of the affordable buildings that the settlement would take on a tile, or none.</summary>
-    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick)
+    /// <summary>
+    /// One of the affordable buildings that the world would take on a tile, or none; <paramref name="away"/> prefers one
+    /// off the home island, whose settlement's villagers then have to move there and whose materials may take room on
+    /// the sea route (TASK-050).
+    /// </summary>
+    private static (BuildingKind Kind, Hex Site)? FreeSite(World world, int pick, bool away)
     {
         var free = SitesOf(world)
             .SelectMany(tile => s_buildings.Select(k => (Kind: k, Site: tile)))
-            .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.Settlement.CanAfford(world.Content.For(c.Kind).Cost))
+            .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site))
             .ToList();
+        var offHome = free.Where(c => world.Settlement.IslandOf(c.Site) != world.HomeIsland).ToList();
+        free = away && offHome.Count > 0 ? offHome : free;
         return free.Count > 0 ? free[pick % free.Count] : null;
     }
 

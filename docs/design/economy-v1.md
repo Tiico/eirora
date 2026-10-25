@@ -162,6 +162,24 @@ Spelaren bestämmer vad byborna arbetar med (CIV-02, TASK-044).
   Migrationen dit låter alla byggnader vara igång i byggordning och ändrar inget annat; vem som är bemannad står kvar tills byborna fördelas nästa gång (ADR-0006).
   Journaler från regelversion 5 spelas inte längre upp, eftersom de skulle ge en annan värld.
 
+### 4.2 En bosättning per ö
+
+Från regelversion 9 har varje ö en egen bosättning enligt [ekonomi v2, avsnitt 6](./economy-v2.md#6-bosättningar) (D-106, D-113, TASK-050).
+
+- Hemöns bosättning finns från början; på en annan ö anläggs den av den första bryggan, med bostäder för 4 och utan bybor.
+- Byborna bemannar bara byggnader på sin ö, i bemanningsordningen, och äter ur sin ös lager vid gryningen.
+  En bosättning utan mat eller bostäder växer inte, men ingen bybo försvinner (D-39), och en bosättning utan bybor växer inte heller.
+- Vid gryningen flyttar högst en ledig bybo i hela världen, över en sjöväg, till den bosättning som saknar flest bybor till sina byggnader och har en ledig bostad, från den förbundna bosättning som har flest lediga.
+- Lediga bybor bygger på sin ö och på öar som sjövägen förbinder med deras; bryggan på en ö som ännu saknar bosättning bygger Hemöns.
+  Byggarna seglar från en brygga på Hemön, så den kommer före allt på andra öar.
+- Varje bygge i kön får arbete av de bybor som når det och som byggena före i kön inte har tagit, så ett bygge på en ö väntar inte på ett bygge på en annan.
+  Ett bygge vars arbete redan är gjort, till exempel ett som spelaren har skyndat på och sedan flyttat bak i kön, står därför färdigt samma kvart, också när det inte är först i kön.
+- Bygget betalas ur öns lager när det räcker, annars ur Hemöns, och Hemöns material tar plats på sjövägen före allt annat.
+- Den första bryggans material betalas ur Hemöns lager, och sjövägen bär det först när den har öppnat, före allt annat, som allt material från Hemön till byggen på ön.
+- Migrationen dit ger öarna de bybor som bemannar deras byggnader och låter resten bo kvar på Hemön (ADR-0006).
+  En ö kan då ha fler bybor än bostäder; de bor kvar, och bosättningen växer först när det finns plats (D-39).
+  Det som inte längre ryms i en ös lager skeppas hem om ön har en sjöväg, och väntar annars vid öns förråd eller brygga tills det finns plats.
+
 ## 5. Logistik
 
 Från regelversion 8 bär förrådens och bryggornas bärare varorna på land, vägar läggs ruta för ruta, och avståndsklasserna nedan gäller inte längre ([ekonomi v2, avsnitt 7](./economy-v2.md#7-bärare-och-vägar); D-107, D-109–D-112).
@@ -180,10 +198,11 @@ Resten av avsnittet beskriver ekonomi v1 som den var före regelversion 8.
   Fullt lager stoppar produktionen; inget går förlorat.
 - Förädling lämnar ett **minimilager** på 20 av sin råvara (LOG-06, P0 enligt D-44), annars äter sågverket upp all ved som behövs till byggen.
 - Varje ö där spelaren har byggt har eget lager; öarna är kartans (TASK-045).
-  En brygga utanför Hemön rymmer också 150 av varje resurs, så att varorna har någonstans att vänta på skeppen.
+  En brygga rymmer 50 av varje resurs, också på Hemön, så att varorna har någonstans att vänta på skeppen (regelversion 9, [ekonomi v2](./economy-v2.md#6-bosättningar)).
 - Varje ö med brygga får en egen sjöväg till Hemön när Hemön har en brygga.
-  Varje sjöväg för 40 enheter per dag, delat mellan alla varor, i varornas fasta ordning tills spelaren får importprioritet (TASK-046).
-  Sjövägarna lastar av i kartans ordning när Hemöns lager bara rymmer en del.
+  Varje sjöväg för 40 enheter per dag, delat mellan alla varor och båda hållen (D-106).
+  Först går Hemöns material till byggen på ön, sedan mat ut för två dygn till öns bybor, sedan öns varor hem, där ön behåller lika mycket mat.
+  Varorna går i sin fasta ordning tills spelaren får importprioritet (TASK-046), och sjövägarna lastar av i kartans ordning när Hemöns lager bara rymmer en del.
 
 ### Flaskhalsdiagnostik
 
@@ -298,8 +317,8 @@ Kalkylen utan bärare finns kvar för ekonomi v2:s migration och epok 1:s tempo,
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 11 | 1 | 210 | 204 | 1 308 | 180/260/410 | 461/110/233 | 1,06 |
-| Närområdet, ordnad | måttlig | 19 | 12 | 1 | 116 | 204 | 1 229 | 180/260/380 | 461/110/274 | 1,00 |
-| Havet | måttlig | 20 | 13 | 2 | 43 | 246 | 1 245 | 250/270/380 | 426/100/240 | 0,93 |
+| Närområdet, ordnad | måttlig | 19 | 12 | 1 | 112 | 228 | 1 301 | 180/260/380 | 461/110/274 | 1,09 |
+| Havet | måttlig | 20 | 12 | 2 | 29 | 246 | 1 242 | 250/210/340 | 426/160/270 | 1,04 |
 | Naiv | hög | 19 | 10 | 1 | 54 | 211 | 1 169 | 180/360/630 | 520/85/96 | 0,65 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 156 | 1 138 | 180/0/480 | 461/100/204 | 1,10 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
@@ -308,7 +327,8 @@ Kalkylen utan bärare finns kvar för ekonomi v2:s migration och epok 1:s tempo,
 *Dagsproduktion* är viktad produktionskapacitet per dag vid veckans slut, med den andel som bärarna hinner få fram.
 *Utvecklingsvärde* är ett grovt balansmått (bybor × 15 + halva lagrets värde + tre dagars produktion) som bara används i balanstester och aldrig visas för spelaren.
 Startvärdet är 409.
-Bärarna använder 33–74 % av sin tid under veckan, och startförrådets ensamma bärare i den orörda byn 37 %, som i [ekonomi v2, avsnitt 11](./economy-v2.md#11-utan-egenvård).
+Kalkylen räknar med en bosättning per ö som i regelversion 9 (avsnitt 4.2).
+Bärarna använder 31–74 % av sin tid under veckan, och startförrådets ensamma bärare i den orörda byn 37 %, som i [ekonomi v2, avsnitt 11](./economy-v2.md#11-utan-egenvård).
 
 **Olika men jämbördiga.**
 Närområdet slutar med ett starkt produktionskluster och ett stort stenlager på en ö.
@@ -318,14 +338,14 @@ Havet bör dra ifrån andra veckan medan Närområdet har material för fler lå
 
 **Strategin hinner ikapp (D-34).**
 Den naiva strategin med hög egenvård slutar under båda de genomtänkta strategierna med måttlig egenvård.
-Den får ut 0,65 i värde per använd kraft mot 0,93–1,06, alltså 1,4 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
+Den får ut 0,65 i värde per använd kraft mot 1,04–1,09, alltså 1,6 gånger mindre, vilket uppfyller kravet på minst 1,3 i [forces.md](./forces.md).
 Den bygger sitt stenbrott på det vanliga berget intill toppen, fyra steg från förrådet, medan de genomtänkta strategierna kartlägger och hittar stenådern.
 Med bärarna når allt fram från berget, men det kostar startförrådets bärare tid, och de tas från byggandet: bärarna använder 69 % av sin tid, mot 66 % i Närområdet med två förråd.
 I ekonomi v1 utan bärare nådde hälften av stenen fram, och utan berget skulle stenådern vara Hemöns enda berg att bryta sten i, så att även den naiva strategin hittade dit och skillnaden blev bara 1,2 gånger (D-95).
 
 **Arbetsfördelningen är ett val, inte en genväg (TASK-044).**
-Med stenbrottet pausat medan stenen räcker och långhuset först i kön bygger Närområdet 12 byggnader i stället för 11, med samma dagsproduktion.
-Priset är 94 sten mindre i lager, så utvecklingsvärdet blir något lägre.
+Med stenbrottet pausat medan stenen räcker och långhuset först i kön bygger Närområdet 12 byggnader i stället för 11 och hinner uppgradera sågverket, så att dagsproduktionen blir 228 mot 204.
+Priset är 98 sten mindre i lager, så utvecklingsvärdet blir ändå något lägre.
 Att flytta bybor från ett stenbrott till ett bygge byter alltså material mot byggen; ingen fördelning är bäst i alla lägen.
 Att bara en bemannad åker växer håller pausen ärlig: annars kunde åkern pausas större delen av dygnet och skördas ikapp utan förlust.
 
@@ -346,8 +366,8 @@ Hur botarna körs står i [development.md](../development.md#balansbotar).
 | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 11 | 1 | 207 | 204 | 1 304 | 180/260/410 | 461/110/233 | 1,05 |
-| Närområdet, ordnad | måttlig | 19 | 12 | 1 | 114 | 228 | 1 298 | 180/260/380 | 461/110/274 | 1,08 |
-| Havet | måttlig | 20 | 12 | 2 | 42 | 246 | 1 244 | 250/270/380 | 426/100/240 | 0,93 |
+| Närområdet, ordnad | måttlig | 19 | 12 | 1 | 109 | 228 | 1 299 | 180/260/380 | 461/110/274 | 1,09 |
+| Havet | måttlig | 21 | 12 | 2 | 29 | 246 | 1 256 | 250/210/340 | 426/160/270 | 1,06 |
 | Naiv | hög | 20 | 10 | 1 | 53 | 211 | 1 177 | 180/360/630 | 520/85/96 | 0,66 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 156 | 1 138 | 180/0/510 | 461/100/174 | 1,06 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
@@ -371,12 +391,12 @@ Skillnaderna som är kvar kommer av ordningen i kön:
 
 - **Kvartarna.**
   Simuleringen räknar varje kvart och kalkylen varje timme, så botarna hinner ett bygge något tidigare.
-  Närområdet, ordnad hinner därför sågverkets uppgradering sista dygnet, som ger 24 i dagsproduktion, medan kalkylen inte hinner den.
+  Havet hinner därför en bybo till.
 - **Styrkan och Orken.**
   Med en annan takt i timmer, plankor och sten hinner ett annat mål först: utan träning hinner botarna arbeta extra en gång till, och den naiva strategin en bybo till.
 
 Slutsatserna ovan håller.
-De genomtänkta strategierna får 1,4–1,6 gånger den naiva strategins värde per använd kraft, och Närområdet och Havet skiljer sig med 5 % i utvecklingsvärde.
+De genomtänkta strategierna får 1,6 gånger den naiva strategins värde per använd kraft, och Närområdet och Havet skiljer sig med 4 % i utvecklingsvärde.
 
 På 20 genererade kartor (`procedural-archipelago` version 1, seed 0–19) genomför båda strategierna sina planer med måttlig egenvård, Närområdet på 9–10 dygn och Havet på 7–10.
 Där expeditionens ö saknar betesmark eller berg bygger Havet fårgården eller stenbrottet på hemön.

@@ -83,7 +83,9 @@ public sealed class SimulationSnapshotTests
             new DawnBroke(2, 3),
             new ForceCredited(4, Force.BuildPower, 5),
             new ForceWithdrawn(6, Force.DawnPower, 7),
-            new VillagersMovedIn(8, 2),
+            new VillagersMovedIn(8, 2, "nyon"),
+            new VillagerMoved(8, "home", "nyon"),
+            new SettlementFounded(8, "nyon"),
             new ProjectCompleted(9, ProjectKind.Road, null, new Hex(-3, -1)),
             new TilesRevealed(10, [new Hex(3, -1), new Hex(-2, 0)]),
             new ExpeditionReturned(11, "nyon"),
@@ -108,14 +110,14 @@ public sealed class SimulationSnapshotTests
     public void AChangedByteIsCaught()
     {
         var bytes = SimulationSnapshot.Take(World.Create(At("2026-10-14 14:00", 2), Night)).ToBytes();
-        int villagers = Encoding.UTF8.GetString(bytes).IndexOf("settlement 12", StringComparison.Ordinal);
-        bytes[villagers + "settlement 1".Length] = (byte)'3';
+        int villagers = Encoding.UTF8.GetString(bytes).IndexOf("settlement home 12", StringComparison.Ordinal);
+        bytes[villagers + "settlement home 1".Length] = (byte)'3';
 
         Assert.Throws<FormatException>(() => SimulationSnapshot.FromBytes(bytes));
     }
 
     [Theory]
-    [InlineData("settlement 12 ", "settlement 012 ")] // Not the canonical form of the number.
+    [InlineData("settlement home 12\n", "settlement home 012\n")] // Not the canonical form of the number.
     [InlineData("building Storehouse 0 0 ", "building Storehouse 99 0 ")] // A tile off the map.
     public void AStateThatDoesNotRestoreToItselfIsRejected(string original, string replacement)
     {
