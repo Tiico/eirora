@@ -823,7 +823,13 @@ namespace Eirora.Client.UI
 
             for (int i = 0; i < order.Count; i++)
             {
+                // A good the village has yet to meet is left out, as on the bar; it stays in its place in the order.
                 var good = order[i];
+                if (!Met(world, good))
+                {
+                    continue;
+                }
+
                 int reserved = world.ReservationOf(island, good);
                 var item = Container(good == _good ? "good good-chosen" : "good", _sheet);
                 var pick = Button("good-pick", item, string.Empty, () =>

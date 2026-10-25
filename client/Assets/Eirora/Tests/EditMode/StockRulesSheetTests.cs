@@ -104,8 +104,11 @@ namespace Eirora.Client.Tests
             Press(Action("Lagret på Nyön"));
 
             Assert.That(Labels(), Does.Contain("Lagret på Nyön"));
-            Assert.That(Goods(), Is.EqualTo(System.Enum.GetValues(typeof(Resource)).Cast<Resource>().Select(r => Capital(Texts.Name(r))).ToArray()));
-            Assert.That(_root.Query<Button>(className: "good-button").ToList(), Has.Count.EqualTo(System.Enum.GetValues(typeof(Resource)).Length - 1)); // All but the first.
+            // Game and hide wait for step 1, which the scripted week has not reached (TASK-061).
+            var met = System.Enum.GetValues(typeof(Resource)).Cast<Resource>().Where(r => r is not Resource.Game and not Resource.Hide).ToArray();
+            Assert.That(_game.World!.Step, Is.EqualTo(0));
+            Assert.That(Goods(), Is.EqualTo(met.Select(r => Capital(Texts.Name(r))).ToArray()));
+            Assert.That(_root.Query<Button>(className: "good-button").ToList(), Has.Count.EqualTo(met.Length - 1)); // All but the first.
 
             Press(First("Ull"));
 
