@@ -266,7 +266,7 @@ public sealed class StockRulesTests
         Assert.Equal(Rejection.AlreadyDone, Apply(world, new MoveImport(Archipelago.First, Resource.Fish, 0)).Rejection);
 
         Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, 0)).Accepted);
-        Assert.Contains($"imports {Archipelago.First} Stone Fish Grain Timber Planks Wool Wadmal Game Hide", world.Fingerprint().Split('\n'));
+        Assert.Contains($"imports {Archipelago.First} Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale", world.Fingerprint().Split('\n'));
 
         Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, (int)Resource.Stone)).Accepted);
         Assert.Equal(Enum.GetValues<Resource>(), world.ImportOrder(Archipelago.First));
@@ -292,7 +292,7 @@ public sealed class StockRulesTests
 
         var lines = world.Fingerprint().Split('\n');
         Assert.Equal(
-            [$"reserved {Archipelago.Home} Fish 5", $"reserved {Archipelago.Home} Timber 30", $"reserved {Archipelago.Second} Wool 15", $"imports {Archipelago.Second} Fish Wool Grain Timber Planks Stone Wadmal Game Hide"],
+            [$"reserved {Archipelago.Home} Fish 5", $"reserved {Archipelago.Home} Timber 30", $"reserved {Archipelago.Second} Wool 15", $"imports {Archipelago.Second} Fish Wool Grain Timber Planks Stone Wadmal Game Hide Honey Mead Ale"],
             lines.Where(l => l.StartsWith("reserved ", StringComparison.Ordinal) || l.StartsWith("imports ", StringComparison.Ordinal)));
         var reader = new StateReader(world.Fingerprint());
         var read = World.Read(reader, world.Map);
@@ -351,7 +351,7 @@ public sealed class StockRulesTests
     private static World WithFishOnFirst(int villagers, int fish)
     {
         var lines = SeaRouteTests.OnlyShips((_, _) => 0).Fingerprint().Split('\n').Select(line =>
-            line == $"settlement {Archipelago.First} 1 0" ? $"settlement {Archipelago.First} {villagers} 0"
+            line == $"settlement {Archipelago.First} 1 0 0" ? $"settlement {Archipelago.First} {villagers} 0 0"
             : line.StartsWith($"stock {Archipelago.First} Fish ", StringComparison.Ordinal) ? $"stock {Archipelago.First} Fish {fish * Unit}"
             : line);
         var reader = new StateReader(string.Join('\n', lines));

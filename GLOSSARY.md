@@ -41,6 +41,11 @@ _Avoid_: plats (som namngiven plats), tomt
 Grunt vatten intill land, där fiskeboden står på pålar (D-88).
 _Avoid_: fiskeplats, kust
 
+**Äng** (`Meadow`):
+En gräsruta, alltså land som inte är skog, åker, betesmark, strand eller berg; där kan en bigård stå (economy-v2.md, avsnitt 4).
+Byggvyn nämner ängen först när bigården har låsts upp.
+_Avoid_: gräsmark, hage
+
 **Hamnläge** (`HarborSpot`):
 En landruta utom berg intill grunt vatten som når djuphavet; där kan en brygga byggas och skepp lägga till (D-89).
 [Kartvalideringen](./docs/design/map-validation.md), och därmed generator v1, räknar bara stränder, som alltid är hamnlägen.

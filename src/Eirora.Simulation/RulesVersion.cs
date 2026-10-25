@@ -6,7 +6,7 @@ namespace Eirora.Simulation
     /// </summary>
     public static class RulesVersion
     {
-        public const int Current = 12;
+        public const int Current = 13;
 
         /// <summary>
         /// The oldest rules version whose journals the current rules replay to the same world (ADR-0006). Rules 2 only
@@ -32,6 +32,10 @@ namespace Eirora.Simulation
         /// Rules 12 gave the settlements population tiers and the world unlocked steps (TASK-061): the villagers eat from
         /// the good there is most of instead of fish first, and wadmal for comfort is used up only when a second villager
         /// fits, so a journal from rules 11 would replay to another world and is refused instead.
+        /// Rules 13 added the craftsmen, drink and step 2 (TASK-062). A journal from rules 12 holds no command for their
+        /// buildings, so no villager rises to craftsman and no drink is made when it replays; the only change is that step
+        /// 2 unlocks at the first dawn a settlement has 30 villagers, of them 6 farmers, which the migration gives such a
+        /// world too, so it replays to the same world.
         /// </summary>
         public const int ReplaysJournalsFrom = 12;
     }

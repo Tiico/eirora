@@ -157,7 +157,7 @@ internal static class BuiltOutWorld
             save.Apply($"out-{key++}", first);
         }
 
-        foreach (var rule in StockRules(world, seed))
+        foreach (var rule in StockRules(world, seed, lastStep))
         {
             save.Apply($"out-{key++}", rule);
         }
@@ -263,7 +263,7 @@ internal static class BuiltOutWorld
     /// before: a processing building's minimum stock, a reservation at home and one on an island the ships sail from,
     /// and a good moved first in that island's import order. The commands the world refuses change nothing.
     /// </summary>
-    private static IEnumerable<GameCommand> StockRules(World world, int seed)
+    private static IEnumerable<GameCommand> StockRules(World world, int seed, int lastStep)
     {
         var random = new Random(seed * 7919);
         if (random.Next(3) != 0)
@@ -271,7 +271,7 @@ internal static class BuiltOutWorld
             yield break;
         }
 
-        var resources = Enum.GetValues<Resource>();
+        var resources = Scenario.Resources(lastStep);
         if (BuiltSite(world, random.Next(int.MaxValue), b => b.Held is not null) is Hex processing)
         {
             yield return new SetReserve(processing, random.Next(9) * 5);

@@ -14,9 +14,9 @@ force Exploration 582 3
 force BuildPower 190 28
 force DawnPower 1640 11
 economy 2 0 1
-settlement home 20 0
-settlement first 6 0
-settlement second 4 0
+settlement home 20 0 0
+settlement first 6 0 0
+settlement second 4 0 0
 stock home Fish 6637459
 stock home Grain 34150000
 stock home Timber 5531250
@@ -26,6 +26,9 @@ stock home Wool 12900000
 stock home Wadmal 0
 stock home Game 0
 stock home Hide 0
+stock home Honey 0
+stock home Mead 0
+stock home Ale 0
 stock first Fish 3675000
 stock first Grain 8325000
 stock first Timber 0
@@ -35,6 +38,9 @@ stock first Wool 0
 stock first Wadmal 0
 stock first Game 0
 stock first Hide 0
+stock first Honey 0
+stock first Mead 0
+stock first Ale 0
 stock second Fish 750000
 stock second Grain 7250000
 stock second Timber 5000000
@@ -44,10 +50,13 @@ stock second Wool 0
 stock second Wadmal 0
 stock second Game 0
 stock second Hide 0
+stock second Honey 0
+stock second Mead 0
+stock second Ale 0
 owed second 20000000
 reserved home Stone 30
 reserved first Wool 10
-imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide
+imports first Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale
 building FishingHut -2 -1 2 1 0 0 0 0 0 0 7662503 1 0 0 0
 building Field 1 -1 1 0 0 0 1 0 0 0 6875000 1 0 0 0
 building Jetty 17 -12 1 1 0 0 0 1 4 0 0 0 0 0 0

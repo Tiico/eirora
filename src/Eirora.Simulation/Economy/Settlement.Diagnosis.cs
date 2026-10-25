@@ -153,7 +153,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Whether villagers would rise to a tier if dawn came now (economy-v2.md, section 2): the first need its villagers
-        /// would lack, and the first thing that keeps the tier below from rising, in the order dawn checks them.
+        /// would lack, and the first thing that keeps the tier below from rising, in the order dawn checks them. The tiers
+        /// below take a need they share first, as at dawn: the farmers' clothes before the craftsmen's.
         /// </summary>
         private TierDiagnosis DiagnoseTier(IslandSettlement settlement, long[] store, PopulationTier tier, bool fed)
         {
@@ -162,17 +163,18 @@ namespace Eirora.Simulation.Economy
             Need? lacks = null;
             foreach (var need in spec.Needs)
             {
-                if (need.Need != Need.Food && villagers > 0 && lacks is null && Available(store, need.Need) < Quantity.Units(spec.Uses(need.Need, villagers)))
+                if (need.Need != Need.Food && villagers > 0 && lacks is null
+                    && Available(store, need.Need) - Quantity.Units(UsesBelow(settlement, need.Need, tier)) < Quantity.Units(spec.Uses(need.Need, villagers)))
                 {
                     lacks = need.Need;
                 }
             }
 
-            // What the new ones would need is what is left once the tier has its own.
+            // What the new ones would need is what is left once every tier has its own.
             Need? lacksForNew = null;
             foreach (var need in spec.Needs)
             {
-                long left = Available(store, need.Need) - Quantity.Units(spec.Uses(need.Need, villagers));
+                long left = Available(store, need.Need) - Quantity.Units(Uses(settlement, need.Need));
                 if (need.Need != Need.Food && lacksForNew is null && left < Quantity.Units(spec.Uses(need.Need, 1)))
                 {
                     lacksForNew = need.Need;
@@ -189,6 +191,18 @@ namespace Eirora.Simulation.Economy
                 : lacksForNew is not null ? Rising.LacksNeed
                 : Rising.Rises;
             return new TierDiagnosis(tier, villagers, HousingOf(settlement, tier), lacks, rising, rising == Rising.LacksNeed ? lacks ?? lacksForNew : null);
+        }
+
+        /// <summary>Whole units of a need that the tiers below <paramref name="tier"/> use up at a dawn, before it takes its own.</summary>
+        private int UsesBelow(IslandSettlement settlement, Need need, PopulationTier tier)
+        {
+            int uses = 0;
+            for (int below = 0; below < (int)tier; below++)
+            {
+                uses += _content.Tiers[below].Uses(need, settlement.VillagersOf((PopulationTier)below));
+            }
+
+            return uses;
         }
 
         private BuildingDiagnosis DiagnoseProduction(Building building, Recipe recipe, long made, long supply, int activeTicks, Reach reach, Dictionary<Hex, Advice> advice)

@@ -569,7 +569,7 @@ public sealed class DiagnosticsTests
             // An island without a store gets an empty one after the others, as building there first would give it.
             if (!lines.Any(l => l.StartsWith($"stock {island} ", StringComparison.Ordinal)))
             {
-                lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {island} 0 0");
+                lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {island} 0 0 0");
                 lines.InsertRange(
                     lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
                     Enum.GetValues<Resource>().Select(r => $"stock {island} {r} 0"));
@@ -582,13 +582,13 @@ public sealed class DiagnosticsTests
         if (settlement is var (settled, people))
         {
             int at = lines.FindIndex(l => l.StartsWith($"settlement {settled} ", StringComparison.Ordinal));
-            lines[at] = $"settlement {settled} {people.ToString(System.Globalization.CultureInfo.InvariantCulture)} 0";
+            lines[at] = $"settlement {settled} {people.ToString(System.Globalization.CultureInfo.InvariantCulture)} 0 0";
         }
 
         if (villagers is int count)
         {
             int at = lines.FindIndex(l => l.StartsWith($"settlement {world.HomeIsland} ", StringComparison.Ordinal));
-            lines[at] = $"settlement {world.HomeIsland} {count.ToString(System.Globalization.CultureInfo.InvariantCulture)} 0";
+            lines[at] = $"settlement {world.HomeIsland} {count.ToString(System.Globalization.CultureInfo.InvariantCulture)} 0 0";
         }
 
         if (buildings is not null)

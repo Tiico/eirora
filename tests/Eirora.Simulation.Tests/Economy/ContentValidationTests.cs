@@ -6,7 +6,7 @@ namespace Eirora.Simulation.Tests.Economy;
 /// <summary>
 /// The content validator that CI runs over the catalog (INV-R4, economy-v2.md, section 3): every need can be made without
 /// forces in at least two ways that start on different land, and no need takes its own tier to make. It grows with the
-/// needs and tiers of steps 2 and 3.
+/// needs and tiers of each step: clothes with step 1 and drink with step 2 (TASK-062).
 /// </summary>
 public sealed class ContentValidationTests
 {
@@ -34,6 +34,7 @@ public sealed class ContentValidationTests
         {
             new NeedSpec(Need.Food, Resource.Fish),
             new NeedSpec(Need.Clothes, Resource.Wadmal, Resource.Hide),
+            new NeedSpec(Need.Drink, Resource.Mead, Resource.Ale),
         };
 
         Assert.Equal(["Food: fewer than two ways to make it without forces that start on different land."], ContentValidation.Problems(ContentCatalog.Current.WithNeeds(needs)));
@@ -63,7 +64,34 @@ public sealed class ContentValidationTests
         Assert.Contains("Clothes: Hide takes Farmers to make, a tier that needs it.", ContentValidation.Problems(catalog));
     }
 
-    private static BuildingSpec Like(BuildingSpec spec, int? buildPower = null, bool? handBuild = null, int? planks = null, PopulationTier? tier = null)
+    // Drink is made without forces in two ways (INV-R4): ale from the field's grain and mead from the meadow's honey, so a
+    // brewery that cost Build Power, or an apiary on farmland like the field, would leave one way to start.
+    [Fact]
+    public void DrinkIsMadeWithoutForcesFromFarmlandAndFromAMeadow()
+    {
+        var brewery = ContentCatalog.Current.For(BuildingKind.Brewery);
+        var apiary = ContentCatalog.Current.For(BuildingKind.Apiary);
+
+        var dearAle = ContentCatalog.Current.Replacing(BuildingKind.Brewery, Like(brewery, buildPower: 30));
+        var honeyFromTheField = ContentCatalog.Current.Replacing(BuildingKind.Apiary, Like(apiary, requirement: TileUse.Farmland));
+
+        string problem = "Drink: fewer than two ways to make it without forces that start on different land.";
+        Assert.Equal([problem], ContentValidation.Problems(dearAle));
+        Assert.Equal([problem], ContentValidation.Problems(honeyFromTheField));
+    }
+
+    // Drink is made by farmers, so the craftsmen who need it never wait for themselves.
+    [Fact]
+    public void DrinkThatTakesCraftsmenToMakeIsRefused()
+    {
+        var meadery = ContentCatalog.Current.For(BuildingKind.Meadery);
+        var catalog = ContentCatalog.Current.Replacing(BuildingKind.Meadery, Like(meadery, tier: PopulationTier.Craftsmen));
+
+        Assert.Contains("Drink: Mead takes Craftsmen to make, a tier that needs it.", ContentValidation.Problems(catalog));
+    }
+
+    private static BuildingSpec Like(
+        BuildingSpec spec, int? buildPower = null, bool? handBuild = null, int? planks = null, PopulationTier? tier = null, TileUse? requirement = null)
     {
         var cost = new Dictionary<Resource, int>(spec.Cost);
         if (planks is int units)
@@ -72,7 +100,7 @@ public sealed class ContentValidationTests
         }
 
         return new BuildingSpec(
-            cost, spec.WorkHours, buildPower ?? spec.BuildPower, spec.Staff, spec.Requirement, spec.Housing, spec.MaxLevel, spec.Recipe,
+            cost, spec.WorkHours, buildPower ?? spec.BuildPower, spec.Staff, requirement ?? spec.Requirement, spec.Housing, spec.MaxLevel, spec.Recipe,
             spec.Step, tier ?? spec.Tier, spec.Houses, handBuild ?? spec.HandBuild);
     }
 }

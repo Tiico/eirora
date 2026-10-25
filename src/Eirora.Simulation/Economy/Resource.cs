@@ -32,5 +32,14 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>Clothes from tanneries, as wadmal is (skinn; step 1, Farmers).</summary>
         Hide,
+
+        /// <summary>The raw material of mead, a slow process of apiaries (honung; step 2, Craftsmen).</summary>
+        Honey,
+
+        /// <summary>Drink from meaderies (mjöd; step 2, Craftsmen).</summary>
+        Mead,
+
+        /// <summary>Drink from breweries, as mead is (öl; step 2, Craftsmen).</summary>
+        Ale,
     }
 }

@@ -268,6 +268,8 @@ Epokens senare halva har inga nya steg; den hör till vårdkasens etapper, dimma
 - **Före nivåerna.**
   Regelversion 9–11 (TASK-050) har bosättningarna men ännu inte nivåerna, så komforten från v1 gäller per bosättning: 2 tyg ur öns eget lager ger en bybo till.
   Regelversion 12 (TASK-061, #156) har nivåerna och steg 1: komforten tar 2 kläder bara när en andra torpare får plats, och en sparning från regelversion 11 får alla bybor som torpare och steg 1 upplåst om en bosättning redan har 20 bybor.
+  Regelversion 13 (TASK-062, #157) har hantverkarna, behovet dryck och steg 2: en sparning från regelversion 12 får inga hantverkare och steg 2 upplåst om steg 1 är det och en bosättning redan har 30 bybor, varav 6 bönder.
+  En journal från regelversion 12 spelas upp, eftersom den inte kan innehålla något bygge för steg 2 och därför bara skiljer sig i att steg 2 låses upp, som migrationen också gör.
 
 I de sex veckorna i avsnitt 10 växer Nyön till 16–20 bybor, och i fyra av sex körningar med Nyön stiger 6–12 av dem till bönder med kläder från hemön; ön har bara sex landrutor, så mer ryms inte.
 D-106 gör havet långsammare än i v1, eftersom Nyöns byggnader inte längre kan bemannas från hemön.

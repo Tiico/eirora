@@ -160,7 +160,7 @@ namespace Eirora.Client.Tests
                 int economy = lines.FindIndex(l => l.StartsWith("economy ", StringComparison.Ordinal));
                 lines[economy] = $"{lines[economy].Substring(0, lines[economy].LastIndexOf(' '))} {step}";
                 int settlement = lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal));
-                lines[settlement] = $"settlement home {12 - farmers} {farmers}";
+                lines[settlement] = $"settlement home {12 - farmers} {farmers} 0";
                 int stock = lines.FindIndex(l => l.StartsWith("stock home Wadmal ", StringComparison.Ordinal));
                 lines[stock] = $"stock home Wadmal {wadmal * Quantity.PerUnit}";
                 if (farmstead)

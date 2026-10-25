@@ -38,6 +38,10 @@ namespace Eirora.Client.UI
             BuildingKind.Farmstead => "Bondgård",
             BuildingKind.HuntingLodge => "Jaktstuga",
             BuildingKind.Tannery => "Garveri",
+            BuildingKind.CraftsmensHouse => "Hantverkargård",
+            BuildingKind.Apiary => "Bigård",
+            BuildingKind.Brewery => "Bryggeri",
+            BuildingKind.Meadery => "Mjöderi",
             _ => kind.ToString(),
         };
 
@@ -52,30 +56,39 @@ namespace Eirora.Client.UI
             Resource.Wadmal => "tyg",
             Resource.Game => "vilt",
             Resource.Hide => "skinn",
+            Resource.Honey => "honung",
+            Resource.Mead => "mjöd",
+            Resource.Ale => "öl",
             _ => resource.ToString(),
         };
 
-        /// <summary>A population tier, as many: "torpare", "bönder" (GLOSSARY: Befolkningsnivå).</summary>
+        /// <summary>A population tier, as many: "torpare", "bönder", "hantverkare" (GLOSSARY: Befolkningsnivå).</summary>
         public static string Name(PopulationTier tier) => tier switch
         {
             PopulationTier.Crofters => "torpare",
             PopulationTier.Farmers => "bönder",
+            PopulationTier.Craftsmen => "hantverkare",
             _ => tier.ToString(),
         };
 
-        /// <summary>A population tier in the definite form, as a sentence begins with it: "torparna", "bönderna".</summary>
+        /// <summary>A population tier, as one: "torpare", "bonde", "hantverkare".</summary>
+        public static string One(PopulationTier tier) => tier == PopulationTier.Farmers ? "bonde" : Name(tier);
+
+        /// <summary>A population tier in the definite form, as a sentence begins with it: "torparna", "bönderna", "hantverkarna".</summary>
         public static string Definite(PopulationTier tier) => tier switch
         {
             PopulationTier.Crofters => "torparna",
             PopulationTier.Farmers => "bönderna",
+            PopulationTier.Craftsmen => "hantverkarna",
             _ => tier.ToString(),
         };
 
-        /// <summary>A need by itself: "mat", "kläder".</summary>
+        /// <summary>A need by itself: "mat", "kläder", "dryck".</summary>
         public static string NeedName(Need need) => need switch
         {
             Need.Food => "mat",
             Need.Clothes => "kläder",
+            Need.Drink => "dryck",
             _ => need.ToString(),
         };
 
@@ -158,6 +171,7 @@ namespace Eirora.Client.UI
             Add(TileUse.Land, "byggmark");
             Add(TileUse.Farmland, "åker");
             Add(TileUse.Pasture, "betesmark");
+            Add(TileUse.Meadow, "äng");
             Add(TileUse.Forest, "skog att fälla");
             Add(TileUse.Mountain, "berg att bryta");
             Add(TileUse.FishingWater, "fiskevatten");
@@ -329,7 +343,7 @@ namespace Eirora.Client.UI
         {
             if (spec.Housing > 0 && spec.Houses != PopulationTier.Crofters)
             {
-                return $"Ger plats åt {Count(spec.Housing)} {Name(spec.Houses)}. Torpare blir {Name(spec.Houses)} här när de får det de behöver.";
+                return $"Ger plats åt {Count(spec.Housing)} {Name(spec.Houses)}. {Capital(Name((PopulationTier)((int)spec.Houses - 1)))} blir {Name(spec.Houses)} här när de får det de behöver.";
             }
 
             if (spec.Housing > 0)
@@ -383,7 +397,7 @@ namespace Eirora.Client.UI
         private static string Capital(string text) => char.ToUpperInvariant(text[0]) + text.Substring(1);
 
         /// <summary>A small count in words, as the texts say it; larger counts in digits.</summary>
-        private static string Count(int count) => count switch
+        public static string Count(int count) => count switch
         {
             2 => "två",
             3 => "tre",
@@ -564,6 +578,10 @@ namespace Eirora.Client.UI
             BuildingKind.Farmstead => "Bondgården",
             BuildingKind.HuntingLodge => "Jaktstugan",
             BuildingKind.Tannery => "Garveriet",
+            BuildingKind.CraftsmensHouse => "Hantverkargården",
+            BuildingKind.Apiary => "Bigården",
+            BuildingKind.Brewery => "Bryggeriet",
+            BuildingKind.Meadery => "Mjöderiet",
             _ => kind.ToString(),
         };
 
@@ -783,6 +801,7 @@ namespace Eirora.Client.UI
             VillagersMovedIn moved => moved.Count == 1 ? "En ny bybo flyttade in." : $"{moved.Count} nya bybor flyttade in.",
             VillagersRose rose => $"{Rose(rose)}.",
             StepUnlocked { Step: 1 } => "Byn har vuxit. Bondgård, jaktstuga och garveri kan byggas.",
+            StepUnlocked { Step: 2 } => "Bönderna har det gott. Hantverkargård, bigård, bryggeri och mjöderi kan byggas.",
             ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind built } => $"{Name(built)} är färdig.",
             ProjectCompleted { Kind: ProjectKind.Upgrade, Building: BuildingKind upgraded } => $"{Name(upgraded)} är uppgraderad.",
             ProjectCompleted { Kind: ProjectKind.Road } => "En ny väg är klar.",
@@ -830,9 +849,14 @@ namespace Eirora.Client.UI
             return lines;
         }
 
-        /// <summary>Villagers who rose a tier, as the report begins it: "Två torpare blev bönder".</summary>
-        private static string Rose(VillagersRose rose) =>
-            $"{Capital(rose.Count == 1 ? "en" : Count(rose.Count))} {Name((PopulationTier)((int)rose.Tier - 1))} blev {Name(rose.Tier)}";
+        /// <summary>Villagers who rose a tier, as the report begins it: "Två torpare blev bönder", "En bonde blev hantverkare".</summary>
+        private static string Rose(VillagersRose rose)
+        {
+            var below = (PopulationTier)((int)rose.Tier - 1);
+            return rose.Count == 1
+                ? $"En {One(below)} blev {One(rose.Tier)}"
+                : $"{Capital(Count(rose.Count))} {Name(below)} blev {Name(rose.Tier)}";
+        }
 
         /// <summary>
         /// An introduction of a system as it reaches the player (PRG-02; epoch-1.md, section 3): its title and what the
@@ -841,6 +865,7 @@ namespace Eirora.Client.UI
         public static (string Title, string Text) Introduction(App.Introduction introduction) => introduction switch
         {
             App.Introduction.Farmers => ("Bönder", "Byn har vuxit. Med kläder kan torpare bli bönder. De bor i bondgårdar, och tyg från väveriet eller skinn från garveriet klär dem."),
+            App.Introduction.Craftsmen => ("Hantverkare", "Bönderna har det gott. Med dryck kan några bli hantverkare. De bor i hantverkargårdar och bygger dubbelt så fort, och öl från bryggeriet eller mjöd från mjöderiet släcker deras törst."),
             _ => (introduction.ToString(), string.Empty),
         };
 

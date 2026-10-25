@@ -164,7 +164,7 @@ En sådan journal skrivs aldrig över: klienten säger att världen inte kan spe
 
 ### Innehållet
 
-Byggnaderna, nivåerna, behoven och upplåsningens steg står i innehållskatalogen (`ContentCatalog`), vars kanoniska text ligger incheckad i `tests/Eirora.Simulation.Tests/Economy/Golden/content-catalog.txt`.
+Byggnaderna, nivåerna med deras behov och byggtakt, behoven och upplåsningens steg med deras villkor står i innehållskatalogen (`ContentCatalog`), vars kanoniska text ligger incheckad i `tests/Eirora.Simulation.Tests/Economy/Golden/content-catalog.txt`.
 Innehållsvalidatorn (`ContentValidation`, INV-R4) underkänner en katalog där ett behov inte kan göras utan krafter på minst två sätt som börjar på olika mark, eller där ett behov kräver sin egen nivå; `ContentValidationTests` kör den i CI.
 
 ### Migrationer och gyllene sparningar

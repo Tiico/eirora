@@ -423,9 +423,11 @@ public sealed class LongAbsenceTests
         /// <summary>
         /// A store shrinks with time only by what recipes and basic needs consume (INV-R3), and the carriers only move goods
         /// between a building and a store (INV-R2): the sawmill takes two timber
-        /// for a plank, the weavery two wool for a wadmal, the tannery two game for a hide, and each dawn every villager eats
-        /// one fish, game or grain, and comfort takes two clothes and the farmers half one each in each settlement. The ships only move goods between the islands, and goods waiting at
-        /// a depot only move into its store. Nothing changes while the villagers rest throughout (INV-T4).
+        /// for a plank, the weavery two wool for a wadmal, the tannery two game for a hide, the brewery two grain for an ale
+        /// and the meadery a honey for a mead, and each dawn every villager eats one fish, game or grain, and comfort takes
+        /// two clothes, the farmers and craftsmen half one each and the craftsmen half a drink each, in each settlement.
+        /// The ships only move goods between the islands, and goods waiting at a depot only move into its store. Nothing
+        /// changes while the villagers rest throughout (INV-T4).
         /// </summary>
         public void AssertOnlyConsumedSince(Stocks earlier, int dawns, int villagers, int settlements, bool restingThroughout)
         {
@@ -440,12 +442,19 @@ public sealed class LongAbsenceTests
             long wadmalMade = Change(Resource.Wadmal) + clothes;
             long hideMade = Change(Resource.Hide) + clothes;
             long food = Change(Resource.Fish) + Change(Resource.Grain) + Change(Resource.Game);
+
+            // Drink is mead or ale: the craftsmen's half each, rounded up in each settlement, at most.
+            long drink = Quantity.Units(((villagers / 2) + settlements) * (long)dawns);
+            long aleMade = Change(Resource.Ale) + drink;
+            long meadMade = Change(Resource.Mead) + drink;
             Assert.True(Change(Resource.Planks) >= 0, $"planks {Change(Resource.Planks)}");
             Assert.True(Change(Resource.Stone) >= 0, $"stone {Change(Resource.Stone)}");
             Assert.True(Change(Resource.Timber) >= -2 * Change(Resource.Planks), $"timber {Change(Resource.Timber)} for {Change(Resource.Planks)} planks");
             Assert.True(Change(Resource.Wadmal) + Change(Resource.Hide) + clothes >= 0, $"wadmal {Change(Resource.Wadmal)} and hide {Change(Resource.Hide)} over {dawns} dawns");
             Assert.True(Change(Resource.Wool) >= -2 * wadmalMade, $"wool {Change(Resource.Wool)} for {wadmalMade} wadmal");
-            Assert.True(food >= -Quantity.Units((long)villagers * dawns) - (2 * hideMade), $"food {food} over {dawns} dawns and {hideMade} hide");
+            Assert.True(Change(Resource.Mead) + Change(Resource.Ale) + drink >= 0, $"mead {Change(Resource.Mead)} and ale {Change(Resource.Ale)} over {dawns} dawns");
+            Assert.True(Change(Resource.Honey) >= -meadMade, $"honey {Change(Resource.Honey)} for {meadMade} mead");
+            Assert.True(food >= -Quantity.Units((long)villagers * dawns) - (2 * hideMade) - (2 * aleMade), $"food {food} over {dawns} dawns, {hideMade} hide and {aleMade} ale");
         }
     }
 
@@ -456,7 +465,7 @@ public sealed class LongAbsenceTests
     private sealed class Reserved
     {
         // What the villagers eat and wear at dawn, which a reservation does not keep from them.
-        private static readonly Resource[] s_needed = [Resource.Fish, Resource.Grain, Resource.Game, Resource.Wadmal, Resource.Hide];
+        private static readonly Resource[] s_needed = [Resource.Fish, Resource.Grain, Resource.Game, Resource.Wadmal, Resource.Hide, Resource.Mead, Resource.Ale];
 
         private readonly Dictionary<Hex, int> _reserves;
         private readonly string _rules;
@@ -495,11 +504,13 @@ public sealed class LongAbsenceTests
     }
 
     /// <summary>
-    /// INV-T5 read a tick at a time: fields, sheep and forests grow as much in a quarter hour of rest as in one of work.
+    /// INV-T5 read a tick at a time: fields, sheep, apiaries and forests grow as much in a quarter hour of rest as in one of
+    /// work.
     /// </summary>
     /// <remarks>
-    /// What a field or a sheep farm grows each tick is what ripened plus what was harvested, waiting at the building, held
-    /// at the weavery or in a store, the weavery's wool counted in its wadmal; it stays the same from one tick to the next
+    /// What a field, a sheep farm or an apiary grows each tick is what ripened plus what was harvested, waiting at the
+    /// building, held at the processing or in a store, the weavery's wool counted in its wadmal, the brewery's grain in its
+    /// ale and the meadery's honey in its mead; it stays the same from one tick to the next
     /// until a dawn ends the workdays or a finished project changes a level. A forest tile grows back a quarter timber an
     /// hour until full, whoever fells it.
     /// </remarks>
@@ -556,8 +567,9 @@ public sealed class LongAbsenceTests
                 + w.Buildings.Where(b => w.Content.For(b.Kind).Recipe?.Product == r).Sum(b => b.Waiting)
                 + w.Buildings.Sum(b => b.Held?[(int)r] ?? 0);
 
-            long crops = w.Buildings.Where(b => b.Kind is BuildingKind.Field or BuildingKind.SheepFarm).Sum(b => b.Ripe)
-                + Total(Resource.Grain) + Total(Resource.Wool) + (2 * Total(Resource.Wadmal));
+            long crops = w.Buildings.Where(b => b.Kind is BuildingKind.Field or BuildingKind.SheepFarm or BuildingKind.Apiary).Sum(b => b.Ripe)
+                + Total(Resource.Grain) + (2 * Total(Resource.Ale)) + Total(Resource.Wool) + (2 * Total(Resource.Wadmal))
+                + Total(Resource.Honey) + Total(Resource.Mead);
 
             // The forest left on every tile plus the timber felled from it, the sawmill's timber counted in its planks.
             long forest = forestTiles.Sum(w.Settlement.ForestLeft) + Total(Resource.Timber) + (2 * Total(Resource.Planks));

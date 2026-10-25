@@ -66,7 +66,7 @@ public sealed class PopulationTiersArriveTests
         string state = world.Fingerprint();
         Assert.Equal(0, world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Farmers)));
 
-        Assert.Equal(state, new PopulationTiersArrive().Migrate(RulesEleven(state), PrototypeHome.Map));
+        Assert.Equal(CraftsmenArriveTests.RulesTwelve(state), new PopulationTiersArrive().Migrate(RulesEleven(state), PrototypeHome.Map));
         var reader = new StateReader(state);
         World.Read(reader, PrototypeHome.Map);
         reader.End();
@@ -86,13 +86,13 @@ public sealed class PopulationTiersArriveTests
     }
 
     /// <summary>
-    /// A state of rules 12 or later as rules 11 wrote it: no step on the economy's line, the villagers of every tier
+    /// A state of rules 12 or later as rules 11 wrote it, through <see cref="CraftsmenArriveTests.RulesTwelve"/>: no step on the economy's line, the villagers of every tier
     /// together on each settlement's, no game or hide in the stores and none in an import order; a state of rules 11 or
     /// earlier stays as it is.
     /// </summary>
     internal static string RulesEleven(string state)
     {
-        var lines = state.Split('\n').ToList();
+        var lines = CraftsmenArriveTests.RulesTwelve(state).Split('\n').ToList();
         int economy = lines.FindIndex(l => l.StartsWith("economy ", StringComparison.Ordinal));
         if (economy < 0 || lines[economy].Split(' ').Length != 4)
         {

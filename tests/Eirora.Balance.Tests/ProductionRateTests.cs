@@ -35,6 +35,7 @@ public sealed class ProductionRateTests
     [
         BuildingKind.FishingHut, BuildingKind.Field, BuildingKind.Woodcutter, BuildingKind.Quarry, BuildingKind.SheepFarm,
         BuildingKind.Sawmill, BuildingKind.Weavery, BuildingKind.HuntingLodge, BuildingKind.Tannery,
+        BuildingKind.Apiary, BuildingKind.Brewery, BuildingKind.Meadery,
     ];
 
     [Fact]
@@ -111,7 +112,7 @@ public sealed class ProductionRateTests
     [Fact]
     public void GameFromAHuntingLodgeNextToTheStore()
     {
-        var village = new Village(farmers: true);
+        var village = new Village(step: 1);
         village.Dawn(1);
         village.Apply(new Build(BuildingKind.HuntingLodge, s_forestNextToTheStore));
 
@@ -121,7 +122,7 @@ public sealed class ProductionRateTests
     [Fact]
     public void HideOnceGameHasPiledUp()
     {
-        var village = new Village(farmers: true);
+        var village = new Village(step: 1);
         village.Dawn(1);
         village.Apply(new Build(BuildingKind.HuntingLodge, s_forestNextToTheStore));
         village.Dawn(6);
@@ -132,21 +133,57 @@ public sealed class ProductionRateTests
         village.AssertDayGain(8, Resource.Hide, buildings: 1);
     }
 
+    // Step 2's drink (TASK-062): an apiary on the meadow next to the store grows honey day and night, measured once it has
+    // stood a whole day and night as grain is, and farmers brew ale of grain and make mead of honey in store.
+    [Fact]
+    public void HoneyFromAnApiaryOnTheMeadowNextToTheStore()
+    {
+        var village = new Village(step: 2);
+        village.Dawn(1);
+        village.Apply(new Build(BuildingKind.Apiary, s_nextToTheStore));
+
+        village.AssertDayGain(3, Resource.Honey, buildings: 1);
+    }
+
+    [Theory]
+    [InlineData(BuildingKind.Brewery, Resource.Grain, Resource.Ale)]
+    [InlineData(BuildingKind.Meadery, Resource.Honey, Resource.Mead)]
+    public void DrinkFromFarmersWithRawMaterialInStore(BuildingKind kind, Resource raw, Resource drink)
+    {
+        var village = new Village(step: 2, farmers: 2, stock: (raw, 100));
+        village.Dawn(1);
+        village.Apply(new Build(kind, s_nextToTheStore));
+
+        village.AssertDayGain(2, drink, buildings: 1);
+    }
+
     /// <summary>A world on the prototype's map without self-care, played day by day as <see cref="BalanceRun"/> plays it.</summary>
     private sealed class Village
     {
         private readonly World _world;
         private int _key;
 
-        /// <param name="farmers">Whether the world has reached step 1, Farmers, as a world of 20 villagers would (TASK-061).</param>
-        public Village(bool farmers = false)
+        /// <param name="step">
+        /// The step the world has reached, as a world of 20 villagers, or of 30 with 6 farmers, would (TASK-061, TASK-062).
+        /// </param>
+        /// <param name="farmers">How many of the start's twelve villagers are farmers.</param>
+        /// <param name="stock">A resource in the home island's store, in whole units, in place of the start's.</param>
+        public Village(int step = 0, int farmers = 0, (Resource Resource, int Units)? stock = null)
         {
             _world = World.Create(PrototypeHome.Map, new TimeReading(BalanceRun.InstallUtc, BalanceRun.Zone, 0), BalanceRun.Rest);
-            if (farmers)
+            if (step > 0)
             {
                 var lines = _world.Fingerprint().TrimEnd('\n').Split('\n');
                 int economy = Array.FindIndex(lines, l => l.StartsWith("economy ", StringComparison.Ordinal));
-                lines[economy] = $"{lines[economy][..lines[economy].LastIndexOf(' ')]} 1";
+                lines[economy] = $"{lines[economy][..lines[economy].LastIndexOf(' ')]} {step}";
+                int home = Array.FindIndex(lines, l => l.StartsWith("settlement home ", StringComparison.Ordinal));
+                lines[home] = $"settlement home {12 - farmers} {farmers} 0";
+                if (stock is var (resource, units))
+                {
+                    int at = Array.FindIndex(lines, l => l.StartsWith($"stock home {resource} ", StringComparison.Ordinal));
+                    lines[at] = $"stock home {resource} {Quantity.Units(units)}";
+                }
+
                 _world = World.Read(new Eirora.Simulation.Serialization.StateReader(string.Join('\n', lines) + "\n"), PrototypeHome.Map);
             }
         }

@@ -330,7 +330,7 @@ public sealed class DemolitionTests
             lines.InsertRange(
                 lines.FindLastIndex(l => l.StartsWith("stock ", StringComparison.Ordinal)) + 1,
                 Enum.GetValues<Resource>().Select(r => $"stock {PrototypeHome.Nyon} {r} {(r == Resource.Fish ? fish * Quantity.PerUnit : 0)}"));
-            lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {PrototypeHome.Nyon} {villagers} 0");
+            lines.Insert(lines.FindLastIndex(l => l.StartsWith("settlement ", StringComparison.Ordinal)) + 1, $"settlement {PrototypeHome.Nyon} {villagers} 0 0");
         });
 
     private static Dictionary<Resource, long> Stocks(World world) => Enum.GetValues<Resource>().ToDictionary(r => r, world.Stock);
@@ -356,7 +356,7 @@ public sealed class DemolitionTests
         var world = World.Create(At("2026-10-14 14:00", 2), Night);
         world.AdvanceTo(at);
         var lines = world.Fingerprint().Split('\n').ToList();
-        lines[lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal))] = $"settlement home {villagers} 0";
+        lines[lines.FindIndex(l => l.StartsWith("settlement home ", StringComparison.Ordinal))] = $"settlement home {villagers} 0 0";
         edit(lines);
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return World.Read(new StateReader(string.Join("\n", lines)), PrototypeHome.Map);

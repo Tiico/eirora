@@ -1,4 +1,4 @@
-content 2
+content 3
 upgrade work 16 power 50 staff 0 site None housing 0 levels 1 step 0 tier Crofters houses Crofters hand-build 0
 cost Planks 10
 cost Stone 5
@@ -55,11 +55,33 @@ cost Timber 10
 cost Stone 5
 recipe Hide per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 5
 input Game 2
+building CraftsmensHouse work 40 power 0 staff 0 site Land housing 8 levels 1 step 2 tier Crofters houses Craftsmen hand-build 0
+cost Timber 20
+cost Stone 20
+building Apiary work 8 power 0 staff 1 site Meadow housing 0 levels 2 step 2 tier Crofters houses Crofters hand-build 0
+cost Timber 6
+recipe Honey per-hour 2000000 richness 1 grows-per-hour 400000 forest-tiles 0 hunt-tiles 0 reserve 0
+building Brewery work 16 power 0 staff 2 site Land housing 0 levels 2 step 2 tier Farmers houses Crofters hand-build 0
+cost Timber 15
+cost Stone 5
+recipe Ale per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
+input Grain 2
+building Meadery work 24 power 0 staff 2 site Land housing 0 levels 2 step 2 tier Farmers houses Crofters hand-build 0
+cost Timber 15
+cost Stone 5
+recipe Mead per-hour 500000 richness 0 grows-per-hour 0 forest-tiles 0 hunt-tiles 0 reserve 20
+input Honey 1
 need Food Fish Game Grain
 need Clothes Wadmal Hide
-tier Crofters step 0
+need Drink Mead Ale
+tier Crofters step 0 builds 1
 uses Food per-thousand 1000
-tier Farmers step 1
+tier Farmers step 1 builds 1
 uses Food per-thousand 1000
 uses Clothes per-thousand 500
-step 1 villagers 20
+tier Craftsmen step 2 builds 2
+uses Food per-thousand 1000
+uses Clothes per-thousand 500
+uses Drink per-thousand 500
+step 1 villagers 20 of Crofters 0
+step 2 villagers 30 of Farmers 6

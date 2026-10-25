@@ -62,6 +62,9 @@ namespace Eirora.Client.Tests
                 "Väveri | 2 ull → 1 tyg per 2 h",
                 "Jaktstuga | 0,25 vilt/h per skogsruta, högst fyra · fäller ingen skog",
                 "Garveri | 2 vilt → 1 skinn per 2 h",
+                "Bigård | 0,4 honung/h dygnet runt",
+                "Bryggeri | 2 säd → 1 öl per 2 h",
+                "Mjöderi | 1 honung → 1 mjöd per 2 h",
             }));
         }
 

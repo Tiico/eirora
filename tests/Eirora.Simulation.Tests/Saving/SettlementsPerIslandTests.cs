@@ -83,7 +83,7 @@ public sealed class SettlementsPerIslandTests
 
         // The jetty's and the sawmill's villagers moved with them, and the store on the second island keeps 50 of each.
         // The other 70 timber wait, and the planks fit.
-        Assert.Contains($"settlement home {world.Villagers - 3} 0\nsettlement second 3 0\n", migrated, StringComparison.Ordinal);
+        Assert.Contains($"settlement home {world.Villagers - 3} 0 0\nsettlement second 3 0 0\n", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Timber {50 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock home Timber {140 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);
         Assert.Contains($"stock second Planks {40 * Quantity.PerUnit}", migrated, StringComparison.Ordinal);

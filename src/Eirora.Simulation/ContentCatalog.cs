@@ -46,9 +46,9 @@ namespace Eirora.Simulation
 
             for (int i = 0; i < steps.Count; i++)
             {
-                if (steps[i].Step != i + 1)
+                if (steps[i].Step != i + 1 || (int)steps[i].Tier >= tiers.Count)
                 {
-                    throw new ArgumentException("The steps are numbered from 1 in order.", nameof(steps));
+                    throw new ArgumentException("The steps are numbered from 1 in order, each asking for a tier the catalog has.", nameof(steps));
                 }
             }
 
@@ -132,18 +132,38 @@ namespace Eirora.Simulation
                 (BuildingKind.Tannery, new(
                     Materials(timber: 10, stone: 5), workHours: 16, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 1,
                     recipe: new(Resource.Hide, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Game, 2) }, reserve: 5))),
+
+                // Step 2, Craftsmen (economy-v2.md, section 4).
+                (BuildingKind.CraftsmensHouse, new(
+                    Materials(timber: 20, stone: 20), workHours: 40, buildPower: 0, staff: 0, TileUse.Land, housing: 8, step: 2,
+                    houses: PopulationTier.Craftsmen)),
+                (BuildingKind.Apiary, new(
+                    Materials(timber: 6), workHours: 8, buildPower: 0, staff: 1, TileUse.Meadow, maxLevel: 2, step: 2,
+                    recipe: new(Resource.Honey, perHour: 2_000_000, richness: true, growsPerHour: 400_000))),
+                (BuildingKind.Brewery, new(
+                    Materials(timber: 15, stone: 5), workHours: 16, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 2,
+                    tier: PopulationTier.Farmers, recipe: new(Resource.Ale, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Grain, 2) }))),
+                (BuildingKind.Meadery, new(
+                    Materials(timber: 15, stone: 5), workHours: 24, buildPower: 0, staff: 2, TileUse.Land, maxLevel: 2, step: 2,
+                    tier: PopulationTier.Farmers, recipe: new(Resource.Mead, perHour: 500_000, inputs: new[] { new Ingredient(Resource.Honey, 1) }))),
             },
             needs: new[]
             {
                 new NeedSpec(Need.Food, Resource.Fish, Resource.Game, Resource.Grain),
                 new NeedSpec(Need.Clothes, Resource.Wadmal, Resource.Hide),
+                new NeedSpec(Need.Drink, Resource.Mead, Resource.Ale),
             },
             tiers: new[]
             {
-                new TierSpec(PopulationTier.Crofters, step: 0, (Need.Food, 1000)),
-                new TierSpec(PopulationTier.Farmers, step: 1, (Need.Food, 1000), (Need.Clothes, 500)),
+                new TierSpec(PopulationTier.Crofters, step: 0, builds: 1, (Need.Food, 1000)),
+                new TierSpec(PopulationTier.Farmers, step: 1, builds: 1, (Need.Food, 1000), (Need.Clothes, 500)),
+                new TierSpec(PopulationTier.Craftsmen, step: 2, builds: 2, (Need.Food, 1000), (Need.Clothes, 500), (Need.Drink, 500)),
             },
-            steps: new[] { new UnlockSpec(1, villagers: 20) });
+            steps: new[]
+            {
+                new UnlockSpec(1, villagers: 20),
+                new UnlockSpec(2, villagers: 30, PopulationTier.Farmers, ofTier: 6),
+            });
 
         public int Version { get; }
 
@@ -230,7 +250,7 @@ namespace Eirora.Simulation
 
             foreach (var tier in Tiers)
             {
-                writer.Line("tier").Enum(tier.Tier).Text("step").Long(tier.Step);
+                writer.Line("tier").Enum(tier.Tier).Text("step").Long(tier.Step).Text("builds").Long(tier.Builds);
                 foreach (var need in tier.Needs)
                 {
                     writer.Line("uses").Enum(need.Need).Text("per-thousand").Long(need.PerThousand);
@@ -239,7 +259,7 @@ namespace Eirora.Simulation
 
             foreach (var step in Steps)
             {
-                writer.Line("step").Long(step.Step).Text("villagers").Long(step.Villagers);
+                writer.Line("step").Long(step.Step).Text("villagers").Long(step.Villagers).Text("of").Enum(step.Tier).Long(step.OfTier);
             }
 
             return writer.ToString();

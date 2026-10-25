@@ -153,9 +153,9 @@ public sealed class SeaRouteTests
         Assert.Throws<FormatException>(() => Read(Without(state, "stock second ")));
         Assert.Throws<FormatException>(() => Read(Without(state, "stock second Wadmal ")));
         Assert.Throws<FormatException>(() => Read(Without(state, "settlement second ")));
-        Assert.Throws<FormatException>(() => Read(state.Replace("settlement first 1 0\nsettlement second 1 0", "settlement second 1 0\nsettlement first 1 0", StringComparison.Ordinal)));
-        Assert.Throws<FormatException>(() => Read(state.Replace("settlement second 1 0", "settlement second -1 0", StringComparison.Ordinal)));
-        Assert.Throws<FormatException>(() => Read(state.Replace("settlement second 1 0", "settlement second 0 0", StringComparison.Ordinal))); // Its jetty's villager.
+        Assert.Throws<FormatException>(() => Read(state.Replace("settlement first 1 0 0\nsettlement second 1 0 0", "settlement second 1 0 0\nsettlement first 1 0 0", StringComparison.Ordinal)));
+        Assert.Throws<FormatException>(() => Read(state.Replace("settlement second 1 0 0", "settlement second -1 0 0", StringComparison.Ordinal)));
+        Assert.Throws<FormatException>(() => Read(state.Replace("settlement second 1 0 0", "settlement second 0 0 0", StringComparison.Ordinal))); // Its jetty's villager.
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ public sealed class SeaRouteTests
         lines.RemoveAll(l => l.StartsWith("stock ", StringComparison.Ordinal) || (l.StartsWith("building ", StringComparison.Ordinal) && !l.StartsWith("building Storehouse ", StringComparison.Ordinal)));
         lines.InsertRange(at, map.Islands.Where(i => islands.Contains(i.Id)).SelectMany(i => Enum.GetValues<Resource>().Select(r =>
             $"stock {i.Id} {r} {Quantity.Units(s_kept.Contains(r) ? stock(i.Id, r) : i.Id == Archipelago.Home ? 100 : r == Resource.Fish ? 2 : 0)}")));
-        lines.InsertRange(at, [$"settlement {Archipelago.First} 1 0", $"settlement {Archipelago.Second} 1 0"]);
+        lines.InsertRange(at, [$"settlement {Archipelago.First} 1 0 0", $"settlement {Archipelago.Second} 1 0 0"]);
         lines.InsertRange(lines.FindLastIndex(l => l.StartsWith("building ", StringComparison.Ordinal)) + 1, buildings);
         return Read(string.Join('\n', lines));
 
