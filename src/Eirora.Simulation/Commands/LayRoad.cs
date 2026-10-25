@@ -27,7 +27,7 @@ namespace Eirora.Simulation.Commands
             }
 
             var cost = new Dictionary<Resource, int> { [Resource.Stone] = Logistics.RoadStone };
-            if (!settlement.CanAfford(cost))
+            if (!settlement.CanAfford(cost, Tile))
             {
                 return Rejection.InsufficientResources;
             }

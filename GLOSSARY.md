@@ -73,8 +73,9 @@ _Avoid_: fog of war, mörker
 
 ## Civilisation och ekonomi
 
-**Bosättning** (`Settlement`):
+**Bosättning** (`IslandSettlement`):
 En ös byggnader, bybor, bostäder och lager, anlagd av öns första förråd eller brygga; varje ö har högst en bosättning (D-106).
+Byborna bemannar bara byggnader på sin ö, och högst en ledig bybo i hela världen flyttar till en annan bosättning per gryning, över sjövägen.
 _Avoid_: by, stad (som generella termer), grundande (som är det en ny värld börjar med)
 
 **Bybor** (`Villagers`):
@@ -367,7 +368,7 @@ Spelarens identitet på servern, som skapas när spelaren första gången loggar
 _Avoid_: profil, användare, inloggning (som är sättet att nå kontot)
 
 **Molnsparning** (`CloudSave`):
-Kontots kopia av världens sparning på servern, uppdelad i en världsdel och en end-to-end-krypterad bidragsdel.
+Kontots kopia av världens sparning på servern, uppdelad i en världsdel och, med spelarens samtycke, en end-to-end-krypterad bidragsdel.
 _Avoid_: backup, synk
 
 **Världsdel** (`Save.ToParts().World`):
@@ -377,6 +378,10 @@ _Avoid_: grunddata, publik del
 **Bidragsdel** (`Save.ToParts().Contributions`):
 Den del av sparningen som krypteras på enheten: egenvården och krediteringen per dag, de använda idempotensnycklarna, segmentens start och journalerna (D-100).
 _Avoid_: hälsodata (som aldrig lämnar telefonen), krypterad backup
+
+**Samtycke till bidragsdelen** (`ContributionConsent`):
+Spelarens uttryckliga ja eller nej till att bidragsdelen sparas på kontot, som appen frågar om före den första uppladdningen och som kan ändras under Konto; utan det sparas bara världsdelen, och ett nej raderar bidragsdelen på servern.
+_Avoid_: hälsosamtycke, godkännande av villkoren
 
 **Bidragsnyckel** (`ContributionKey`):
 Nyckeln som bara spelarens enheter har och som krypterar molnsparningens bidrag per dag; förloras den går bidragshistoriken förlorad, aldrig världen.

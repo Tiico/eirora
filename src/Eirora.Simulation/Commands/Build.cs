@@ -33,7 +33,7 @@ namespace Eirora.Simulation.Commands
                 return site;
             }
 
-            if (!settlement.CanAfford(spec.Cost))
+            if (!settlement.CanAfford(spec.Cost, Tile))
             {
                 return Rejection.InsufficientResources;
             }

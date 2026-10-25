@@ -3,16 +3,17 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Eirora.Client.App;
 using Eirora.CloudSaving;
+using Eirora.Contracts;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Eirora.Client.UI
 {
     /// <summary>
-    /// The cloud save in the interface (ADR-0008, TASK-023): a line in the account sheet, the choice between the
-    /// phone's world and the cloud's, the notice when the contribution part could not be read on this phone, and the
-    /// key transfer between two phones (TASK-023b): the new one shows a QR code, the old one scans it and sends the key
-    /// once the player has confirmed it.
+    /// The cloud save in the interface (ADR-0008, TASK-023): a line in the account sheet, the question whether the
+    /// self-care may be saved on the account (TASK-060), the choice between the phone's world and the cloud's, the
+    /// notice when the contribution part could not be read on this phone, and the key transfer between two phones
+    /// (TASK-023b): the new one shows a QR code, the old one scans it and sends the key once the player has confirmed it.
     /// </summary>
     public sealed partial class Hud
     {
@@ -27,6 +28,9 @@ namespace Eirora.Client.UI
         private VisualElement? _choiceCard;
         private SyncResult? _shownChoice;
         private VisualElement? _noticeCard;
+        private VisualElement? _consentCard;
+        private bool _askingConsent;
+        private bool _confirmingWithdrawal;
         private bool _showingRecoveryCode;
         private bool _sendingKey;
         private KeyTransferTicket? _ticketToSend;
@@ -80,10 +84,24 @@ namespace Eirora.Client.UI
                 RemoveChoiceCard();
             }
 
+            if (cloud.ConsentQuestion)
+            {
+                if (_consentCard is null)
+                {
+                    ShowConsentQuestion(cloud);
+                }
+            }
+            else
+            {
+                RemoveConsentCard();
+            }
+
             if (cloud.Welcome)
             {
+                Toast(cloud.WelcomeWithoutSelfCare
+                    ? "Välkommen tillbaka till din ö. Egenvården sparas inte på kontot, så dagarna hittills räknas som vilodagar."
+                    : "Välkommen tillbaka till din ö.");
                 cloud.AcknowledgeWelcome();
-                Toast("Välkommen tillbaka till din ö.");
             }
 
             if (cloud.ContributionPartLocked)
@@ -104,6 +122,139 @@ namespace Eirora.Client.UI
         }
 
         private string? CloudStatusLine() => _cloud is { } cloud ? Texts.CloudSync(cloud.Status, cloud.SyncedAt) : null;
+
+        /// <summary>
+        /// The question before the first upload (TASK-060, GDPR Article 9(2)(a)): what the contribution part is, that it
+        /// is sealed on the phone where the server can never read it, and that the world part is saved whatever the
+        /// answer. Both answers weigh the same, and a decline is never asked again (HLT-12).
+        /// </summary>
+        private void ShowConsentQuestion(CloudSaveSync cloud)
+        {
+            var card = Container("card setup", _middle);
+            _consentCard = card;
+            ConsentContent(card, "setup-title", cloud.ContributionsOnAccount, given =>
+            {
+                RemoveConsentCard();
+                AnswerConsent(cloud, given);
+            });
+        }
+
+        private void RemoveConsentCard()
+        {
+            if (_consentCard is { } card)
+            {
+                _consentCard = null;
+                _middle.Remove(card);
+            }
+        }
+
+        private static void ConsentContent(VisualElement parent, string titleClass, bool contributionsOnAccount, Action<bool> answer)
+        {
+            Text(titleClass, parent, "Egenvården på kontot?");
+            Text("sheet-text", parent, "Din ö sparas på kontot så att den kan följa med till en ny telefon: kartan, byn och krafternas saldon. Den sparas vad du än svarar här.");
+            Text("sheet-text", parent, "Din egenvård kan sparas där också: hur mycket du gjort varje dag, vad det gav ön och spelets journal. Den krypteras på telefonen med en nyckel som bara dina enheter har, så servern kan aldrig läsa den.");
+            Text("sheet-text", parent, "Med den följer egenvården med till en ny telefon. Utan den stannar egenvården här, och spelet fungerar precis som vanligt.");
+            if (contributionsOnAccount)
+            {
+                Text("sheet-text", parent, "Kontot har redan egenvård sparad från tidigare. Svarar du nej raderas den från servern.");
+            }
+
+            Text("sheet-text", parent, "Egenvården räknas som uppgifter om hälsa, så den sparas bara om du säger ja. Du kan ändra dig under Konto.");
+            var choices = Container("bar", parent);
+            Button("button", choices, "Ja, spara den", () => answer(true));
+            Button("button", choices, "Nej tack", () => answer(false));
+        }
+
+        private void AnswerConsent(CloudSaveSync cloud, bool given) =>
+            _ = AnswerConsentAsync(cloud, given, given ? "Din egenvård sparas krypterad på kontot." : "Din egenvård stannar på telefonen. Din ö sparas på kontot.");
+
+        /// <summary>Gives the answer and says what came of it once the server has answered, never before.</summary>
+        private async Task AnswerConsentAsync(CloudSaveSync cloud, bool given, string done)
+        {
+            await cloud.AnswerConsentAsync(given);
+            Toast(cloud.DeclineWaiting
+                ? "Ditt nej har inte nått servern än. Egenvården laddas inte upp, och nejet skickas igen vid nästa synk."
+                : cloud.AnswerWaiting
+                    ? "Servern går inte att nå just nu. Ditt svar skickas när den nås."
+                    : cloud.Consent == (given ? ConsentAnswer.Given : ConsentAnswer.Declined)
+                        ? done
+                        : "Ditt svar kom inte fram. Försök igen om en stund.");
+        }
+
+        /// <summary>The account sheet's part for the self-care on the account: give it later, or withdraw it (TASK-060).</summary>
+        private void ConsentActions(CloudSaveSync cloud)
+        {
+            // Withdrawing is always there for a signed-in player: also before the phone has heard the answer, as at an
+            // offline launch, since a no is safe to send whatever the account said.
+            switch (cloud.Consent)
+            {
+                case ConsentAnswer.Given:
+                case null:
+                    AddAction("Sluta spara egenvården på kontot", "Den raderas från servern och stannar på telefonen", true, () =>
+                    {
+                        _confirmingWithdrawal = true;
+                        ShowSheet();
+                    });
+                    break;
+                case ConsentAnswer.Declined:
+                    Text("sheet-text", _sheet, cloud.DeclineWaiting
+                        ? "Ditt nej har inte nått servern än. Egenvården laddas inte upp under tiden, och nejet skickas vid nästa synk."
+                        : "Din egenvård stannar på telefonen. Din ö sparas på kontot ändå.");
+                    AddAction("Spara egenvården på kontot", "Krypterad, så att den följer med till en ny telefon", true, OpenConsent);
+                    break;
+            }
+        }
+
+        /// <summary>Opens the account sheet on the question, for a player who said no and changed their mind.</summary>
+        public void OpenConsent()
+        {
+            if (_open != Sheet.Account)
+            {
+                OpenAccount();
+            }
+
+            _askingConsent = true;
+            ShowSheet();
+        }
+
+        /// <summary>Opens the account sheet on the confirmation before the self-care is deleted from the server.</summary>
+        public void OpenConsentWithdrawal()
+        {
+            if (_open != Sheet.Account)
+            {
+                OpenAccount();
+            }
+
+            _confirmingWithdrawal = true;
+            ShowSheet();
+        }
+
+        private void ConsentSheet(CloudSaveSync cloud) => ConsentContent(_sheet, "sheet-title", contributionsOnAccount: false, given =>
+        {
+            _askingConsent = false;
+            AnswerConsent(cloud, given);
+            ShowSheet();
+        });
+
+        /// <summary>Withdrawing the consent: what goes from the server and what stays, with two answers that weigh the same.</summary>
+        private void ConsentWithdrawalSheet(CloudSaveSync cloud)
+        {
+            Text("sheet-title", _sheet, "Sluta spara egenvården på kontot?");
+            Text("sheet-text", _sheet, "Egenvården raderas från servern, också gammal egenvård som servern sparat undan. Den finns kvar på telefonen.");
+            Text("sheet-text", _sheet, "Din ö sparas på kontot som förut. En ny telefon får ön utan egenvården hittills.");
+            var choices = Container("bar", _sheet);
+            Button("button", choices, "Sluta spara", () =>
+            {
+                _confirmingWithdrawal = false;
+                _ = AnswerConsentAsync(cloud, false, "Egenvården är raderad från servern och finns kvar på telefonen.");
+                ShowSheet();
+            });
+            Button("button", choices, "Avbryt", () =>
+            {
+                _confirmingWithdrawal = false;
+                ShowSheet();
+            });
+        }
 
         private void ShowChoice(SyncResult choice)
         {
@@ -145,6 +296,11 @@ namespace Eirora.Client.UI
         {
             Text("setup-title", card, "Vilken ö vill du behålla?");
             Text("sheet-text", card, $"Kontot har redan en ö{CloudWorld(choice)}. Den här telefonen har en annan ö.");
+            if (choice.CloudWithoutContributions)
+            {
+                Text("sheet-text", card, "Egenvården sparas inte på kontot, så öarna kan inte slås ihop. Hämtar du kontots ö räknas dagarna hittills som vilodagar, och egenvården räknas igen från nästa gryning.");
+            }
+
             if (choice.ContributionsUnreadable)
             {
                 Text("sheet-text", card, "Egenvården i kontots ö går inte att läsa på den här telefonen. Hämtar du den räknas dagarna hittills som vilodagar, och egenvården räknas igen från nästa gryning.");

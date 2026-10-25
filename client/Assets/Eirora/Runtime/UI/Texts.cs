@@ -171,6 +171,60 @@ namespace Eirora.Client.UI
         public static string FreeVillagers(int count) => count == 1 ? "en ledig bybo" : $"{Count(count)} lediga bybor";
 
         /// <summary>
+        /// A settlement's villagers and homes, as its island's sheets and the report show it (TASK-050): "Nyön: 3 av 4
+        /// bybor, en ledig".
+        /// </summary>
+        public static string Settlement(World world, IslandSettlement settlement)
+        {
+            string free = settlement.FreeVillagers switch
+            {
+                0 => "alla i arbete",
+                1 => "en ledig",
+                int count => $"{Count(count)} lediga",
+            };
+            string island = Capital(IslandName(world, settlement.Island));
+            return settlement.Villagers == 0 ? $"{island}: inga bybor än, bostäder för {Count(settlement.Housing)}"
+                : settlement.Villagers > settlement.Housing ? $"{island}: {settlement.Villagers} bybor i bostäder för {settlement.Housing}, {free}"
+                : $"{island}: {settlement.Villagers} av {settlement.Housing} bybor, {free}";
+        }
+
+        /// <summary>
+        /// Why a settlement does not grow and who could come to staff its buildings, in sentences for its sheets
+        /// (TASK-050, D-106); nothing when it grows and lacks no one.
+        /// </summary>
+        public static IEnumerable<string> Growth(SettlementDiagnosis settlement)
+        {
+            var village = settlement.Settlement;
+            switch (settlement.Growth)
+            {
+                case Simulation.Economy.Growth.Empty:
+                    yield return "Här bor inga bybor än. De flyttar hit över sjövägen, högst en per gryning i hela ögruppen.";
+                    break;
+                case Simulation.Economy.Growth.Hungry:
+                    yield return $"Maten räcker inte: {settlement.Food} mat i lagret till {Villagers(village.Villagers)}. Byn växer inte, men ingen flyttar härifrån.";
+                    if (!settlement.HasRoom)
+                    {
+                        yield return "Alla bostäder är fulla också. Med en stuga eller ett långhus kan fler flytta in.";
+                    }
+
+                    break;
+                case Simulation.Economy.Growth.Full:
+                    yield return "Alla bostäder är fulla. Med en stuga eller ett långhus kan fler flytta in.";
+                    break;
+            }
+
+            if (settlement.MissingStaff == 0)
+            {
+                yield break;
+            }
+
+            string missing = $"Byggnaderna saknar {Villagers(settlement.MissingStaff)}.";
+            yield return !settlement.HasRoom ? $"{missing} Det finns ingen bostad för fler."
+                : settlement.FreeNearby == 0 ? $"{missing} Ingen ledig bybo finns på öarna som sjövägen når."
+                : $"{missing} En ledig bybo flyttar hit över sjövägen vid gryningen, om ingen ö saknar fler.";
+        }
+
+        /// <summary>
         /// What a finished building that produces nothing does, in a sentence for its sheet: the housing the content
         /// catalog gives it, or what the rules let the storehouse and the lookout do. Null for a building that does none.
         /// </summary>
@@ -324,6 +378,7 @@ namespace Eirora.Client.UI
                 ? $"Molnsparning: din ö är sparad på kontot, senast {at.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)}"
                 : "Molnsparning: din ö är sparad på kontot",
             App.CloudSyncStatus.NoWorld => "Molnsparning: ingen ö att spara ännu",
+            App.CloudSyncStatus.ConsentNeeded => "Molnsparning: väntar på ditt svar om egenvården",
             App.CloudSyncStatus.Offline => "Molnsparning: väntar på uppkoppling, din ö sparas när servern nås",
             App.CloudSyncStatus.ChoiceNeeded => "Molnsparning: telefonen och kontot har olika öar",
             App.CloudSyncStatus.KeyNeeded => "Molnsparning: kontots ö väntar på nyckeln från din gamla telefon",
@@ -421,8 +476,9 @@ namespace Eirora.Client.UI
             !spec.Produces ? Staffing(building, spec) : building.Paused ? "pausad" : "vilar";
 
         /// <summary>What holds a building back, in a sentence for its sheet (TASK-043, LOG-03).</summary>
-        public static string Hindrance(Hindrance hindrance, Resource? product) => hindrance switch
+        public static string Hindrance(Hindrance hindrance, Resource? product, bool home = true) => hindrance switch
         {
+            MissingStaff staff when !home => $"Det saknas {Villagers(staff.Villagers)} här. Öns egna bybor bemannar den, och lediga bybor flyttar hit över sjövägen.",
             MissingStaff staff => $"Det saknas {Villagers(staff.Villagers)} här. Flytta upp den i bemanningen eller pausa en byggnad före den.",
             Paused => "Pausad: byborna bygger i stället. Nivån och lagret står kvar.",
             WaitingForInput input =>
@@ -469,12 +525,25 @@ namespace Eirora.Client.UI
             return more.Count == 0 ? "ger inget mer i dag" : List(more);
         }
 
-        /// <summary>The sea route's use now and what keeps goods from reaching home, for the jetties' sheets.</summary>
+        /// <summary>
+        /// The sea route's use now, what it carries out before the island's goods go home, and what keeps goods from
+        /// reaching home, for the jetties' sheets.
+        /// </summary>
         public static IEnumerable<string> SeaRoute(SeaRouteDiagnosis route)
         {
             yield return route.UsedPercent >= 100 ? "Skeppen går fulla."
                 : route.ShippedPerHour == 0 ? "Skeppen har ingen last just nu."
                 : $"Skeppen använder {route.UsedPercent} % av sin plats.";
+            if (route.MaterialsOwed > 0)
+            {
+                yield return $"Först tar de ut {route.MaterialsOwed} byggmaterial från Hemön till byggena på ön.";
+            }
+
+            if (route.SuppliesPerHour > 0)
+            {
+                yield return "De tar ut mat från Hemön, så att öns bybor har för två dagar.";
+            }
+
             foreach (var hindrance in route.Hindrances)
             {
                 if (hindrance is StoreFull full)
@@ -558,6 +627,18 @@ namespace Eirora.Client.UI
         }
 
         /// <summary>One line in the daily report, or null for events the report leaves out.</summary>
+        public static string? Describe(World world, GameEvent gameEvent) => gameEvent switch
+        {
+            VillagersMovedIn moved when moved.Island != world.HomeIsland =>
+                (moved.Count == 1 ? "En ny bybo flyttade in på " : $"{moved.Count} nya bybor flyttade in på ") + IslandName(world, moved.Island) + ".",
+            VillagerMoved moved => $"En bybo flyttade från {IslandName(world, moved.From)} till {IslandName(world, moved.To)}.",
+            ProjectCompleted { Kind: ProjectKind.Build, Building: BuildingKind.Jetty } done when world.IslandOf(done.Tile) is var island && island != world.HomeIsland =>
+                $"Bryggan på {IslandName(world, island)} är färdig.",
+            SettlementFounded founded => $"{Capital(IslandName(world, founded.Island))} har en egen by, dit bybor flyttar över sjövägen.",
+            _ => Describe(gameEvent),
+        };
+
+        /// <summary>One line in the daily report, or null for events the report leaves out, as it reads on any island.</summary>
         public static string? Describe(GameEvent gameEvent) => gameEvent switch
         {
             DawnBroke dawn => $"Byn vaknade till dag {dawn.GameDay}.",
@@ -577,7 +658,7 @@ namespace Eirora.Client.UI
         /// The daily report: one line per event, except that all the fog the player lifted is one line where the first
         /// lift was, since a day can lift tens of tiles.
         /// </summary>
-        public static IEnumerable<string> Report(IEnumerable<GameEvent> events)
+        public static IEnumerable<string> Report(World world, IEnumerable<GameEvent> events)
         {
             var lines = new List<string>();
             int lifted = 0;
@@ -595,7 +676,7 @@ namespace Eirora.Client.UI
                     continue;
                 }
 
-                if (Describe(gameEvent) is string line)
+                if (Describe(world, gameEvent) is string line)
                 {
                     lines.Add(line);
                 }

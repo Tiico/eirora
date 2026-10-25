@@ -99,7 +99,7 @@ namespace Eirora.Client.Tests
         public void ABuildingWithoutStaffIsMarkedOnTheIslandAndItsSheetSaysHowManyVillagersAreMissing()
         {
             // Eight villagers: seven run the start buildings, so one is free for a sawmill that takes two.
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
+            var world = Edited(Morning(), "settlement home 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -144,7 +144,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void AStorehouseWithoutStaffStillStoresAndIsNotMarked()
         {
-            var world = Edited(Morning(), "settlement 7", "building Storehouse -1 0 1 0 0 0 0 0 4 0 0 0 0 0");
+            var world = Edited(Morning(), "settlement home 7", "building Storehouse -1 0 1 0 0 0 0 0 4 0 0 0 0 0");
 
             var sheet = SheetOf(world, s_beside);
 
@@ -170,7 +170,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void WhileTheVillageRestsTheSheetSaysSoAndMarksNothingAsTheIslandDoes()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
+            var world = Edited(Morning(), "settlement home 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             var sheet = SheetOf(world, s_beside);
@@ -184,7 +184,7 @@ namespace Eirora.Client.Tests
         [Test]
         public void NoBuildingIsMarkedWhileTheVillageRests()
         {
-            var world = Edited(Morning(), "settlement 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
+            var world = Edited(Morning(), "settlement home 8", "building Sawmill -1 0 1 0 0 0 0 0 0 0 0 1 0 0");
             world.AdvanceTo(At("2026-10-16 01:00"));
 
             WithIsland(world, island => Assert.That(island.MarkedStandingStill, Is.Empty));
@@ -247,7 +247,7 @@ namespace Eirora.Client.Tests
             var far = Enumerable.Range(0, world.Map.Disc.Count).Select(i => world.Map.Disc[i])
                 .Where(h => (world.Map.Features.UsesOf(h) & TileUse.FishingWater) != 0 && world.BuildingAt(h) is null && world.TripFrom(h).Steps == 4)
                 .Take(3).ToArray();
-            world = Edited(world, $"settlement {13 + free}", string.Join("\n", far.Select(h => $"building FishingHut {h.Q} {h.R} 1 1 0 0 0 0 0 0 0 1 0 0")));
+            world = Edited(world, $"settlement home {13 + free}", string.Join("\n", far.Select(h => $"building FishingHut {h.Q} {h.R} 1 1 0 0 0 0 0 0 0 1 0 0")));
             Assert.That(world.FreeVillagers, Is.EqualTo(free));
             return (world, far);
         }
@@ -309,7 +309,7 @@ namespace Eirora.Client.Tests
             if (replace is not null)
             {
                 string[] words = replace.Split(' ');
-                string key = string.Join(" ", words.Take(words[0] == "stock" ? 3 : 1)) + " ";
+                string key = string.Join(" ", words.Take(words[0] switch { "stock" => 3, "settlement" => 2, _ => 1 })) + " ";
                 int at = lines.FindIndex(l => l.StartsWith(key, StringComparison.Ordinal));
                 var kept = lines[at].Split(' ').Skip(words.Length);
                 lines[at] = string.Join(" ", words.Concat(kept));

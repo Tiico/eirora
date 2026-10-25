@@ -14,6 +14,8 @@ namespace Eirora.Server.CloudSaves;
 /// <remarks>
 /// The server checks an upload's format and size, never its content: the world part must load as a save's world part,
 /// which is as far as the server ever runs the own world (ADR-0001), and the contribution part is ciphertext it cannot read.
+/// <c>/api/account/contribution-consent</c> holds the player's answer to whether the contribution part may be stored at
+/// all (TASK-060), which every upload must match.
 /// </remarks>
 public static class CloudSaveEndpoints
 {
@@ -27,6 +29,10 @@ public static class CloudSaveEndpoints
         cloudSave.MapPut("", UploadAsync).WithMetadata(new RequestSizeLimitAttribute(MaxUploadBodyBytes));
         cloudSave.MapGet("/locked", GetLockedAsync);
         cloudSave.MapDelete("/locked/{keyEpoch:int}", DeleteLockedAsync);
+
+        var consent = app.MapGroup("/api/account/contribution-consent").RequireAuthorization();
+        consent.MapGet("", GetConsentAsync);
+        consent.MapPut("", AnswerConsentAsync);
     }
 
     private static async Task<IResult> GetAsync(ClaimsPrincipal user, CloudSaveService saves, CancellationToken cancellationToken) =>
@@ -66,20 +72,41 @@ public static class CloudSaveEndpoints
             ? TypedResults.NoContent()
             : TypedResults.NotFound();
 
+    private static async Task<IResult> GetConsentAsync(ClaimsPrincipal user, CloudSaveService saves, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await saves.GetConsentAsync(AccountEndpoints.AccountId(user), cancellationToken));
+
+    private static async Task<IResult> AnswerConsentAsync(
+        ClaimsPrincipal user,
+        ContributionConsentAnswer answer,
+        CloudSaveService saves,
+        CancellationToken cancellationToken)
+    {
+        // A consent counts only to a question the server knows the app asks.
+        if (answer.Version < 1 || answer.Version > ContributionConsent.CurrentVersion)
+        {
+            return BadRequest($"The question's version is 1 to {ContributionConsent.CurrentVersion}.");
+        }
+
+        return await saves.AnswerConsentAsync(AccountEndpoints.AccountId(user), answer, cancellationToken) is { } consent
+            ? TypedResults.Ok(consent)
+            : TypedResults.Unauthorized();
+    }
+
     /// <summary>Why the server does not take an upload, or null when its format and size are right.</summary>
     private static ProblemHttpResult? Rejection(CloudSaveUpload upload)
     {
-        if (upload.World is not { Length: > 0 } world || upload.Contributions is not { Length: > 0 } contributions)
+        if (upload.World is not { Length: > 0 } world)
         {
-            return BadRequest("An upload has a world part and a contribution part.");
+            return BadRequest("An upload has a world part.");
         }
 
-        if (upload.BaseVersion < 0 || upload.KeyEpoch < 1)
+        if (upload.BaseVersion < 0 || (upload.HasContributions ? upload.KeyEpoch < 1 : upload.KeyEpoch != 0))
         {
-            return BadRequest("Versions start at 0 and key epochs at 1.");
+            return BadRequest("Versions start at 0, and key epochs at 1 with a contribution part and 0 without.");
         }
 
-        if (world.Length > CloudSaveUpload.MaxWorldBytes || contributions.Length > CloudSaveUpload.MaxContributionBytes)
+        int contributions = upload.Contributions?.Length ?? 0;
+        if (world.Length > CloudSaveUpload.MaxWorldBytes || contributions > CloudSaveUpload.MaxContributionBytes)
         {
             return TypedResults.Problem(
                 $"A world part has at most {CloudSaveUpload.MaxWorldBytes} bytes and a contribution part at most {CloudSaveUpload.MaxContributionBytes}.",

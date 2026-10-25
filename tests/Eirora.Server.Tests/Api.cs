@@ -75,6 +75,29 @@ public sealed class Api(HttpClient http) : IDisposable
             : null);
     }
 
+    /// <summary>Signs in and consents to storing the contribution part, as a player who said yes to the question (TASK-060).</summary>
+    public async Task<TokenResponse> SignInWithConsentAsync(PlayerLogin login)
+    {
+        var tokens = await SignInAsync(login);
+        var (status, _) = await AnswerConsentAsync(tokens.Access, new ContributionConsentAnswer(true, ContributionConsent.CurrentVersion));
+        return status == HttpStatusCode.OK ? tokens : throw new InvalidOperationException($"No consent: {status}");
+    }
+
+    public async Task<(HttpStatusCode Status, ContributionConsent? Consent)> GetConsentAsync(string accessToken)
+    {
+        using var request = Authorized(HttpMethod.Get, "/api/account/contribution-consent", accessToken);
+        using var response = await http.SendAsync(request, Cancel);
+        return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<ContributionConsent>(Cancel) : null);
+    }
+
+    /// <summary>Answers the question about the contribution part with <paramref name="answer"/>, a <see cref="ContributionConsentAnswer"/> or any other body.</summary>
+    public async Task<(HttpStatusCode Status, ContributionConsent? Consent)> AnswerConsentAsync(string accessToken, object answer)
+    {
+        using var request = Authorized(HttpMethod.Put, "/api/account/contribution-consent", accessToken, answer);
+        using var response = await http.SendAsync(request, Cancel);
+        return (response.StatusCode, response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<ContributionConsent>(Cancel) : null);
+    }
+
     public async Task<(HttpStatusCode Status, LockedContributions[]? Locked)> GetLockedContributionsAsync(string accessToken)
     {
         using var request = Authorized(HttpMethod.Get, "/api/account/cloud-save/locked", accessToken);

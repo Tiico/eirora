@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
 
 namespace Eirora.Simulation.Saving
@@ -11,8 +12,10 @@ namespace Eirora.Simulation.Saving
     /// with a jetty gets its own sea route home. Under rules 6 the economy knew two islands, Home and Nyon, and every
     /// island but the home island shared Nyon's store, for example <c>stock Nyon Stone 5000000</c> →
     /// <c>stock nyon Stone 5000000</c> on the prototype's map. Home's store becomes the map's start island's, and Nyon's
-    /// becomes the store of the island of the first building off the home island, which is the island the expedition
-    /// found; every other island built on gets an empty store. The stores follow in map order. Nothing else changes,
+    /// becomes the store of the first island off the home island with a jetty, where its goods waited for the ships, or
+    /// without one the island the expedition found, or else the first island built on off the home island; every other
+    /// island built on gets an empty store. Until TASK-050 it went to the island of the first building off the home island
+    /// in the staffing order, which could be one without a jetty (review of #164). The stores follow in map order. Nothing else changes,
     /// so no goods are lost or made (INV-R2, INV-V1).
     /// </summary>
     internal sealed class IslandsFromTheMap : StateMigration
@@ -58,8 +61,9 @@ namespace Eirora.Simulation.Saving
                 store.Add((fields[2], fields[3]));
             }
 
-            // The islands built on, in the order of their buildings.
+            // The islands built on, in the order of their buildings, and those with a jetty.
             var builtOn = new List<string>();
+            var jetties = new List<string>();
             foreach (string line in lines)
             {
                 string[] fields = line.Split(' ');
@@ -69,12 +73,24 @@ namespace Eirora.Simulation.Saving
                         && int.TryParse(fields[3], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int r)
                         ? new Hex(q, r)
                         : throw new FormatException($"'{line}' is not a building of rules 6.");
-                    builtOn.Add(IslandOf(map, tile) ?? home);
+                    string island = IslandOf(map, tile) ?? home;
+                    builtOn.Add(island);
+                    if (fields[1] == "Jetty")
+                    {
+                        jetties.Add(island);
+                    }
                 }
             }
 
+            // Nyon's goods waited for the ships at its jetty, so they go to the first island off the home island with a
+            // jetty; without one, to the island the expedition found if it was built on, and else to the first island
+            // built on off the home island.
+            string? expedition = Founding.For(map).ExpeditionIsland;
+            string? found = jetties.FirstOrDefault(island => island != home)
+                ?? (expedition is not null && builtOn.Contains(expedition) ? expedition : null)
+                ?? builtOn.FirstOrDefault(island => island != home);
             var stores = new Dictionary<string, List<(string Resource, string Amount)>>(StringComparer.Ordinal) { [home] = stored["Home"] };
-            if (builtOn.FirstOrDefault(island => island != home) is string found)
+            if (found is not null)
             {
                 stores[found] = stored["Nyon"];
             }
@@ -99,7 +115,7 @@ namespace Eirora.Simulation.Saving
         }
 
         /// <summary>The island of a tile as rules 6 told it: its own for land, or the first land next to it, counter-clockwise from east.</summary>
-        private static string? IslandOf(WorldMap map, Hex tile)
+        internal static string? IslandOf(WorldMap map, Hex tile)
         {
             if (!map.Contains(tile))
             {

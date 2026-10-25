@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Eirora.Client.Accounts;
@@ -23,6 +24,7 @@ namespace Eirora.Client.Tests
         private Hud _hud = null!;
         private AccountSession _account = null!;
         private FakeAccountServer _server = null!;
+        private DeviceCloudSyncStorage _cloudStorage = null!;
 
         [SetUp]
         public void SetUp()
@@ -36,7 +38,8 @@ namespace Eirora.Client.Tests
             _game.CatchUp();
             _root = new VisualElement();
             _hud = new Hud(_root, command => _game.Apply(command));
-            _server = new FakeAccountServer(() => DateTimeOffset.UtcNow);
+            _server = new FakeAccountServer(() => DateTimeOffset.UtcNow) { ConsentOfNewAccounts = true };
+            _cloudStorage = new DeviceCloudSyncStorage(new MemorySecureStore(), null); // The phone's keystore and state, kept across a relaunch.
             _account = new AccountSession(
                 FakeAccountServer.Url,
                 _server,
@@ -101,6 +104,94 @@ namespace Eirora.Client.Tests
 
             Assert.That(Labels().Where(l => l.StartsWith("Molnsparning", StringComparison.Ordinal)).ToList(), Has.Count.EqualTo(1));
             Assert.That(Labels(), Does.Contain("Molnsparning: din ö är sparad på kontot, senast " + synced.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        // TASK-060: the question comes before anything goes up, and both answers look the same (ux-journeys.md).
+        [Test]
+        public void TheQuestionAboutTheSelfCareComesBeforeTheFirstUploadAndAYesSavesIt()
+        {
+            _server.ConsentOfNewAccounts = null;
+            var cloud = SignedInCloud();
+
+            var question = Labels();
+            var answers = _root.Query<Button>(className: "button").ToList().Where(b => b.text is "Ja, spara den" or "Nej tack").ToList();
+            bool nothingUploaded = _server.CloudSaveOf("player") is null;
+            Press(answers.Single(b => b.text == "Ja, spara den"));
+
+            Assert.That(question, Does.Contain("Egenvården på kontot?"));
+            Assert.That(question.Any(l => l.Contains("servern kan aldrig läsa den", StringComparison.Ordinal)), Is.True);
+            Assert.That(question.Any(l => l.Contains("Den sparas vad du än svarar här", StringComparison.Ordinal)), Is.True);
+            Assert.That(answers.Select(b => string.Join(" ", b.GetClasses())).Distinct().ToList(), Has.Count.EqualTo(1), "both answers weigh the same");
+            Assert.That(nothingUploaded, Is.True);
+            Assert.That(Labels(), Does.Not.Contain("Egenvården på kontot?"));
+            Assert.That(_server.ConsentOf("player").Answer, Is.EqualTo(ConsentAnswer.Given));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Not.Null);
+            Assert.That(cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+        }
+
+        // Acceptance criterion 4: a no is the account's answer, so the next launch does not ask, and Konto can change it.
+        [Test]
+        public void ANoIsNotAskedAgainAndCanBeChangedUnderTheAccount()
+        {
+            _server.ConsentOfNewAccounts = null;
+            SignedInCloud();
+            Press(_root.Query<Button>(className: "button").ToList().Single(b => b.text == "Nej tack"));
+            bool worldOnly = _server.CloudSaveOf("player") is { Contributions: null };
+
+            _root = new VisualElement();
+            _hud = new Hud(_root, command => _game.Apply(command));
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var relaunched = new CloudSaveSync(_account, _game, _cloudStorage, () => Task.CompletedTask);
+            _hud.UseCloudSync(relaunched);
+            relaunched.ReconcileAsync().GetAwaiter().GetResult();
+            var atLaunch = Labels();
+            _hud.OpenAccount();
+            var sheet = Labels();
+            Press(Action("Spara egenvården på kontot"));
+            var asked = Labels();
+            Press(_root.Query<Button>(className: "button").ToList().Single(b => b.text == "Ja, spara den"));
+
+            Assert.That(worldOnly, Is.True);
+            Assert.That(atLaunch, Does.Not.Contain("Egenvården på kontot?"));
+            Assert.That(relaunched.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(sheet, Does.Contain("Din egenvård stannar på telefonen. Din ö sparas på kontot ändå."));
+            Assert.That(sheet, Does.Not.Contain("Visa återställningskod"), "the key unlocks nothing the account keeps");
+            Assert.That(asked, Does.Contain("Egenvården på kontot?"));
+            Assert.That(_server.ConsentOf("player").Answer, Is.EqualTo(ConsentAnswer.Given));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Not.Null);
+            Assert.That(Actions(), Does.Contain("Sluta spara egenvården på kontot"));
+        }
+
+        // Acceptance criterion 3, through the account sheet.
+        [Test]
+        public void TheConsentIsWithdrawnInTheAccountSheetAndTheSelfCareLeavesTheServer()
+        {
+            var cloud = SignedInCloud();
+            _hud.OpenAccount();
+            Press(Action("Sluta spara egenvården på kontot"));
+            var confirmation = Labels();
+            var answers = _root.Query<Button>(className: "button").ToList().Where(b => b.text is "Sluta spara" or "Avbryt").ToList();
+
+            Press(answers.Single(b => b.text == "Sluta spara"));
+
+            Assert.That(confirmation, Does.Contain("Sluta spara egenvården på kontot?"));
+            Assert.That(answers.Select(b => string.Join(" ", b.GetClasses())).Distinct().ToList(), Has.Count.EqualTo(1), "both answers weigh the same");
+            Assert.That(_server.ConsentOf("player").Answer, Is.EqualTo(ConsentAnswer.Declined));
+            Assert.That(_server.CloudSaveOf("player")!.Contributions, Is.Null);
+            Assert.That(cloud.Status, Is.EqualTo(CloudSyncStatus.Synced));
+            Assert.That(Actions(), Does.Contain("Spara egenvården på kontot").And.Not.Contain("Sluta spara egenvården på kontot"));
+        }
+
+        // Konto always offers to stop, also when the phone could not ask the server what the account said.
+        [Test]
+        public void TheWithdrawalIsOfferedAlsoBeforeThePhoneHeardTheAnswer()
+        {
+            SignedInCloudOffline();
+
+            _hud.OpenAccount();
+
+            Assert.That(Actions(), Does.Contain("Sluta spara egenvården på kontot"));
         }
 
         [Test]
@@ -372,5 +463,44 @@ namespace Eirora.Client.Tests
         }
 
         private string[] Labels() => _root.Query<Label>().ToList().Select(l => l.text).ToArray();
+
+        private string[] Actions() => _root.Query<Button>(className: "action").ToList().Select(b => b.Q<Label>(className: "action-title").text).ToArray();
+
+        private Button Action(string title) =>
+            _root.Query<Button>(className: "action").ToList().Single(b => b.Q<Label>(className: "action-title").text == title);
+
+        /// <summary>The player signed in with Google on this phone, which has a world, and the cloud save reconciled once.</summary>
+        private CloudSaveSync SignedInCloud()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var cloud = new CloudSaveSync(_account, _game, _cloudStorage, () => Task.CompletedTask);
+            _hud.UseCloudSync(cloud);
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+            return cloud;
+        }
+
+        /// <summary>The player signed in on an earlier launch, and this launch could not reach the server.</summary>
+        private void SignedInCloudOffline()
+        {
+            _server.Online = true;
+            _account.SignInAsync(LoginProviders.Google).GetAwaiter().GetResult();
+            _server.Online = false;
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            var cloud = new CloudSaveSync(_account, _game, _cloudStorage, () => Task.CompletedTask);
+            _hud.UseCloudSync(cloud);
+            cloud.ReconcileAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>Clicks a button as a tap would, through its <see cref="Clickable"/>; the root is in no panel to send events to.</summary>
+        private static void Press(Button button)
+        {
+            var invoke = typeof(Clickable).GetMethod("Invoke", BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(EventBase) }, null);
+            Assert.That(invoke, Is.Not.Null, "Clickable.Invoke is gone; find another way to press a button.");
+            using var tap = NavigationSubmitEvent.GetPooled();
+            invoke!.Invoke(button.clickable, new object[] { tap });
+        }
     }
 }

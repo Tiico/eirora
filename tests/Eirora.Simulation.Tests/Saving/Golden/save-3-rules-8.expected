@@ -13,7 +13,10 @@ day-start 23 1769531400
 force Exploration 2188 3
 force BuildPower 20 32
 force DawnPower 1680 9
-settlement 35 2 0
+economy 2 0
+settlement home 23
+settlement first 5
+settlement second 7
 stock home Fish 0
 stock home Grain 150000000
 stock home Timber 15687500

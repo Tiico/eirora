@@ -8,7 +8,7 @@ namespace Eirora.Contracts
     /// </summary>
     public sealed class CloudSave
     {
-        public CloudSave(long version, int keyEpoch, byte[] world, byte[] contributions, DateTimeOffset savedAt)
+        public CloudSave(long version, int keyEpoch, byte[] world, byte[]? contributions, DateTimeOffset savedAt)
         {
             Version = version;
             KeyEpoch = keyEpoch;
@@ -23,14 +23,21 @@ namespace Eirora.Contracts
         /// </summary>
         public long Version { get; }
 
-        /// <summary>The epoch of the contribution key that <see cref="Contributions"/> is encrypted with.</summary>
+        /// <summary>
+        /// The epoch of the contribution key that <see cref="Contributions"/> is encrypted with. Without a contribution
+        /// part, the epoch of the last one the account had, or 0; a new key gets an epoch above it.
+        /// </summary>
         public int KeyEpoch { get; }
 
         /// <summary>The save's world part (<c>Save.ToParts().World</c>), which the server has checked loads.</summary>
         public byte[] World { get; }
 
-        /// <summary>The save's contribution part, encrypted on the device; the server never decrypts it (D-57).</summary>
-        public byte[] Contributions { get; }
+        /// <summary>
+        /// The save's contribution part, encrypted on the device; the server never decrypts it (D-57). Null when the
+        /// player has not consented to storing it (<see cref="ContributionConsent"/>): then the cloud save is its world
+        /// part alone.
+        /// </summary>
+        public byte[]? Contributions { get; }
 
         /// <summary>When the server stored the upload.</summary>
         public DateTimeOffset SavedAt { get; }
