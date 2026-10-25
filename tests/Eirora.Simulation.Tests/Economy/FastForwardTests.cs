@@ -30,10 +30,24 @@ public sealed class FastForwardTests
     /// built-out worlds; in the rest only the slow processes move, so they are skipped.
     /// </summary>
     /// <remarks>
-    /// On 25 October 2026, with demolition (TASK-047), the six worlds worked 78 % of them (105 762 of 135 050). With the skip broken they work every
-    /// one, as the year scene's world does anyway: its expedition and its queue change something every quarter hour.
+    /// On 25 October 2026, with demolition (TASK-047) and with the stock rules (TASK-046), the six worlds worked 78.3 % of
+    /// them (105 762 of 135 050). The count is the same on every machine, so the margin only leaves room for rules that
+    /// keep the villagers busier: the world that skips fewest still skips 6 823, and if it skipped none the six would
+    /// work 83 %. With the skip broken they work every one, as the year scene's world does anyway: its expedition and its
+    /// queue change something every quarter hour.
     /// </remarks>
-    private const double MostWorkedShare = 0.9;
+    private const double MostWorkedShare = 0.8;
+
+    /// <summary>
+    /// The most a year away may allocate in the year scene's world, in bytes: what its events and the dawns take, since a
+    /// quarter hour's work allocates nothing.
+    /// </summary>
+    /// <remarks>
+    /// On 25 October 2026 it allocated 0.37 MB, against 21 MB (13 MB optimized) before #173, when the carriers boxed an
+    /// enumerator in every quarter hour. Unity's garbage collector on the phone is far slower than .NET's, and the world works 23 360 quarter
+    /// hours a year, so a single object of 24 bytes each of them would take the year past the limit.
+    /// </remarks>
+    private const long MostAllocatedBytes = 500_000;
 
     // The world the measurement scene year catches up on the phone, as a save the client loads from its resources.
     private static readonly string s_yearScene = Repository.PathTo("client", "Assets", "Eirora", "Resources", "Measurement", "AYearAway.bytes");
@@ -109,7 +123,7 @@ public sealed class FastForwardTests
                 "_map", "_home", "_founding", "_content", "_mapIndex",
 
                 // Derived, or scratch for a single call.
-                "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_regrowing", "_jobs", "_before", "_after", "_unstaffed", "_labour", "_pools",
+                "_buildingAt", "_capacity", "_walks", "_walksTo", "_served", "_servedKnown", "_woods", "_jobs", "_needs", "_free", "_before", "_unstaffed", "_labour", "_pools",
             ],
             [typeof(IslandSettlement)] = ["<Villagers>k__BackingField", "<Island>k__BackingField", "_economy"],
             [typeof(Building)] =
@@ -166,6 +180,21 @@ public sealed class FastForwardTests
         Assert.True(
             years.Sum(year => year.Worked) <= MostWorkedShare * years.Sum(year => year.Awake),
             $"A year away worked more than {MostWorkedShare:P0} of the quarter hours the villagers are awake: {worked}.");
+    }
+
+    // Allocations are counted the same on every machine too, so a quarter hour that begins to allocate is caught here,
+    // which the count above cannot see (#173).
+    [Fact]
+    public void AYearAwayAllocatesNothingInAQuarterHourOfWork()
+    {
+        var world = YearSceneWorld();
+        var yearLater = new TimeReading(world.Now.UtcSeconds + Year, world.Now.ZoneId, world.Now.OffsetSeconds);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        world.AdvanceTo(yearLater);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated <= MostAllocatedBytes, $"A year away in the year scene's world allocated {allocated:N0} bytes, more than {MostAllocatedBytes:N0}.");
     }
 
     /// <summary>
