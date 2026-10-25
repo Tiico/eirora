@@ -68,7 +68,7 @@ jobs:
       - name: Time a year away
         run: >-
           dotnet run --configuration Release --project benchmarks/Eirora.Simulation.Benchmarks --
-          --filter '*FastForwardBenchmarks*' --job short --exporters json github --artifacts artifacts/benchmarks
+          --filter '*FastForwardBenchmarks*' --job short --exporters json --artifacts artifacts/benchmarks
 
       # The budget is the one FastForwardBenchmarks and performance-budgets.md give for a developer machine.
       - name: Report against the budget

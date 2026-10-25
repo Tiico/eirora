@@ -21,23 +21,39 @@ public class FastForwardBenchmarks
 {
     private const long Year = 365 * 24 * 3600;
 
+    // Years fast-forwarded in one iteration, so that it lasts long enough to time well.
+    private const int Worlds = 4;
+
+    private readonly World[] _worlds = new World[Worlds];
+    private readonly TimeReading[] _yearLater = new TimeReading[Worlds];
     private byte[] _save = null!;
-    private World _world = null!;
-    private TimeReading _yearLater;
 
     [GlobalSetup]
     public void Setup() => _save = File.ReadAllBytes(PathFromRoot("client", "Assets", "Eirora", "Resources", "Measurement", "AYearAway.bytes"));
 
-    // A world fast-forwarded is a year on, so every run loads the saved world again; loading is not timed.
+    // A world fast-forwarded is a year on, so every iteration loads the saved world again; loading is not timed.
     [IterationSetup]
     public void Load()
     {
-        _world = Save.Load(_save).World;
-        _yearLater = new TimeReading(_world.Now.UtcSeconds + Year, _world.Now.ZoneId, _world.Now.OffsetSeconds);
+        for (int i = 0; i < Worlds; i++)
+        {
+            var world = Save.Load(_save).World;
+            _worlds[i] = world;
+            _yearLater[i] = new TimeReading(world.Now.UtcSeconds + Year, world.Now.ZoneId, world.Now.OffsetSeconds);
+        }
     }
 
-    [Benchmark]
-    public int AYearAway() => _world.AdvanceTo(_yearLater).Count;
+    [Benchmark(OperationsPerInvoke = Worlds)]
+    public int AYearAway()
+    {
+        int events = 0;
+        for (int i = 0; i < Worlds; i++)
+        {
+            events += _worlds[i].AdvanceTo(_yearLater[i]).Count;
+        }
+
+        return events;
+    }
 
     /// <summary>A path under the repository's root, the folder with Eirora.slnx, wherever BenchmarkDotNet runs from.</summary>
     private static string PathFromRoot(params string[] parts)
