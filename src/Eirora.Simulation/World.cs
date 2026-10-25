@@ -34,6 +34,9 @@ namespace Eirora.Simulation
         private int _growing;
         private bool _idleUntilDawn;
 
+        // OnDawn once as a delegate, so the quarter hours do not each make one (#173).
+        private readonly Action<long> _onDawn;
+
         private World(WorldMap map, DayCycle cycle, ForceBalances forces, SelfCareLedger selfCare, Settlement settlement)
         {
             Map = map;
@@ -41,6 +44,7 @@ namespace Eirora.Simulation
             _forces = forces;
             _selfCare = selfCare;
             _settlement = settlement;
+            _onDawn = OnDawn;
         }
 
         /// <summary>The world's map, made once and never changed (ADR-0010).</summary>
@@ -302,14 +306,14 @@ namespace Eirora.Simulation
             _idleUntilDawn = false;
             while (tick <= reading.UtcSeconds)
             {
-                Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, OnDawn);
+                Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, _onDawn);
                 if (Phase == Phase.Resting)
                 {
                     long dawn = Cycle.RestEndUtc(reading);
                     long last = dawn <= reading.UtcSeconds ? dawn - 1 : reading.UtcSeconds;
                     long ticks = 1 + ((last - tick) / Settlement.TickSeconds);
                     tick += (ticks - 1) * Settlement.TickSeconds;
-                    Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, OnDawn);
+                    Cycle.AdvanceTo(new TimeReading(tick, reading.ZoneId, reading.OffsetSeconds), _events, _onDawn);
                     _growing += (int)ticks;
                 }
                 else if (_idleUntilDawn)
@@ -326,7 +330,7 @@ namespace Eirora.Simulation
             }
 
             Grow();
-            Cycle.AdvanceTo(reading, _events, OnDawn);
+            Cycle.AdvanceTo(reading, _events, _onDawn);
             return _events;
         }
 
