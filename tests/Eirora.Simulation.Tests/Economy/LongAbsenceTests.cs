@@ -22,7 +22,8 @@ namespace Eirora.Simulation.Tests.Economy;
 /// buildings' outboxes, the raw materials held at the processing and the stores, never while the villagers rest
 /// (INV-R2, INV-T4; TASK-051), and the roads stay. Their settlements keep
 /// their villagers, or give a free one to another over a sea route, and their buildings stay staffed (TASK-050); some
-/// worlds come from rules 8 with goods waiting at a depot for room in its store, which only ever move in.
+/// worlds come from rules 8 with goods waiting at a depot for room in its store, which only ever move in. Some worlds were left just after a demolition, now and then with more villagers than room,
+/// who all stay while the village waits for room to grow (D-38, D-39; TASK-047).
 /// </summary>
 /// <remarks>
 /// Every world and absence is drawn from FsCheck's seed, so shrinking a failing case gives another world rather than a
@@ -146,6 +147,8 @@ public sealed class LongAbsenceTests
             See("left resting", world.Phase == Phase.Resting);
             See("left active", world.Phase == Phase.Active);
             See("no free villagers", world.FreeVillagers == 0 && world.Projects.Count > 0);
+            See("demolished", world.Fingerprint().Contains("\nbuilding-demolished ", StringComparison.Ordinal));
+            See("more villagers than room", world.Villagers > world.Housing);
         }
 
         string[] wanted =
@@ -154,6 +157,7 @@ public sealed class LongAbsenceTests
             "full store", "felled forest", "ripening", "workday", "upgrade", "road", "left resting", "left active",
             "villagers off the home island", "buildings lacking villagers off the home island", "materials owed", "goods waiting at a depot",
             "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
+            "demolished", "more villagers than room",
         ];
         Assert.Equal([], wanted.Where(w => !seen.Contains(w)).ToArray());
     }

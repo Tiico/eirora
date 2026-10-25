@@ -77,7 +77,7 @@ public static class BalanceRun
 
             spec.Profile.Record(world, day);
             plan.Play(new Turn(world, day, spec.Days, plan, tally));
-            invariants.AfterCommands(world);
+            invariants.AfterCommands(world, day, [.. tally.Decisions.Where(d => d.Day == day).Select(d => d.Command).OfType<Demolish>().Select(d => d.Tile)]);
             plan.Note(world, day);
             tally.DawnPowerLeft.Add(world.Available(Force.DawnPower));
             PassTheDay(world, dawn, day == spec.Days, hours => plan.Note(world, day), () => invariants.Check(world, day));

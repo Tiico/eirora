@@ -90,6 +90,7 @@ public sealed class SimulationSnapshotTests
             new TilesRevealed(10, [new Hex(3, -1), new Hex(-2, 0)]),
             new ExpeditionReturned(11, "nyon"),
             new FogLifted(12, -5, 3),
+            new BuildingDemolished(13, BuildingKind.Sawmill, new Hex(-1, 0)),
         };
         var writer = new StateWriter();
         foreach (var sample in samples)

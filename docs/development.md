@@ -282,7 +282,7 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 
 - En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
   Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
-- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning) och `idle` (Ingen spelare).
+- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning) och `idle` (Ingen spelare).
   Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
 - Världen skapas en kvart före sin första gryning, så att dag 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
