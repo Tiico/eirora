@@ -157,8 +157,11 @@ namespace Eirora.Client.Look
             signs.WriteTo(_standingStill.sharedMesh);
         }
 
-        /// <summary>Marks the selected hex with a glowing rim, or clears the mark.</summary>
-        public void Select(Hex? hex)
+        /// <summary>
+        /// Marks the selected hex with a glowing rim, or clears the mark; and the way its carriers are behind on, from the
+        /// building to its depot, as a broken line in the village's red (TASK-043; ui-prototypes.html, direction C).
+        /// </summary>
+        public void Select(Hex? hex, IReadOnlyList<Hex>? wayBehind = null)
         {
             var mesh = new MeshBuilder();
             if (hex is Hex selected && Map is { } map && map.Tiles.TryGetValue(selected, out var terrain))
@@ -170,6 +173,20 @@ namespace Eirora.Client.Look
                 {
                     int j = (i + 1) % 6;
                     mesh.Polygon(Palette.RuneGlow, inner[i], outer[i], outer[j], inner[j]);
+                }
+
+                if (wayBehind is { Count: >= 2 } && Map is not null)
+                {
+                    var way = wayBehind.Select(t => t.Center() + (Vector3.up * (Mathf.Max(Models.Height(Map.Tiles.TryGetValue(t, out var ground) ? ground : Terrain.Grass), 0f) + 0.03f))).ToList();
+                    float length = Length(way);
+                    int dashes = Mathf.Max(3, Mathf.RoundToInt(length / 0.35f) | 1);
+                    for (int i = 0; i < dashes; i += 2)
+                    {
+                        var a = Along(way, length * i / dashes);
+                        var b = Along(way, length * (i + 1) / dashes);
+                        var side = Vector3.Cross(b - a, Vector3.up).normalized * 0.05f;
+                        mesh.Polygon(Palette.FaluRed, a - side, a + side, b + side, b - side);
+                    }
                 }
             }
 
@@ -220,6 +237,11 @@ namespace Eirora.Client.Look
         {
             foreach (var island in _islands.Values)
             {
+                if (island == null)
+                {
+                    continue; // Leaving play mode in the editor destroys the scene's objects before the view is disposed.
+                }
+
                 var mesh = island.GetComponent<MeshFilter>().sharedMesh;
                 _meshes.Remove(mesh);
                 Destroy(mesh);

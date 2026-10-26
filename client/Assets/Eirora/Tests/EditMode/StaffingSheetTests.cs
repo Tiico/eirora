@@ -43,6 +43,7 @@ namespace Eirora.Client.Tests
         public void AProducingBuildingsSheetShowsItsPlaceInTheStaffingAndAPause()
         {
             _hud.Select(FishingHut);
+            _hud.ShowMore();
 
             Assert.That(Labels().Any(l => l.EndsWith(" · går för fullt · 1,25 fisk/h")), Is.True);
             Assert.That(Labels(), Does.Contain("Plats i bemanningen"));
@@ -55,6 +56,7 @@ namespace Eirora.Client.Tests
         public void PausingFreesTheVillagersAndTheSheetOffersToResume()
         {
             _hud.Select(FishingHut);
+            _hud.ShowMore();
 
             Press(Action("Pausa"));
 
@@ -73,6 +75,7 @@ namespace Eirora.Client.Tests
         public void MovingABuildingUpTheStaffingGivesItTheFirstPlace()
         {
             _hud.Select(FishingHut);
+            _hud.ShowMore();
 
             Press(Stepper("−"));
 
@@ -85,6 +88,7 @@ namespace Eirora.Client.Tests
         public void AStorehouseHasAPlaceInTheStaffingButNothingToPause()
         {
             _hud.Select(Storehouse);
+            _hud.ShowMore();
 
             Assert.That(Labels(), Does.Contain("1 av 4"));
             Assert.That(Actions(), Does.Not.Contain("Pausa"));
@@ -95,7 +99,7 @@ namespace Eirora.Client.Tests
         {
             _game.Apply(new Build(BuildingKind.Cottage, L1));
             _game.Apply(new Build(BuildingKind.Cottage, L2));
-            Assert.That(BarButton("Byggkö").Q<Label>(className: "button-detail").text, Is.EqualTo("2 st"));
+            Assert.That(_root.Q<Button>(name: "Byggkö").Q<Label>(className: "badge").text, Is.EqualTo("2"));
 
             _hud.OpenQueue();
 
@@ -116,6 +120,7 @@ namespace Eirora.Client.Tests
             _game.Apply(new Build(BuildingKind.Cottage, L2));
 
             _hud.Select(L2);
+            _hud.ShowMore();
 
             Assert.That(Labels(), Does.Contain("Nummer 2 i byggkön. Lediga bybor bygger på det första projektet."));
             Press(Action("Bygg först"));
@@ -155,9 +160,6 @@ namespace Eirora.Client.Tests
             _root.Query<Button>(className: "action").ToList().Single(b => b.Q<Label>(className: "action-title").text == title);
 
         private Button Stepper(string text) => _root.Query<Button>(className: "stepper-button").ToList().Single(b => b.text == text);
-
-        private Button BarButton(string title) =>
-            _root.Query<Button>(className: "button").ToList().Single(b => b.Q<Label>(className: "button-title")?.text == title);
 
         private string[] Labels() => _root.Query<Label>().ToList().Select(l => l.text).ToArray();
 

@@ -59,7 +59,7 @@ namespace Eirora.Client.Tests
             _hud.Show(_game.World!, _game.SinceDawn);
 
             Assert.That(_game.World!.Phase, Is.EqualTo(Phase.Resting));
-            Assert.That(_root.Query<Button>(className: "button-icon").ToList(), Has.Count.EqualTo(1));
+            Assert.That(_root.Query<Button>(name: "Konto").ToList(), Has.Count.EqualTo(1), "The account stays on the rail at night (RST-07).");
 
             _hud.OpenAccount();
 

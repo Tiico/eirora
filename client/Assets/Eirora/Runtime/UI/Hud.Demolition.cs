@@ -24,6 +24,7 @@ namespace Eirora.Client.UI
         {
             Select(tile);
             _demolishing = tile;
+            _unfolded = true;
             ShowSheet();
         }
 

@@ -31,7 +31,7 @@ namespace Eirora.Client.Tests
             Assert.That(Actions(root), Does.Contain("Skynda på"));
 
             hud.Select(ScriptedWeek.FishingHut);
-            Assert.That(Actions(root), Does.Contain("Arbeta extra"));
+            Assert.That(hud.Choices.Select(c => c.Title), Does.Contain("Arbeta extra"));
         }
 
         private static string[] Actions(VisualElement root) =>

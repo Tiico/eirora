@@ -87,7 +87,8 @@ namespace Eirora.Client.Look
             _ => Terrain.Grass,
         };
 
-        private static Terrain Look(MapTerrain terrain) => terrain switch
+        /// <summary>The terrain the client draws for the map's.</summary>
+        public static Terrain Look(MapTerrain terrain) => terrain switch
         {
             MapTerrain.DeepSea => Terrain.DeepSea,
             MapTerrain.ShallowSea => Terrain.ShallowSea,

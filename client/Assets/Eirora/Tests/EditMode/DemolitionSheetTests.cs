@@ -35,6 +35,7 @@ namespace Eirora.Client.Tests
         {
             Open(NewWorld());
             _hud.Select(s_woodcutter);
+            _hud.ShowMore();
 
             Press(Demolish());
 
@@ -60,6 +61,7 @@ namespace Eirora.Client.Tests
         {
             Open(NewWorld());
             _hud.Select(s_woodcutter);
+            _hud.ShowMore();
             Press(Demolish());
 
             Press(Choice("Avbryt"));
@@ -74,6 +76,7 @@ namespace Eirora.Client.Tests
         {
             Open(Edited(NewWorld(), lines => Stock(lines, "Timber", 148)));
             _hud.Select(s_woodcutter);
+            _hud.ShowMore();
 
             Press(Demolish());
 
@@ -90,11 +93,13 @@ namespace Eirora.Client.Tests
             }));
 
             _hud.Select(s_west);
+            _hud.ShowMore();
             Press(Demolish());
             Assert.That(Texts(), Does.Contain("Hemön har sedan bostäder för 16 av 20 bybor. Ingen flyttar, men byn växer inte förrän det finns plats."));
 
             Press(Choice("Avbryt"));
             _hud.Select(new Hex(0, -1));
+            _hud.ShowMore();
             Press(Demolish());
             Assert.That(Texts().First(), Is.EqualTo("Tillbaka till lagret: 7 timmer, 5 plankor och 5 sten."));
             Assert.That(Texts(), Does.Contain("Ingen Styrka kommer tillbaka."));
@@ -113,6 +118,7 @@ namespace Eirora.Client.Tests
                 Buildings(lines, $"building Jetty {jetty.Q} {jetty.R} 1 1 0 0 0 1 4 0 0 0 0 0 0", "building Jetty 10 0 1 0 0 0 0 0 4 0 0 0 0 0 0");
             }));
             _hud.Select(jetty);
+            _hud.ShowMore();
 
             Press(Demolish());
 
@@ -126,6 +132,7 @@ namespace Eirora.Client.Tests
         {
             Open(NewWorld());
             _hud.Select(s_storehouse);
+            _hud.ShowMore();
 
             Press(Demolish());
 
@@ -147,6 +154,7 @@ namespace Eirora.Client.Tests
                 Buildings(lines, $"building Storehouse {s_east.Q} {s_east.R} 1 1 0 0 0 1 4 0 0 0 0 0 0");
             }));
             _hud.Select(s_east);
+            _hud.ShowMore();
 
             Press(Demolish());
 
@@ -163,6 +171,7 @@ namespace Eirora.Client.Tests
             Open(world);
 
             _hud.Select(s_woodcutter);
+            _hud.ShowMore();
 
             Assert.That(_root.Query<Button>(className: "sheet-demolish").ToList(), Is.Empty);
         }
@@ -201,7 +210,8 @@ namespace Eirora.Client.Tests
 
         private Button Choice(string text) => _root.Query<Button>(className: "button").ToList().Single(b => b.text == text);
 
-        private string Title() => _root.Q<Label>(className: "sheet-title").text;
+        /// <summary>The card's title, or the ring's once the building is gone and the site's ring has taken its place.</summary>
+        private string Title() => _root.Q<Label>(className: "sheet-title")?.text ?? _root.Q<Label>(className: "caption-title")?.text ?? string.Empty;
 
         private string[] Texts() => _root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray();
     }

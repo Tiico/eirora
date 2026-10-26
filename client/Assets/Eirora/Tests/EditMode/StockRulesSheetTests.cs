@@ -40,6 +40,7 @@ namespace Eirora.Client.Tests
         public void TheSawmillsSheetSetsItsMinimumStockInStepsOfFive()
         {
             _hud.Select(ScriptedWeek.Sawmill);
+            _hud.ShowMore();
 
             Assert.That(Labels(), Does.Contain("Minimilager"));
             Assert.That(Labels(), Does.Contain("20 timmer"));
@@ -76,6 +77,7 @@ namespace Eirora.Client.Tests
             var hud = new Hud(_root = new VisualElement(), command => world.Apply($"reserve-{key++}", command));
             hud.Show(world, System.Array.Empty<Simulation.Events.GameEvent>());
             hud.Select(tile);
+            hud.ShowMore();
             Assert.That(Labels(), Does.Contain("400 timmer"));
             Assert.That(Stepper("Minimilager", "+").enabledSelf, Is.False);
 
@@ -93,6 +95,7 @@ namespace Eirora.Client.Tests
             _game.Apply(new Simulation.Commands.SetReservation(_game.World!.HomeIsland, Resource.Timber, 30));
 
             _hud.Select(ScriptedWeek.Sawmill);
+            _hud.ShowMore();
 
             Assert.That(Labels(), Does.Contain("30 reserverade på Hemön går före"));
         }
@@ -101,6 +104,7 @@ namespace Eirora.Client.Tests
         public void NyonsStoreListsTheGoodsInTheShipsOrderAndMovesOneFirst()
         {
             _hud.Select(Jetty(PrototypeHome.Nyon));
+            _hud.ShowMore();
             Press(Action("Lagret på Nyön"));
 
             Assert.That(Labels(), Does.Contain("Lagret på Nyön"));
@@ -143,6 +147,7 @@ namespace Eirora.Client.Tests
             // What is reserved does not wait for the ships.
             Assert.That(world.ForTheShips(PrototypeHome.Nyon, good), Is.EqualTo(System.Math.Max(stock - 10, 0)));
             _hud.Select(Jetty(PrototypeHome.Nyon));
+            _hud.ShowMore();
             var waiting = Waiting(world);
             Assert.That(Labels(), Does.Contain(waiting.Length == 0 ? "Inget väntar på skeppen just nu." : $"Väntar på skeppen: {Texts.List(waiting)}."));
         }
@@ -151,6 +156,7 @@ namespace Eirora.Client.Tests
         public void TheHomeJettyOpensTheStoreOfEachIslandItsShipsSailFrom()
         {
             _hud.Select(Jetty(_game.World!.HomeIsland));
+            _hud.ShowMore();
 
             Press(Action("Skeppen från Nyön"));
 
@@ -161,6 +167,7 @@ namespace Eirora.Client.Tests
         public void TheHomeStoreReservesButHasNoOrderForTheShips()
         {
             _hud.Select(Hex.Origin);
+            _hud.ShowMore();
             Press(Action("Lagret på Hemön"));
 
             Assert.That(Labels(), Does.Contain("Det som är reserverat tar förädlingen inte. Byggen betalar ändå ur det."));
