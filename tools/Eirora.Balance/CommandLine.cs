@@ -9,10 +9,10 @@ namespace Eirora.Balance;
 public sealed class CommandLine
 {
     public const string Usage =
-        "Usage: Eirora.Balance [--suite all|economy-v1|scenarios|generated] [--from N] [--seeds N] [--days N] [--out DIR]\n" +
+        "Usage: Eirora.Balance [--suite all|economy-v1|scenarios|epoch|year|generated] [--from N] [--seeds N] [--days N] [--out DIR]\n" +
         "       Eirora.Balance --maps prototype|generated [--from N --seeds N] [--strategies a,b] [--profiles a,b] [--days N] [--out DIR]\n" +
         "--from, --seeds and --days apply to generated maps; economy-v1 always plays seven days on the prototype's map, and\n" +
-        "scenarios four weeks on each scenario's map.";
+        "scenarios four weeks, epoch twelve weeks and year a year on each scenario's map.";
 
     private static readonly string[] s_suiteOptions = ["suite", "from", "seeds", "days", "out"];
     private static readonly string[] s_combinationOptions = ["maps", "strategies", "profiles", "from", "seeds", "days", "out"];
@@ -54,12 +54,18 @@ public sealed class CommandLine
             return new CommandLine(Suites.Scenarios(), output);
         }
 
+        if (suite is "epoch" or "year")
+        {
+            Allow(options, ["suite", "out"]);
+            return new CommandLine(suite == "epoch" ? Suites.Epoch() : Suites.Year(), output);
+        }
+
         var generated = Suites.Generated(Unsigned(options, "from", 0), Count(options, "seeds", 20), Count(options, "days", 28));
         return suite switch
         {
             "generated" => new CommandLine(generated, output),
             "all" => new CommandLine([.. Suites.EconomyV1(), .. Suites.Scenarios(), .. generated], output),
-            _ => throw new ArgumentException($"There is no suite {suite}; choose all, economy-v1, scenarios or generated."),
+            _ => throw new ArgumentException($"There is no suite {suite}; choose all, economy-v1, scenarios, epoch, year or generated."),
         };
     }
 

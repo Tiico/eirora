@@ -39,6 +39,17 @@ public sealed class HandBuildTests
         Assert.Equal(10, run.Saved[1]);
     }
 
+    // Epoch 1 without training takes 11 weeks, with all three stages of Vårdkasen built by hand (epoch-1.md, section 5;
+    // D-43, D-65). The stages are not in the simulation yet, so the estimate lays them on top of the run (TASK-054).
+    [Fact]
+    public void WithoutTrainingVardkasenIsLitByHandInTheEleventhWeekAsInEpochOne()
+    {
+        var run = BalanceRun.Play(new RunSpec(MapChoice.Prototype, Strategy.NoTrainingByHand, SelfCareProfile.NoTraining, Suites.EpochDays));
+
+        Assert.Equal(11, Tempo.Week(Tempo.Of(run).Beacon));
+        Assert.Equal(90, run.Used[1]); // Only the guided tour's Build Power, on the first jetty and the sawmill.
+    }
+
     [Fact]
     public void WithoutBuildingByHandThePlayerWithoutTrainingStaysOnHemon()
     {
