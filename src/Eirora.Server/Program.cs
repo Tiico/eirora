@@ -68,11 +68,9 @@ builder.Services.AddScoped<ExternalTokenValidator>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CloudSaveService>();
 builder.Services.AddScoped<KeyTransferService>();
-builder.Services.AddOptions<AppleOptions>()
-    .Bind(builder.Configuration.GetSection("SignIn:Apple"))
-    .Validate(apple => apple.Timeout > TimeSpan.Zero, "SignIn:Apple:Timeout must be greater than zero.")
-    .Validate(apple => !apple.IsConfigured || apple.HasReadableKey(), "SignIn:Apple:PrivateKey is not an EC private key in PEM.")
-    .ValidateOnStart();
+// Sign in with Apple is either configured in full or not at all; without it the server runs with Google only.
+builder.Services.AddOptions<AppleOptions>().Bind(builder.Configuration.GetSection("SignIn:Apple")).ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<AppleOptions>, AppleOptionsValidation>();
 builder.Services.AddOptions<WebSignInOptions>().Bind(builder.Configuration.GetSection("SignIn:Web"));
 builder.Services.AddHttpClient<AppleIdClient>((services, http) =>
 {
@@ -114,7 +112,11 @@ app.MapTokenEndpoint();
 app.MapAccountEndpoints();
 app.MapCloudSaveEndpoints();
 app.MapKeyTransferEndpoints();
-app.MapAppleWebCallback();
+if (AppleSignIn.IsEnabled(app.Configuration))
+{
+    app.MapAppleWebCallback();
+}
+
 app.MapDeletionPage();
 
 await app.RunAsync();

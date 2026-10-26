@@ -103,8 +103,13 @@ jobs:
       - name: Build the image
         run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerImageTags=ci
 
-      - name: Smoke-test the deployment
-        run: deploy/smoke-test.sh tiico/eirora-server:ci
+      # Both ways the server is deployed: with Google only, as until the product owner has an Apple Developer account, and
+      # with Google and Sign in with Apple.
+      - name: Smoke-test the deployment with Google only
+        run: deploy/smoke-test.sh tiico/eirora-server:ci google
+
+      - name: Smoke-test the deployment with Google and Apple
+        run: deploy/smoke-test.sh tiico/eirora-server:ci google-and-apple
 
       - name: Log in to GitHub Container Registry
         if: github.ref == 'refs/heads/main'

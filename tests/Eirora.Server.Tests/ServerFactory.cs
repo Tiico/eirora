@@ -14,7 +14,8 @@ namespace Eirora.Server.Tests;
 
 /// <summary>
 /// The server against the test database, with stand-ins for Apple and Google, every log line captured and no pruning
-/// in the background.
+/// in the background. Without <paramref name="apple"/>, the server is configured with Google only, as when the product
+/// owner has no Apple Developer account.
 /// </summary>
 /// <remarks>
 /// The pruning services delete on the real clock, once as the server starts and then every so often, across every
@@ -22,7 +23,7 @@ namespace Eirora.Server.Tests;
 /// that lets a transfer run out would see it vanish whenever the startup pruning was slow enough to come after it.
 /// Tests prune by calling the pruning itself.
 /// </remarks>
-public sealed class ServerFactory(string connectionString) : WebApplicationFactory<Program>
+public sealed class ServerFactory(string connectionString, bool apple = true) : WebApplicationFactory<Program>
 {
     private static readonly Type[] s_pruning = [typeof(TokenPruning), typeof(LockedContributionPruning), typeof(KeyTransferPruning)];
 
@@ -39,11 +40,19 @@ public sealed class ServerFactory(string connectionString) : WebApplicationFacto
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Eirora", connectionString);
-        builder.UseSetting("SignIn:Apple:TeamId", AppleStub.TeamId);
-        builder.UseSetting("SignIn:Apple:KeyId", AppleStub.KeyId);
-        builder.UseSetting("SignIn:Apple:PrivateKey", Apple.PrivateKeyPem);
+        builder.UseSetting("SignIn:Providers:google:Audiences:0", TestProviders.GoogleAudience);
+        builder.UseSetting("SignIn:Web:GoogleClientId", TestProviders.GoogleAudience);
         builder.UseSetting("SignIn:Apple:Timeout", "00:00:01");
-        builder.UseSetting("SignIn:Web:AppleServicesId", TestProviders.AppleServicesId);
+        if (apple)
+        {
+            builder.UseSetting("SignIn:Providers:apple:Audiences:0", TestProviders.AppleAudience);
+            builder.UseSetting("SignIn:Providers:apple:Audiences:1", TestProviders.AppleServicesId);
+            builder.UseSetting("SignIn:Apple:TeamId", AppleStub.TeamId);
+            builder.UseSetting("SignIn:Apple:KeyId", AppleStub.KeyId);
+            builder.UseSetting("SignIn:Apple:PrivateKey", Apple.PrivateKeyPem);
+            builder.UseSetting("SignIn:Web:AppleServicesId", TestProviders.AppleServicesId);
+        }
+
         builder.ConfigureLogging(logging => logging.AddProvider(new CapturingLoggerProvider(Logs)));
         builder.ConfigureTestServices(services =>
         {
@@ -54,13 +63,16 @@ public sealed class ServerFactory(string connectionString) : WebApplicationFacto
                 services.Remove(pruning);
             }
 
+            // The providers the server registered from its configuration, each with a stand-in's signing keys in place of the
+            // real provider's discovery document.
+            var registered = (ExternalProviders)services.Single(d => d.ServiceType == typeof(ExternalProviders)).ImplementationInstance!;
             services.RemoveAll<ExternalProviders>();
             foreach (var pruning in services.Where(d => d.ServiceType == typeof(IHostedService) && s_pruning.Contains(d.ImplementationType)).ToList())
             {
                 services.Remove(pruning);
             }
 
-            services.AddSingleton(Providers.ToExternalProviders());
+            services.AddSingleton(Providers.ToExternalProviders(registered.Names));
             services.AddHttpClient<AppleIdClient>().ConfigurePrimaryHttpMessageHandler(Apple.CreateHandler);
         });
     }

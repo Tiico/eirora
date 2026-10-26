@@ -143,7 +143,9 @@
 
   window.addEventListener("load", async () => {
     await Promise.all([prepareApple(), prepareGoogle()]);
-    if (document.getElementById("apple").hidden && document.getElementById("google").hidden) {
+    // With Sign in with Apple off, the page has no Apple button at all.
+    const offered = (id) => document.getElementById(id) && !document.getElementById(id).hidden;
+    if (!offered("apple") && !offered("google")) {
       show("unavailable", true);
     }
   });

@@ -28,6 +28,9 @@ public sealed class ExternalProviders(IEnumerable<ExternalProvider> providers)
 {
     private readonly Dictionary<string, ExternalProvider> _providers = providers.ToDictionary(p => p.Name, StringComparer.Ordinal);
 
+    /// <summary>The names of the enabled providers.</summary>
+    public IReadOnlyCollection<string> Names => _providers.Keys;
+
     public bool TryGet(string? name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ExternalProvider? provider)
     {
         provider = null;
@@ -41,6 +44,9 @@ public sealed class ExternalProviders(IEnumerable<ExternalProvider> providers)
         foreach (var child in section.GetChildren())
         {
             var options = child.Get<ExternalProviderOptions>() ?? new ExternalProviderOptions();
+
+            // Compose passes an unset client id as an empty one, which is no audience.
+            options.Audiences.RemoveAll(string.IsNullOrEmpty);
             if (options.Audiences.Count == 0)
             {
                 continue;
