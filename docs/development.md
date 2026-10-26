@@ -18,7 +18,7 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Balance.Tests/` | Balansbotarnas korta körningar: ekonomi v1:s sju dygn, determinismen och 20 genererade kartor i fyra veckor. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor och `Eirora.Balance` låter balansbotar spela simuleringen (båda byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget, och `measure.sh cold-start` mot en låtsad `adb`. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor och `Eirora.Balance` låter balansbotar spela simuleringen (båda byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget, och `measure.sh cold-start` och `measure.sh active` mot en låtsad `adb`. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
