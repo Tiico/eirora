@@ -97,7 +97,7 @@ public sealed class StockRulesTests
         Assert.True(Apply(world, new MoveImport(Archipelago.First, then, 0)).Accepted);
         Assert.True(Apply(world, new MoveImport(Archipelago.First, first, 0)).Accepted);
         Assert.Equal([first, then], world.ImportOrder(Archipelago.First).Take(2));
-        Assert.Equal(Enum.GetValues<Resource>(), world.ImportOrder(Archipelago.Second));
+        Assert.Equal(StockRules.DefaultImportOrder, world.ImportOrder(Archipelago.Second));
 
         // Half a game day of the route: 20 units, all of the first good, and then the rest of the day of both.
         world.AdvanceTo(Shift(world.Now, 8 * 3600));
@@ -257,10 +257,10 @@ public sealed class StockRulesTests
     }
 
     [Fact]
-    public void AnImportOrderNeedsAPlaceInTheOrderAndMovedBackToTheFixedOrderIsNoLongerWritten()
+    public void AnImportOrderNeedsAPlaceInTheOrderAndMovedBackToTheDefaultOrderIsNoLongerWritten()
     {
         var world = SeaRouteTests.OnlyShips((_, _) => 0);
-        string fixedOrder = world.Fingerprint();
+        string defaultOrder = world.Fingerprint();
         Assert.Equal(Rejection.NoSuchPlace, Apply(world, new MoveImport(Archipelago.First, Resource.Stone, -1)).Rejection);
         Assert.Equal(Rejection.NoSuchPlace, Apply(world, new MoveImport(Archipelago.First, Resource.Stone, Enum.GetValues<Resource>().Length)).Rejection);
         Assert.Equal(Rejection.AlreadyDone, Apply(world, new MoveImport(Archipelago.First, Resource.Fish, 0)).Rejection);
@@ -268,10 +268,10 @@ public sealed class StockRulesTests
         Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, 0)).Accepted);
         Assert.Contains($"imports {Archipelago.First} Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale Tar", world.Fingerprint().Split('\n'));
 
-        Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, (int)Resource.Stone)).Accepted);
-        Assert.Equal(Enum.GetValues<Resource>(), world.ImportOrder(Archipelago.First));
+        Assert.True(Apply(world, new MoveImport(Archipelago.First, Resource.Stone, StockRules.DefaultImportOrder.ToList().IndexOf(Resource.Stone))).Accepted);
+        Assert.Equal(StockRules.DefaultImportOrder, world.ImportOrder(Archipelago.First));
         Assert.DoesNotContain(world.Fingerprint().Split('\n'), l => l.StartsWith("imports ", StringComparison.Ordinal));
-        Assert.Equal(StripKeys(fixedOrder), StripKeys(world.Fingerprint()));
+        Assert.Equal(StripKeys(defaultOrder), StripKeys(world.Fingerprint()));
     }
 
     // The rules are state: a save keeps them as they are (the journal's replays are in ReplayCorpusTests).
@@ -307,9 +307,9 @@ public sealed class StockRulesTests
     [InlineData("reserved nowhere Timber 5")] // An island without a store.
     [InlineData("reserved home Timber 5\nreserved home Timber 6")] // Twice.
     [InlineData("reserved home Stone 5\nreserved home Timber 6")] // Out of order.
-    [InlineData("imports home Stone Fish Grain Timber Planks Wool Wadmal Game Hide")] // Nothing ships home from home.
-    [InlineData("imports first Fish Grain Timber Planks Stone Wool Wadmal Game Hide")] // The fixed order is not written.
-    [InlineData("imports first Stone Stone Grain Timber Planks Wool Wadmal Game Hide")] // Not every resource.
+    [InlineData("imports home Stone Fish Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale Tar")] // Nothing ships home from home.
+    [InlineData("imports first Fish Grain Timber Planks Wool Stone Wadmal Game Hide Honey Mead Ale Tar")] // The default order is not written.
+    [InlineData("imports first Stone Stone Grain Timber Planks Wool Wadmal Game Hide Honey Mead Ale Tar")] // Not every resource.
     public void AStateWithRulesThatCannotBeIsRefused(string rules)
     {
         var world = SeaRouteTests.OnlyShips((_, _) => 0);

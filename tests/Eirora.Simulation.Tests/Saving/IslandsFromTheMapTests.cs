@@ -20,8 +20,9 @@ public sealed class IslandsFromTheMapTests
     /// <summary>
     /// The golden save <c>sea-route-3-rules-6</c> is a built-out world with the sea route from Nyön, written by the rules 6
     /// code; its <c>.week</c> file is that code's world a week later, with the stores named by this migration, and since
-    /// rules 12 changed the week (TASK-061) the current rules' week. A later rules version that changes the week writes
-    /// the file again in the change that bumps the rules, so the review sees what changed (ADR-0006).
+    /// rules 12 changed the week (TASK-061) the current rules' week; rules 16 wrote it again, as the ships take Nyön's
+    /// wool before its stone (TASK-056). A later rules version that changes the week writes the file again in the change
+    /// that bumps the rules, so the review sees what changed (ADR-0006).
     /// </summary>
     [Fact]
     public void AWorldWithNyonGivesTheSameWeekAsUnderRulesSixApartFromTheIslandIds()

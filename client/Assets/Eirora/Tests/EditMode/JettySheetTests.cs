@@ -91,11 +91,11 @@ namespace Eirora.Client.Tests
             return line;
         }
 
-        /// <summary>What waits on Nyön for the ships, as the sheets list it: its store but the two days' food it keeps.</summary>
+        /// <summary>What waits on Nyön for the ships, as the sheets list it in the ships' order: its store but the two days' food it keeps.</summary>
         private string Waiting()
         {
             var world = _game.World!;
-            var goods = System.Enum.GetValues(typeof(Resource)).Cast<Resource>()
+            var goods = world.ImportOrder(PrototypeHome.Nyon)
                 .Select(r => (Resource: r, Units: world.ForTheShips(PrototypeHome.Nyon, r)))
                 .Where(g => g.Units > 0)
                 .ToList();

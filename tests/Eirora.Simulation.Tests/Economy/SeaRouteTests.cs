@@ -36,7 +36,7 @@ public sealed class SeaRouteTests
         world.AdvanceTo(Shift(world.Now, Day));
 
         // At dawn each island's villager eats a fish and a second moves in, so the ships carry out three fish, for two
-        // days for both, and home 37 timber, in the goods' fixed order; the planks wait (TASK-046).
+        // days for both, and home 37 timber, in the default import order; the planks wait (TASK-046).
         var after = Stores.Of(world);
         Assert.All([Archipelago.First, Archipelago.Second], island => Assert.Equal((2, Quantity.Units(4)), (world.SettlementOn(island)!.Villagers, world.Settlement.Stock(island, Resource.Fish))));
         Assert.Equal(Quantity.Units(SeaRoute.UnitsPerGameDay - 3), before.Total(Archipelago.First) - after.Total(Archipelago.First));

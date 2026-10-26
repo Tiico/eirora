@@ -569,7 +569,7 @@ Produktägarens svar på frågorna i TASK-050 (PR #164):
 Lagerreglerna i TASK-046 (#129) står i [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler):
 
 - **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
-- **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
+- **D-126:** importprioriteten är en ordnad lista med alla varor, med varornas fasta ordning som standard; sedan regelversion 16 går ull före sten i den (produktägaren 2026-10-27, #138, TASK-056).
 - **D-127:** reserveringen hindrar bara skeppning hemåt, förädling och varvets knarrar, inte byggmaterial och mat som skeppas ut till öarna; varvet tillkom 2026-10-25 (PR #185).
 
 Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.

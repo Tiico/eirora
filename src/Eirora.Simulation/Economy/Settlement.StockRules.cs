@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using Eirora.Simulation.Map;
 using Eirora.Simulation.Serialization;
 
@@ -14,8 +13,7 @@ namespace Eirora.Simulation.Economy
     /// </remarks>
     internal sealed partial class Settlement
     {
-        private static readonly Resource[] s_fixedOrder = (Resource[])Enum.GetValues(typeof(Resource));
-        private static readonly ReadOnlyCollection<Resource> s_fixedOrderShown = Array.AsReadOnly(s_fixedOrder);
+        private static readonly Resource[] s_defaultOrder = new List<Resource>(StockRules.DefaultImportOrder).ToArray();
 
         /// <summary>Whether an island has a store of its own, which it has once something is built there.</summary>
         public bool HasStore(string? island) => island is not null && _stores.ContainsKey(island);
@@ -24,9 +22,9 @@ namespace Eirora.Simulation.Economy
         public int ReservationOf(string island, Resource resource) =>
             _settlements.TryGetValue(island, out var settlement) && settlement.Reserved is int[] reserved ? reserved[(int)resource] : 0;
 
-        /// <summary>The order the ships take an island's goods home in: the player's, or the resources' fixed order.</summary>
+        /// <summary>The order the ships take an island's goods home in: the player's, or <see cref="StockRules.DefaultImportOrder"/>.</summary>
         public IReadOnlyList<Resource> ImportOrder(string island) =>
-            _settlements.TryGetValue(island, out var settlement) && settlement.Imports is Resource[] order ? Array.AsReadOnly(order) : s_fixedOrderShown;
+            _settlements.TryGetValue(island, out var settlement) && settlement.Imports is Resource[] order ? Array.AsReadOnly(order) : StockRules.DefaultImportOrder;
 
         /// <summary>Whole units of each resource an island's store holds.</summary>
         public int StorageUnits(string island) => (int)Quantity.Whole(StorageCapacity(island));
@@ -49,7 +47,7 @@ namespace Eirora.Simulation.Economy
             var order = new List<Resource>(ImportOrder(island));
             order.Remove(resource);
             order.Insert(place, resource);
-            _settlements[island].Imports = IsFixedOrder(order) ? null : order.ToArray();
+            _settlements[island].Imports = IsDefaultOrder(order) ? null : order.ToArray();
         }
 
         /// <summary>
@@ -72,7 +70,7 @@ namespace Eirora.Simulation.Economy
         }
 
         /// <summary>The order the ships take an island's goods home in, as the array they go through every quarter hour.</summary>
-        private static Resource[] ShippingOrder(IslandSettlement settlement) => settlement.Imports ?? s_fixedOrder;
+        private static Resource[] ShippingOrder(IslandSettlement settlement) => settlement.Imports ?? s_defaultOrder;
 
         /// <summary>
         /// Millionths of a unit of a resource in an island's store that the ships may take home: all but the larger of
@@ -88,12 +86,12 @@ namespace Eirora.Simulation.Economy
             return left > 0 ? left : 0;
         }
 
-        /// <summary>Whether an order of every resource is the resources' own, which the ships keep until the player changes it.</summary>
-        private static bool IsFixedOrder(IList<Resource> order)
+        /// <summary>Whether an order of every resource is the default one, which the ships keep until the player changes it.</summary>
+        private static bool IsDefaultOrder(IList<Resource> order)
         {
-            for (int i = 0; i < s_fixedOrder.Length; i++)
+            for (int i = 0; i < s_defaultOrder.Length; i++)
             {
-                if (order[i] != s_fixedOrder[i])
+                if (order[i] != s_defaultOrder[i])
                 {
                     return false;
                 }
@@ -131,7 +129,7 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// Reads what <see cref="WriteStockRules"/> writes: a reservation is more than 0 on an island with a store, each
-        /// once and in order; an import order is every resource once, off the home island, and not the fixed order.
+        /// once and in order; an import order is every resource once, off the home island, and not the default order.
         /// </summary>
         private void ReadStockRules(StateReader reader, WorldMap map)
         {
@@ -163,7 +161,7 @@ namespace Eirora.Simulation.Economy
 
                 int index = IndexOf(map, island);
                 bool everyOnce = new HashSet<Resource>(order).Count == s_resourceCount;
-                if (!_stores.ContainsKey(island) || island == _home || index <= previous || !everyOnce || IsFixedOrder(order))
+                if (!_stores.ContainsKey(island) || island == _home || index <= previous || !everyOnce || IsDefaultOrder(order))
                 {
                     throw new FormatException($"The import order on {island} is not an order of every resource after the previous island's.");
                 }
