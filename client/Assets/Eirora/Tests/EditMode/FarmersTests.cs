@@ -61,6 +61,26 @@ namespace Eirora.Client.Tests
             Assert.That(again.Q(className: "introduction"), Is.Null, "The introduction came again after a restart.");
         }
 
+        // The introduction stays on the island while the world goes on and the HUD is drawn again, until the player goes on
+        // from it; the card is not lost under it, so its button still closes it and the next one can come (PRG-02).
+        [Test]
+        public void TheIntroductionStaysUntilThePlayerGoesOnFromIt()
+        {
+            var root = new VisualElement();
+            var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."), introductions: new Introductions(null));
+            var unlocked = Village(step: 1);
+            hud.Show(unlocked, Array.Empty<GameEvent>());
+
+            hud.Show(unlocked, Array.Empty<GameEvent>());
+
+            var card = root.Q(className: "introduction");
+            Assert.That(card, Is.Not.Null, "The introduction was cleared away when the HUD was drawn again.");
+            Assert.That(hud.ShowsIntroduction, Is.True);
+            Press(card!.Q<Button>());
+            Assert.That(root.Q(className: "introduction"), Is.Null);
+            Assert.That(hud.ShowsIntroduction, Is.False);
+        }
+
         // At most one introduction a game day: one shown today keeps the next waiting until tomorrow (PRG-02).
         [Test]
         public void AtMostOneIntroductionIsDueAGameDay()

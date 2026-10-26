@@ -19,8 +19,9 @@ namespace Eirora.Simulation.Tests;
 /// Each morning of the build-out records self-care, unless the world is built without it, and plays commands that suit
 /// the world; a jetty, a sawmill, the expedition and a jetty on each island it knows come first, so that most worlds
 /// with self-care reach a sea route. One world in four is built on the <see cref="Archipelago"/>, where it knows a
-/// second island from the start, so that it can have three stores and two sea routes (TASK-045). Everything is drawn
-/// from the seed, so the same seed gives the same world.
+/// second island from the start, so that it can have three stores and two sea routes (TASK-045), and one in four starts
+/// as the <see cref="GrownVillage"/>, so that farmers and craftsmen, the shipyard's knarrs and buildings built by hand are
+/// left in flight too (TASK-052). Everything is drawn from the seed, so the same seed gives the same world.
 /// </remarks>
 internal static class BuiltOutWorld
 {
@@ -45,7 +46,8 @@ internal static class BuiltOutWorld
     /// <summary>The world as its save, with the journal of everything that built it, as the client would keep it.</summary>
     public static Save GenerateSave(int seed) => GenerateSave(seed, (SelfCare)(Math.Abs(seed) % 3));
 
-    public static Save GenerateSave(int seed, SelfCare selfCare) => GenerateSave(seed, selfCare, archipelago: Math.Abs(seed % 4) == 3);
+    public static Save GenerateSave(int seed, SelfCare selfCare) =>
+        GenerateSave(seed, selfCare, archipelago: Math.Abs(seed % 4) == 3, grown: Math.Abs(seed % 4) == 1);
 
     /// <summary>
     /// A world built only of what the rules before the population tiers had (TASK-061), which the migrations' tests can
@@ -56,12 +58,18 @@ internal static class BuiltOutWorld
     /// <inheritdoc cref="BeforeTiers(int)"/>
     public static Save BeforeTiers(int seed, SelfCare selfCare, bool archipelago) => GenerateSave(seed, selfCare, archipelago, lastStep: 0);
 
-    public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago, int lastStep = int.MaxValue)
+    /// <param name="grown">
+    /// Whether the world starts as the <see cref="GrownVillage"/>; only such a world builds by hand, since the others are
+    /// drawn as they were before handcraft and the migrations' tests write them back to older rules.
+    /// </param>
+    public static Save GenerateSave(int seed, SelfCare selfCare, bool archipelago, int lastStep = int.MaxValue, bool grown = false)
     {
         var random = new Random(~seed);
         var buildings = Scenario.Kinds(lastStep);
-        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false, lastStep, byHand: false);
-        var save = scenario.Begin();
+        var scenario = Scenario.Generate(seed, length: 30, archipelago, stockRules: false, lastStep, byHand: grown, grown);
+        // A grown village's shipyard waits with the knarr it has begun until the last visit, so that the ships' knarrs are
+        // still being built while the player is away.
+        var save = grown ? Save.Begin(GrownVillage.Create(scenario.Install, scenario.Schedule, shipyardPaused: true)) : scenario.Begin();
         var world = save.World;
         foreach (var input in scenario.Inputs)
         {
@@ -127,6 +135,12 @@ internal static class BuiltOutWorld
             }
         }
 
+        // A grown village leaves a weavery or a jetty built by hand (D-65), whose dawns may run out while the player is away.
+        if (grown && HandSite(world, random.Next(int.MaxValue)) is { } hand)
+        {
+            save.Apply($"out-{key++}", new BuildByHand(hand.Kind, hand.Site));
+        }
+
         // Now and then a building on another island with a settlement, which its own store or the home island's pays;
         // the ships carry the home island's materials before anything else (D-106, D-113).
         var settled = world.Islands.Where(i => i != world.HomeIsland && world.Settlement.HasBuilt(BuildingKind.Jetty, i)).ToList();
@@ -134,6 +148,11 @@ internal static class BuiltOutWorld
             && FreeSite(world, random.Next(int.MaxValue), c => world.Settlement.IslandOf(c.Site) == settled[key % settled.Count], buildings) is { } away)
         {
             save.Apply($"out-{key++}", new Build(away.Kind, away.Site));
+        }
+
+        if (grown && world.Buildings.FirstOrDefault(b => b.Kind == BuildingKind.Shipyard && b.Paused) is { } shipyard)
+        {
+            save.Apply($"out-{key++}", new ResumeBuilding(shipyard.Tile));
         }
 
         if (BuiltSite(world, random.Next(int.MaxValue), b => b.Staffed && !b.WorkdayToday) is Hex worked)
@@ -327,6 +346,16 @@ internal static class BuiltOutWorld
 
         var sites = free[pick % free.Count];
         return sites[pick / free.Count % sites.Count];
+    }
+
+    /// <summary>One of the affordable buildings that can be built by hand and a tile that takes it, or none.</summary>
+    private static (BuildingKind Kind, Hex Site)? HandSite(World world, int pick)
+    {
+        var free = Scenario.SitesOf(world)
+            .SelectMany(tile => Enum.GetValues<BuildingKind>().Where(k => world.Content.For(k).HandBuild).Select(k => (Kind: k, Site: tile)))
+            .Where(c => world.CheckBuild(c.Kind, c.Site) == Rejection.None && world.CanAfford(world.Content.For(c.Kind).Cost, c.Site))
+            .ToList();
+        return free.Count > 0 ? free[pick % free.Count] : null;
     }
 
     /// <summary>The tile of one of the world's producing buildings that <paramref name="can"/> take the command, or none.</summary>

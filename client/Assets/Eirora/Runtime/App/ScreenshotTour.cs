@@ -3,11 +3,13 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Eirora.CloudSaving;
 using Eirora.Client.Accounts;
 using Eirora.Client.Health;
 using Eirora.Client.Look;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.SelfCare;
 using Eirora.Simulation.Time;
 using Eirora.WorldGeneration;
@@ -22,6 +24,12 @@ namespace Eirora.Client.App
     /// <remarks>Run a player with: -eirora-screenshots &lt;folder&gt;. It quits when done.</remarks>
     internal static class ScreenshotTour
     {
+        /// <summary>
+        /// The prototype's village as epoch 1's fourth week leaves it, a save under Resources that the .NET tests write and
+        /// check (GrownVillageTests): every tier, step 3 and every building the steps unlock, with the shipyard's knarrs.
+        /// </summary>
+        public const string GrownVillageSave = "Tour/GrownVillage";
+
         // A building's sheet with its staffing and actions reaches half up the screen; looking this much further south keeps
         // the building it tells of in view above it.
         private static readonly Vector3 AboveTheSheet = new(0f, 0f, -1.6f);
@@ -256,8 +264,33 @@ namespace Eirora.Client.App
             client.ZoomTo(2);
             yield return Capture(client, folder, "18-generated-archipelago");
 
+            // The grown village (TASK-052): farmers and craftsmen in their houses and every building the steps unlock, each
+            // with its look and its sheet; the tiers' introductions come one a game day, the first with the overview.
+            var grownSave = Save.Load(Resources.Load<TextAsset>(GrownVillageSave).bytes);
+            var grown = new GameSession(new FixedClock(grownSave.World.Now), null, () => PrototypeHome.Map);
+            client.Begin(grown);
+            grown.Replace(grownSave, ReplaceReason.Downloaded);
+            client.Refresh();
+            var village = grown.World!;
+            var shown = GrownBuildings(village);
+            client.Focus(shown.Aggregate(Vector3.zero, (sum, b) => sum + b.Tile.Center()) / shown.Length);
+            yield return Capture(client, folder, "26-grown-village");
+            foreach (var building in shown)
+            {
+                client.Focus(building.Tile.Center() + AboveTheSheet);
+                client.Hud.Select(building.Tile);
+                yield return Capture(client, folder, $"27-{building.Kind.ToString().ToLowerInvariant()}");
+                client.Hud.Select(null);
+            }
+
             Application.Quit();
         }
+
+        /// <summary>The first building of each kind that a step unlocks, in the catalog's order, as the grown village's shots show them.</summary>
+        internal static Building[] GrownBuildings(Simulation.World world) => world.Content.Buildings
+            .Where(kind => world.Content.For(kind).Step > 0)
+            .Select(kind => world.Buildings.First(b => b.Kind == kind))
+            .ToArray();
 
         /// <summary>
         /// Captures the screen; an introduction that has come since the last shot gets one of its own first, named after

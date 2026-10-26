@@ -43,6 +43,42 @@ public sealed class PopulationTiersArriveTests
         });
     }
 
+    // Acceptance of TASK-052 (economy-v2.md, section 12): every golden save from before the population tiers, migrated
+    // through the whole chain to the current rules, keeps its villagers, its buildings with their levels, its forces and
+    // its map, and starts the unlocking where the world stands: step 1 if a settlement already has 20 villagers, else 0.
+    // A save from before rules 9 had one settlement for the whole world, which rules 9 shares out by island (D-106), so
+    // its step goes by each island's villagers. Rules 3 and earlier named their tiles, so they are compared from rules 4.
+    [Theory]
+    [InlineData("save-2-rules-4")]
+    [InlineData("save-3-rules-4")]
+    [InlineData("save-3-rules-5")]
+    [InlineData("save-3-rules-6")]
+    [InlineData("sea-route-3-rules-6")]
+    [InlineData("save-3-rules-7")]
+    [InlineData("save-3-rules-8")]
+    [InlineData("save-3-rules-9")]
+    [InlineData("save-3-rules-10")]
+    [InlineData("save-3-rules-11")]
+    public void EveryGoldenSaveFromBeforeTheTiersKeepsItsWorldAndStartsWhereItStands(string name)
+    {
+        var before = SaveSections.Text(Encoding.UTF8.GetString(GoldenSaveTests.Bytes(name)), "latest").Split('\n').Select(l => l.Split(' ')).ToList();
+
+        var world = Save.Load(GoldenSaveTests.Bytes(name)).World;
+        var after = world.Fingerprint().Split('\n').Select(l => l.Split(' ')).ToList();
+
+        // Before rules 9 the one settlement's line starts with its villagers; from rules 9 on, each island's follows its name.
+        var settlements = before.Where(f => f[0] == "settlement").Select(f => int.Parse(f[f.Length > 1 && !char.IsAsciiDigit(f[1][0]) ? 2 : 1], CultureInfo.InvariantCulture)).ToList();
+        Assert.Equal(settlements.Sum(), world.Villagers);
+        Assert.Equal(world.Settlements.Any(s => s.Villagers >= 20) ? 1 : 0, world.Step);
+        Assert.All(world.Settlements, s => Assert.Equal(s.Villagers, s.VillagersOf(PopulationTier.Crofters)));
+
+        static IEnumerable<string> Lines(List<string[]> state, string kind, int fields) =>
+            state.Where(f => f[0] == kind).Select(f => string.Join(' ', f.Take(fields))).Order(StringComparer.Ordinal);
+        Assert.Equal(Lines(before, "building", 5), Lines(after, "building", 5)); // Kind, tile and level.
+        Assert.Equal(Lines(before, "force", 4), Lines(after, "force", 4));
+        Assert.Equal(Lines(before, "fog", 2), Lines(after, "fog", 2));
+    }
+
     // A world below 20 villagers in every settlement starts at step 0, and reaches step 1 only at a dawn that has 20.
     [Fact]
     public void AWorldOfFewerStartsAtStepZero()

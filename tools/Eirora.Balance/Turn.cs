@@ -91,4 +91,7 @@ internal sealed class Tally
 
     /// <summary>The first game day that ended with a sea route.</summary>
     public int? SeaRouteOn { get; set; }
+
+    /// <summary>Each system the player has met and the first game day it was met on (economy-v2.md, section 5).</summary>
+    public Dictionary<string, int> SystemsMet { get; } = new(StringComparer.Ordinal);
 }

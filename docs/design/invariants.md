@@ -113,6 +113,8 @@ Från TASK-050 också med en bosättning per ö, byggnader som väntar på bybor
 Sedan TASK-050 är byggkön inte strikt först in, först ut: varje bygge får arbete av de bybor som når det, så ett bygge längre bak kan bli färdigt först (D-113).
 Under frånvaron lämnar ett bygge därför kön bara när det är färdigt, med `ProjectCompleted`, och står som byggnad, uppgradering eller väg; resten av kön behåller sin ordning (#175).
 Från TASK-047 också i världar där spelaren just har rivit en byggnad, ibland en bostad så att byborna är fler än bostäderna: ingen bybo försvinner och byn växer inte förrän det finns plats (D-39).
+Från TASK-052 också i världar som börjar i den odlade byn (`GrownVillage`) med alla tre nivåerna, steg 3, ett varv som bygger knarrar och byggnader med handkraft i kön: inget steg låses igen, ingen bybo går ner en nivå, ingen knarr går förlorad och dygnen kvar för handkraften blir aldrig fler (INV-V1, INV-V3).
+`Scenario` börjar i den odlade byn i en av tre sekvenser i egenskapstesterna, och `BuiltOutWorld` i en av fyra utbyggda världar.
 
 Framspolningen hoppar över kvartar där bara långsamma processer rör sig: vilotiden, och kvartarna efter en vaken kvart vars arbete inte ändrade något, fram till nästa gryning.
 Det håller bara om inget tillstånd som kvartarna driver kan börja ändras utan att något av det som jämförs ändras först.

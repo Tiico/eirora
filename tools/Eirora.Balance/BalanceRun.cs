@@ -78,9 +78,11 @@ public static class BalanceRun
             spec.Profile.Record(world, day);
             plan.Play(new Turn(world, day, spec.Days, plan, tally));
             invariants.AfterCommands(world, day, [.. tally.Decisions.Where(d => d.Day == day).Select(d => d.Command).OfType<Demolish>().Select(d => d.Tile)]);
+            Systems.Note(world, day, tally);
             plan.Note(world, day);
             tally.DawnPowerLeft.Add(world.Available(Force.DawnPower));
             PassTheDay(world, dawn, day == spec.Days, hours => plan.Note(world, day), () => invariants.Check(world, day));
+            Systems.Note(world, day, tally);
             tally.Values.Add(Measures.Value(world));
             tally.SeaRouteOn ??= world.SeaRoutes.Count > 0 ? day : null;
         }
@@ -170,6 +172,7 @@ public sealed class RunResult
         Saved = [.. new[] { Force.Exploration, Force.BuildPower, Force.DawnPower }.Select(world.Available)];
         PlanFinishedOn = plan.FinishedOn;
         SeaRouteOn = tally.SeaRouteOn;
+        SystemsMet = new Dictionary<string, int>(tally.SystemsMet, StringComparer.Ordinal);
         GoalsDone = plan.Count(GoalStatus.Done);
         GoalsSkipped = [.. plan.Skipped()];
         GoalsPending = [.. plan.Pending()];
@@ -222,6 +225,9 @@ public sealed class RunResult
 
     /// <summary>The first game day that ended with a sea route, or null if none was opened (epoch-1.md, section 5).</summary>
     public int? SeaRouteOn { get; }
+
+    /// <summary>Each system the player met and the first game day it was met on (economy-v2.md, section 5).</summary>
+    public IReadOnlyDictionary<string, int> SystemsMet { get; }
 
     public int GoalsDone { get; }
 

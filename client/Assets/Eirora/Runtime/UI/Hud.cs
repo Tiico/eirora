@@ -50,6 +50,7 @@ namespace Eirora.Client.UI
         private VisualElement? _setup;
         private Introductions _introductions;
         private VisualElement? _introduction; // The introduction card while it is shown.
+        private VisualElement? _night; // The card that says the village rests, while it does.
         private World? _world;
         private Diagnostics? _diagnostics;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
@@ -409,15 +410,22 @@ namespace Eirora.Client.UI
             }).StartingIn(2600);
         }
 
+        // Only the night's own card is drawn again, so that an introduction over the island stays until the player goes on.
         private void ShowNight(World world)
         {
-            _middle.Clear();
+            if (_night is { } shown)
+            {
+                _middle.Remove(shown);
+                _night = null;
+            }
+
             if (world.Phase != Phase.Resting)
             {
                 return;
             }
 
             var night = Container("card night", _middle);
+            _night = night;
             Text("night-title", night, "Byn vilar.");
             Text("night-text", night, $"Världen öppnar klockan {Clock(RestEnd(world))}.");
             Text("night-text", night, world.ExpeditionHoursLeft > 0

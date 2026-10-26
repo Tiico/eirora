@@ -46,6 +46,12 @@ public sealed class LongAbsenceTests
 
     private static readonly Resource[] s_resources = Enum.GetValues<Resource>();
 
+    // The buildings that the steps after the first unlock (economy-v2.md, section 4).
+    private static readonly int s_newBuildings = Enum.GetValues<BuildingKind>().Count(k => ContentCatalog.Current.For(k).Step > 0);
+
+    // What a knarr costs, paid from its island's store when it is begun (economy-v2.md, section 4).
+    private static readonly IReadOnlyDictionary<Resource, int> s_knarr = ContentCatalog.Current.For(BuildingKind.Shipyard).Knarrs!.Cost;
+
     [Property(MaxTest = 16)]
     public void AnAbsenceOfAnyLengthBreaksNothing(int seed)
     {
@@ -116,6 +122,11 @@ public sealed class LongAbsenceTests
     [Fact]
     public void AnAbsenceWhereGoodsWaitAtADepotBreaksNothing() => AnAbsenceOfAnyLengthBreaksNothing(14);
 
+    // Seed 9 leaves a grown village with farmers and craftsmen, a knarr being built and a weavery or a jetty built by hand,
+    // so the shipyard pays and launches knarrs and the handcraft's dawns run out while the player is away (TASK-052).
+    [Fact]
+    public void AnAbsenceWhereAKnarrIsBuiltAndABuildingIsBuiltByHandBreaksNothing() => AnAbsenceOfAnyLengthBreaksNothing(9);
+
     // The property proves little unless the build-out leaves worlds with work in flight.
     [Fact]
     public void BuiltOutWorldsAreLeftWithWorkInFlight()
@@ -168,6 +179,16 @@ public sealed class LongAbsenceTests
             See("reserved", world.Islands.Any(i => s_resources.Any(r => world.ReservationOf(i, r) > 0)));
             See("reserved off the home island", world.SeaRoutes.Any(route => s_resources.Any(r => world.ReservationOf(route.From, r) > 0)));
             See("import order", world.SeaRoutes.Any(route => !world.ImportOrder(route.From).SequenceEqual(s_resources)));
+            See("step 1", world.Step == 1);
+            See("step 2", world.Step == 2);
+            See("step 3", world.Step == 3);
+            See("farmers", world.Settlements.Any(s => s.VillagersOf(PopulationTier.Farmers) > 0));
+            See("craftsmen", world.Settlements.Any(s => s.VillagersOf(PopulationTier.Craftsmen) > 0));
+            See("every new building", world.Buildings.Select(b => b.Kind).Distinct().Count(k => world.Content.For(k).Step > 0) == s_newBuildings);
+            See("knarrs", world.Islands.Any(i => world.Knarrs(i) > 0));
+            See("knarr being built", world.Buildings.Any(b => b.KnarrHoursLeft > 0 && !b.Paused));
+            See("tar", world.Islands.Any(i => world.Stock(i, Resource.Tar) > 0));
+            See("built by hand", world.Projects.Any(p => p.ByHand));
         }
 
         string[] wanted =
@@ -178,6 +199,7 @@ public sealed class LongAbsenceTests
             "road in the queue", "goods waiting for the carriers", "raw materials at the processing", "several carriers", "carriers capped", "carried first", "carriers behind",
             "demolished", "more villagers than room",
             "minimum stock", "reserved", "reserved off the home island", "import order",
+            "step 1", "step 2", "step 3", "farmers", "craftsmen", "every new building", "knarrs", "knarr being built", "tar", "built by hand",
         ];
         Assert.Equal([], wanted.Where(w => !seen.Contains(w)).ToArray());
     }
@@ -285,6 +307,9 @@ public sealed class LongAbsenceTests
             _ => 0,
         }));
 
+    /// <summary>The knarrs the world's shipyards have begun: those launched and those being built.</summary>
+    private static int KnarrsPaid(World world) => world.Islands.Sum(world.Knarrs) + world.Buildings.Count(b => b.KnarrHoursLeft > 0);
+
     private static World Copy(World world) =>
         SimulationSnapshot.FromBytes(SimulationSnapshot.Take(world).ToBytes()).Restore(world.Map);
 
@@ -321,7 +346,7 @@ public sealed class LongAbsenceTests
     /// <summary>Everything that never decreases while the player is away (INV-V1, INV-F6), and the work left.</summary>
     private sealed record Measures(
         int Villagers, int Housing, int Settlements, int Buildings, int Levels, int Roads, int Revealed, int Surveys, int GameDay, int[] Forces, int Projects, long WorkLeft,
-        int ExpeditionHoursLeft, int AtWork, string[] StaffingOrder, string[] Paused, string[] Queue)
+        int ExpeditionHoursLeft, int AtWork, string[] StaffingOrder, string[] Paused, string[] Queue, int Step, int Risen, int Craftsmen, int Knarrs, int DawnsByHand)
     {
         public static Measures Of(World world) => new(
             world.Villagers,
@@ -340,7 +365,12 @@ public sealed class LongAbsenceTests
             InBuildings(world),
             [.. world.StaffingOrder.Select(b => $"{b.Kind}@{b.Tile}")],
             [.. world.Buildings.Where(b => b.Paused).Select(b => $"{b.Kind}@{b.Tile}")],
-            [.. world.Projects.Select(p => $"{p.Kind} {p.Building}@{p.Tile}")]);
+            [.. world.Projects.Select(p => $"{p.Kind} {p.Building}@{p.Tile}")],
+            world.Step,
+            world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Farmers) + s.VillagersOf(PopulationTier.Craftsmen)),
+            world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Craftsmen)),
+            world.Islands.Sum(world.Knarrs),
+            world.Projects.Sum(p => p.DaysLeft));
 
         /// <summary>
         /// The villagers who staff a building, a depot's first carrier counted: the carriers it takes beyond that follow
@@ -362,10 +392,17 @@ public sealed class LongAbsenceTests
             Assert.True(GameDay >= earlier.GameDay, $"game day {earlier.GameDay} → {GameDay}");
             Assert.True(Forces.Zip(earlier.Forces).All(f => f.First >= f.Second), $"forces {string.Join(",", earlier.Forces)} → {string.Join(",", Forces)}");
 
+            // No step is locked again, no villager goes down a tier and no knarr is lost (INV-V1, INV-V3, D-39).
+            Assert.True(Step >= earlier.Step, $"step {earlier.Step} → {Step}");
+            Assert.True(Risen >= earlier.Risen, $"farmers and craftsmen {earlier.Risen} → {Risen}");
+            Assert.True(Craftsmen >= earlier.Craftsmen, $"craftsmen {earlier.Craftsmen} → {Craftsmen}");
+            Assert.True(Knarrs >= earlier.Knarrs, $"knarrs {earlier.Knarrs} → {Knarrs}");
+
             // Work only goes forward: the queue never grows and no project or voyage gets longer.
             Assert.True(Projects <= earlier.Projects, $"projects {earlier.Projects} → {Projects}");
             Assert.True(WorkLeft <= earlier.WorkLeft, $"work left {earlier.WorkLeft} → {WorkLeft}");
             Assert.True(ExpeditionHoursLeft <= earlier.ExpeditionHoursLeft, $"expedition {earlier.ExpeditionHoursLeft} → {ExpeditionHoursLeft}");
+            Assert.True(DawnsByHand <= earlier.DawnsByHand, $"dawns left by hand {earlier.DawnsByHand} → {DawnsByHand}");
 
             // The player's say holds: a completed building comes last in the staffing order, a completed project leaves
             // the queue and the rest keep their order, nothing is paused or resumed, and villagers only ever go to work
@@ -402,11 +439,13 @@ public sealed class LongAbsenceTests
     {
         private readonly long[] _total;
         private readonly string _where;
+        private readonly int _knarrsPaid;
 
-        private Stocks(long[] total, string where)
+        private Stocks(long[] total, string where, int knarrsPaid)
         {
             _total = total;
             _where = where;
+            _knarrsPaid = knarrsPaid;
         }
 
         public static Stocks Of(World world)
@@ -417,21 +456,23 @@ public sealed class LongAbsenceTests
                 " ",
                 world.Islands.SelectMany(i => s_resources.SelectMany(r => new[] { world.Settlement.Stock(i, r), world.Settlement.AtDepot(i, r) }))
                     .Concat(world.Buildings.SelectMany(b => (b.Held ?? []).Prepend(b.Waiting))));
-            return new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.AtDepot(i, r)) + Waiting(r) + Held(r))], where);
+            return new([.. s_resources.Select(r => world.Islands.Sum(i => world.Settlement.Stock(i, r) + world.Settlement.AtDepot(i, r)) + Waiting(r) + Held(r))], where, KnarrsPaid(world));
         }
 
         /// <summary>
         /// A store shrinks with time only by what recipes and basic needs consume (INV-R3), and the carriers only move goods
         /// between a building and a store (INV-R2): the sawmill takes two timber
-        /// for a plank, the weavery two wool for a wadmal, the tannery two game for a hide, the brewery two grain for an ale
-        /// and the meadery a honey for a mead, and each dawn every villager eats one fish, game or grain, and comfort takes
+        /// for a plank, the weavery two wool for a wadmal, the tannery two game for a hide, the brewery two grain for an ale,
+        /// the meadery a honey for a mead and the tar kiln two timber for a tar, a shipyard pays a knarr's planks and tar
+        /// when it begins it, and each dawn every villager eats one fish, game or grain, and comfort takes
         /// two clothes, the farmers and craftsmen half one each and the craftsmen half a drink each, in each settlement.
         /// The ships only move goods between the islands, and goods waiting at a depot only move into its store. Nothing
         /// changes while the villagers rest throughout (INV-T4).
         /// </summary>
         public void AssertOnlyConsumedSince(Stocks earlier, int dawns, int villagers, int settlements, bool restingThroughout)
         {
-            long Change(Resource r) => _total[(int)r] - earlier._total[(int)r];
+            // What the knarrs begun since took, counted as if it were still there.
+            long Change(Resource r) => _total[(int)r] - earlier._total[(int)r] + Quantity.Units((long)s_knarr.GetValueOrDefault(r) * (_knarrsPaid - earlier._knarrsPaid));
             if (restingThroughout)
             {
                 Assert.Equal(earlier._where, _where);
@@ -449,7 +490,8 @@ public sealed class LongAbsenceTests
             long meadMade = Change(Resource.Mead) + drink;
             Assert.True(Change(Resource.Planks) >= 0, $"planks {Change(Resource.Planks)}");
             Assert.True(Change(Resource.Stone) >= 0, $"stone {Change(Resource.Stone)}");
-            Assert.True(Change(Resource.Timber) >= -2 * Change(Resource.Planks), $"timber {Change(Resource.Timber)} for {Change(Resource.Planks)} planks");
+            Assert.True(Change(Resource.Tar) >= 0, $"tar {Change(Resource.Tar)}");
+            Assert.True(Change(Resource.Timber) >= -2 * (Change(Resource.Planks) + Change(Resource.Tar)), $"timber {Change(Resource.Timber)} for {Change(Resource.Planks)} planks and {Change(Resource.Tar)} tar");
             Assert.True(Change(Resource.Wadmal) + Change(Resource.Hide) + clothes >= 0, $"wadmal {Change(Resource.Wadmal)} and hide {Change(Resource.Hide)} over {dawns} dawns");
             Assert.True(Change(Resource.Wool) >= -2 * wadmalMade, $"wool {Change(Resource.Wool)} for {wadmalMade} wadmal");
             Assert.True(Change(Resource.Mead) + Change(Resource.Ale) + drink >= 0, $"mead {Change(Resource.Mead)} and ale {Change(Resource.Ale)} over {dawns} dawns");
@@ -571,8 +613,10 @@ public sealed class LongAbsenceTests
                 + Total(Resource.Grain) + (2 * Total(Resource.Ale)) + Total(Resource.Wool) + (2 * Total(Resource.Wadmal))
                 + Total(Resource.Honey) + Total(Resource.Mead);
 
-            // The forest left on every tile plus the timber felled from it, the sawmill's timber counted in its planks.
-            long forest = forestTiles.Sum(w.Settlement.ForestLeft) + Total(Resource.Timber) + (2 * Total(Resource.Planks));
+            // The forest left on every tile plus the timber felled from it, the sawmill's timber counted in its planks, the
+            // tar kiln's in its tar and the shipyards' in the knarrs they have begun.
+            long knarrs = Quantity.Units(KnarrsPaid(w) * (2L * (s_knarr.GetValueOrDefault(Resource.Planks) + s_knarr.GetValueOrDefault(Resource.Tar))));
+            long forest = forestTiles.Sum(w.Settlement.ForestLeft) + Total(Resource.Timber) + (2 * Total(Resource.Planks)) + (2 * Total(Resource.Tar)) + knarrs;
             long regrowth = forestTiles.Sum(h => Math.Min(ForestRegrowthPerTick, ForestPerTile - w.Settlement.ForestLeft(h)));
             return (crops, forest, regrowth, w.GameDay);
         }
