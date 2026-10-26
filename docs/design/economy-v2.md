@@ -654,7 +654,7 @@ Prövat: med 12 bostäder i bondgården i stället för 6 blir Bygden bäst i Ri
    På 260 genererade kartor (seed 0–259) med normal egenvård i fyra veckor är Närområdet bäst på 127 (49 %), Bygden på 114 (44 %) och Havet på 19 (7 %).
    Före TASK-097:s planerare var Bygden bäst på 200 (77 %), Närområdet på 52 och Havet på 8.
    Det uppfyller AC-06, men Havet vinner sällan, och också i kalkylen är Havet 16 % efter Bygden vecka 6 (avsnitt 10).
-   Med ull först i importprioriteten är Havet bäst på 22 % ([balansrapport M4](./balance-m4.md#4-havet)).
+   Med ull först i importprioriteten är Havet bäst på 28 % ([balansrapport M4](./balance-m4.md#4-havet)); den förvalda ordningen ändras så i TASK-056 (D-135).
 2. **Första veckan skiljer sig strategierna mindre från den naiva.**
    Efter sju dygn på scenariernas genererade kartor ger den sämsta genomtänkta strategin bara 1,11–1,24 gånger den naivas värde per använd kraft med normal egenvård och 1,01–1,06 utan träning, och på seed 31 med normal egenvård har den naiva strategin störst utvecklingsvärde.
    På prototypens karta är kvoten 1,47 efter sju dygn, och efter fyra veckor håller D-34 överallt.
