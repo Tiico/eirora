@@ -313,6 +313,31 @@ public sealed class OnFirstDawn : DailyMove
     }
 }
 
+/// <summary>
+/// Puts a resource first in the order the ships take each other island's goods home in, once the island has a store
+/// (D-126, LOG-06), so that, say, wool for clothes is not crowded out by stone on a sea route that carries 40 a day.
+/// </summary>
+public sealed class ImportFirst : DailyMove
+{
+    public ImportFirst(Resource resource) => Resource = resource;
+
+    public Resource Resource { get; }
+
+    public override string Name => $"{Names.Of(Resource)} först i importprioriteten";
+
+    internal override void Make(Turn turn)
+    {
+        var world = turn.World;
+        foreach (var island in world.Settlements.Select(s => s.Island).Where(i => i != world.HomeIsland))
+        {
+            if (world.ImportOrder(island)[0] != Resource)
+            {
+                turn.Apply(new MoveImport(island, Resource, 0));
+            }
+        }
+    }
+}
+
 /// <summary>Rushes the first project in the queue that the villagers work on (economy-v1.md, section 6); one built by hand is not.</summary>
 public sealed class RushFirst : DailyMove
 {

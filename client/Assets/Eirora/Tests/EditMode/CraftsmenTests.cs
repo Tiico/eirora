@@ -64,6 +64,7 @@ namespace Eirora.Client.Tests
             Close(root);
 
             hud.Select(s_meadow);
+            hud.ShowMore();
 
             var texts = Texts(root);
             Assert.That(texts, Does.Contain("Ger plats åt åtta hantverkare. Bönder blir hantverkare här när de får det de behöver."));
@@ -82,6 +83,7 @@ namespace Eirora.Client.Tests
             Close(root);
 
             hud.Select(s_meadow);
+            hud.ShowMore();
 
             Assert.That(Texts(root), Does.Contain("Med dryck (mjöd eller öl) i lagret kan bönder bli hantverkare i gryningen."));
         }
@@ -98,6 +100,7 @@ namespace Eirora.Client.Tests
                 hud.Show(Village(step: step), Array.Empty<GameEvent>());
                 Close(root);
                 hud.Select(s_meadow);
+                hud.ShowMore();
                 return root.Query<Label>(className: "sheet-subtitle").ToList().Select(l => l.text).First();
             }
 
@@ -109,9 +112,7 @@ namespace Eirora.Client.Tests
             sheet.Show(Village(step: 2), Array.Empty<GameEvent>());
             Close(meadow);
             sheet.Select(s_meadow);
-            var special = meadow.Query<Button>(className: "action").ToList()
-                .Select(a => $"{a.Q<Label>(className: "action-title")?.text} | {a.Q<Label>(className: "action-effect")?.text}")
-                .TakeWhile(a => !a.StartsWith("Fler", StringComparison.Ordinal));
+            var special = sheet.Choices.Select(c => $"{c.Title} | {c.Effect}"); // The ring holds what only the meadow allows.
             Assert.That(special, Has.Member("Bigård | 0,4 honung/h dygnet runt"));
         }
 
@@ -168,9 +169,12 @@ namespace Eirora.Client.Tests
         {
             string[] Bar(World world)
             {
+                // The goods the village has met are the store's (ui-prototypes.html, direction C).
                 var root = new VisualElement();
-                new Hud(root, _ => throw new InvalidOperationException("Nothing is played here.")).Show(world, Array.Empty<GameEvent>());
-                return root.Query<Label>(className: "resource").ToList().Select(l => l.text.Split(' ')[0]).ToArray();
+                var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
+                hud.Show(world, Array.Empty<GameEvent>());
+                hud.OpenStore(world.HomeIsland);
+                return root.Query<Label>(className: "good-name").ToList().Select(l => l.text).ToArray();
             }
 
             Assert.That(Bar(Village(step: 1)), Has.None.EqualTo("Honung").And.None.EqualTo("Mjöd").And.None.EqualTo("Öl"));

@@ -19,9 +19,10 @@ using MapTerrain = Eirora.Simulation.Map.Terrain;
 namespace Eirora.Client.UI
 {
     /// <summary>
-    /// The prototype's interface, built in code with UI Toolkit (NFR-14): forces and stock at the top, actions at
-    /// the bottom, a sheet for the selected tile, the building queue, self-care input, the daily report, the account
-    /// and the night view (RST-03).
+    /// The interface, built in code with UI Toolkit (NFR-14) in direction C of ui-prototypes.html, where the island
+    /// says most of it: the forces as a strip along the top, a rail of signs at the left, the bubbles and the ring of
+    /// choices on the island (Hud.World.cs), and cards for what needs more words: the building queue, self-care input,
+    /// the daily report, the account, a store, and the whole of a tile behind the ring's last choice.
     /// </summary>
     public sealed partial class Hud
     {
@@ -34,23 +35,21 @@ namespace Eirora.Client.UI
         private readonly Func<GameCommand, CommandResult> _apply;
         private readonly IHealthControls? _health;
         private bool _explainingHealth;
-        private bool _moreBuildingsShown;
         private readonly VisualElement _root;
         private readonly VisualElement _screen;
         private readonly VisualElement _top;
         private readonly VisualElement _middle;
         private readonly VisualElement _bottom;
         private readonly VisualElement _sheet;
-        private readonly VisualElement _bar;
+        private readonly VisualElement _rail;
         private readonly Dictionary<Force, Label> _forceValues = new();
-        private readonly VisualElement _resources;
-        private readonly Label _status;
+        private readonly Dictionary<Force, VisualElement> _segments = new();
         private readonly SelfCareForm _selfCare = new();
         private Label? _toast;
         private VisualElement? _setup;
         private Introductions _introductions;
         private VisualElement? _introduction; // The introduction card while it is shown.
-        private VisualElement? _night; // The card that says the village rests, while it does.
+        private VisualElement? _night; // The arc of the night, while the village rests.
         private World? _world;
         private Diagnostics? _diagnostics;
         private IReadOnlyList<GameEvent> _sinceDawn = Array.Empty<GameEvent>();
@@ -70,28 +69,44 @@ namespace Eirora.Client.UI
             _root.styleSheets.Add(Resources.Load<StyleSheet>("UI/Eirora"));
             _root.pickingMode = PickingMode.Ignore;
 
+            // The bubbles lie under the screen, so that the strip, the rail and the cards draw over them; the ring, which
+            // is open while no card is, draws over the rail.
+            _islandLayer = Container("island-layer", _root);
+            _bubbles = Container("bubbles", _islandLayer);
             _screen = Container("screen", _root);
-            _top = Container("card top", _screen);
+            _ring = Container("ring", _root);
+            _ring.style.display = DisplayStyle.None;
+
+            _top = Container("horizon", _screen);
             _middle = Container("middle", _screen);
             _middle.style.flexGrow = 1;
+            _rail = Container("rail", _middle);
             _bottom = Container("bottom", _screen);
             _sheet = Container("card sheet", _bottom);
-            _bar = Container("bar", _bottom);
 
-            var forces = Container("forces", _top);
+            // The forces along the horizon: each force's shape and amount, with room in proportion to the amount.
             foreach (var force in new[] { Force.Exploration, Force.BuildPower, Force.DawnPower })
             {
-                var chip = Container("force", forces);
-                chip.Add(new ForceIcon(force));
-                _forceValues[force] = Text("force-value", chip, "0");
-                Text("force-name", chip, Texts.Name(force));
+                var segment = Container("segment", _top);
+                segment.style.borderBottomColor = ForceColour(force);
+                segment.Add(new ForceIcon(force, 44f));
+                _forceValues[force] = Text("segment-value", segment, "0");
+                _segments[force] = segment;
             }
 
-            _resources = Container("resources", _top);
-            _status = Text("status", _top, string.Empty);
             _sheet.style.display = DisplayStyle.None;
             _top.style.display = DisplayStyle.None;
         }
+
+        /// <summary>The tile whose ring or card is open, under the fog or not.</summary>
+        public Hex? Selected => _tile ?? _fog;
+
+        private static Color ForceColour(Force force) => force switch
+        {
+            Force.Exploration => Palette.Exploration,
+            Force.BuildPower => Palette.BuildPower,
+            _ => Palette.DawnPower,
+        };
 
         private enum Sheet
         {
@@ -200,29 +215,23 @@ namespace Eirora.Client.UI
             _world = world;
             _diagnostics = diagnostics ?? IslandView.DiagnoseWhileAwake(world);
             _sinceDawn = sinceDawn;
-            _top.style.display = DisplayStyle.Flex;
+            // The horizon strip is the day's; the night has its arc instead (RST-03).
+            _top.style.display = world.Phase == Phase.Active ? DisplayStyle.Flex : DisplayStyle.None;
             ApplySafeArea();
 
             foreach (var force in _forceValues.Keys)
             {
-                _forceValues[force].text = world.Available(force).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                int available = world.Available(force);
+                _forceValues[force].text = available.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                _segments[force].style.flexGrow = Math.Max(available, 1);
             }
-
-            // One label per resource the village has met, spread over the card's width and wrapping rather than running off it.
-            _resources.Clear();
-            foreach (var resource in Enum.GetValues(typeof(Resource)).Cast<Resource>().Where(r => Met(world, r)))
-            {
-                Text("resource", _resources, $"{Capital(Texts.Name(resource))} {world.Stock(resource)}");
-            }
-            string upcoming = world.Phase == Phase.Resting
-                ? $"Världen öppnar klockan {Clock(RestEnd(world))}"
-                : $"Byn vilar klockan {Clock(world.RestSchedule.StartMinuteOfDay)}";
-            _status.text = $"Dag {world.GameDay} · {world.Villagers} av {world.Housing} bybor · {upcoming}";
 
             ShowNight(world);
-            ShowBar(world);
+            ShowRail(world);
+            UpdateWayBehind(world);
+            ShowWorld(world);
 
-            // A lifted tile is no longer under the fog: its sheet closes and the island shows what was there.
+            // A lifted tile is no longer under the fog: its ring closes and the island shows what was there.
             if (_open == Sheet.Fog && _fog is Hex lifted && world.IsKnown(lifted))
             {
                 Select(null);
@@ -231,6 +240,17 @@ namespace Eirora.Client.UI
 
             ShowSheet();
             ShowIntroduction(world);
+        }
+
+        /// <summary>
+        /// The way from the selected building to its depot while its carriers are behind, which the island marks and the
+        /// late carrier stands on (TASK-043).
+        /// </summary>
+        private void UpdateWayBehind(World world)
+        {
+            _wayBehind = _tile is Hex tile && world.BuildingAt(tile) is not null && _diagnostics?.At(tile)?.Hindrances.OfType<CarriersBehind>().Any() == true
+                ? world.WayToDepot(tile)
+                : Array.Empty<Hex>();
         }
 
         /// <summary>
@@ -306,32 +326,40 @@ namespace Eirora.Client.UI
             }
 
             _tile = tile;
-            _moreBuildingsShown = false;
+            _unfolded = false;
+            _chosen = -1;
             _demolishing = null;
             _fog = null;
             _open = tile is null ? Sheet.None : Sheet.Tile;
+            if (_world is not null)
+            {
+                UpdateWayBehind(_world);
+                ShowWorld(_world);
+            }
+
             SelectionChanged?.Invoke(tile);
             ShowSheet();
         }
 
-        /// <summary>Lists the buildings that any land takes on the selected tile below what it is special for.</summary>
-        public void ShowMoreBuildings()
-        {
-            _moreBuildingsShown = true;
-            ShowSheet();
-        }
-
-        /// <summary>Opens the sheet for a tile under the fog (TASK-032).</summary>
+        /// <summary>Opens the ring for a tile under the fog (TASK-032).</summary>
         public void SelectFog(Hex hex)
         {
             _tile = null;
             _fog = hex;
+            _unfolded = false;
+            _chosen = -1;
+            _wayBehind = Array.Empty<Hex>();
             _open = Sheet.Fog;
+            if (_world is not null)
+            {
+                ShowWorld(_world);
+            }
+
             SelectionChanged?.Invoke(hex);
             ShowSheet();
         }
 
-        /// <summary>Whether a tile lies under the fog, so that tapping it opens the fog's sheet; while laying roads none does.</summary>
+        /// <summary>Whether a tile lies under the fog, so that tapping it opens the fog's ring; while laying roads none does.</summary>
         public bool IsFogged(Hex hex) => _world is not null && !_world.IsKnown(hex) && _open != Sheet.Road;
 
         /// <summary>Starts laying roads: every tile tapped next gets a road, tile by tile, until the player is done (D-112).</summary>
@@ -410,7 +438,7 @@ namespace Eirora.Client.UI
             }).StartingIn(2600);
         }
 
-        // Only the night's own card is drawn again, so that an introduction over the island stays until the player goes on.
+        // Only the night's own arc is drawn again, so that an introduction over the island stays until the player goes on.
         private void ShowNight(World world)
         {
             if (_night is { } shown)
@@ -424,49 +452,60 @@ namespace Eirora.Client.UI
                 return;
             }
 
-            var night = Container("card night", _middle);
-            _night = night;
-            Text("night-title", night, "Byn vilar.");
-            Text("night-text", night, $"Världen öppnar klockan {Clock(RestEnd(world))}.");
-            Text("night-text", night, world.ExpeditionHoursLeft > 0
-                ? "Medan byn sover mognar säden, skogen växer och expeditionen ligger för ankar."
-                : "Medan byn sover mognar säden och skogen växer.");
+            _night = NightArc(world);
+            _middle.Add(_night);
         }
 
-        private void ShowBar(World world)
+        /// <summary>
+        /// The rail at the left: self-care, the building queue with how long it is, the report, the account and the
+        /// villagers against their homes; by night only what the rest allows (RST-07, D-23).
+        /// </summary>
+        private void ShowRail(World world)
         {
-            _bar.Clear();
-            Button("button", _bar, "Egenvård", () => Open(Sheet.SelfCare));
-            if (world.Phase == Phase.Active)
-            {
-                var survey = Survey.NextCost(world);
-                if (survey is int cost)
-                {
-                    CostButton("Kartlägg", Force.Exploration, cost, () => Run(new Survey()));
-                }
-                else
-                {
-                    Button("button", _bar, "Kartlagt", () => { }).SetEnabled(false);
-                }
-            }
+            _rail.Clear();
+            bool awake = world.Phase == Phase.Active;
+            RailButton("Egenvård", GlyphKind.Care, () => Open(Sheet.SelfCare));
 
             // The queue can be looked at during the rest too; ordering it waits for the dawn (D-23, INV-T3).
-            var queue = Button("button", _bar, string.Empty, () => Open(Sheet.Queue));
-            Text("button-title", queue, "Byggkö");
-            Text("button-detail", queue, world.Projects.Count == 0 ? "tom" : $"{world.Projects.Count} st");
+            var queue = RailButton("Byggkö", GlyphKind.Hammer, () => Open(Sheet.Queue));
+            if (world.Projects.Count > 0)
+            {
+                Text("badge", queue, world.Projects.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
 
-            Button("button", _bar, "Rapport", () => Open(Sheet.Report));
+            RailButton("Rapport", GlyphKind.Report, () => Open(Sheet.Report));
             if (_account is not null)
             {
                 // Always there, also during rest (RST-07), but never in the way of playing (ACC-04).
-                var account = Button("button button-icon", _bar, string.Empty, OpenAccount);
-                account.Add(new AccountIcon());
+                RailButton("Konto", GlyphKind.Account, OpenAccount);
             }
+
+            if (awake)
+            {
+                var folk = Container("folk", _rail);
+                folk.name = $"{world.Villagers} av {world.Housing} bybor";
+                folk.Add(new Glyph(GlyphKind.Villager, 48f, Palette.Panel));
+                var pips = Container("pips", folk);
+                for (int i = 0; i < world.Housing; i++)
+                {
+                    Container(i < world.Villagers ? "pip" : "pip pip-empty", pips);
+                }
+            }
+        }
+
+        private Button RailButton(string name, GlyphKind glyph, System.Action onClick)
+        {
+            var button = Button("rail-button", _rail, string.Empty, onClick);
+            button.name = name;
+            button.Add(new Glyph(glyph, 66f));
+            return button;
         }
 
         private void Open(Sheet sheet)
         {
             _open = _open == sheet ? Sheet.None : sheet;
+            _unfolded = false;
+            _chosen = -1;
             _explainingHealth = false;
             _demolishing = null;
             _confirmingDeletion = false;
@@ -501,9 +540,20 @@ namespace Eirora.Client.UI
             if (_world is null || _open == Sheet.None)
             {
                 _sheet.style.display = DisplayStyle.None;
+                HideRing();
                 return;
             }
 
+            // A tile's ring, unless its card has been unfolded; demolition is always asked on the card.
+            bool ring = _open is (Sheet.Tile or Sheet.Fog) && !_unfolded && _demolishing is null;
+            if (ring)
+            {
+                _sheet.style.display = DisplayStyle.None;
+                ShowRing(_world);
+                return;
+            }
+
+            HideRing();
             _sheet.style.display = DisplayStyle.Flex;
             Button("close", _sheet, "×", () => Select(null));
             switch (_open)
@@ -667,15 +717,10 @@ namespace Eirora.Client.UI
                 Text("sheet-text", _sheet, Texts.Timber(world.TimberLeft(tile)));
             }
 
-            // What only this kind of tile allows comes first; the buildings that any land takes wait behind one row, so
-            // that the sheet leaves the island in view, and unfold below it.
-            var buildable = world.Content.Buildings
-                .Where(kind => world.CheckBuild(kind, tile) == Rejection.None)
-                .ToList();
-            var special = buildable.Where(kind => world.Content.For(kind).Requirement != TileUse.Land).ToList();
-            var anyLand = buildable.Except(special).ToList();
-            bool folded = special.Count > 0 && anyLand.Count > 0 && !_moreBuildingsShown;
-            foreach (var kind in folded ? special : special.Concat(anyLand))
+            // The card has everything the ring folds away: what only this kind of tile allows first, then the buildings
+            // that any land takes, each with its way by hand, and the road.
+            var (special, anyLand, road) = Buildable(world, tile);
+            foreach (var kind in special.Concat(anyLand))
             {
                 var spec = world.Content.For(kind);
                 AddAction(Texts.Name(kind), Texts.Cost(spec), Affordable(world, spec, tile), () => Run(new Build(kind, tile)), Texts.Effect(kind, spec));
@@ -687,14 +732,7 @@ namespace Eirora.Client.UI
                 }
             }
 
-            // A road lies on any land, so it waits behind the fold with the buildings that any land takes.
-            bool road = world.CheckRoad(tile) == Rejection.None;
-            if (folded)
-            {
-                var more = anyLand.Select(k => Texts.Name(k).ToLowerInvariant()).Concat(road ? new[] { "väg" } : Array.Empty<string>());
-                AddAction("Fler byggnader", Capital(Texts.List(more)), true, ShowMoreBuildings);
-            }
-            else if (road)
+            if (road)
             {
                 AddAction("Lägg väg", $"{Logistics.RoadStone} sten och {Logistics.RoadHours} h arbete per ruta · bärarna går dubbelt så fort", world.Stock(Resource.Stone) >= Logistics.RoadStone, () =>
                 {
@@ -703,11 +741,11 @@ namespace Eirora.Client.UI
                 });
             }
 
-            if (buildable.Count == 0 && (uses & TileUse.Crest) != 0)
+            if (special.Count + anyLand.Count == 0 && (uses & TileUse.Crest) != 0)
             {
                 Text("sheet-text", _sheet, "Här ska Vårdkasen stå.");
             }
-            else if (buildable.Count == 0 && uses != TileUse.None)
+            else if (special.Count + anyLand.Count == 0 && uses != TileUse.None)
             {
                 // Builders sail from a jetty at home to the island's own (D-113).
                 bool sailing = world.Buildings.Any(b => b.Kind == BuildingKind.Jetty && b.Island == world.HomeIsland);
@@ -1348,17 +1386,6 @@ namespace Eirora.Client.UI
             _screen.style.paddingBottom = 40 + (safe.yMin * scale);
         }
 
-        /// <summary>A bar button with its cost shown as the force's own shape and an amount (UX-05).</summary>
-        private Button CostButton(string title, Force force, int cost, System.Action onClick)
-        {
-            var button = Button("button", _bar, string.Empty, onClick);
-            Text("button-title", button, title);
-            var row = Container("button-cost", button);
-            row.Add(new ForceIcon(force, 30f));
-            Text("button-cost-value", row, cost.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            return button;
-        }
-
         private static int IndexOf<T>(IReadOnlyList<T> list, T item)
             where T : class
         {
@@ -1392,7 +1419,7 @@ namespace Eirora.Client.UI
                 element.AddToClassList(name);
             }
 
-            if (classes is "screen" or "middle" or "bottom")
+            if (classes is "screen" or "middle" or "bottom" or "island-layer" or "bubbles" or "ring" or "rail")
             {
                 element.pickingMode = PickingMode.Ignore;
             }

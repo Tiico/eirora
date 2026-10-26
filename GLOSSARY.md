@@ -125,7 +125,7 @@ En gratis planeringsinställning per ö och vara som anger ett lager som skeppen
 _Avoid_: spärr, låsning
 
 **Importprioritet** (`ImportOrder`):
-Den ordning skeppen tar hem en ös varor i på sjövägen, som spelaren ordnar gratis; utan spelarens ordning går varorna i den förvalda ordningen, där ull går före sten (LOG-06, D-126).
+Den ordning skeppen tar hem en ös varor i på sjövägen, som spelaren ordnar gratis; utan spelarens ordning går varorna i den förvalda ordningen, där ull går före sten (LOG-06, D-126, D-135).
 _Avoid_: kö (om varorna), lastordning
 
 **Flaskhals** (`Bottleneck`):

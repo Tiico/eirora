@@ -9,7 +9,7 @@ using Eirora.Simulation.Time;
 namespace Eirora.Simulation.Tests.Saving;
 
 /// <summary>
-/// Rules 15 → 16 (TASK-056, #138): the default import order ships wool before stone. An island without an order of the
+/// Rules 15 → 16 (TASK-056, D-135): the default import order ships wool before stone. An island without an order of the
 /// player's takes the new default, and an order the player chose stays as it is (ADR-0006).
 /// </summary>
 public sealed class WoolShipsBeforeStoneTests

@@ -6,7 +6,7 @@ using Eirora.Simulation.Map;
 namespace Eirora.Simulation.Saving
 {
     /// <summary>
-    /// Rules 15 → 16 (TASK-056, #138): the default import order ships wool before stone (<see cref="StockRules.DefaultImportOrder"/>).
+    /// Rules 15 → 16 (TASK-056, D-135): the default import order ships wool before stone (<see cref="StockRules.DefaultImportOrder"/>).
     /// An island without an order of the player's takes the new default from the next quarter hour, and an order the
     /// player chose stays as it is. Only an order the player chose that is now the default changes, since the default is
     /// never written: for example <c>imports first Fish Grain Timber Planks Wool Stone Wadmal Game Hide Honey Mead Ale Tar</c>

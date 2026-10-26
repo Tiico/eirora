@@ -68,6 +68,31 @@ public sealed class SelfCareProfile
     public static SelfCareProfile Get(string id) =>
         All.FirstOrDefault(p => p.Id == id) ?? throw new ArgumentException($"There is no profile {id}; choose among {string.Join(", ", All.Select(p => p.Id))}.", nameof(id));
 
+    /// <summary>
+    /// The Exploration and Build Power the self-care gives each game day from game day 1, before the saving's soft cap
+    /// (forces.md, sections 3 and 5): what a player who spends as the forces come in gets of them.
+    /// </summary>
+    public IReadOnlyList<(int Exploration, int BuildPower)> Earned(int days)
+    {
+        var earned = new (int Exploration, int BuildPower)[days];
+        for (int day = 1; day <= days; day++)
+        {
+            int sessions = 0, power = 0;
+            for (int before = Math.Max(1, day - 6); before < day; before++)
+            {
+                sessions += _workouts?[(before - 1) % Week] ?? 0;
+                power += earned[before - 1].BuildPower;
+            }
+
+            int weekday = (day - 1) % Week;
+            earned[day - 1] = (
+                _steps is null ? 0 : ForceRules.Exploration(_steps[weekday]),
+                _workouts is null ? 0 : ForceRules.BuildPower(sessions, _workouts[weekday], power));
+        }
+
+        return earned;
+    }
+
     /// <summary>Records a game day's self-care; the world must be awake at that day's dawn.</summary>
     internal void Record(World world, int gameDay)
     {

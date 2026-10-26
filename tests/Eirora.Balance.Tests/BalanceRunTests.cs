@@ -1,5 +1,6 @@
 using System.Globalization;
 using Eirora.Simulation;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.Time;
@@ -87,6 +88,36 @@ public sealed class BalanceRunTests
         Assert.Equal(
             new[] { Force.Exploration, Force.BuildPower, Force.DawnPower }.Select(expected.Available),
             run.Saved);
+    }
+
+    // The standard import order ships the island's stone before its wool, so Havet waits for clothes on a sea route that
+    // carries 40 a day; with wool first it is best on 28 % of the generated maps instead of 7 % (balance-m4.md, section 4).
+    [Fact]
+    public void HavetWithWoolFirstGrowsFasterThanHavetOnRikHemo()
+    {
+        var sea = BalanceRun.Play(new RunSpec(Scenario.RichHome.Map, Strategy.Sea, SelfCareProfile.Normal, Scenario.Days));
+        var woolFirst = BalanceRun.Play(new RunSpec(Scenario.RichHome.Map, Strategy.SeaWoolFirst, SelfCareProfile.Normal, Scenario.Days));
+
+        Assert.Contains(woolFirst.Decisions, d => d.Command is MoveImport { Resource: Resource.Wool, Place: 0 });
+        Assert.True(woolFirst.Value > sea.Value * 105 / 100, $"Havet, ull först ends at {woolFirst.Value}, Havet at {sea.Value}.");
+    }
+
+    [Theory]
+    [InlineData("high", 721, 345)]
+    [InlineData("normal", 602, 270)]
+    [InlineData("manual", 300, 270)]
+    [InlineData("low", 315, 100)]
+    [InlineData("no-training", 602, 0)]
+    [InlineData("none", 0, 0)]
+    public void WhatEachProfileEarnsIsEpochOnesWeekEveryWeek(string profile, int exploration, int buildPower)
+    {
+        var earned = SelfCareProfile.Get(profile).Earned(3 * 7);
+
+        Assert.All(earned.Chunk(7), week =>
+        {
+            Assert.Equal(exploration, week.Sum(day => day.Exploration));
+            Assert.Equal(buildPower, week.Sum(day => day.BuildPower));
+        });
     }
 
     [Theory]

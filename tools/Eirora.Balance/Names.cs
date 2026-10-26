@@ -31,6 +31,24 @@ internal static class Names
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "A building without a name in the glossary."),
     };
 
+    public static string Of(Resource resource) => resource switch
+    {
+        Resource.Fish => "fisk",
+        Resource.Grain => "säd",
+        Resource.Timber => "timmer",
+        Resource.Planks => "plankor",
+        Resource.Stone => "sten",
+        Resource.Wool => "ull",
+        Resource.Wadmal => "tyg",
+        Resource.Game => "vilt",
+        Resource.Hide => "skinn",
+        Resource.Honey => "honung",
+        Resource.Mead => "mjöd",
+        Resource.Ale => "öl",
+        Resource.Tar => "tjära",
+        _ => throw new ArgumentOutOfRangeException(nameof(resource), resource, "A resource without a name in the glossary."),
+    };
+
     public static string Of(Where where) => where switch
     {
         Where.Home => "hemön",

@@ -260,7 +260,7 @@ De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-
   Varvet i ekonomi v2 har på samma sätt ett minimilager av plankor och tjära, 20 som standard, som det lämnar när det påbörjar en knarr ([ekonomi v2, avsnitt 4](./economy-v2.md#4-byggnader)).
 - **Importprioritet** per sjöväg: i vilken ordning skeppen tar hem öns varor, till exempel sten före ull så att stenådern på Nyön inte trängs undan.
   Spelaren ordnar alla varor, och utan spelarens ordning går de i den förvalda ordningen: fisk, säd, timmer, plankor, ull, sten och tyg, och därefter de upplåsta stegens varor i den ordning de kom till (D-126).
-  Ull går före sten sedan regelversion 16, så att öarnas ull når väverierna på Hemön före stenen, som Hemöns stenbrott också ger (TASK-056, #138).
+  Ull går före sten sedan regelversion 16, så att öarnas ull når väverierna på Hemön före stenen, som Hemöns stenbrott också ger (D-135, TASK-056).
   Ordningen kan sättas innan sjövägen öppnar.
 - **Reservering** per ö och vara, alltså per bosättning: ett lager som skeppen inte tar hem och förädlingen och varvet inte tar, till exempel timmer på Nyön till byggen där eller timmer på Hemön som sågverket inte ska såga.
   Med 30 timmer reserverade på en ö lämnar sjövägen 30 timmer kvar där.
@@ -412,7 +412,7 @@ Kalkylen utan bärare finns kvar för ekonomi v2:s migration och epok 1:s tempo,
 *Utvecklingsvärde* är ett grovt balansmått (bybor × 15 + halva lagrets värde + tre dagars produktion) som bara används i balanstester och aldrig visas för spelaren.
 Startvärdet är 409.
 Kalkylen räknar med en bosättning per ö som i regelversion 9 (avsnitt 4.2).
-Från regelversion 16 tar skeppen hem Nyöns ull före stenen (D-126), så Havet slutar med 10 sten i lager i stället för 29 och med mer tyg.
+Från regelversion 16 tar skeppen hem Nyöns ull före stenen (D-135), så Havet slutar med 10 sten i lager i stället för 29 och med mer tyg.
 Bärarna använder 32–74 % av sin tid under veckan, och startförrådets ensamma bärare i den orörda byn 37 %, som i [ekonomi v2, avsnitt 11](./economy-v2.md#11-utan-egenvård).
 
 **Olika men jämbördiga.**

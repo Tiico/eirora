@@ -80,7 +80,7 @@ namespace Eirora.Client.Tests
             var hud = new Hud(root, command => world.Apply($"hud-{world.Projects.Count}-{command.GetType().Name}", command));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
             hud.Select(s_meadow);
-            hud.ShowMoreBuildings(); // The meadow by the forest takes a woodcutter first; a road waits behind the fold.
+            hud.ShowMore(); // The meadow by the forest takes a woodcutter first; a road waits on the card.
             var lay = root.Query<Button>(className: "action").ToList().Single(a => Label(a, "action-title") == "Lägg väg");
             Assert.That(Label(lay, "action-cost"), Is.EqualTo("2 sten och 4 h arbete per ruta · bärarna går dubbelt så fort"));
 
@@ -108,6 +108,7 @@ namespace Eirora.Client.Tests
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
 
             hud.Select(s_meadow);
+            hud.ShowMore();
 
             Assert.That(root.Q<Label>(className: "sheet-title").text, Is.EqualTo("Väg byggs"));
             Assert.That(root.Q<Label>(className: "sheet-subtitle").text, Does.EndWith("· 4 h arbete kvar"));

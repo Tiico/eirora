@@ -84,6 +84,8 @@ public static class BalanceRun
             PassTheDay(world, dawn, day == spec.Days, hours => plan.Note(world, day), () => invariants.Check(world, day));
             Systems.Note(world, day, tally);
             tally.Values.Add(Measures.Value(world));
+            tally.Villagers.Add(world.Villagers);
+            tally.SpentByDay.Add([.. tally.Spent]);
             tally.SeaRouteOn ??= world.SeaRoutes.Count > 0 ? day : null;
         }
 
@@ -159,6 +161,9 @@ public sealed class RunResult
         Decisions = [.. tally.Decisions];
         DawnPowerLeft = [.. tally.DawnPowerLeft];
         Values = [.. tally.Values];
+        VillagersByDay = [.. tally.Villagers];
+        SpentByDay = [.. tally.SpentByDay];
+        StartForces = [.. new[] { Force.Exploration, Force.BuildPower, Force.DawnPower }.Select(f => ForceBalances.GuidedTourStart().Available(f))];
         Villagers = world.Villagers;
         Housing = world.Housing;
         Buildings = world.Buildings.Count;
@@ -195,6 +200,15 @@ public sealed class RunResult
 
     /// <summary>The development value at the end of each game day.</summary>
     public IReadOnlyList<long> Values { get; }
+
+    /// <summary>The villagers at the end of each game day.</summary>
+    public IReadOnlyList<int> VillagersByDay { get; }
+
+    /// <summary>Exploration, Build Power and Dawn Power the bot had spent by the end of each game day.</summary>
+    public IReadOnlyList<int[]> SpentByDay { get; }
+
+    /// <summary>Exploration, Build Power and Dawn Power that the guided tour leaves (D-45).</summary>
+    public IReadOnlyList<int> StartForces { get; }
 
     public int Villagers { get; }
 

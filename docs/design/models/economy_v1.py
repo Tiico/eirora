@@ -19,7 +19,7 @@ ACTIVE_HOURS = 16  # vilotid 8 h; dagen börjar vid gryning (timme 0)
 # --- Resurser -----------------------------------------------------------------
 
 RESOURCES = ["fisk", "säd", "timmer", "plankor", "sten", "ull", "tyg"]
-# Den förvalda importprioriteten: skeppen tar hem ull före sten (D-126, regelversion 16, TASK-056).
+# Den förvalda importprioriteten: skeppen tar hem ull före sten (D-135, regelversion 16, TASK-056).
 IMPORT_ORDER = ["fisk", "säd", "timmer", "plankor", "ull", "sten", "tyg"]
 FOOD = ["fisk", "säd"]
 # Vikter för utvecklingsvärdet (endast balansmått, visas aldrig för spelaren).

@@ -43,7 +43,7 @@ def daily(value, day):
 
 RESOURCES = ["fisk", "vilt", "säd", "timmer", "plankor", "sten", "ull", "tyg", "skinn",
              "honung", "mjöd", "öl", "tjära"]
-# Den förvalda importprioriteten: skeppen tar hem ull före sten (D-126, regelversion 16, TASK-056).
+# Den förvalda importprioriteten: skeppen tar hem ull före sten (D-135, regelversion 16, TASK-056).
 IMPORT_ORDER = [r for r in RESOURCES if r != "ull"]
 IMPORT_ORDER.insert(IMPORT_ORDER.index("sten"), "ull")
 # Vikter för utvecklingsvärdet (endast balansmått, visas aldrig för spelaren).

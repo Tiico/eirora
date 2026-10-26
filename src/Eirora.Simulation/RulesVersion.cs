@@ -44,7 +44,7 @@ namespace Eirora.Simulation
         /// change is that step 3 unlocks at the first dawn a settlement has 45 villagers, of them 6 craftsmen, and a sea
         /// route joins the home island to another settlement, which the migration gives such a world too, so it replays to
         /// the same world.
-        /// Rules 16 ship wool before stone in the default import order (TASK-056, #138). A journal from rules 15 whose world
+        /// Rules 16 ship wool before stone in the default import order (TASK-056, D-135). A journal from rules 15 whose world
         /// shipped goods home in the old default order would take them home in another order when it replays, so it is
         /// refused instead.
         /// </summary>

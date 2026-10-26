@@ -32,7 +32,27 @@ public sealed class CommandLineTests
         Assert.All(command.Runs, run => Assert.Equal(Scenario.Days, run.Days));
     }
 
+    [Fact]
+    public void TheEpochSuitePlaysEveryComparedStrategyWithEveryProfileOnEachScenarioForTwelveWeeks()
+    {
+        var command = CommandLine.Parse(["--suite", "epoch"]);
+
+        Assert.Equal(Scenario.All.Count * SelfCareProfile.All.Count * Scenario.Compared.Count, command.Runs.Count);
+        Assert.All(command.Runs, run => Assert.Equal(84, run.Days));
+    }
+
+    [Fact]
+    public void TheYearSuitePlaysNoPlayerAndBygdenOnEachScenarioForAYear()
+    {
+        var command = CommandLine.Parse(["--suite", "year"]);
+
+        Assert.Equal(Scenario.All.Count * 2, command.Runs.Count);
+        Assert.All(command.Runs, run => Assert.Equal(365, run.Days));
+    }
+
     [Theory]
+    [InlineData("--suite", "epoch", "--days", "14")]
+    [InlineData("--suite", "year", "--seeds", "3")]
     [InlineData("--maps", "protoype")]
     [InlineData("--seed", "5")]
     [InlineData("--suite", "economy-v1", "--days", "14")]
