@@ -19,7 +19,8 @@ catch (ArgumentException e)
     return 2;
 }
 
-var runs = command.Runs.Select(BalanceRun.Play).ToList();
+// Each run is its own world, so they play in parallel; the report keeps the order they were given in.
+var runs = command.Runs.AsParallel().AsOrdered().Select(BalanceRun.Play).ToList();
 Directory.CreateDirectory(command.Output);
 File.WriteAllText(Path.Combine(command.Output, "balance.tsv"), Report.Tsv(runs));
 string markdown = Report.Markdown(runs);

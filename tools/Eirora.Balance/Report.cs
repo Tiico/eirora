@@ -17,7 +17,8 @@ public static class Report
         .. Enum.GetValues<Resource>().Select(Column),
         "daily_output", "value", "start_value",
         "used_exploration", "used_build_power", "used_dawn_power", "saved_exploration", "saved_build_power", "saved_dawn_power",
-        "value_per_force", "plan_finished_day", "goals_done", "goals_skipped", "goals_pending", "commands", "accepted", "hours_checked",
+        "value_per_force", "sea_route_day", "farmers_day", "craftsmen_day", "seafaring_day", "fifty_villagers_day", "beacon_day",
+        "plan_finished_day", "goals_done", "goals_skipped", "goals_pending", "commands", "accepted", "hours_checked",
     ];
 
     public static string Tsv(IEnumerable<RunResult> runs)
@@ -27,6 +28,7 @@ public static class Report
         text.Append(string.Join('\t', s_columns)).Append('\n');
         foreach (var run in runs)
         {
+            var tempo = Tempo.Of(run);
             string[] cells =
             [
                 run.Spec.Map.Name,
@@ -48,6 +50,8 @@ public static class Report
                 .. run.Used.Select(u => Whole(u)),
                 .. run.Saved.Select(s => Whole(s)),
                 PerForce(run) ?? string.Empty,
+                .. new[] { tempo.SeaRoute, tempo.Farmers, tempo.Craftsmen, tempo.Seafaring, tempo.FiftyVillagers, tempo.Beacon }
+                    .Select(day => day is int d ? Whole(d) : string.Empty),
                 run.PlanFinishedOn is int day ? Whole(day) : string.Empty,
                 Whole(run.GoalsDone),
                 string.Join("; ", run.GoalsSkipped),
@@ -96,6 +100,23 @@ public static class Report
                     PerForce(run)?.Replace('.', ',') ?? "–",
                     run.PlanFinishedOn is int day ? $"dygn {Whole(day)}" : "–",
                     run.GoalsPending.Count == 0 ? "–" : string.Join(", ", run.GoalsPending),
+                ];
+                text.Append("| ").Append(string.Join(" | ", cells)).Append(" |\n");
+            }
+
+            text.Append("\nVecka då världen når varje steg (epok 1, avsnitt 5); *Vårdkasen* är en uppskattning, eftersom etapperna ännu inte finns i simuleringen (TASK-054):\n\n");
+            text.Append("| Karta | Körning | Egenvård | Sjöväg | Bönder | Hantverkare | Sjöfart | 50 bybor | Vårdkasen |\n");
+            text.Append("|---|---|---|---|---|---|---|---|---|\n");
+            foreach (var run in group)
+            {
+                var tempo = Tempo.Of(run);
+                string[] cells =
+                [
+                    run.Spec.Map.Seed is null ? "prototyp" : $"seed {Seed(run)}",
+                    run.Spec.Strategy.Name,
+                    run.Spec.Profile.Name,
+                    .. new[] { tempo.SeaRoute, tempo.Farmers, tempo.Craftsmen, tempo.Seafaring, tempo.FiftyVillagers, tempo.Beacon }
+                        .Select(day => Tempo.Week(day) is int week ? Whole(week) : "–"),
                 ];
                 text.Append("| ").Append(string.Join(" | ", cells)).Append(" |\n");
             }

@@ -90,6 +90,24 @@ public sealed class BalanceRunTests
     }
 
     [Theory]
+    [InlineData("high", 721, 345)]
+    [InlineData("normal", 602, 270)]
+    [InlineData("manual", 300, 270)]
+    [InlineData("low", 315, 100)]
+    [InlineData("no-training", 602, 0)]
+    [InlineData("none", 0, 0)]
+    public void WhatEachProfileEarnsIsEpochOnesWeekEveryWeek(string profile, int exploration, int buildPower)
+    {
+        var earned = SelfCareProfile.Get(profile).Earned(3 * 7);
+
+        Assert.All(earned.Chunk(7), week =>
+        {
+            Assert.Equal(exploration, week.Sum(day => day.Exploration));
+            Assert.Equal(buildPower, week.Sum(day => day.BuildPower));
+        });
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData(7UL)]
     [InlineData(12UL)]

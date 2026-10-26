@@ -89,6 +89,12 @@ internal sealed class Tally
     /// <summary>The development value at the end of each game day.</summary>
     public List<long> Values { get; } = [];
 
+    /// <summary>The villagers at the end of each game day.</summary>
+    public List<int> Villagers { get; } = [];
+
+    /// <summary>Exploration, Build Power and Dawn Power spent by the end of each game day.</summary>
+    public List<int[]> SpentByDay { get; } = [];
+
     /// <summary>The first game day that ended with a sea route.</summary>
     public int? SeaRouteOn { get; set; }
 
