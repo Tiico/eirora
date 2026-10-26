@@ -81,6 +81,13 @@ public sealed class Strategy
         [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst(), new KeepGrowing()]);
 
     /// <summary>
+    /// Havet, ull först (TASK-054): Havet with wool first in the order the ships take the island's goods home in (D-126),
+    /// so that the wool for clothes is not crowded out by the island's stone on the sea route, which the standard order
+    /// ships first.
+    /// </summary>
+    public static Strategy SeaWoolFirst { get; } = new("sea-wool", "Havet, ull först", Sea.Goals, [.. Sea.Daily, new ImportFirst(Resource.Wool)]);
+
+    /// <summary>
     /// Bygden (economy-v2.md, section 9): surveys the home island and builds a sheep farm and a quarry with a storehouse
     /// between them, a sawmill and a weavery, cottages and a longhouse, and clothes the villagers so that they grow, with a
     /// hunting lodge, a farmstead and a tannery for the farmers.
@@ -187,7 +194,7 @@ public sealed class Strategy
     /// <summary>Ingen spelare: no commands at all; only self-care, if any, is recorded.</summary>
     public static Strategy Idle { get; } = new("idle", "Ingen spelare", [], []);
 
-    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Village, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
+    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, SeaWoolFirst, Village, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
 
     /// <summary>The id the tool takes on its command line.</summary>
     public string Id { get; }

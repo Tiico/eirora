@@ -289,7 +289,7 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 
 - En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
   Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
-- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `village` (Bygden, [ekonomi v2 avsnitt 9](./design/economy-v2.md#9-sju-dygn-med-tre-strategier)), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)), `tour` (Turen, den guidade turen och första veckan på prototypens karta, [ekonomi v2 avsnitt 5](./design/economy-v2.md#första-veckan-h4)) och `idle` (Ingen spelare).
+- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `sea-wool` (Havet, ull först, med ull först i importprioriteten, [balansrapport M4](./design/balance-m4.md#4-havet)), `village` (Bygden, [ekonomi v2 avsnitt 9](./design/economy-v2.md#9-sju-dygn-med-tre-strategier)), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)), `tour` (Turen, den guidade turen och första veckan på prototypens karta, [ekonomi v2 avsnitt 5](./design/economy-v2.md#första-veckan-h4)) och `idle` (Ingen spelare).
   Från vecka 2 fortsätter varje genomtänkt strategi med ekonomi v2:s planerare (`KeepGrowing`, [ekonomi v2 avsnitt 10](./design/economy-v2.md#10-sex-veckor)): bostäder, mat, byggmaterial, kläder och bondgårdar, dryck och hantverkargårdar, tjärdal och varv, en bosättning på expeditionens ö och krafterna som blir över; Utan träning använder ingen Styrka, och handkraften bygger bryggor och väveri med handkraft.
   Den naiva strategin fortsätter med sin plan.
   Målen har inga koordinater, utom turens, som bygger på de rutor turen anger och hoppas över på andra kartor; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
@@ -302,6 +302,7 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 - Måtten är ekonomi v1:s: bybor, med nivåerna värda 15, 25 och 40 som i ekonomi v2, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
   Från regelversion 8 räknar dagsproduktionen med den andel som förrådens bärare hinner få fram, läst ur världens behov av bärartimmar (`World.CarrierNeed`).
 - Ett **scenario** ([ekonomi v2, avsnitt 15](./design/economy-v2.md#15-scenarier)) är en karta, ett startläge och en profil där en strategi är bäst efter fyra veckor; `Scenario.All` har fyra, och `ScenarioTests` kräver att var och en har sin bästa strategi, att ingen strategi är bäst med alla profiler och att varje genomtänkt strategi ger minst 1,3 gånger den naivas värde per använd kraft (D-34).
+- Rapporten visar epok 1:s tempo: veckan då världen fick sjöväg, bönder, hantverkare, sjöfart och 50 bybor, och en uppskattning av när Vårdkasen kan tändas, eftersom etapperna ännu inte finns i simuleringen (`Tempo`, [balansrapport M4, avsnitt 5](./design/balance-m4.md#5-epok-1s-tempo)).
 - `BalanceRun.PlaySameDecisions` spelar om en körnings beslut med en annan profil och lägger Orken utöver den förra på extraarbete, för D-119: med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut och ett enskilt dygn högst 0,1 % mindre.
 
 Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).
@@ -322,6 +323,16 @@ dotnet run -c Release --project tools/Eirora.Balance -- --suite scenarios
 
 ```bash
 dotnet run -c Release --project tools/Eirora.Balance -- --suite generated --from 0 --seeds 20 --days 28
+```
+
+Långtidssimuleringen i [balansrapport M4](./design/balance-m4.md): en hel epok, varje jämförd strategi med varje profil på scenariernas kartor i tolv veckor, och ett år utan spelare och med Bygden; körningarna spelas parallellt, och rapporten håller ändå samma ordning:
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance -- --suite epoch
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance -- --suite year
 ```
 
 Alla kombinationer av strategier, profiler och kartor, till exempel åtta veckor på fem kartor:

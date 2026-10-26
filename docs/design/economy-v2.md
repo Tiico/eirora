@@ -363,7 +363,7 @@ Det nya:
   Alla strategier slutar sex veckor med Utforskning på eller nära taket 800, som i [ekonomi v1, lärdom 1](./economy-v1.md#9-lärdomar-inför-prototypen); fynden i M5 och dimman i epok 1 är svaret, inte ekonomin.
 - **Styrkan räcker till mer än byggnaderna.**
   I de långa körningarna går överskottet till uppgraderingar till nivå 2, av material som blir över när bostäder och kedjor fått sitt.
-  I epok 1 tävlar vårdkasens etapper, 3 × 500 Styrka, om samma kraft; det räknas i TASK-054 (#137).
+  I epok 1 tävlar vårdkasens etapper, 3 × 500 Styrka, om samma kraft; [balansrapport M4](./balance-m4.md#32-var-krafterna-tar-vägen) räknar det.
 
 ## 9. Sju dygn med tre strategier
 
@@ -460,7 +460,7 @@ Planeraren lämnar alltid två lediga bybor som bygger och uppgraderar bara av m
   Det prövar balansbotarna på flera kartor i [avsnitt 15](#15-scenarier).
 - **Byarna blir större än i dag.**
   Med nivåernas tätare bostäder når strategierna 75–104 bybor vecka 6, mot 72 vid dygn 45 i [epok 1:s tempo](./epoch-1.md#vecka-då-spelaren-når-varje-steg).
-  Elden kräver 50 bybor, så epokens tempo kan bli snabbare; det prövas i TASK-054 (#137) med epokens kalkyl ovanpå ekonomi v2.
+  Elden kräver 50 bybor, så epokens tempo kan bli snabbare; [balansrapport M4](./balance-m4.md#5-epok-1s-tempo) uppskattar det till en vecka.
 
 ## 11. Utan egenvård
 
@@ -651,6 +651,7 @@ Prövat: med 12 bostäder i bondgården i stället för 6 blir Bygden bäst i Ri
 1. **Bygden är bäst på de flesta kartor.**
    På 260 genererade kartor (seed 0–259) med normal egenvård i fyra veckor är Bygden bäst på 200 (77 %), Närområdet på 52 (20 %) och Havet på 8 (3 %).
    Det uppfyller AC-06, men Havet vinner sällan, och också i kalkylen är Havet 16 % efter Bygden vecka 6 (avsnitt 10).
+   Med ull först i importprioriteten är Havet bäst på 22 % ([balansrapport M4](./balance-m4.md#4-havet)).
 2. **Första veckan skiljer sig strategierna mindre från den naiva.**
    Efter sju dygn på scenariernas genererade kartor ger den sämsta genomtänkta strategin bara 1,11–1,24 gånger den naivas värde per använd kraft med normal egenvård och 1,01–1,06 utan träning, och på seed 31 med normal egenvård har den naiva strategin störst utvecklingsvärde.
    På prototypens karta är kvoten 1,47 efter sju dygn, och efter fyra veckor håller D-34 överallt.

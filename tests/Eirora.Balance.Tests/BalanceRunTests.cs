@@ -1,5 +1,6 @@
 using System.Globalization;
 using Eirora.Simulation;
+using Eirora.Simulation.Commands;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.Time;
@@ -87,6 +88,18 @@ public sealed class BalanceRunTests
         Assert.Equal(
             new[] { Force.Exploration, Force.BuildPower, Force.DawnPower }.Select(expected.Available),
             run.Saved);
+    }
+
+    // The standard import order ships the island's stone before its wool, so Havet waits for clothes on a sea route that
+    // carries 40 a day; with wool first its farmers and craftsmen come weeks earlier (balance-m4.md, section 4).
+    [Fact]
+    public void HavetWithWoolFirstGrowsFasterThanHavetOnRikHemo()
+    {
+        var sea = BalanceRun.Play(new RunSpec(Scenario.RichHome.Map, Strategy.Sea, SelfCareProfile.Normal, Scenario.Days));
+        var woolFirst = BalanceRun.Play(new RunSpec(Scenario.RichHome.Map, Strategy.SeaWoolFirst, SelfCareProfile.Normal, Scenario.Days));
+
+        Assert.Contains(woolFirst.Decisions, d => d.Command is MoveImport { Resource: Resource.Wool, Place: 0 });
+        Assert.True(woolFirst.Value > sea.Value * 13 / 10, $"Havet, ull först ends at {woolFirst.Value}, Havet at {sea.Value}.");
     }
 
     [Theory]
