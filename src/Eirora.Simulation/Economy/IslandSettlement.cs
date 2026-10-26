@@ -81,7 +81,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// The order the ships take the island's goods home in (GLOSSARY: Importprioritet, TASK-046); null for the
-        /// default order (<see cref="StockRules.DefaultImportOrder"/>). Never changed in place, so that it can be shown as it is; only a command replaces it.
+        /// default order (<see cref="StockRules.DefaultImportOrder"/>). Never changed in place, so that it can be shown as
+        /// it is; only a command replaces it.
         /// </summary>
         internal Resource[]? Imports { get; set; }
     }

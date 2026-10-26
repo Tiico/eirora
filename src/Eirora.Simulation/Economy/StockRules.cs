@@ -18,8 +18,8 @@ namespace Eirora.Simulation.Economy
 
         /// <summary>
         /// The order the ships take an island's goods home in until the player changes it (GLOSSARY: Importprioritet,
-        /// D-126, D-135): every good in the order it was added, except that wool comes before stone, so that the wool of the
-        /// islands reaches the weaveries at home before the stone the home island's quarries also give (TASK-056, D-135).
+        /// D-126): every good in the order it was added, except that wool comes just before stone, so that the islands'
+        /// wool reaches the weaveries at home before the stone the home island's quarries also give (D-135, TASK-056).
         /// </summary>
         public static IReadOnlyList<Resource> DefaultImportOrder { get; } = Array.AsReadOnly(DefaultOrder());
 
