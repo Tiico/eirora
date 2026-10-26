@@ -164,9 +164,27 @@ Att uppvärmningen är ungefär noll säger därför inte hur mycket en kall tel
 - Minnet `pss_max_mb` är 418–439 MB, över 400 MB; åtgärdas i [#224](https://github.com/Tiico/eirora/issues/224).
 - Bilderna över 50 ms, `frames_over_50ms_pct`, är 1,63–1,67 %, över 1 %; åtgärdas i [#225](https://github.com/Tiico/eirora/issues/225).
 - Bildfrekvensen `fps` är 27,4–28,5, under 29, trots att bildtidens median och 95:e percentil ligger vid 30 fps; de långa bilderna drar troligen ner snittet, så den följer med #225.
-- Första bilden av världen, `first_frame_median_ms`, är 3660–3757 ms, och 3492 ms efter ett år, över referensnivåns 2 s; gränsen är en öppen fråga i [målenheter och mätbudgetar](./performance-budgets.md#6-öppna-frågor-för-produktägaren).
+- Första bilden av världen, `first_frame_median_ms`, är 3660–3757 ms, och 3492 ms efter ett år, över referensnivåns 2 s; åtgärdad i [#227](https://github.com/Tiico/eirora/issues/227), se nedan.
 
 Kallstarten, bildtidens 95:e percentil, uppvärmningen och batteriet vid aktivt spel håller budgeten med god marginal.
+
+**Första bilden av världen efter #227.**
+Unitys splash-skärm höll scenen tillbaka ungefär två sekunder, och mätscenens dag och natt byggde om hela ön för varje kommando i veckan, 64 gånger före första bilden.
+Splash-skärmen är avstängd, och en ändring av världen ritas en gång per bild.
+Mätt den 26 oktober 2026 på samma Pixel 7 med mätbygget (`se.eirora.app.measure`, bygge 0.0.543), två körningar per scen, median av fem starter:
+
+| Scen | Före (0.2.1) | Efter |
+|---|---|---|
+| Dagsljus | 3757 / 3660 ms | 1094 / 1060 ms |
+| Natt | 3694 / 3691 ms | 1023 ms |
+| Ett års frånvaro | 3492 ms | 1295 / 1277 ms |
+
+Den allra första starten efter installationen tog 1888 ms, eftersom shadrarna inte fanns i telefonens cache än.
+Klientens logg visar vart tiden går i en start efter ett år: Unitys start 40–47 ms, ön och gränssnittet 82–86 ms, att göra och rita världen 306–310 ms (varav framspolningen 221–229 ms) och att rendera första bilden 348–363 ms.
+Resten, ungefär en halv sekund, går åt innan Unitys klocka startar: processen startar och biblioteken laddas.
+Referensnivån håller alltså sina 2 s med 0,7 s marginal.
+Golvet har en fjärdedel till en femtedel av Pixel 7:s prestanda per kärna, men bara en del av tiden är processortid, så golvets 5 s bör hålla.
+Basen och golvet kan inte bekräftas förrän de mäts på riktiga telefoner (se [målenheter och mätbudgetar](./performance-budgets.md#4-vad-ci-mäter)).
 APK-storleken och appens andel av dygnets förbrukning (`app_share_of_drain_pct`) är inte mätta än.
 
 ## 6. Första budgetförslag
