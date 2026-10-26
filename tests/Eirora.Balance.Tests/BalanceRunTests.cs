@@ -90,16 +90,15 @@ public sealed class BalanceRunTests
             run.Saved);
     }
 
-    // The standard import order ships the island's stone before its wool, so Havet waits for clothes on a sea route that
-    // carries 40 a day; with wool first it is best on 28 % of the generated maps instead of 7 % (balance-m4.md, section 4).
+    // D-135: the bots' Havet ships the island's wool first, once the island has a store, and never moves it again.
     [Fact]
-    public void HavetWithWoolFirstGrowsFasterThanHavetOnRikHemo()
+    public void HavetShipsTheIslandsWoolFirst()
     {
         var sea = BalanceRun.Play(new RunSpec(Scenario.RichHome.Map, Strategy.Sea, SelfCareProfile.Normal, Scenario.Days));
-        var woolFirst = BalanceRun.Play(new RunSpec(Scenario.RichHome.Map, Strategy.SeaWoolFirst, SelfCareProfile.Normal, Scenario.Days));
 
-        Assert.Contains(woolFirst.Decisions, d => d.Command is MoveImport { Resource: Resource.Wool, Place: 0 });
-        Assert.True(woolFirst.Value > sea.Value * 105 / 100, $"Havet, ull först ends at {woolFirst.Value}, Havet at {sea.Value}.");
+        var moves = sea.Decisions.Select(d => d.Command).OfType<MoveImport>().ToList();
+        Assert.Equal(Resource.Wool, Assert.Single(moves).Resource);
+        Assert.Equal(0, moves[0].Place);
     }
 
     [Theory]

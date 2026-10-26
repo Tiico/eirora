@@ -315,7 +315,8 @@ public sealed class OnFirstDawn : DailyMove
 
 /// <summary>
 /// Puts a resource first in the order the ships take each other island's goods home in, once the island has a store
-/// (D-126, LOG-06), so that, say, wool for clothes is not crowded out by stone on a sea route that carries 40 a day.
+/// (D-126, LOG-06), so that, say, wool for clothes does not wait behind the other goods on a sea route that carries 40 a
+/// day (D-135).
 /// </summary>
 public sealed class ImportFirst : DailyMove
 {
