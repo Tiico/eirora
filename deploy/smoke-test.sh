@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The first deployment from deploy/README.md on a throwaway Docker host (CI): the same secrets and compose.yaml, with a
-# locally built image and stand-in Apple and Google ids. Passes when migrate succeeds, the server answers /health and
-# Sign in with Apple is on or off as configured.
+# locally built image and stand-in Apple and Google ids. Passes when migrate succeeds, the server answers /health, Sign in
+# with Apple is on or off as configured, and a Traefik reading the server's labels routes to it with sign-in rate limited.
 # Usage: deploy/smoke-test.sh <image> <google|google-and-apple>
 #   google            Google only: no Apple ids in .env and no Apple key, as before the product owner has an Apple
 #                     Developer account.
@@ -18,6 +18,8 @@ esac
 deploy=$(cd "$(dirname "$0")" && pwd)
 work=$(mktemp -d)
 project=eirora-smoke-$mode
+# Traefik v3, which the labels are written for.
+traefik_image=traefik:v3.7.16
 
 cp "$deploy/compose.yaml" "$deploy/create-secrets.sh" "$work/"
 cd "$work"
@@ -50,6 +52,8 @@ sudo ./create-secrets.sh
 docker network create "$project-traefik" > /dev/null
 cleanup() {
     docker compose --env-file .env logs --no-color || true
+    docker logs "$project-proxy" 2>&1 | sed 's/^/proxy | /' || true
+    docker rm --force "$project-proxy" > /dev/null 2>&1 || true
     docker compose --env-file .env down --volumes > /dev/null 2>&1 || true
     docker network rm "$project-traefik" > /dev/null 2>&1 || true
     sudo rm -rf "$work"
@@ -94,4 +98,71 @@ if [ "$callback" != "$expected_callback" ]; then
     exit 1
 fi
 
-echo "The server is healthy with $mode."
+# Traefik, as on the server, reads the server's labels from Docker (ADR-0008). Sign-in and deletion must reach the server
+# through their own router with the rate limit (threat model), so that router must be on with its middleware, and the
+# limit must answer. A label Traefik cannot resolve turns the router off, and sign-in then falls through to the main
+# router without the limit, which /health would not show. There is no Let's Encrypt here, so Traefik logs that the
+# routers' certificate resolver does not exist and serves its default certificate instead; the routers stay on.
+docker run --detach --name "$project-proxy" --network "$project-traefik" \
+    --volume /var/run/docker.sock:/var/run/docker.sock:ro \
+    "$traefik_image" \
+    --api.insecure=true \
+    --entrypoints.websecure.address=:8443 \
+    --providers.docker.exposedbydefault=false \
+    "--providers.docker.constraints=Label(\`com.docker.compose.project\`,\`$project\`)" > /dev/null
+proxy=$(docker inspect --format "{{(index .NetworkSettings.Networks \"$project-traefik\").IPAddress}}" "$project-proxy")
+api=http://$proxy:8080/api/http
+
+router_status() {
+    curl --silent --fail --max-time 5 "$api/routers/$1@docker" | jq --raw-output .status
+}
+for _ in $(seq 30); do
+    if [ "$(router_status "$project-signin" 2> /dev/null)" = enabled ] &&
+        [ "$(router_status "$project" 2> /dev/null)" = enabled ]; then
+        break
+    fi
+    sleep 1
+done
+
+for router in "$project" "$project-signin"; do
+    status=$(router_status "$router" || echo missing)
+    if [ "$status" != enabled ]; then
+        echo "Traefik's router $router@docker is $status, not enabled. Its routers:" >&2
+        curl --silent --max-time 5 "$api/routers" | jq --compact-output '.[] | {name, status, middlewares, error}' >&2 || true
+        exit 1
+    fi
+done
+
+middlewares=$(curl --silent --fail --max-time 5 "$api/routers/$project-signin@docker" | jq --raw-output '.middlewares // [] | join(",")')
+if [ "$middlewares" != "$project-signin-limit@docker" ]; then
+    echo "The sign-in router uses the middlewares '$middlewares', expected $project-signin-limit@docker." >&2
+    exit 1
+fi
+middleware_status=$(curl --silent --fail --max-time 5 "$api/middlewares/$project-signin-limit@docker" | jq --raw-output .status || echo missing)
+if [ "$middleware_status" != enabled ]; then
+    echo "Traefik's middleware $project-signin-limit@docker is $middleware_status, not enabled." >&2
+    exit 1
+fi
+
+# Through Traefik, as a client reaches the server: the API answers, and sign-in is cut off after its burst of 20.
+through_traefik() {
+    curl --silent --insecure --output /dev/null --write-out '%{http_code}' --max-time 5 \
+        --resolve "eirora.test:8443:$proxy" "$@"
+}
+health=$(through_traefik "https://eirora.test:8443/health")
+if [ "$health" != 200 ]; then
+    echo "/health answered $health through Traefik, expected 200." >&2
+    exit 1
+fi
+limited=0
+for _ in $(seq 30); do
+    if [ "$(through_traefik --request POST "https://eirora.test:8443/connect/token")" = 429 ]; then
+        limited=$((limited + 1))
+    fi
+done
+if [ "$limited" -eq 0 ]; then
+    echo "30 sign-in requests in a row through Traefik were never rate limited." >&2
+    exit 1
+fi
+
+echo "The server is healthy with $mode, and Traefik routes it with sign-in rate limited."

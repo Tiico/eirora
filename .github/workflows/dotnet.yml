@@ -98,6 +98,10 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Compose fills in variables in label values only; a variable in a label key reaches Traefik literally.
+      - name: Check the Traefik labels
+        run: deploy/check-labels.sh
+
       # Every run proves the image builds and deploys as deploy/README.md says; only main publishes that same image, tagged
       # with the commit.
       - name: Build the image
