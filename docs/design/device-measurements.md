@@ -54,6 +54,24 @@ tools/device-measurements/measure.sh active --apk client/Builds/Android/Eirora.a
 tools/device-measurements/measure.sh active --light night --out measurements/night-1
 ```
 
+### På en telefon med spelet från Google Play
+
+En APK från datorn är signerad med en annan nyckel än appen från Google Play och kan inte installeras över den, och att avinstallera appen tar spelarens värld med sig.
+Mät därför mätbygget, som är spelet under paketnamnet `se.eirora.app.measure` och installeras bredvid spelet:
+
+```bash
+/Applications/Unity/Hub/Editor/6000.3.26f1/Unity.app/Contents/MacOS/Unity -batchmode -nographics -quit -projectPath client -buildTarget Android -executeMethod Eirora.Editor.Builds.AndroidMeasure
+```
+
+```bash
+MEASURE_PACKAGE=se.eirora.app.measure tools/device-measurements/measure.sh cold-start --apk client/Builds/Android/EiroraMeasure.apk --light day --out measurements/day-cold-1
+```
+
+Med `-development` blir mätbygget ett utvecklingsbygge som ansluter till Unitys Profiler.
+Dess tider är inte release-byggets, så det används för att hitta orsaker och inte för att mäta mot budgeten.
+
+När klienten har ritat första bilden av världen loggar den också vart tiden dit gick: Unitys egen start före scenen, att bygga ön och gränssnittet, att göra världen och rita den, och att rendera bilden (#227).
+
 Under passet räknar skriptet telefonen som urkopplad (`dumpsys battery unplug`), så att batteristatistiken räknas även med kabeln i; det återställs efteråt.
 
 ### Kallstart efter ett års frånvaro

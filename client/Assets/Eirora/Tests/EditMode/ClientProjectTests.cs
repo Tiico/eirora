@@ -65,6 +65,14 @@ namespace Eirora.Client.Tests
             Assert.That(playerSettings.FindProperty("submitAnalytics").boolValue, Is.False);
         }
 
+        // Unity's splash screen held the first frame of the world back by about two seconds, more than the reference
+        // tier's whole budget for it (#227).
+        [Test]
+        public void TheWorldIsNotHeldBackByUnitysSplashScreen()
+        {
+            Assert.That(PlayerSettings.SplashScreen.show, Is.False);
+        }
+
         // iOS shows this text when the old phone first opens the camera to scan the new phone's QR code (TASK-023b).
         [Test]
         public void IosIsToldWhyTheCameraIsWanted()
