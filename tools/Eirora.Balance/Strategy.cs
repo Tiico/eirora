@@ -1,5 +1,6 @@
 using Eirora.Simulation;
 using Eirora.Simulation.Economy;
+using Eirora.Simulation.Map;
 
 namespace Eirora.Balance;
 
@@ -136,10 +137,32 @@ public sealed class Strategy
         ],
         [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst()]);
 
+    /// <summary>
+    /// Turen: the guided tour (ux-journeys.md, resa 1) and epoch 1's first week on the prototype's map, as the economy
+    /// model plays it (economy-v2.md, section 5): the home island and the coast surveyed, a woodcutter, a jetty, a sawmill
+    /// and a quarry, the expedition to Nyön and a jetty and a sheep farm there, a weavery and a cottage at home.
+    /// </summary>
+    public static Strategy Tour { get; } = new(
+        "tour",
+        "Turen",
+        [
+            new SurveyNext(),
+            new BuildAt(BuildingKind.Woodcutter, new Hex(-2, 0)),
+            new BuildAt(BuildingKind.Jetty, new Hex(1, 1)),
+            new BuildAt(BuildingKind.Sawmill, new Hex(2, -2)),
+            new BuildAt(BuildingKind.Quarry, new Hex(3, -1)),
+            new SendExpeditionOnce(),
+            new BuildAt(BuildingKind.Jetty, new Hex(9, 1)),
+            new BuildAt(BuildingKind.SheepFarm, new Hex(10, 1)),
+            new BuildAt(BuildingKind.Weavery, new Hex(0, -1)),
+            new BuildAt(BuildingKind.Cottage, new Hex(-1, 0)),
+        ],
+        [new OnFirstDawn(new WorkdayOn(BuildingKind.FishingHut)), new WorkdayOn(BuildingKind.Sawmill), new RushFirst()]);
+
     /// <summary>Ingen spelare: no commands at all; only self-care, if any, is recorded.</summary>
     public static Strategy Idle { get; } = new("idle", "Ingen spelare", [], []);
 
-    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Naive, NoTraining, NoTrainingByHand, Idle];
+    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
 
     /// <summary>The id the tool takes on its command line.</summary>
     public string Id { get; }

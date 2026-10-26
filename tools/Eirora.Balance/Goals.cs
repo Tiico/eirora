@@ -55,6 +55,28 @@ public sealed class SurveyEverything : Goal
     }
 }
 
+/// <summary>
+/// Surveys the next area each dawn, two on the first, as long as the Exploration lasts, as the guided tour does
+/// (ux-journeys.md, resa 1); done once every area is surveyed.
+/// </summary>
+public sealed class SurveyNext : Goal
+{
+    public override string Name => "kartlägg nästa område";
+
+    internal override GoalStatus Pursue(Turn turn)
+    {
+        for (int surveys = turn.Day == 1 ? 2 : 1; surveys > 0 && Survey.NextCost(turn.World) is not null; surveys--)
+        {
+            if (!turn.Apply(new Survey()).Accepted)
+            {
+                return GoalStatus.Pending;
+            }
+        }
+
+        return Survey.NextCost(turn.World) is null ? GoalStatus.Done : GoalStatus.Pending;
+    }
+}
+
 /// <summary>Sends the expedition once there is a jetty and Exploration for it; skipped on a map without an island to find.</summary>
 public sealed class SendExpeditionOnce : Goal
 {
@@ -137,6 +159,39 @@ public sealed class BuildOne : Goal
         Where.ExpeditionIsland => [sites.ExpeditionIsland],
         _ => [sites.ExpeditionIsland, sites.Home],
     };
+}
+
+/// <summary>
+/// Builds one building on a tile the guided tour names on the prototype's map (economy-v2.md, section 5), once the world
+/// takes it there and it can be paid; skipped on any other map, whose tiles the tour does not know.
+/// </summary>
+public sealed class BuildAt : Goal
+{
+    public BuildAt(BuildingKind building, Hex tile)
+    {
+        Building = building;
+        Tile = tile;
+    }
+
+    public BuildingKind Building { get; }
+
+    public Hex Tile { get; }
+
+    public override string Name => $"{Names.Of(Building)} på {Tile}";
+
+    internal override GoalStatus Pursue(Turn turn)
+    {
+        var world = turn.World;
+        if (world.Map.Hash != PrototypeHome.Map.Hash)
+        {
+            return GoalStatus.Skipped;
+        }
+
+        return world.CheckBuild(Building, Tile) == Rejection.None && world.CanAfford(world.Content.For(Building).Cost, Tile)
+            && turn.Apply(new Build(Building, Tile)).Accepted
+            ? GoalStatus.Done
+            : GoalStatus.Pending;
+    }
 }
 
 /// <summary>
@@ -236,6 +291,24 @@ public sealed class WorkdayOn : DailyMove
         if (candidates.Count > 0)
         {
             turn.Apply(new Workday(Moves.MostProductive(candidates, Building, turn.Sites, turn.World)));
+        }
+    }
+}
+
+/// <summary>A move made only at the first dawn, as the guided tour makes some of its own (ux-journeys.md, resa 1).</summary>
+public sealed class OnFirstDawn : DailyMove
+{
+    public OnFirstDawn(DailyMove move) => Move = move;
+
+    public DailyMove Move { get; }
+
+    public override string Name => $"{Move.Name} första dygnet";
+
+    internal override void Make(Turn turn)
+    {
+        if (turn.Day == 1)
+        {
+            Move.Make(turn);
         }
     }
 }

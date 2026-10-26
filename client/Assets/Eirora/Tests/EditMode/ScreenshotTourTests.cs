@@ -1,9 +1,12 @@
 using System.Linq;
 using Eirora.Client.App;
+using Eirora.CloudSaving;
 using Eirora.Simulation.Economy;
 using Eirora.Simulation.Map;
+using Eirora.Simulation.Saving;
 using Eirora.Simulation.Time;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Eirora.Client.Tests
 {
@@ -94,6 +97,27 @@ namespace Eirora.Client.Tests
             // Shot 22-road: the road to the far fishing hut, laid by then.
             Assert.That(session.World!.Roads, Is.Not.Empty);
             Assert.That(session.World!.Projects.Where(p => p.Kind == ProjectKind.Road), Is.Empty, "Every road tile is laid.");
+        }
+
+        // Shots 26 and 27 (TASK-052): the grown village has farmers and craftsmen, step 3 and one of each building the steps
+        // unlock, staffed, so that every new building and tier is shown with its look.
+        [Test]
+        public void TheGrownVillageShowsEveryTierAndEveryBuildingTheStepsUnlock()
+        {
+            var save = Save.Load(Resources.Load<TextAsset>(ScreenshotTour.GrownVillageSave).bytes);
+            var session = new GameSession(new FixedClock(save.World.Now), null, () => PrototypeHome.Map);
+            session.Replace(save, ReplaceReason.Downloaded);
+            var world = session.World!;
+
+            Assert.That(world.Step, Is.EqualTo(3));
+            Assert.That(world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Farmers)), Is.GreaterThan(0));
+            Assert.That(world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Craftsmen)), Is.GreaterThan(0));
+            var shown = ScreenshotTour.GrownBuildings(world);
+            Assert.That(
+                shown.Select(b => b.Kind),
+                Is.EquivalentTo(world.Content.Buildings.Where(k => world.Content.For(k).Step > 0)));
+            Assert.That(shown.Where(b => world.Content.For(b.Kind).Staff > 0), Has.All.Matches<Building>(b => b.Staffed));
+            Assert.That(world.Islands.Sum(world.Knarrs), Is.GreaterThan(0));
         }
 
         private static (GameSession Session, FixedClock Clock) Begin()

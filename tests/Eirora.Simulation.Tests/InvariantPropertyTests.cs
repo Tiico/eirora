@@ -179,11 +179,13 @@ public sealed class InvariantPropertyTests
         var accepted = new HashSet<string>(StringComparer.Ordinal);
         var rejections = new HashSet<Rejection>();
         var records = new HashSet<string>(StringComparer.Ordinal);
+        var grew = new HashSet<string>(StringComparer.Ordinal);
         int duplicates = 0;
         for (int seed = 0; seed < 50; seed++)
         {
             var scenario = Generated(seed);
             var world = scenario.Start();
+            var was = Measures.Of(world);
             var used = new HashSet<string>(StringComparer.Ordinal);
             foreach (var input in scenario.Inputs)
             {
@@ -213,6 +215,15 @@ public sealed class InvariantPropertyTests
                     records.Add(fields[0] + (fields[0] == "cycle" ? $"-{world.Phase}" : fields[0] == "stock" ? (fields[1] == world.HomeIsland ? "-home" : "-away") : string.Empty));
                 }
             }
+
+            // What the scenario's days did to the tiers, the steps and the knarrs (TASK-052).
+            var now = Measures.Of(world);
+            grew.UnionWith(new[] { ("step", now.Step > was.Step), ("risen", now.Risen > was.Risen), ("craftsmen", now.Craftsmen > was.Craftsmen), ("knarr launched", now.Knarrs > was.Knarrs) }
+                .Where(g => g.Item2).Select(g => g.Item1));
+            if (world.Projects.Any(p => p.ByHand))
+            {
+                grew.Add("built by hand");
+            }
         }
 
         Assert.Equal(21, accepted.Count); // Every kind of command.
@@ -220,13 +231,18 @@ public sealed class InvariantPropertyTests
             [Rejection.Resting, Rejection.GameDayOutOfRange, Rejection.InvalidRestSchedule, Rejection.NotNextToTheKnown, Rejection.NoSuchPlace, Rejection.NotQueued, Rejection.LastStorehouse, Rejection.NoSuchIsland, Rejection.NotByHand];
         Assert.Equal([], wantedRejections.Except(rejections));
         string[] wantedRecords =
-            ["cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-away", "owed", "road", "held", "building-demolished", "reserved"];
+            ["cycle-Resting", "cycle-Active", "pending-schedule", "rest", "project", "unreconciled", "tiles-revealed", "force-withdrawn", "stock-home", "stock-away", "owed", "road", "held", "building-demolished", "reserved", "knarrs", "knarr"];
         Assert.Equal([], wantedRecords.Except(records));
+        string[] wantedGrowth = ["step", "risen", "craftsmen", "knarr launched", "built by hand"];
+        Assert.Equal([], wantedGrowth.Except(grew));
         Assert.True(duplicates > 50, $"Only {duplicates} duplicates.");
     }
 
-    /// <summary>A scenario on the prototype's map, or in one case of three on the archipelago, with a store on each island built on.</summary>
-    private static Scenario Generated(int seed) => Scenario.Generate(seed, archipelago: seed % 3 == 0);
+    /// <summary>
+    /// A scenario on the prototype's map, or in one case of three on the archipelago, with a store on each island built on,
+    /// and in one of three from the grown village, with every tier and step and the shipyard's knarrs (TASK-052).
+    /// </summary>
+    private static Scenario Generated(int seed) => Scenario.Generate(seed, archipelago: seed % 3 == 0, grown: Math.Abs(seed % 3) == 1);
 
     /// <summary>What an island's store holds of each resource, in whole units.</summary>
     private static long Capacity(World world, string island) => world.Buildings.Where(b => b.Island == island).Sum(b => b.Kind switch
@@ -236,20 +252,30 @@ public sealed class InvariantPropertyTests
         _ => 0,
     });
 
-    /// <summary>What never decreases (INV-V1): the villagers, the settlements, each building and its level, and the known tiles.</summary>
-    private sealed record Measures(long UtcSeconds, int Villagers, int Settlements, IReadOnlyDictionary<Hex, (BuildingKind Kind, int Level)> Buildings, int Revealed)
+    /// <summary>
+    /// What never decreases (INV-V1, INV-V3): the villagers and those who have risen a tier, the settlements, each building
+    /// and its level, the known tiles, the unlocked step and the knarrs.
+    /// </summary>
+    private sealed record Measures(
+        long UtcSeconds, int Villagers, int Risen, int Craftsmen, int Settlements, IReadOnlyDictionary<Hex, (BuildingKind Kind, int Level)> Buildings, int Revealed, int Step, int Knarrs)
     {
         public static Measures Of(World world) => new(
             world.Now.UtcSeconds,
             world.Villagers,
+            world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Farmers) + s.VillagersOf(PopulationTier.Craftsmen)),
+            world.Settlements.Sum(s => s.VillagersOf(PopulationTier.Craftsmen)),
             world.Settlements.Count,
             world.Buildings.ToDictionary(b => b.Tile, b => (b.Kind, b.Level)),
-            Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i])));
+            Enumerable.Range(0, world.Map.Disc.Count).Count(i => world.IsKnown(world.Map.Disc[i])),
+            world.Step,
+            world.Islands.Sum(world.Knarrs));
 
         /// <summary>Nothing is lower than <paramref name="earlier"/>, but for the building demolished on <paramref name="demolished"/>.</summary>
         public void AssertNotLowerThan(Measures earlier, Hex? demolished = null)
         {
             Assert.True(Villagers >= earlier.Villagers);
+            Assert.True(Risen >= earlier.Risen, $"farmers and craftsmen {earlier.Risen} → {Risen}");
+            Assert.True(Craftsmen >= earlier.Craftsmen, $"craftsmen {earlier.Craftsmen} → {Craftsmen}");
             Assert.True(Settlements >= earlier.Settlements);
             Assert.All(earlier.Buildings.Where(b => b.Key != demolished), b =>
             {
@@ -257,6 +283,8 @@ public sealed class InvariantPropertyTests
                 Assert.True(now.Level >= b.Value.Level);
             });
             Assert.True(Revealed >= earlier.Revealed);
+            Assert.True(Step >= earlier.Step, $"step {earlier.Step} → {Step}");
+            Assert.True(Knarrs >= earlier.Knarrs, $"knarrs {earlier.Knarrs} → {Knarrs}"); // Also when a shipyard is demolished.
         }
     }
 }

@@ -24,7 +24,8 @@ namespace Eirora.Simulation.Tests;
 /// into a world of its own.
 /// <para>
 /// A scenario is played on the prototype's map, or on the <see cref="Archipelago"/>, where three islands can each get a
-/// store and a sea route home (TASK-045).
+/// store and a sea route home (TASK-045), or from the <see cref="GrownVillage"/>, where all three tiers live, every step
+/// is unlocked and the shipyard builds knarrs (TASK-052).
 /// </para>
 /// </remarks>
 internal sealed class Scenario
@@ -42,11 +43,12 @@ internal sealed class Scenario
     private static readonly Hex[] s_sites = [.. Hex.Origin.Within(6), .. PrototypeHome.NyonCentre.Within(2)];
     private static readonly BuildingKind[] s_buildings = Enum.GetValues<BuildingKind>();
 
-    private Scenario(TimeReading install, RestSchedule schedule, bool archipelago, IReadOnlyList<Input> inputs)
+    private Scenario(TimeReading install, RestSchedule schedule, bool archipelago, bool grown, IReadOnlyList<Input> inputs)
     {
         Install = install;
         Schedule = schedule;
         OnArchipelago = archipelago;
+        Grown = grown;
         Inputs = inputs;
     }
 
@@ -56,6 +58,9 @@ internal sealed class Scenario
 
     /// <summary>Whether the world is on the <see cref="Archipelago"/> rather than the prototype's map.</summary>
     public bool OnArchipelago { get; }
+
+    /// <summary>Whether the world starts as the <see cref="GrownVillage"/> rather than as a new world.</summary>
+    public bool Grown { get; }
 
     public IReadOnlyList<Input> Inputs { get; }
 
@@ -71,12 +76,18 @@ internal sealed class Scenario
     /// Whether some buildings are built by hand (TASK-065); <see cref="BuiltOutWorld"/> leaves it out, so that its worlds
     /// are drawn as they were before and the migrations' tests can write them back to older rules.
     /// </param>
-    public static Scenario Generate(int seed, int length = 60, bool archipelago = false, bool stockRules = true, int lastStep = int.MaxValue, bool byHand = true)
+    /// <param name="grown">Whether the world starts as the <see cref="GrownVillage"/>, which is on the prototype's map.</param>
+    public static Scenario Generate(int seed, int length = 60, bool archipelago = false, bool stockRules = true, int lastStep = int.MaxValue, bool byHand = true, bool grown = false)
     {
+        if (archipelago && grown)
+        {
+            throw new ArgumentException("The grown village is on the prototype's map.", nameof(grown));
+        }
+
         var random = new Random(seed);
         var install = new TimeReading(At("2026-01-01 00:00", 1).UtcSeconds + (random.Next(360 * 24) * Hour), Stockholm, 3600 * (1 + random.Next(2)));
         var schedule = new RestSchedule(random.Next(96) * 15, (6 * 60) + (random.Next(9) * 30));
-        return new Scenario(install, schedule, archipelago, Play(random, Start(install, schedule, archipelago), length, "k", stockRules, lastStep, byHand));
+        return new Scenario(install, schedule, archipelago, grown, Play(random, Start(install, schedule, archipelago, grown), length, "k", stockRules, lastStep, byHand));
     }
 
     /// <summary>
@@ -133,7 +144,7 @@ internal sealed class Scenario
         return inputs;
     }
 
-    public World Start() => Start(Install, Schedule, OnArchipelago);
+    public World Start() => Start(Install, Schedule, OnArchipelago, Grown);
 
     /// <summary>A save of the world the scenario starts from, to play the inputs into.</summary>
     public Save Begin() => Save.Begin(Start());
@@ -150,8 +161,8 @@ internal sealed class Scenario
         return world;
     }
 
-    private static World Start(TimeReading install, RestSchedule schedule, bool archipelago) =>
-        archipelago ? Archipelago.Create(install, schedule) : World.Create(install, schedule);
+    private static World Start(TimeReading install, RestSchedule schedule, bool archipelago, bool grown) =>
+        archipelago ? Archipelago.Create(install, schedule) : grown ? GrownVillage.Create(install, schedule) : World.Create(install, schedule);
 
     /// <summary>Every kind of building that belongs to <paramref name="lastStep"/> or an earlier unlocked step, in their order.</summary>
     internal static BuildingKind[] Kinds(int lastStep) => [.. s_buildings.Where(k => ContentCatalog.Current.For(k).Step <= lastStep)];
@@ -255,8 +266,8 @@ internal sealed class Scenario
                 var project = (ProjectKind)random.Next(3);
                 return world => work switch
                 {
-                    0 => new PauseBuilding(suited ? BuiltSite(world, pick, b => !b.Paused) ?? site : site),
-                    1 => new ResumeBuilding(suited ? BuiltSite(world, pick, b => b.Paused) ?? site : site),
+                    0 => new PauseBuilding(suited ? PausableSite(world, pick, b => !b.Paused) ?? site : site),
+                    1 => new ResumeBuilding(suited ? PausableSite(world, pick, b => b.Paused) ?? site : site),
                     2 => suited && world.StaffingOrder.Count > 1
                         ? new Prioritize(world.StaffingOrder[pick % world.StaffingOrder.Count].Tile, place % world.StaffingOrder.Count)
                         : new Prioritize(world.StaffingOrder.Count > 0 && pick % 2 == 0 ? world.StaffingOrder[pick % world.StaffingOrder.Count].Tile : site, place),
@@ -315,6 +326,13 @@ internal sealed class Scenario
     private static Hex? BuiltSite(World world, int pick, Func<Building, bool> can)
     {
         var built = world.Buildings.Where(b => world.Content.For(b.Kind).Produces && can(b)).ToList();
+        return built.Count > 0 ? built[pick % built.Count].Tile : null;
+    }
+
+    /// <summary>The tile of one of the world's buildings that can be paused, producing or building knarrs, that <paramref name="can"/> take the command, or none.</summary>
+    private static Hex? PausableSite(World world, int pick, Func<Building, bool> can)
+    {
+        var built = world.Buildings.Where(b => world.Content.For(b.Kind).Pausable && can(b)).ToList();
         return built.Count > 0 ? built[pick % built.Count].Tile : null;
     }
 

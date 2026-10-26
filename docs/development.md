@@ -141,7 +141,8 @@ På en Mac byggs spelaren med `Eirora.Editor.Builds.MacOS` och startas med `open
 open -W -n client/Builds/MacOS/Eirora.app --args -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots "$PWD/artifacts/screenshots"
 ```
 
-Turen slutar med en ny värld på en genererad karta, nära och på långt håll.
+Turen visar sedan en ny värld på en genererad karta, nära och på långt håll, och slutar i den odlade byn från epok 1:s fjärde vecka med bönder, hantverkare och varje byggnad som stegen låser upp, var och en med sitt blad.
+Den odlade byn är en sparning i `client/Assets/Eirora/Resources/Tour/GrownVillage.bytes`, som `GrownVillageTests` skriver när den saknas och prövar.
 
 Byggnader och natur ritas från Look-assets i `client/Assets/Eirora/Resources/Looks/` ([ADR-0009](./adr/0009-looks-are-a-modular-kit-as-data.md)).
 De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas som PNG i `artifacts/looks/` (renderar, så inte med `-nographics`):
@@ -287,8 +288,9 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 
 - En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
   Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
-- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)) och `idle` (Ingen spelare).
-  Målen har inga koordinater; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
+- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)), `tour` (Turen, den guidade turen och första veckan på prototypens karta, [ekonomi v2 avsnitt 5](./design/economy-v2.md#första-veckan-h4)) och `idle` (Ingen spelare).
+  Målen har inga koordinater, utom turens, som bygger på de rutor turen anger och hoppas över på andra kartor; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
+  `FirstWeekTests` spelar turen i en vecka och kräver att spelaren möter de system och på de dygn som ekonomi v2 anger (H4).
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
 - Världen skapas en kvart före sin första gryning, så att dag 1 är det första hela dygnet, och körningen slutar just före gryningen efter det sista.
   Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta rutor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
