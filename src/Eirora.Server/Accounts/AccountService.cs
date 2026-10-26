@@ -149,7 +149,8 @@ public sealed partial class AccountService(
 
     /// <summary>
     /// Deletes the account and everything stored for it, after a fresh sign-in with one of its logins; with an Apple
-    /// login, that sign-in must be Apple's so that the app's access to the Apple ID can be revoked.
+    /// login, that sign-in must be Apple's so that the app's access to the Apple ID can be revoked. With Sign in with Apple
+    /// off, an Apple login from when it was on cannot be confirmed or revoked, so any of the account's logins confirms.
     /// </summary>
     /// <param name="appleRedirectUri">
     /// The return URL of Apple's web flow when the confirmation came from it (<see cref="WebSignInOptions.AppleRedirectUri"/>).
@@ -172,7 +173,7 @@ public sealed partial class AccountService(
             return DeleteResult.NotThisAccount;
         }
 
-        if (account.Logins.Any(l => l.Provider == LoginProviders.Apple))
+        if (apple.IsEnabled && account.Logins.Any(l => l.Provider == LoginProviders.Apple))
         {
             if (confirmation.Provider != LoginProviders.Apple || string.IsNullOrEmpty(appleAuthorizationCode))
             {

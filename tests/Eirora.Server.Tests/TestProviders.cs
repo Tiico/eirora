@@ -30,7 +30,8 @@ public sealed class TestProviders
         [LoginProviders.Google] = new("https://accounts.google.com", [GoogleAudience], NewKey("google")),
     };
 
-    public ExternalProviders ToExternalProviders() => new(_providers.Select(p => new ExternalProvider(
+    /// <summary>The stand-ins for the providers the server enabled.</summary>
+    public ExternalProviders ToExternalProviders(IEnumerable<string> enabled) => new(_providers.Where(p => enabled.Contains(p.Key)).Select(p => new ExternalProvider(
         p.Key,
         [p.Value.Issuer],
         p.Value.Audiences,

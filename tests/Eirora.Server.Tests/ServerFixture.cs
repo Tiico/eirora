@@ -21,6 +21,9 @@ public sealed class ServerFixture : IAsyncLifetime
 
     public ServerFactory Server { get; private set; } = null!;
 
+    /// <summary>A second server on the same database with Google only and no Apple configuration at all.</summary>
+    public ServerFactory GoogleOnlyServer { get; private set; } = null!;
+
     public async ValueTask InitializeAsync()
     {
         var external = Environment.GetEnvironmentVariable("EIRORA_TEST_POSTGRES");
@@ -44,6 +47,8 @@ public sealed class ServerFixture : IAsyncLifetime
         // once could each build one, with its own token keys, and a token from one host would then be rejected by another.
         Server = new ServerFactory(ConnectionString);
         Server.StartServer();
+        GoogleOnlyServer = new ServerFactory(ConnectionString, apple: false);
+        GoogleOnlyServer.StartServer();
     }
 
     public EiroraDbContext CreateDbContext()
@@ -58,6 +63,11 @@ public sealed class ServerFixture : IAsyncLifetime
         if (Server is not null)
         {
             await Server.DisposeAsync();
+        }
+
+        if (GoogleOnlyServer is not null)
+        {
+            await GoogleOnlyServer.DisposeAsync();
         }
 
         if (_container is not null)

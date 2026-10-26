@@ -21,7 +21,11 @@ public sealed class AppleOptions
     /// <summary>How long each call to Apple may take; past it the account is deleted without Apple's confirmation.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
 
-    public bool IsConfigured => TeamId.Length > 0 && KeyId.Length > 0 && PrivateKey.Length > 0;
+    /// <summary>
+    /// Whether Sign in with Apple is on; startup validation makes all of its settings be set together or not at all
+    /// (<see cref="AppleSignIn"/>).
+    /// </summary>
+    public bool IsEnabled => TeamId.Length > 0 && KeyId.Length > 0 && PrivateKey.Length > 0;
 
     /// <summary>Whether <see cref="PrivateKey"/> is an EC private key in PEM, as Apple issues it.</summary>
     public bool HasReadableKey()
@@ -51,6 +55,9 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
 {
     public const string Audience = "https://appleid.apple.com";
 
+    /// <summary>Whether Sign in with Apple is on; when it is off, nothing is revoked at Apple.</summary>
+    public bool IsEnabled => options.Value.IsEnabled;
+
     private static readonly TimeSpan s_clientSecretLifetime = TimeSpan.FromMinutes(5);
     private static readonly JsonWebTokenHandler s_handler = new();
 
@@ -67,7 +74,7 @@ public sealed partial class AppleIdClient(HttpClient http, IOptions<AppleOptions
     /// </remarks>
     public async Task<bool> RevokeAsync(string authorizationCode, string clientId, string? redirectUri)
     {
-        if (!options.Value.IsConfigured)
+        if (!options.Value.IsEnabled)
         {
             LogNotConfigured(logger);
             return false;

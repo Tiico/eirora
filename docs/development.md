@@ -350,7 +350,8 @@ dotnet run --project src/Eirora.Server
 ```
 
 Lokalt signeras token med nycklar som slängs när processen avslutas.
-Inloggning med Apple eller Google kräver att appens klient-id står under `SignIn:Providers:<apple|google>:Audiences` (till exempel med `dotnet user-secrets`); utan dem är leverantören avstängd.
+Inloggning med Google kräver att appens klient-id står under `SignIn:Providers:google:Audiences` (till exempel med `dotnet user-secrets`); utan dem är Google avstängt.
+Apple kräver alla sina inställningar eller ingen, se [Inloggning](#inloggning).
 
 En ändring i datamodellen blir en migration med verktyget i `dotnet-tools.json`; den genererade koden redigeras aldrig för hand:
 
@@ -370,6 +371,13 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 
 Spelaren loggar in med Apple eller Google under kontoknappen längst till höger i nederkanten ([ADR-0008](./adr/0008-backend-hosting-accounts-and-database.md)).
 Kontot behövs aldrig för att spela, och knappen syns bara i ett bygge som har en server och minst en leverantör.
+
+Servern kan köras med bara Google, utan någon Apple-konfiguration alls, som Android-prototypen gör tills produktägaren har ett Apple Developer-konto.
+Apple är påslaget när någon av dess inställningar är satt, och då krävs alla: `SignIn:Providers:apple:Audiences`, `SignIn:Web:AppleServicesId`, `SignIn:Apple:TeamId`, `SignIn:Apple:KeyId` och `SignIn:Apple:PrivateKey`.
+Ett tomt värde räknas som inte satt.
+En delvis ifylld Apple-konfiguration, eller ett Services ID som inte är ett av Apples klient-id, stoppar servern vid start med ett fel som säger vad som saknas.
+Med Apple avstängt registreras ingen Apple-leverantör, `/signin/apple/callback` finns inte, raderingssidan visar bara Google och en radering återkallar inget hos Apple.
+Hur det ser ut i driftsättningen står i [deploy/README.md](../deploy/README.md#google-ensam-eller-google-och-apple).
 
 | Plattform | Apple | Google |
 |---|---|---|
@@ -433,7 +441,7 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md`, både med bara Google och med Google och Apple ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
 | [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `src/Eirora.CloudSaving/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
 | [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
 
