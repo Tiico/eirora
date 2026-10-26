@@ -54,6 +54,40 @@ namespace Eirora.Editor
             ExitOnFailure(succeeded);
         }
 
+        /// <summary>
+        /// The game under its own package name, for measuring on a phone that has the game from Google Play (#227): an APK
+        /// signed with another key cannot update that one, and uninstalling it would take the player's world with it.
+        /// With -development it is a development build that connects to Unity's Profiler, whose times are not the
+        /// release build's; measure.sh measures it with MEASURE_PACKAGE=se.eirora.app.measure.
+        /// </summary>
+        public static void AndroidMeasure()
+        {
+            EditorUserBuildSettings.buildAppBundle = false;
+            var android = NamedBuildTarget.Android;
+            string identifier = PlayerSettings.GetApplicationIdentifier(android);
+            string productName = PlayerSettings.productName;
+            var options = Array.IndexOf(Environment.GetCommandLineArgs(), "-development") >= 0
+                ? BuildOptions.Development | BuildOptions.ConnectWithProfiler
+                : BuildOptions.None;
+            bool succeeded;
+            try
+            {
+                PlayerSettings.SetApplicationIdentifier(android, identifier + MeasurementSuffix);
+                PlayerSettings.productName = productName + " measure";
+                succeeded = Build(BuildTarget.Android, BuildTargetGroup.Android, "Builds/Android/EiroraMeasure.apk", extraOptions: options);
+            }
+            finally
+            {
+                PlayerSettings.SetApplicationIdentifier(android, identifier);
+                PlayerSettings.productName = productName;
+            }
+
+            ExitOnFailure(succeeded);
+        }
+
+        /// <summary>What the measurement build adds to the game's package name.</summary>
+        public const string MeasurementSuffix = ".measure";
+
         public static void Windows() => ExitOnFailure(Build(BuildTarget.StandaloneWindows64, BuildTargetGroup.Standalone, "Builds/Windows/Eirora.exe"));
 
         /// <summary>A macOS player for the screenshot tour on a Mac, like <see cref="Windows"/>.</summary>
@@ -180,7 +214,7 @@ namespace Eirora.Editor
         }
 
         /// <summary>Builds the game's scenes, or only the given scene, versioned by the number of commits unless told not to.</summary>
-        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, string? scene = null, bool versioned = true)
+        private static bool Build(BuildTarget target, BuildTargetGroup group, string defaultOutput, string? scene = null, bool versioned = true, BuildOptions extraOptions = BuildOptions.None)
         {
             if (scene is null)
             {
@@ -195,7 +229,7 @@ namespace Eirora.Editor
                 locationPathName = Argument("-buildOutput") ?? Argument("-customBuildPath") ?? defaultOutput,
                 target = target,
                 targetGroup = group,
-                options = BuildOptions.StrictMode,
+                options = BuildOptions.StrictMode | extraOptions,
             };
 
             // The settings are set for this build only, so the project files stay as they are in git.

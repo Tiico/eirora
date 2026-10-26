@@ -28,6 +28,7 @@ namespace Eirora.Client
         private CameraRig _rig = null!;
         private Camera _camera = null!;
         private float _nextCatchUp;
+        private bool _changed;
         private IHealthSource? _healthSource;
         private HealthSync? _healthSync;
         private HealthStatus? _healthStatus;
@@ -35,6 +36,7 @@ namespace Eirora.Client
 
         private void Start()
         {
+            var setup = System.Diagnostics.Stopwatch.StartNew();
             Application.targetFrameRate = 30;
             _camera = Camera.main != null ? Camera.main : new GameObject("Main Camera").AddComponent<Camera>();
             var sun = FindFirstObjectByType<Light>() ?? new GameObject("Sun").AddComponent<Light>();
@@ -80,7 +82,7 @@ namespace Eirora.Client
             }
 
             string? measure = Argument("-eirora-measure");
-            if (measure is not null && MeasurementScene.TryBegin(this, measure))
+            if (measure is not null && MeasurementScene.TryBegin(this, measure, setup))
             {
                 return;
             }
@@ -173,7 +175,7 @@ namespace Eirora.Client
         internal void Begin(GameSession session)
         {
             _session = session;
-            _session.Changed += Refresh;
+            _session.Changed += () => _changed = true;
             if (_session.TryLoad())
             {
                 Refresh();
@@ -200,8 +202,13 @@ namespace Eirora.Client
 
         internal Hud Hud => _hud;
 
+        /// <summary>
+        /// Draws the world now. A change to the world is otherwise drawn once at the end of the frame, however many
+        /// commands and catch-ups it took: rebuilding the island for each of them held the first frame back (#227).
+        /// </summary>
         internal void Refresh()
         {
+            _changed = false;
             if (_session.World is { } world)
             {
                 bool newMap = _island.Map?.WorldMap.Hash != world.Map.Hash;
@@ -232,6 +239,14 @@ namespace Eirora.Client
             }
 
             _atmosphere.Apply(world, _camera);
+        }
+
+        private void LateUpdate()
+        {
+            if (_changed)
+            {
+                Refresh();
+            }
         }
 
         private void OnApplicationPause(bool paused)

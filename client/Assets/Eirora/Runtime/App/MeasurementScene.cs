@@ -16,7 +16,9 @@ namespace Eirora.Client.App
     /// </summary>
     /// <remarks>
     /// Run a player with: -eirora-measure day|night|year. It runs until stopped. When it has drawn its first frame it
-    /// logs how long catching up with the clock took, which <c>measure.sh cold-start</c> reads.
+    /// logs how long catching up with the clock took, which <c>measure.sh cold-start</c> reads, and where the rest of the
+    /// time to that frame went: Unity's own start before the scene, setting up the island and the interface, making the
+    /// world, and drawing it (#227).
     /// </remarks>
     public static class MeasurementScene
     {
@@ -70,8 +72,11 @@ namespace Eirora.Client.App
             return CatchUp(session);
         }
 
-        internal static bool TryBegin(ClientBootstrap client, string light)
+        /// <param name="setup">Started when the client's scene started, as Unity's start ended.</param>
+        internal static bool TryBegin(ClientBootstrap client, string light, Stopwatch setup)
         {
+            double engine = (Time.realtimeSinceStartupAsDouble * 1000) - setup.Elapsed.TotalMilliseconds;
+            long setUp = setup.ElapsedMilliseconds;
             long catchUp;
             if (light == "year")
             {
@@ -94,7 +99,7 @@ namespace Eirora.Client.App
             }
 
             client.Refresh();
-            client.StartCoroutine(LogFirstFrame(light, catchUp));
+            client.StartCoroutine(LogFirstFrame(light, catchUp, (long)engine, setUp, setup.ElapsedMilliseconds - setUp, setup));
             return true;
         }
 
@@ -105,10 +110,16 @@ namespace Eirora.Client.App
             return watch.ElapsedMilliseconds;
         }
 
-        private static IEnumerator LogFirstFrame(string light, long catchUpMilliseconds)
+        private static IEnumerator LogFirstFrame(string light, long catchUp, long engine, long setUp, long world, Stopwatch sinceScene)
         {
             yield return new WaitForEndOfFrame();
-            UnityEngine.Debug.Log($"{FirstFrameLog} of the {light} scene, caught up in {catchUpMilliseconds.ToString(CultureInfo.InvariantCulture)} ms");
+            long drawn = sinceScene.ElapsedMilliseconds - setUp - world;
+            UnityEngine.Debug.Log(
+                $"{FirstFrameLog} of the {light} scene, caught up in {Ms(catchUp)} ms; Unity started in {Ms(engine)} ms, " +
+                $"the island and interface were set up in {Ms(setUp)} ms, the world was made and drawn in {Ms(world)} ms " +
+                $"and the first frame rendered in {Ms(drawn)} ms");
         }
+
+        private static string Ms(long milliseconds) => milliseconds.ToString(CultureInfo.InvariantCulture);
     }
 }

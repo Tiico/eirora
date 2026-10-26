@@ -18,12 +18,14 @@
 #       script) and fails when any is over; a metric that was not measured is reported and does not fail.
 #
 # Set ADB to the adb binary if it is not on PATH, and ANDROID_SERIAL to pick a device when several are attached.
+# MEASURE_PACKAGE measures another package than the game's, such as the measurement build (se.eirora.app.measure), which
+# installs beside the game from Google Play instead of over it.
 # MEASURE_PAUSE_SECONDS sets the pause between cold starts (default 3), FIRST_FRAME_WAIT_SECONDS how long to wait for
 # the client's first frame with the world (default 120), MEASURE_SETTLE_SECONDS how long the scene settles before the
 # session is measured (default 10).
 set -euo pipefail
 
-PACKAGE="se.eirora.app"
+PACKAGE="${MEASURE_PACKAGE:-se.eirora.app}"
 PAUSE_SECONDS="${MEASURE_PAUSE_SECONDS:-3}"
 FIRST_FRAME_WAIT_SECONDS="${FIRST_FRAME_WAIT_SECONDS:-120}"
 SETTLE_SECONDS="${MEASURE_SETTLE_SECONDS:-10}"
