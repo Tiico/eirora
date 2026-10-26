@@ -9,7 +9,7 @@
 
 extern UIViewController* UnityGetGLViewController();
 
-// status: 0 signed in (first: ID token or callback URL, second: Apple's authorization code or NULL), 1 cancelled, 2 failed (first: reason).
+// status: 0 signed in (first: ID token or callback URL, second: Apple's authorization code or NULL), 1 cancelled or 2 failed (first: the reason, for the log).
 typedef void (*EiroraSignInCallback)(int requestId, int status, const char* first, const char* second);
 
 static EiroraSignInCallback s_callback = NULL;
