@@ -452,7 +452,7 @@ Hur botarna körs står i [development.md](../development.md#balansbotar).
 | Närområdet, ordnad | måttlig | 19 | 12 | 1 | 109 | 228 | 1 299 | 180/260/380 | 461/110/274 | 1,09 |
 | Havet | måttlig | 21 | 12 | 2 | 29 | 246 | 1 256 | 250/210/340 | 426/160/270 | 1,06 |
 | Naiv | hög | 20 | 10 | 1 | 53 | 211 | 1 177 | 180/360/630 | 520/85/96 | 0,66 |
-| Utan träning | utan träning | 19 | 11 | 1 | 150 | 156 | 1 138 | 180/0/510 | 461/100/174 | 1,06 |
+| Utan träning | utan träning | 19 | 11 | 1 | 150 | 146 | 1 108 | 180/0/510 | 461/100/174 | 1,01 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
 | Ingen spelare | måttlig | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 551/370/492 | – |
 
@@ -477,6 +477,8 @@ Skillnaderna som är kvar kommer av ordningen i kön:
   Havet hinner därför en bybo till.
 - **Styrkan och Orken.**
   Med en annan takt i timmer, plankor och sten hinner ett annat mål först: utan träning hinner botarna arbeta extra en gång till, och den naiva strategin en bybo till.
+- **Bärarna.**
+  Utan träning ställer botarna fiskeboden närmare förrådet, på (2, 0), och inte på den rikare platsen K2, eftersom fisken därifrån skulle kräva en bärare till, som tar en av dem som bygger (TASK-097); kalkylen bygger på K2 och får därför 30 mer i utvecklingsvärde.
 
 Slutsatserna ovan håller.
 De genomtänkta strategierna får 1,6 gånger den naiva strategins värde per använd kraft, och Närområdet och Havet skiljer sig med 4 % i utvecklingsvärde.

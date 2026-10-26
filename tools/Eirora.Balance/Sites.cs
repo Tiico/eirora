@@ -284,6 +284,49 @@ internal sealed class Sites
     private int Hunters(Recipe recipe, Hex wood, Hex tile, bool planning) =>
         1 + _world.Buildings.Count(b => b.Tile != tile && RecipeOf(b.Kind) is { HuntTiles: > 0 } hunting && Woods(b.Tile, planning).Take(hunting.HuntTiles).Contains(wood));
 
+    /// <summary>The villagers a building of this kind is staffed with.</summary>
+    public int StaffOf(BuildingKind kind) => _world.Content.For(kind).Staff;
+
+    /// <summary>
+    /// The carriers that the depot nearest <paramref name="tile"/> would take beyond those it takes now for a building of
+    /// this kind there, as the depot plans its carriers at dawn: its goods and raw materials there and back an active hour,
+    /// a load a trip, a carrier for each started carrier-hour, one to four (economy-v2.md, section 7.1; D-109, D-110).
+    /// Roads are not counted, and a depot still in the queue needs nothing yet.
+    /// </summary>
+    /// <param name="depots">The depots, standing or queued, from <see cref="PlannedDepots"/>.</param>
+    /// <param name="steps">Each depot's <see cref="StepsFrom"/>, in the same order.</param>
+    public int MoreCarriers(BuildingKind kind, Hex tile, IReadOnlyList<Hex> depots, int[][] steps)
+    {
+        int nearest = -1, fewest = int.MaxValue;
+        for (int i = 0; i < depots.Count; i++)
+        {
+            int away = StepsTo(tile, steps[i]);
+            if (away < fewest)
+            {
+                (nearest, fewest) = (i, away);
+            }
+        }
+
+        if (nearest < 0 || RecipeOf(kind) is not Recipe recipe)
+        {
+            return 0;
+        }
+
+        long made = DailyYield(kind, tile, planning: true) / Weights[(int)recipe.Product] / ActiveHours;
+        long units = made;
+        foreach (var input in recipe.Inputs)
+        {
+            units += made * input.PerProduct;
+        }
+
+        long need = _world.CarrierNeed(depots[nearest]);
+        long more = units * 2 * fewest * Logistics.StepTime / Quantity.Units(Logistics.CarrierLoad);
+        return Carriers(need + more) - Carriers(need);
+    }
+
+    /// <summary>The carriers a depot takes for millionths of carrier-hours an active hour.</summary>
+    private static int Carriers(long need) => (int)Math.Clamp((need + Quantity.PerUnit - 1) / Quantity.PerUnit, 1, Logistics.MostCarriers);
+
     /// <summary>What a building of this kind makes, or null when it makes nothing.</summary>
     public Recipe? RecipeOf(BuildingKind kind) => _world.Content.For(kind).Recipe;
 
