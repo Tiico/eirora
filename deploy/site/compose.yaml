@@ -34,13 +34,15 @@ services:
       - no-new-privileges:true
     networks:
       - traefik
+    # A list, not a mapping: Compose fills in variables in values only, so a variable in a mapping key would reach Traefik
+    # as literal text (deploy/check-labels.sh).
     labels:
-      traefik.enable: "true"
-      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik}
-      traefik.http.services.${EIRORA_SITE_PROJECT:-eirora-site}.loadbalancer.server.port: "8080"
-      traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.rule: Host(`${EIRORA_SITE_HOST:?}`)
-      traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
-      traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.services.${EIRORA_SITE_PROJECT:-eirora-site}.loadbalancer.server.port=8080"
+      - "traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.rule=Host(`${EIRORA_SITE_HOST:?}`)"
+      - "traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${EIRORA_SITE_PROJECT:-eirora-site}.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
     restart: unless-stopped
 
 networks:

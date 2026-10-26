@@ -31,3 +31,5 @@ Kopiera sedan `public/` till servern igen; nginx läser filerna direkt och behö
 Om `default.conf.template` eller `.env` ändras startas sidan om med samma kommando som ovan.
 
 Workflowen [Site](../../.github/workflows/site.yml) startar sidan med samma compose-fil och kontrollerar att platshållarna fylls i och att säkerhetshuvudena finns kvar.
+Den kontrollerar också etiketterna med [check-labels.sh](../check-labels.sh) och låter en Traefik läsa dem, som på servern, och servera `/privacy/` för sidans värdnamn.
+Etiketterna är en lista med `"nyckel=värde"` av samma skäl som för backenden, se [Traefiks etiketter](../README.md#traefiks-etiketter).
