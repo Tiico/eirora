@@ -105,9 +105,17 @@ pss_kb() {
 
 unity_activity() { shell cmd package resolve-activity --brief "$PACKAGE" | tail -n 1; }
 
-# The SurfaceFlinger layer the app renders into; Unity draws into a SurfaceView, which gfxinfo does not see.
+# The SurfaceFlinger layer the app renders into; Unity draws into a SurfaceView, which gfxinfo does not see. Its BLAST
+# layer is the one that presents frames, not the SurfaceView itself or its Background. Up to Android 16 --list prints
+# bare layer names; Android 17 prints RequestedLayerState{NAME parentId=... z=...}, where NAME starts with a hash
+# (`231cb9a SurfaceView[...](BLAST)#13991`) and only the whole of it is a name that --latency knows.
 app_layer() {
-    shell dumpsys SurfaceFlinger --list | grep -F "SurfaceView[$PACKAGE" | grep -v -F "Background" | grep -F "BLAST" | head -n 1
+    shell dumpsys SurfaceFlinger --list | awk -v view="SurfaceView[$PACKAGE" '
+        {
+            name = $0
+            if (sub(/^RequestedLayerState[{]/, "", name)) sub(/ parentId=.*| relativeParentId=.*| z=.*|[}]$/, "", name)
+        }
+        !found && index(name, view) && index(name, "BLAST") && !index(name, "Background") { print name; found = 1 }'
 }
 
 # The Unity extra for the measurement scene.
@@ -179,6 +187,11 @@ measure_session() {
         if [ $((i % 5)) -eq 0 ]; then pss_kb >>"$OUT/pss-kb.txt"; fi
         i=$((i + 1)); sleep 2
     done
+    # Frame times between consecutive presents; gaps over a second are breaks between latency dumps.
+    sort -n -u "$OUT/frames.txt" | awk 'NR > 1 { d = ($1 - prev) / 1e6; if (d > 0 && d < 1000) printf "%.3f\n", d } { prev = $1 }' |
+        sort -n >"$OUT/frame-ms.txt"
+    [ -s "$OUT/frame-ms.txt" ] ||
+        die "read no frames from the SurfaceFlinger layer '$layer' during the pass; was the app in the foreground, and does dumpsys SurfaceFlinger --latency know the layer?"
 
     temps="$(temperatures)"
     record battery_temp_end_c "${temps%% *}"
@@ -188,13 +201,9 @@ measure_session() {
     shell dumpsys battery reset >/dev/null
     trap - EXIT
 
-    # Frame times between consecutive presents; gaps over a second are breaks between latency dumps.
-    sort -n -u "$OUT/frames.txt" | awk 'NR > 1 { d = ($1 - prev) / 1e6; if (d > 0 && d < 1000) printf "%.3f\n", d } { prev = $1 }' |
-        sort -n >"$OUT/frame-ms.txt"
     awk '
         { n++; ms[n] = $1; sum += $1; if ($1 > 50) slow++ }
         END {
-            if (n == 0) { print "fps 0"; exit }
             printf "fps %.1f\nframe_p50_ms %.1f\nframe_p95_ms %.1f\nframe_max_ms %.1f\nframes_over_50ms_pct %.2f\n",
                 n * 1000 / sum, ms[int(n * 0.5) + 1], ms[int(n * 0.95) + 1], ms[n], 100 * slow / n
         }' "$OUT/frame-ms.txt" | while read -r key value; do record "$key" "$value"; done
