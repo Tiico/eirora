@@ -1,7 +1,7 @@
 # Ekonomi v2
 
-> **Status:** [BESLUTAT] v2.4, scenarierna i avsnitt 15 (TASK-053) väntar på produktägarens granskning, delfrågorna avgjorda som D-109–D-119, bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
-> **Ärende:** TASK-058 (#145), TASK-050 (#133), TASK-046 (#129), TASK-053 (#136) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-127, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
+> **Status:** [BESLUTAT] v2.4, scenarierna i avsnitt 15 (TASK-053) och toleransen för egna beslut (TASK-097) väntar på produktägarens granskning, delfrågorna avgjorda som D-109–D-119, bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
+> **Ärende:** TASK-058 (#145), TASK-050 (#133), TASK-046 (#129), TASK-053 (#136), TASK-097 (#230) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-127, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi v1:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Epok 1:** [epoch-1.md](./epoch-1.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v2.py](./models/economy_v2.py) (`python -I economy_v2.py`)
 
@@ -592,28 +592,29 @@ Balansbotarna ([development.md](../development.md#balansbotar)) spelar dem i den
   Varje genomtänkt strategi följer sin egen plan första veckan och sedan samma planerare som kalkylen från vecka 2 (avsnitt 10), utan Styrka för dem som valt bort träning.
   Befolkningsnivåerna, upplåsningen, bosättningarna och bärarna ingår alltså i besluten.
 - **Måttet** är utvecklingsvärdet efter fyra veckor, med nivåerna inräknade som i avsnitt 9; de flesta genomtänkta körningar har då hantverkare.
-- **Botarna stämmer med kalkylen.**
-  På prototypens karta får botarna efter sex veckor Bygden 7 006, Närområdet 6 922, Havet 6 374 och Utan träning 3 931, mot kalkylens 7 071, 6 334, 5 942 och 3 960.
-  Efter första veckan har botarnas Bygden 16 bybor mot kalkylens 20, men ett utvecklingsvärde på 1 287 mot 1 237.
+- **Botarnas planerare spelar bättre än kalkylens.**
+  På prototypens karta får botarna efter sex veckor Bygden 7 828, Närområdet 7 588, Havet 5 821 och Utan träning 3 898, mot kalkylens 7 071, 6 334, 5 942 och 3 960.
+  Sedan TASK-097 uppgraderar botarna när det finns material över också med annat i byggkön, räknar bara hemöns egen ull och vilt till kläderna där, och räknar med bärarna när de väljer byggplats; kalkylen gör inget av det.
+  Efter första veckan har botarnas Bygden 20 bybor som kalkylen, och ett utvecklingsvärde på 1 389 mot 1 237.
 
 ### Fyra scenarier
 
 | Scenario | Karta | Egenvård | Närområdet | Havet | Bygden | Utan träning | Utan träning, handkraft | Naiv | Bäst, före tvåan |
 |---|---|---|---|---|---|---|---|---|---|
-| Rik hemö | seed 174 | normal | **5 020** | 3 252 | 3 960 | 3 382 | 2 943 | 1 936 | Närområdet, 27 % |
-| Rik grannö | seed 153 | normal | 3 829 | **4 334** | 4 014 | 3 042 | 3 899 | 2 028 | Havet, 8 % |
-| Prototypens karta | prototypens | normal | 4 894 | 4 020 | **5 072** | 3 471 | 3 404 | 1 916 | Bygden, 4 % |
-| Utan träning | seed 31 | utan träning | 2 600 | 2 210 | 3 820 | 3 235 | **4 357** | 1 528 | Utan träning, handkraft, 14 % |
+| Rik hemö | seed 174 | normal | **5 602** | 5 138 | 4 098 | 3 418 | 3 791 | 1 936 | Närområdet, 9 % |
+| Rik grannö | seed 153 | normal | 4 521 | **4 744** | 4 571 | 3 105 | 4 012 | 2 028 | Havet, 4 % |
+| Prototypens karta | prototypens | normal | 5 171 | 4 883 | **6 138** | 3 585 | 3 553 | 1 916 | Bygden, 19 % |
+| Utan träning | seed 31 | utan träning | 2 600 | 2 234 | 3 841 | 3 235 | **4 290** | 1 528 | Utan träning, handkraft, 12 % |
 
 Kartorna är generatorns `procedural-archipelago` version 1 med seeden i tabellen, och prototypens handgjorda karta.
 
 - **Rik hemö:** skog på fyra rutor intill starten och tre berg inom två steg.
   Närområdets kluster med skogshuggare, stenbrott, förråd och sågverk ger mest, och planeraren bygger vidare på det.
 - **Rik grannö:** bara ett berg inom två steg från starten, och expeditionens ö har rik betesmark och ett rikt berg.
-  Havet anlägger bosättningen där första veckan och slutar med 73 bybor, varav 34 bönder, mot Bygdens 57.
-- **Prototypens karta:** Bygden, som bygger kläder och bostäder först, hinner före Närområdet med 4 %.
+  Havet anlägger bosättningen där första veckan och slutar med 79 bybor, varav 28 bönder, mot Bygdens 61.
+- **Prototypens karta:** Bygden, som bygger kläder och bostäder först, hinner före Närområdet med 19 %.
 - **Utan träning:** en spelare som valt bort träning (D-43), på en karta där expeditionens ö har rik betesmark och ett rikt berg.
-  Havet med bryggorna och väveriet byggda med handkraft (D-65) slutar med 79 bybor och två bosättningar, mot Bygdens 54 på hemön.
+  Havet med bryggorna och väveriet byggda med handkraft (D-65) slutar med 77 bybor och två bosättningar, mot Bygdens 54 på hemön.
   Närområdet och Havet utan handkraft väntar på Styrka till sågverk, väveri och brygga och når inga bönder på fyra veckor.
 
 ### Alla profiler
@@ -622,19 +623,19 @@ Med varje profil på varje scenarios karta är den här strategin bäst:
 
 | Scenario | Hög | Normal | Enbart manuell | Låg | Utan träning | Ingen | Lägsta kvot mot naiv |
 |---|---|---|---|---|---|---|---|
-| Rik hemö | Närområdet | Närområdet | Närområdet | Närområdet | Bygden | Bygden | 1,53 |
+| Rik hemö | Närområdet | Närområdet | Närområdet | Havet | Bygden | Utan träning | 1,66 |
 | Rik grannö | Havet | Havet | Havet | Bygden | Handkraft | Bygden | 1,61 |
-| Prototypens karta | Bygden | Bygden | Bygden | Bygden | Bygden | Bygden | 1,63 |
-| Utan träning | Havet | Havet | Handkraft | Havet | Handkraft | Bygden | 1,62 |
+| Prototypens karta | Bygden | Bygden | Bygden | Bygden | Bygden | Bygden | 1,67 |
+| Utan träning | Närområdet | Närområdet | Närområdet | Handkraft | Handkraft | Bygden | 1,68 |
 
 *Handkraft* är Utan träning, handkraft.
 *Lägsta kvot mot naiv* är den genomtänkta strategi som ger minst värde per använd kraft, delat med den naiva strategins med samma profil.
 
 - **Ingen strategi dominerar.**
-  Av de 24 kombinationerna är Bygden bäst i 11, Havet i 6, Närområdet i 4 och handkraften i 3.
-  Bygden använder minst Styrka av de tre första strategierna, och den är bäst på alla fyra kartor utan egenvård.
+  Av de 24 kombinationerna är Bygden bäst i 10, Närområdet i 6, Havet i 4, handkraften i 3 och Utan träning i 1.
+  Bygden använder minst Styrka av de tre första strategierna och är bäst på tre av de fyra kartorna utan egenvård; på Rik hemö är Utan träning bäst där.
 - **Strategin hinner ikapp (D-34).**
-  Varje genomtänkt strategi ger minst 1,53 gånger den naiva strategins värde per använd kraft, där [forces.md](./forces.md) kräver 1,3.
+  Varje genomtänkt strategi ger minst 1,61 gånger den naiva strategins värde per använd kraft, där [forces.md](./forces.md) kräver 1,3.
 - **Inga siffror ändras.**
   Eftersom ingen strategi dominerar föreslår uppgiften inga nya värden, och regelversionen är kvar (ADR-0006).
 
@@ -642,19 +643,36 @@ Med varje profil på varje scenarios karta är den här strategin bäst:
 
 `ScenarioTests` i balansbotarnas testsvit spelar alla jämförda strategier på varje scenario med varje profil i fyra veckor.
 De kräver att den bästa strategin i varje scenario är den i tabellen, att minst tre strategier är bäst i var sitt scenario och Närområdet och Havet bland dem, att ingen strategi är bäst i alla kombinationer, och att varje genomtänkt strategi ger minst 1,3 gånger den naiva strategins värde per använd kraft.
+`MoreSelfCareNeverEndsInASmallerWorldWithAnyStrategy` kräver att ingen strategi i något scenario slutar mer än 2 % mindre med normal egenvård än med låg, eller med hög än med normal (TASK-097, punkt 3 nedan).
 En regeländring som gör en strategi bäst överallt underkänner alltså scenariot där en annan ska vinna, och testet skriver ut scenariots nya rader.
 Prövat: med 12 bostäder i bondgården i stället för 6 blir Bygden bäst i Rik grannö, och testet underkänns.
 `dotnet run -c Release --project tools/Eirora.Balance -- --suite scenarios` skriver scenariernas rapport.
 
 ### Det scenarierna visar
 
-1. **Bygden är bäst på de flesta kartor.**
-   På 260 genererade kartor (seed 0–259) med normal egenvård i fyra veckor är Bygden bäst på 200 (77 %), Närområdet på 52 (20 %) och Havet på 8 (3 %).
+1. **Närområdet och Bygden delar på de flesta kartor.**
+   På 260 genererade kartor (seed 0–259) med normal egenvård i fyra veckor är Närområdet bäst på 127 (49 %), Bygden på 114 (44 %) och Havet på 19 (7 %).
+   Före TASK-097:s planerare var Bygden bäst på 200 (77 %), Närområdet på 52 och Havet på 8.
    Det uppfyller AC-06, men Havet vinner sällan, och också i kalkylen är Havet 16 % efter Bygden vecka 6 (avsnitt 10).
 2. **Första veckan skiljer sig strategierna mindre från den naiva.**
    Efter sju dygn på scenariernas genererade kartor ger den sämsta genomtänkta strategin bara 1,11–1,24 gånger den naivas värde per använd kraft med normal egenvård och 1,01–1,06 utan träning, och på seed 31 med normal egenvård har den naiva strategin störst utvecklingsvärde.
    På prototypens karta är kvoten 1,47 efter sju dygn, och efter fyra veckor håller D-34 överallt.
-3. **Mer egenvård med egna beslut kan ge en mindre värld.**
-   Bygden med låg egenvård slutar på prototypens karta med 5 295, mot 5 072 med normal, och Havet på seed 31 med 4 459 mot 4 228.
-   Båda slutar med fler hantverkare, 18 mot 14 och 12 mot 8; planerarens val beror på Styrkan, till exempel långhus i stället för stugor från 120 Styrka.
-   D-34 och D-119 gäller samma beslut med mer egenvård, och det prövar botarna för sig och håller (avsnitt 9); här väljer planeraren annorlunda med mer Styrka.
+3. **Mer egenvård lockade planeraren till sämre val (TASK-097).**
+   D-34 och D-119 gäller samma beslut med mer egenvård, och det prövar botarna för sig och håller (avsnitt 9).
+   Med egna beslut slutade nio av de 24 strategierna och scenarierna med en mindre värld med låg, normal och hög egenvård: Bygden på prototypens karta med 5 295 med låg mot 5 072 med normal, Havet på seed 31 med 4 459 mot 4 228, och som mest Havet på Rik hemö med 3 806 mot 3 252.
+   Orsakerna låg i botarnas planerare, inte i reglerna:
+   - **Bärarna.**
+     Med mer Utforskande hann planeraren kartlägga en rikare fiskeplats längre från förrådet och byggde där.
+     Fisken därifrån krävde en bärare till, som tog den sista byggaren, och byggkön stod still i fyra dygn.
+     Planeraren räknar nu en bärare som förrådet måste ta till som en bybo som byggnaden tar.
+   - **Ullen på den andra ön.**
+     Med mer Utforskande gick expeditionen tidigare och den andra ön växte sig större, så att sjövägens 40 om dygnet gick åt till hemöns material och mat dit.
+     Ullen från fårgården där kom aldrig hem till väveriet, men planeraren räknade väveriet som fullt och fårgården där som hemöns, så bönderna på hemön väntade på kläder hela månaden och steg 2 nåddes aldrig.
+     Planeraren räknar nu bara hemöns egen ull och vilt till kläderna där.
+   - **Uppgraderingarna.**
+     Planeraren uppgraderade bara med tom byggkö, och med mer Styrka var kön aldrig tom; Havet på seed 31 hade 645 Styrka kvar med normal egenvård.
+     En uppgradering hamnar sist i kön och tar bara det arbete som blir över, så planeraren uppgraderar nu en i taget med material som blir över.
+
+   Ingen strategi slutar nu mer än 1,6 % mindre med mer egenvård, och sju gör det alls: Havet på Rik hemö med 5 056 med hög mot 5 138 med normal är störst.
+   Det som är kvar är hur val på andra gryningar spelar ut; värdena går om varandra flera gånger under de fyra veckorna.
+   Testet tillåter 2 %, vilket väntar på produktägaren.
