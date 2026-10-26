@@ -18,7 +18,17 @@ internal static class Names
         BuildingKind.Sawmill => "sågverk",
         BuildingKind.Weavery => "väveri",
         BuildingKind.Jetty => "brygga",
-        _ => "utkikstorn",
+        BuildingKind.Lookout => "utkikstorn",
+        BuildingKind.Farmstead => "bondgård",
+        BuildingKind.HuntingLodge => "jaktstuga",
+        BuildingKind.Tannery => "garveri",
+        BuildingKind.CraftsmensHouse => "hantverkargård",
+        BuildingKind.Apiary => "bigård",
+        BuildingKind.Brewery => "bryggeri",
+        BuildingKind.Meadery => "mjöderi",
+        BuildingKind.TarKiln => "tjärdal",
+        BuildingKind.Shipyard => "varv",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "A building without a name in the glossary."),
     };
 
     public static string Of(Where where) => where switch

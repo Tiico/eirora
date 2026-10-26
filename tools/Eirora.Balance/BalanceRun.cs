@@ -164,6 +164,8 @@ public sealed class RunResult
         Buildings = world.Buildings.Count;
         LevelTwo = world.Buildings.Count(b => b.Level == 2);
         Islands = world.Buildings.Select(b => b.Island).Distinct().Count();
+        Tiers = [.. Enum.GetValues<PopulationTier>().Select(tier => world.Settlements.Sum(s => s.VillagersOf(tier)))];
+        Settlements = world.Settlements.Count(s => s.Villagers > 0);
         Stock = [.. Enum.GetValues<Resource>().Select(world.Stock)];
         DailyOutput = Measures.DailyOutput(world);
         Value = Measures.Value(world);
@@ -204,6 +206,12 @@ public sealed class RunResult
 
     /// <summary>Islands with a building on them.</summary>
     public int Islands { get; }
+
+    /// <summary>Crofters, farmers and craftsmen in every settlement together (economy-v2.md, section 2).</summary>
+    public IReadOnlyList<int> Tiers { get; }
+
+    /// <summary>Settlements with villagers living in them (D-106).</summary>
+    public int Settlements { get; }
 
     /// <summary>Whole units in store at home, by <see cref="Resource"/>.</summary>
     public IReadOnlyList<long> Stock { get; }

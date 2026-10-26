@@ -4,11 +4,11 @@ namespace Eirora.Balance.Tests;
 public sealed class CommandLineTests
 {
     [Fact]
-    public void WithoutArgumentsItPlaysEconomyV1AndTwentyGeneratedMapsForFourWeeks()
+    public void WithoutArgumentsItPlaysEconomyV1TheScenariosAndTwentyGeneratedMapsForFourWeeks()
     {
         var command = CommandLine.Parse([]);
 
-        Assert.Equal(7 + 40, command.Runs.Count);
+        Assert.Equal(7 + (4 * 6) + 40, command.Runs.Count);
         Assert.Equal(28, command.Runs[^1].Days);
         Assert.Equal(Path.Combine("artifacts", "balance"), command.Output);
     }
@@ -23,11 +23,21 @@ public sealed class CommandLineTests
         Assert.Equal([100UL, 101UL], command.Runs.Select(r => r.Map.Seed!.Value).Distinct());
     }
 
+    [Fact]
+    public void TheScenariosSuitePlaysEveryComparedStrategyOnEachScenarioForFourWeeks()
+    {
+        var command = CommandLine.Parse(["--suite", "scenarios"]);
+
+        Assert.Equal(Scenario.All.Count * Scenario.Compared.Count, command.Runs.Count);
+        Assert.All(command.Runs, run => Assert.Equal(Scenario.Days, run.Days));
+    }
+
     [Theory]
     [InlineData("--maps", "protoype")]
     [InlineData("--seed", "5")]
     [InlineData("--suite", "economy-v1", "--days", "14")]
     [InlineData("--suite", "economy-v1", "--from", "3")]
+    [InlineData("--suite", "scenarios", "--seeds", "3")]
     [InlineData("--maps", "prototype", "--seeds", "5")]
     [InlineData("--suite", "generated", "--days")]
     [InlineData("--suite", "generated", "--suite", "all")]

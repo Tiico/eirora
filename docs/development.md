@@ -288,7 +288,9 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
 
 - En **profil** är en syntetisk spelares egenvårdsvecka från [epok 1](./design/epoch-1.md#profilerna): `high`, `normal`, `manual`, `low`, `no-training` och `none`.
   Dygnets summor registreras vid gryningen, som kalkylen räknar dem.
-- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)), `tour` (Turen, den guidade turen och första veckan på prototypens karta, [ekonomi v2 avsnitt 5](./design/economy-v2.md#första-veckan-h4)) och `idle` (Ingen spelare).
+- En **strategi** från [ekonomi v1, avsnitt 7](./design/economy-v1.md#7-sju-dygn-med-två-strategier) är en plan med mål som prövas i ordning varje gryning, och dagliga drag: `near` (Närområdet), `near-ordered` (Närområdet, ordnad), `near-moved` (Närområdet, flyttad), `sea` (Havet), `village` (Bygden, [ekonomi v2 avsnitt 9](./design/economy-v2.md#9-sju-dygn-med-tre-strategier)), `naive` (Naiv), `no-training` (Utan träning), `no-training-by-hand` (Utan träning, handkraft, [epok 1 avsnitt 5](./design/epoch-1.md#5-tempo)), `tour` (Turen, den guidade turen och första veckan på prototypens karta, [ekonomi v2 avsnitt 5](./design/economy-v2.md#första-veckan-h4)) och `idle` (Ingen spelare).
+  Från vecka 2 fortsätter varje genomtänkt strategi med ekonomi v2:s planerare (`KeepGrowing`, [ekonomi v2 avsnitt 10](./design/economy-v2.md#10-sex-veckor)): bostäder, mat, byggmaterial, kläder och bondgårdar, dryck och hantverkargårdar, tjärdal och varv, en bosättning på expeditionens ö och krafterna som blir över; Utan träning använder ingen Styrka, och handkraften bygger bryggor och väveri med handkraft.
+  Den naiva strategin fortsätter med sin plan.
   Målen har inga koordinater, utom turens, som bygger på de rutor turen anger och hoppas över på andra kartor; de väljer bland kartans lediga byggplatser efter vad rutan ger, avståndet till förrådet och vad som redan står där.
   `FirstWeekTests` spelar turen i en vecka och kräver att spelaren möter de system och på de dygn som ekonomi v2 anger (H4).
   Ett mål hoppas över först när kartan saknar plats för det och inget som planen ännu gör kan visa en.
@@ -296,13 +298,14 @@ De är klienter till `World` och läser bara dess publika yta; ingenting om bota
   Varje timme kontrolleras att bybor, bostäder, byggnader, nivåer, vägar och upptäckta rutor aldrig minskar (INV-V1), att varje lager ligger mellan noll och förrådens kapacitet (INV-R1), och att krafterna aldrig blir negativa (INV-F1) eller minskar mellan två kontroller utan ett kommando (INV-F6).
 - Vad en byggnad kostar, kräver och producerar läser botarna ur världens innehållskatalog (`World.Content`), så nytt innehåll och ändrade recept följer med av sig själva.
   Hur nivån skalar produktionen går inte att läsa ur världen; `ProductionRateTests` bygger varje byggnad med ett recept och kräver att en dags tillskott, i lagret och i utlagren, är det botarna räknar med, och att varje recept i katalogen prövas där.
-- Måtten är ekonomi v1:s: bybor, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
+- Måtten är ekonomi v1:s: bybor, med nivåerna värda 15, 25 och 40 som i ekonomi v2, byggnader, öar, lager, dagsproduktion, utvecklingsvärde, använd och sparad kraft och värde per använd kraft, och dessutom dygnet då planen var genomförd och de mål som hoppades över eller står kvar.
   Från regelversion 8 räknar dagsproduktionen med den andel som förrådens bärare hinner få fram, läst ur världens behov av bärartimmar (`World.CarrierNeed`).
+- Ett **scenario** ([ekonomi v2, avsnitt 15](./design/economy-v2.md#15-scenarier)) är en karta, ett startläge och en profil där en strategi är bäst efter fyra veckor; `Scenario.All` har fyra, och `ScenarioTests` kräver att var och en har sin bästa strategi, att ingen strategi är bäst med alla profiler och att varje genomtänkt strategi ger minst 1,3 gånger den naivas värde per använd kraft (D-34).
 - `BalanceRun.PlaySameDecisions` spelar om en körnings beslut med en annan profil och lägger Orken utöver den förra på extraarbete, för D-119: med samma beslut får mer egenvård aldrig ge en mindre värld vid veckans slut och ett enskilt dygn högst 0,1 % mindre.
 
 Verktyget skriver `balance.tsv` och `balance.md` till `artifacts/balance/` (eller `--out`).
 Samma körningar ger alltid samma rapport, byte för byte.
-Utan argument spelar det ekonomi v1:s sju dygn på prototypens karta och Närområdet och Havet på 20 genererade kartor i fyra veckor:
+Utan argument spelar det ekonomi v1:s sju dygn på prototypens karta, scenarierna och Närområdet och Havet på 20 genererade kartor i fyra veckor:
 
 ```bash
 dotnet run -c Release --project tools/Eirora.Balance
@@ -310,6 +313,10 @@ dotnet run -c Release --project tools/Eirora.Balance
 
 ```bash
 dotnet run -c Release --project tools/Eirora.Balance -- --suite economy-v1
+```
+
+```bash
+dotnet run -c Release --project tools/Eirora.Balance -- --suite scenarios
 ```
 
 ```bash
@@ -323,8 +330,9 @@ dotnet run -c Release --project tools/Eirora.Balance -- --maps generated --from 
 ```
 
 `--maps prototype` (standard) spelar prototypens karta.
-Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, samma beslut med hög egenvård i fyra veckor, handkraften utan träning i fyra veckor (sjövägen till Nyön vecka 2 som i epok 1, D-65), produktionstakterna, determinismen och de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, sammanlagt några sekunder; längre körningar görs lokalt.
+Testsviten kör ekonomi v1:s vecka mot tabellerna i avsnitt 7 och 7.1, samma beslut med hög egenvård i fyra veckor, handkraften utan träning i fyra veckor (sjövägen till Nyön vecka 2 som i epok 1, D-65), produktionstakterna, determinismen, de 20 genererade kartorna, där inget mål får stå kvar eller hoppas över, och scenarierna med alla profiler, sammanlagt omkring en minut; längre körningar görs lokalt.
 Okända, upprepade eller överflödiga argument underkänns i stället för att tyst ge andra körningar.
+Ändras balansen så att ett scenario får en annan bästa strategi underkänns `EachScenarioHasItsOwnBestStrategy`, som skriver ut scenariots nya rader i formatet i ekonomi v2, avsnitt 15.
 Ändras balansen med avsikt underkänns `TheBotsWeekIsTheOneEconomyV1Reports`, som skriver ut de nya raderna i samma format som tabellen i [avsnitt 7.1](./design/economy-v1.md#71-balansbotarna-i-simuleringen); byt raderna där mot dem.
 Verktygets egen rapport har fler kolumner och klistras inte in.
 

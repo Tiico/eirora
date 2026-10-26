@@ -1,5 +1,6 @@
 using System.Globalization;
 using Eirora.Simulation;
+using Eirora.Simulation.Economy;
 using Eirora.Simulation.Forces;
 using Eirora.Simulation.Time;
 
@@ -33,6 +34,17 @@ public sealed class BalanceRunTests
 
         Assert.Equal(Report.Tsv(first), Report.Tsv(second));
         Assert.Equal(Report.Markdown(first), Report.Markdown(second));
+    }
+
+    [Fact]
+    public void TheTsvHasACellForEveryColumnAndAColumnForEveryResource()
+    {
+        var run = BalanceRun.Play(new RunSpec(MapChoice.Prototype, Strategy.Idle, SelfCareProfile.None, 1));
+        string[] lines = Report.Tsv([run]).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        string[] columns = lines[0].Split('\t');
+        Assert.Equal(columns.Length, lines[1].Split('\t').Length);
+        Assert.All(Enum.GetValues<Resource>(), resource => Assert.Contains(resource.ToString().ToLowerInvariant(), columns));
     }
 
     [Fact]
@@ -101,8 +113,9 @@ public sealed class BalanceRunTests
     // Moving a building by demolishing it and building it again costs half its materials and all its force (D-108), so it
     // pays only what the better site gives (economy-v1.md, section 3.2; TASK-047). The founding puts the start woodcutter
     // by the richest woods in reach (TASK-064), so moving it gains next to nothing over Närområdet in four weeks: under
-    // 2 % in median and 5 % at most on twelve generated maps, and under 5 % on the prototype's map. The bot keeps the
-    // invariants with the demolition between two checks.
+    // 2 % in median and 5 % at most on twelve generated maps, and under 5 % on the prototype's map. Both play their own
+    // plans without the planner from week 2 (KeepGrowing), whose later decisions part for other reasons than the woodcutter.
+    // The bot keeps the invariants with the demolition between two checks.
     [Fact]
     public void MovingTheStartWoodcutterGainsNextToNothingOverTheFoundedOne()
     {
@@ -110,8 +123,8 @@ public sealed class BalanceRunTests
         var maps = new[] { MapChoice.Prototype }.Concat(Enumerable.Range(0, 12).Select(seed => MapChoice.Generated((ulong)seed)));
         foreach (var map in maps)
         {
-            var near = BalanceRun.Play(new RunSpec(map, Strategy.Near, SelfCareProfile.Normal, 28));
-            var moved = BalanceRun.Play(new RunSpec(map, Strategy.NearMoved, SelfCareProfile.Normal, 28));
+            var near = BalanceRun.Play(new RunSpec(map, OwnPlanOnly(Strategy.Near), SelfCareProfile.Normal, 28));
+            var moved = BalanceRun.Play(new RunSpec(map, OwnPlanOnly(Strategy.NearMoved), SelfCareProfile.Normal, 28));
 
             string name = map.Seed is ulong seed ? $"seed {seed}" : "the prototype";
             Assert.True(moved.PlanFinishedOn is not null, $"{name}: moving is stuck on {string.Join(", ", moved.GoalsPending)}.");
@@ -129,6 +142,9 @@ public sealed class BalanceRunTests
         double median = (gains[5] + gains[6]) / 2;
         Assert.True(median < 0.02, $"Moving gains {median:P1} in median: {string.Join(", ", gains.Select(g => g.ToString("P1", CultureInfo.InvariantCulture)))}.");
     }
+
+    private static Strategy OwnPlanOnly(Strategy strategy) =>
+        new(strategy.Id, strategy.Name, strategy.Goals, [.. strategy.Daily.Where(move => move is not KeepGrowing)]);
 
     [Fact]
     public void TheDevelopmentValueStartsWhereTheModelsDoes()

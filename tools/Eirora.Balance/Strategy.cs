@@ -35,7 +35,7 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Field, Placement.Richest),
             new BuildOne(BuildingKind.Longhouse, Placement.Village),
         ],
-        [new WorkdayOn(BuildingKind.Quarry), new WorkdayOn(BuildingKind.Sawmill), new RushFirst()]);
+        [new WorkdayOn(BuildingKind.Quarry), new WorkdayOn(BuildingKind.Sawmill), new RushFirst(), new KeepGrowing()]);
 
     /// <summary>
     /// Närområdet, ordnad: Närområdet with the work ordered (economy-v1.md, section 4.1): the first longhouse first in
@@ -78,7 +78,32 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Weavery, Placement.Village),
             new BuildOne(BuildingKind.Longhouse, Placement.Village),
         ],
-        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst()]);
+        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst(), new KeepGrowing()]);
+
+    /// <summary>
+    /// Bygden (economy-v2.md, section 9): surveys the home island and builds a sheep farm and a quarry with a storehouse
+    /// between them, a sawmill and a weavery, cottages and a longhouse, and clothes the villagers so that they grow, with a
+    /// hunting lodge, a farmstead and a tannery for the farmers.
+    /// </summary>
+    public static Strategy Village { get; } = new(
+        "village",
+        "Bygden",
+        [
+            new SurveyEverything(),
+            new BuildOne(BuildingKind.SheepFarm, Placement.Richest),
+            new BuildOne(BuildingKind.Quarry, Placement.Richest),
+            new BuildOne(BuildingKind.Storehouse, Placement.Depot),
+            new BuildOne(BuildingKind.Sawmill, Placement.Village),
+            new BuildOne(BuildingKind.Weavery, Placement.Village),
+            new BuildOne(BuildingKind.Cottage, Placement.Village),
+            new BuildOne(BuildingKind.FishingHut, Placement.Richest),
+            new BuildOne(BuildingKind.Longhouse, Placement.Village),
+            new BuildOne(BuildingKind.Cottage, Placement.Village),
+            new BuildOne(BuildingKind.HuntingLodge, Placement.Richest),
+            new BuildOne(BuildingKind.Farmstead, Placement.Village),
+            new BuildOne(BuildingKind.Tannery, Placement.Village),
+        ],
+        [new WorkdayOn(BuildingKind.SheepFarm), new WorkdayOn(BuildingKind.Weavery), new RushFirst(), new KeepGrowing()]);
 
     /// <summary>Naiv: builds the first thing it can wherever it fits, upgrades what it has, and never reads the map.</summary>
     public static Strategy Naive { get; } = new(
@@ -112,7 +137,7 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Field, Placement.Richest),
             new BuildOne(BuildingKind.Cottage, Placement.Village),
         ],
-        [new WorkdayOn(BuildingKind.Quarry), new WorkdayOn(BuildingKind.Woodcutter), new RushFirst()]);
+        [new WorkdayOn(BuildingKind.Quarry), new WorkdayOn(BuildingKind.Woodcutter), new RushFirst(), new KeepGrowing(power: false)]);
 
     /// <summary>
     /// Utan träning, handkraft (epoch-1.md, section 5; D-65): Havet for a player who has deselected training, with the
@@ -135,7 +160,7 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Cottage, Placement.Village),
             new BuildOne(BuildingKind.Cottage, Placement.Village),
         ],
-        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst()]);
+        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst(), new KeepGrowing(power: false, byHand: true)]);
 
     /// <summary>
     /// Turen: the guided tour (ux-journeys.md, resa 1) and epoch 1's first week on the prototype's map, as the economy
@@ -162,7 +187,7 @@ public sealed class Strategy
     /// <summary>Ingen spelare: no commands at all; only self-care, if any, is recorded.</summary>
     public static Strategy Idle { get; } = new("idle", "Ingen spelare", [], []);
 
-    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
+    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Village, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
 
     /// <summary>The id the tool takes on its command line.</summary>
     public string Id { get; }
