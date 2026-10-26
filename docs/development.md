@@ -154,6 +154,7 @@ De granskas i galleriet **Eirora → Look Gallery**, och varje steg kan sparas s
 Hur en designer arbetar med dem står i [looks.md](./design/looks.md).
 
 Prestanda och batteri mäts på telefonen med mätscenen (`-eirora-measure day|night`) och skriptet i `tools/device-measurements/`, enligt [mätningar på enhet](./design/device-measurements.md).
+På en telefon som har spelet från Google Play mäts i stället mätbygget, som har paketnamnet `se.eirora.app.measure` och installeras bredvid spelet; `Eirora.Editor.Builds.AndroidMeasure` bygger det till `client/Builds/Android/EiroraMeasure.apk`, och med `-development` blir det ett utvecklingsbygge som ansluter till Unitys Profiler.
 
 Klienten sparar världen i `Application.persistentDataPath/world.save` ([ADR-0006](./adr/0006-saves-are-migrated-snapshots.md)): segmentets start-snapshot, journalen sedan dess och den senaste snapshoten, med en hash över allt, rubriken med formatversionen inräknad.
 Varje sparning skrivs bredvid den gamla och byts in, och den gamla blir `world.save.bak`.

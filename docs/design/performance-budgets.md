@@ -114,3 +114,4 @@ Golvet får sänkt kvalitet från steg 1 och 2 som standard; basen och referense
 - Ska ett Firebase-projekt skapas för Test Lab, så att golvet och basen mäts automatiskt på riktiga telefoner?
 - Budgetarna prövas mot mätningarna i TASK-015 (#30) och justeras om Pixel 7 inte håller dem med god marginal.
 - Ska kallstarten till första bilden av världen ha samma gränser som kallstarten till Androids första bild, som föreslås här, eller en egen gräns som i det första förslaget (högst 5 s till spelbar ö)?
+  Avgjord: samma gränser, 2 s på referensnivån, 3 s på basen och 5 s på golvet; produktägaren beslutade den 26 oktober 2026 att gränserna står kvar och att laddningen optimeras (#227).
