@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Eirora.Client.Accounts;
 using Eirora.Contracts;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Eirora.Client.Tests
 {
@@ -157,6 +159,26 @@ namespace Eirora.Client.Tests
 
             Assert.That(Run(_session.SignInAsync(LoginProviders.Apple)), Is.EqualTo(AccountOutcome.SignInFailed));
             Assert.That(_session.IsSignedIn, Is.False);
+        }
+
+        // TASK-067: the next error from a provider shows in logcat without guessing, and never with a token.
+        [Test]
+        public void AProviderErrorIsLoggedWithItsReason()
+        {
+            _google.FailNext = true;
+
+            LogAssert.Expect(LogType.Warning, "Sign-in with google failed: down");
+            Run(_session.SignInAsync(LoginProviders.Google));
+        }
+
+        [Test]
+        public void ClosingTheProvidersDialogIsLoggedAsACancellation()
+        {
+            _google.CancelNext = true;
+
+            LogAssert.Expect(LogType.Log, "Sign-in with google was cancelled");
+            Run(_session.SignInAsync(LoginProviders.Google));
+            LogAssert.NoUnexpectedReceived();
         }
 
         [Test]

@@ -42,12 +42,15 @@ object SignInBridge {
                 } else {
                     callback.onError("unexpected credential")
                 }
-            } catch (e: GetCredentialCancellationException) {
-                callback.onCancel()
-            } catch (e: NoCredentialException) {
-                callback.onError("no Google account")
             } catch (e: GetCredentialException) {
-                callback.onError(e.type)
+                // Google ends a flow that failed after the account was chosen as a cancellation too, so C# decides
+                // (CredentialManagerAnswer, TASK-067). The kind is spelled out so that C# does not depend on Java class names.
+                val kind = when (e) {
+                    is GetCredentialCancellationException -> "cancellation"
+                    is NoCredentialException -> "no-credential"
+                    else -> "other"
+                }
+                callback.onCredentialError(kind, e.type, e.errorMessage?.toString())
             } catch (e: GoogleIdTokenParsingException) {
                 callback.onError("unreadable credential")
             }

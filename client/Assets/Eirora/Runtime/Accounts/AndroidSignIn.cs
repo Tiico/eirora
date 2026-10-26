@@ -157,6 +157,10 @@ namespace Eirora.Client.Accounts
                         Release();
                         _result.TrySetException(new LoginProviderException((string)args[0]));
                         return null;
+                    case "onCredentialError":
+                        Release();
+                        _result.TrySetException(CredentialManagerAnswer.Failure((string)args[0], (string)args[1], (string?)args[2]));
+                        return null;
                     default:
                         return base.Invoke(methodName, args);
                 }

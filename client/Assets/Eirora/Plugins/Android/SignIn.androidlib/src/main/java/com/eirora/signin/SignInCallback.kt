@@ -13,4 +13,11 @@ interface SignInCallback {
 
     /** The reason only, never a token or an identifier. */
     fun onError(reason: String)
+
+    /**
+     * Credential Manager's GetCredentialException, which C# reads as a cancellation or an error (CredentialManagerAnswer):
+     * [kind] is `cancellation`, `no-credential` or `other`, [type] the exception's type and [message] Google's message,
+     * which C# never logs.
+     */
+    fun onCredentialError(kind: String, type: String, message: String?)
 }

@@ -24,6 +24,7 @@ namespace Eirora.Client.Tests
         private Hud _hud = null!;
         private AccountSession _account = null!;
         private FakeAccountServer _server = null!;
+        private FakeLogin _google = null!;
         private DeviceCloudSyncStorage _cloudStorage = null!;
 
         [SetUp]
@@ -40,11 +41,12 @@ namespace Eirora.Client.Tests
             _hud = new Hud(_root, command => _game.Apply(command));
             _server = new FakeAccountServer(() => DateTimeOffset.UtcNow) { ConsentOfNewAccounts = true };
             _cloudStorage = new DeviceCloudSyncStorage(new MemorySecureStore(), null); // The phone's keystore and state, kept across a relaunch.
+            _google = new FakeLogin(LoginProviders.Google, "player");
             _account = new AccountSession(
                 FakeAccountServer.Url,
                 _server,
                 new MemorySecureStore(),
-                new ILoginProvider[] { new FakeLogin(LoginProviders.Apple, "player"), new FakeLogin(LoginProviders.Google, "player") });
+                new ILoginProvider[] { new FakeLogin(LoginProviders.Apple, "player"), _google });
         }
 
         [TearDown]
@@ -74,6 +76,35 @@ namespace Eirora.Client.Tests
             _hud.OpenAccount();
 
             Assert.That(Labels(), Does.Contain("Inloggad med Google").And.Contain("Koppla Apple").And.Contain("Logga ut").And.Contain("Radera kontot"));
+        }
+
+        // TASK-067: Google can end the sign-in with an error after the player chose an account; that is no cancellation.
+        [Test]
+        public void AFailedSignInSaysSoAndThatTheGamePlaysOn()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            _hud.OpenAccount();
+            _google.FailNext = true;
+
+            Press(Action("Logga in med Google"));
+
+            Assert.That(Labels(), Does.Contain("Inloggningen gick inte. Spelet fungerar som vanligt."));
+            Assert.That(Actions(), Does.Contain("Logga in med Google"), "the player can try again");
+        }
+
+        [Test]
+        public void ClosingTheChooserSaysNothing()
+        {
+            _hud.UseAccount(_account);
+            _hud.Show(_game.World!, _game.SinceDawn);
+            _hud.OpenAccount();
+            var before = Labels();
+            _google.CancelNext = true;
+
+            Press(Action("Logga in med Google"));
+
+            Assert.That(Labels(), Is.EqualTo(before));
         }
 
         [Test]

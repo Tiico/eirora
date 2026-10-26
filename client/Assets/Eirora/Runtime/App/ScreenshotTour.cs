@@ -42,11 +42,12 @@ namespace Eirora.Client.App
             yield return Capture(client, folder, "01-first-launch");
 
             // The account against a fake server, so the bar looks as in a build with sign-in (TASK-022).
+            var google = new FakeLogin(Contracts.LoginProviders.Google, "tour");
             var account = new AccountSession(
                 FakeAccountServer.Url,
                 new FakeAccountServer(() => DateTimeOffset.UtcNow),
                 new MemorySecureStore(),
-                new ILoginProvider[] { new FakeLogin(Contracts.LoginProviders.Apple, "tour"), new FakeLogin(Contracts.LoginProviders.Google, "tour") });
+                new ILoginProvider[] { new FakeLogin(Contracts.LoginProviders.Apple, "tour"), google });
             client.Hud.UseAccount(account);
 
             // The cloud save, which asks about the self-care before its first upload (TASK-060).
@@ -127,6 +128,13 @@ namespace Eirora.Client.App
             // confirmation before the self-care leaves the server, and the one before deleting the account (TASK-022).
             client.Hud.OpenAccount();
             yield return Capture(client, folder, "14-account");
+
+            // A sign-in that Google ends with an error after the account was chosen (TASK-067).
+            google.FailNext = true;
+            var failed = account.SignInAsync(Contracts.LoginProviders.Google);
+            yield return new WaitUntil(() => failed.IsCompleted);
+            client.Hud.Toast(UI.Texts.Account(failed.Result)!);
+            yield return Capture(client, folder, "14-account-sign-in-failed");
             client.Hud.Select(null);
             _ = account.SignInAsync(Contracts.LoginProviders.Google);
             yield return Capture(client, folder, "15-consent-question");
