@@ -12,6 +12,12 @@ public sealed class ScenarioTests
 {
     private const decimal D34 = 1.3m;
 
+    /// <summary>
+    /// How much smaller, in percent, a world with more self-care may end with the strategy's own decisions, which differ
+    /// with the forces; with the same decisions D-119 allows 0.1 %. Proposed in TASK-097 and awaiting the product owner.
+    /// </summary>
+    private const int OwnDecisionsPercent = 2;
+
     // Every compared strategy on every scenario with every profile, played once for the whole class.
     private static readonly Lazy<IReadOnlyList<RunResult>> s_runs = new(() =>
     [
@@ -81,6 +87,36 @@ public sealed class ScenarioTests
         }
 
         Assert.True(failures.Count == 0, string.Join('\n', failures));
+    }
+
+    /// <summary>
+    /// More self-care never lures a strategy into a smaller world with its own decisions (TASK-097, R-01, D-34, D-119):
+    /// with more Exploration the planner once built where a carrier took the last builder, and counted another island's
+    /// wool as clothes at home that the sea route never brought, and with more Build Power it kept the queue too busy to
+    /// upgrade; low self-care then ended up to 17 % larger than normal. What is left is how choices made on other dawns
+    /// play out, which goes both ways over the four weeks; <see cref="OwnDecisionsPercent"/> bounds it.
+    /// </summary>
+    [Fact]
+    public void MoreSelfCareNeverEndsInASmallerWorldWithAnyStrategy()
+    {
+        SelfCareProfile[] rising = [SelfCareProfile.Low, SelfCareProfile.Normal, SelfCareProfile.High];
+        var failures = new List<string>();
+        foreach (var scenario in Scenario.All)
+        {
+            foreach (var strategy in Scenario.Compared)
+            {
+                var values = rising.Select(profile => RunsOf(scenario, profile).Single(r => r.Spec.Strategy == strategy).Value).ToList();
+                for (int i = 1; i < values.Count; i++)
+                {
+                    if (values[i] * 100 < values[i - 1] * (100 - OwnDecisionsPercent))
+                    {
+                        failures.Add($"{scenario.Name}, {strategy.Name}: {Units(values[i])} with {rising[i].Name} against {Units(values[i - 1])} with {rising[i - 1].Name}");
+                    }
+                }
+            }
+        }
+
+        Assert.True(failures.Count == 0, $"More than {OwnDecisionsPercent} % smaller with more self-care:\n{string.Join('\n', failures)}");
     }
 
     [Fact]

@@ -108,6 +108,12 @@ public sealed class KeepGrowing : DailyMove
         Spend(turn, home);
     }
 
+    /// <remarks>
+    /// The clothes are counted from the home island's own wool and game, and a sheep farm on another island does not
+    /// stand in for one at home: before the knarrs, the sea route's 40 a day go first to the materials and food that
+    /// island needs, so its wool may never reach the weavery. With more Exploration the expedition goes earlier and that
+    /// island grows larger, and the farmers at home would wait for clothes all month (TASK-097).
+    /// </remarks>
     private void Clothe(Turn turn, string home, IslandSettlement settlement, int farmers, int craftsmen)
     {
         var world = turn.World;
@@ -119,7 +125,7 @@ public sealed class KeepGrowing : DailyMove
             {
                 Build(turn, BuildingKind.Weavery, home);
             }
-            else if (Power && !Has(world, BuildingKind.SheepFarm) && turn.Sites.Free(BuildingKind.SheepFarm, home).Count > 0)
+            else if (Power && !Has(world, BuildingKind.SheepFarm, home) && turn.Sites.Free(BuildingKind.SheepFarm, home).Count > 0)
             {
                 Build(turn, BuildingKind.SheepFarm, home);
             }
@@ -236,8 +242,13 @@ public sealed class KeepGrowing : DailyMove
 
     /// <summary>
     /// The forces left over: Dawn Power on the depot whose carriers fall furthest behind, upgrades only of materials
-    /// to spare and with nothing in the queue, and workdays on what makes most while Dawn Power lasts for a rush too.
+    /// to spare and one at a time, and workdays on what makes most while Dawn Power lasts for a rush too.
     /// </summary>
+    /// <remarks>
+    /// An upgrade goes last in the queue, so it takes only the work the builds before it leave over (economy-v2.md,
+    /// section 2). Waiting for an empty queue instead left more Build Power unused the more there was of it, since more
+    /// of it keeps the queue busy, and so more self-care ended in a smaller world (TASK-097).
+    /// </remarks>
     private void Spend(Turn turn, string home)
     {
         var world = turn.World;
@@ -255,7 +266,7 @@ public sealed class KeepGrowing : DailyMove
             .ToList();
         var upgrade = world.Content.Upgrade;
         bool surplus = s_surplus.All(s => world.Stock(home, s.Key) >= s.Value + upgrade.Cost.GetValueOrDefault(s.Key));
-        if (Power && surplus && world.Projects.Count == 0)
+        if (Power && surplus && !world.Projects.Any(p => p.Kind == ProjectKind.Upgrade))
         {
             foreach (var building in working)
             {
@@ -307,7 +318,10 @@ public sealed class KeepGrowing : DailyMove
         return turn.Apply(byHand ? new BuildByHand(kind, site) : new Build(kind, site)).Accepted;
     }
 
-    /// <summary>What the island's staffed buildings make of the goods a game day, in millionths.</summary>
+    /// <summary>
+    /// What the island's staffed buildings make of the goods a game day, in millionths; processing no more than the raw
+    /// materials the island's own buildings make for it, since the sea route may carry none of another island's home.
+    /// </summary>
     private static long Supply(Turn turn, string island, Resource[] goods)
     {
         long total = 0;
@@ -316,7 +330,13 @@ public sealed class KeepGrowing : DailyMove
             if (building.Staffed && building.Island == island && turn.Sites.RecipeOf(building.Kind) is Recipe recipe && goods.Contains(recipe.Product))
             {
                 int level = building.Level == 2 ? 150 : 100;
-                total += turn.Sites.DailyYield(building.Kind, building.Tile, planning: false) * level / 100 / Sites.Weights[(int)recipe.Product];
+                long made = turn.Sites.DailyYield(building.Kind, building.Tile, planning: false) * level / 100 / Sites.Weights[(int)recipe.Product];
+                foreach (var input in recipe.Inputs)
+                {
+                    made = Math.Min(made, Supply(turn, island, [input.Resource]) / input.PerProduct);
+                }
+
+                total += made;
             }
         }
 
@@ -327,6 +347,8 @@ public sealed class KeepGrowing : DailyMove
         world.Projects.Any(p => p.Kind == ProjectKind.Build && p.Building is BuildingKind kind && kinds.Contains(kind));
 
     private static bool Has(World world, BuildingKind kind) => world.Buildings.Any(b => b.Kind == kind);
+
+    private static bool Has(World world, BuildingKind kind, string island) => world.Buildings.Any(b => b.Kind == kind && b.Island == island);
 
     private static long Units(int whole) => Quantity.Units(whole);
 }

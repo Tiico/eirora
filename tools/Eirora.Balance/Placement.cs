@@ -8,7 +8,8 @@ public enum Placement
 {
     /// <summary>
     /// Where it yields the most that reaches a store, nearer the store among equals: rich ground near a depot; woods
-    /// another woodcutter reaches count half.
+    /// another woodcutter reaches count half, and a site whose depot must take one more carrier yields per villager it
+    /// takes.
     /// </summary>
     Richest,
 
@@ -68,18 +69,27 @@ internal static class Placements
         return 0;
     }
 
+    /// <remarks>
+    /// A site whose goods make its depot take one more carrier takes that villager from those who build (D-109), so it
+    /// yields per villager it takes, staff and carriers; otherwise more Exploration, which shows richer ground further
+    /// away, would lure the bot to a site whose carrier takes the last builder and holds up the building queue (TASK-097).
+    /// </remarks>
     private static Func<Hex, long[]> Richest(BuildingKind kind, Sites sites)
     {
-        int[] steps = sites.StepsFrom(sites.PlannedDepots());
+        var depots = sites.PlannedDepots();
+        int[] steps = sites.StepsFrom(depots);
+        int[][] each = [.. depots.Select(depot => sites.StepsFrom([depot]))];
         var fells = sites.RecipeOf(kind) is { ForestTiles: > 0 } recipe ? recipe : null;
         var felled = fells is not null ? FelledByOthers(sites) : [];
+        int staff = Math.Max(1, sites.StaffOf(kind));
         return tile =>
         {
             long yield = fells is not null ? SharedWoodYield(fells, tile, sites, felled) : sites.DailyYield(kind, tile, planning: true);
             int reaches = Sites.DistancePercent(sites.StepsTo(tile, steps), road: false);
+            int carriers = sites.MoreCarriers(kind, tile, depots, each);
 
             // As much from nearer the store is better: more of what it makes later, such as at level 2, reaches it.
-            return [yield * reaches / 100, reaches];
+            return [yield * reaches / 100 * staff / (staff + carriers), reaches];
         };
     }
 
