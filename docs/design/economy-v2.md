@@ -492,7 +492,8 @@ Ekonomi v2 kommer i flera skivor, och varje skiva som ändrar ett utfall höjer 
    Varje byggnad hör sedan till det bemannade förråd som bärarna når snabbast på vägarna.
 5. **Bärare.**
    Förrådens och bryggornas bemanning blir en bärare var, och vid nästa gryning tar de fler om varorna kräver det.
-6. **Upplåsningen börjar där världen står:** en värld med 20 bybor har steg 1 direkt, och introduktionerna kommer en per dag.
+6. **Upplåsningen börjar där världen står:** en värld där en bosättning har 20 bybor har steg 1 direkt, och introduktionerna kommer en per dag.
+   En sparning från före regelversion 9 har en bosättning för hela världen, som först delas per ö, så steget avgörs av varje ös bybor; en värld med 23 bybor fördelade 12/4/7 får steg 0 (produktägaren 2026-10-26, PR #193).
 7. **Byggkön står kvar** med det arbete som är kvar.
    En väg i kön blir ett vägprojekt på varje ruta längs sökvägen som inte redan har väg, lagd eller i kön, och de delar på arbetet som var kvar, högst en rutas 4 timmar var.
    Stenen för stegen som inte blir någon ruta går tillbaka som i punkt 4.
