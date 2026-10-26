@@ -45,7 +45,7 @@ namespace Eirora.Client.Tests
         {
             WithoutBuildPower();
             _hud.Select(L1);
-            _hud.ShowMoreBuildings();
+            _hud.ShowMore();
 
             Assert.That(Action("Väveri").ClassListContains("action-unavailable"), Is.True);
             var byHand = Action("Väveri med handkraft");
@@ -66,6 +66,7 @@ namespace Eirora.Client.Tests
             _game.Apply(new BuildByHand(BuildingKind.Weavery, L1));
 
             _hud.Select(L1);
+            _hud.ShowMore();
 
             Assert.That(Labels(), Does.Contain("Väveri byggs med handkraft"));
             Assert.That(Labels().Any(l => l.EndsWith(" · klar om 7 dygn")), Is.True);

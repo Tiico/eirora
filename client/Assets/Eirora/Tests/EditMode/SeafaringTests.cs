@@ -93,6 +93,7 @@ namespace Eirora.Client.Tests
             Close(root);
 
             hud.Select(tile);
+            hud.ShowMore();
 
             var texts = root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray();
             Assert.That(texts, Does.Contain("Nästa knarr väntar på 10 plankor och 25 tjära till i lagret, utöver minimilagret."));
@@ -207,6 +208,7 @@ namespace Eirora.Client.Tests
             hud.Show(world, Array.Empty<GameEvent>());
             Close(root);
             hud.Select(tile);
+            hud.ShowMore();
             actions = root.Query<Button>(className: "action").ToList().Select(a => a.Q<Label>(className: "action-title")?.text ?? string.Empty).ToArray();
             return root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray();
         }

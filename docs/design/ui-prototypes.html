@@ -1,0 +1,1042 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eirora gränssnittsprototyper</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* PROTOTYP (kasta när riktningen är införd i klienten). Fråga: hur ser Eiroras gränssnitt ut när bild går före ord?
+   Tre riktningar (A Kompassen, B Lådan, C Världen talar) över samma ö och samma speltillstånd, växlingsbara
+   via #a/#b/#c och den flytande knappraden längst ned. Fyra lägen: översikt, byggplats, byggnad och natt.
+   Svar 2026-10-26: produktägaren valde C Världen talar; A och B står kvar som underlag tills C är byggd.
+   Layout: ett ljusbord med telefonen till vänster och riktningens idé till höger; jämförelsen längst ned. */
+:root {
+  --bg: #EDEFF2; --surface: #FFFFFF; --surface-2: #F5F6F8; --fg: #1B2130; --muted: #586174; --line: #D3D8E0;
+  --accent: #A9482F; --accent-fg: #FFFFFF; --focus: #2A6FB0;
+  --font-display: "Marcellus", "Cormorant Garamond", Georgia, serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --step--1: 0.8125rem; --step-0: 1rem; --step-1: 1.25rem; --step-2: 1.75rem; --step-3: clamp(2rem, 5vw, 3rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E121A; --surface: #161B26; --surface-2: #1C2230; --fg: #E5E9F0; --muted: #9AA3B5; --line: #283041;
+    --accent: #E59572; --accent-fg: #1A0F0A; --focus: #7FB4E8; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E121A; --surface: #161B26; --surface-2: #1C2230; --fg: #E5E9F0; --muted: #9AA3B5; --line: #283041;
+  --accent: #E59572; --accent-fg: #1A0F0A; --focus: #7FB4E8; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: var(--step-0); line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 36px 140px; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: var(--step-3); } h2 { font-size: var(--step-2); } h3 { font-size: var(--step-1); }
+p { margin: 0; }
+.eyebrow { font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lede { max-width: 65ch; color: var(--muted); font-size: 1.0625rem; }
+header.page { display: grid; gap: 12px; }
+.question {
+  display: inline-flex; gap: 10px; align-items: center; justify-self: start; padding: 8px 14px; border: 1px solid var(--accent);
+  border-radius: 999px; color: var(--accent); font-weight: 600; font-size: var(--step--1);
+}
+.question::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Kontroller */
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button {
+  font: inherit; font-size: 0.9375rem; color: var(--fg); background: transparent; border: 0; padding: 8px 16px; min-height: 40px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+.controls .label { font-size: var(--step--1); color: var(--muted); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* Scenen */
+.stage { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 36px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); justify-items: center; } .stage .notes { justify-self: stretch; } }
+.phone-fit { width: 360px; max-width: 100%; }
+.phone {
+  position: relative; width: 360px; height: 800px; border-radius: 40px; overflow: hidden; background: #2F7FA3; transform-origin: top left;
+  box-shadow: 0 0 0 10px #12151C, 0 0 0 11px #2B3140, 0 24px 48px rgba(0, 0, 0, 0.28); font-family: var(--font-body);
+  font-variant-numeric: tabular-nums; user-select: none;
+  /* Spelets egen palett (art-direction.md, avsnitt 3 och 11), oberoende av sidans tema. */
+  --panel: #FBF7EF; --ink: #2B2A33; --ink-2: #686575; --line-ink: rgba(43, 42, 51, 0.10); --falu: #B4473A; --birch: #F3E9DA;
+  --explore: #2A7FB0; --strength: #B4473A; --dawn: #C27A12; --glow: #FFD27A; --bad: #B4473A;
+  --t-deep: #2F7FA3; --t-shallow: #6CC4C0; --t-sand: #F0D9A8; --t-grass: #9BCB7A; --t-forest: #3F7F55; --t-farm: #D9C878;
+  --t-pasture: #B5D98E; --t-mountain: #A3A0A8; --t-snow: #F5F3F8; --t-fog: #C9C2DD; --t-road: #C9A97C; --t-tree: #3F7F55; --t-trunk: #8A6A4A;
+}
+.phone.night {
+  background: #0B1A33;
+  --panel: rgba(16, 24, 48, 0.88); --ink: #E8EEF8; --ink-2: #A8B4CC; --line-ink: rgba(255, 210, 122, 0.22);
+  --t-deep: #0B1A33; --t-shallow: #143A58; --t-sand: #4A4F6A; --t-grass: #2C4954; --t-forest: #1B3340; --t-farm: #4C4E60;
+  --t-pasture: #30515A; --t-mountain: #3A4258; --t-snow: #B8C4E0; --t-fog: #232A48; --t-road: #4E4A5E; --t-tree: #16303A; --t-trunk: #3A3040;
+}
+@media (max-width: 420px) { .phone-fit { height: 704px; } .phone { transform: scale(0.88); } }
+.phone svg.map { position: absolute; left: 0; top: 0; width: 360px; height: 800px; transition: transform 0.35s ease; }
+.phone .sky {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+  background:
+    radial-gradient(ellipse 70% 30% at 50% -4%, rgba(110, 240, 180, 0.28), transparent 60%),
+    radial-gradient(ellipse 60% 24% at 60% 6%, rgba(155, 123, 240, 0.22), transparent 65%);
+}
+.phone.night .sky { opacity: 1; }
+.phone .stars { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s; }
+.phone.night .stars { opacity: 1; }
+.map .side { stroke: none; }
+.map .sea { stroke: rgba(255, 255, 255, 0.07); stroke-width: 0.8; }
+.map .fog { opacity: 0.96; }
+.map .win { fill: #FFC27A; display: none; }
+.phone.night .map .win { display: block; }
+.phone.night .map .folk { display: none; }
+.phone.night .map .still-sign { display: none; }
+.map .sel { fill: none; stroke: #FFFFFF; stroke-width: 3; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
+.map .sel-glow { fill: rgba(255, 255, 255, 0.22); }
+.hud { position: absolute; inset: 0; pointer-events: none; color: var(--ink); }
+.hud button { pointer-events: auto; cursor: pointer; font: inherit; color: inherit; }
+.ic { width: 1em; height: 1em; display: inline-block; vertical-align: -0.12em; fill: currentColor; flex-shrink: 0; }
+.ic.explore { color: var(--explore); } .ic.strength { color: var(--strength); } .ic.dawn { color: var(--dawn); }
+.hud b { font-weight: 700; }
+.chip {
+  display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px 2px 5px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: rgba(43, 42, 51, 0.06); color: var(--ink); line-height: 1.2;
+}
+.chip .ic { font-size: 13px; }
+.chip.lack { background: rgba(180, 71, 58, 0.14); box-shadow: inset 0 0 0 1.5px var(--bad); }
+.chip.free { background: rgba(155, 203, 122, 0.35); }
+.pips { display: inline-flex; gap: 2px; flex-wrap: wrap; }
+.pips i { width: 7px; height: 11px; border-radius: 3px 3px 2px 2px; background: var(--ink); opacity: 0.85; }
+.pips i.empty { background: none; box-shadow: inset 0 0 0 1.5px var(--ink); opacity: 0.45; }
+.pips i.me { background: var(--strength); opacity: 1; }
+.sign {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--birch); box-shadow: 0 0 0 2.5px var(--ink);
+  flex-shrink: 0;
+}
+.sign::before { content: ""; width: 9px; height: 9px; border-left: 3px solid var(--ink); border-right: 3px solid var(--ink); }
+.xbtn {
+  position: absolute; right: 12px; top: 10px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(43, 42, 51, 0.07);
+  font-size: 20px; line-height: 1; display: grid; place-items: center;
+}
+.ground { width: 40px; height: 36px; flex-shrink: 0; }
+.bld { width: 44px; height: 44px; }
+.arrow { color: var(--ink-2); font-size: 14px; }
+
+/* ---------- A · Kompassen: ringar, ikonrad och kort ---------- */
+.A .a-top { position: absolute; left: 14px; right: 14px; top: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+.A .a-rings { display: flex; gap: 6px; }
+.A .ring { display: grid; justify-items: center; gap: 0; width: 64px; }
+.A .ring svg { width: 60px; height: 60px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35)); }
+.A .ring .track { fill: var(--panel); stroke: rgba(43, 42, 51, 0.12); stroke-width: 5; }
+.A .ring .arc { fill: none; stroke-width: 5; stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
+.A .ring b { font-size: 15px; margin-top: -2px; color: #FFFFFF; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.night .A .ring b { color: var(--ink); }
+.A .a-day { width: 112px; height: 62px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35)); }
+.A .a-day .arcpath { fill: none; stroke: rgba(251, 247, 239, 0.75); stroke-width: 3; stroke-dasharray: 3 5; }
+.A .a-day .done { fill: none; stroke: var(--glow); stroke-width: 3; }
+.A .a-shelf {
+  position: absolute; left: 14px; right: 14px; top: 100px; display: flex; gap: 4px; align-items: stretch; padding: 8px 8px 6px; border-radius: 18px;
+  background: var(--panel); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+.A .a-res { display: grid; grid-template-columns: 5px 1fr; grid-template-rows: auto auto; column-gap: 4px; align-items: center; flex: 1 1 0; min-width: 0; }
+.A .a-res .bar { grid-row: 1 / 3; height: 34px; border-radius: 3px; background: rgba(43, 42, 51, 0.10); position: relative; overflow: hidden; }
+.A .a-res .bar b { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ink); opacity: 0.75; border-radius: 3px; }
+.A .a-res .ic { font-size: 20px; color: var(--ink); }
+.A .a-res span { font-size: 13px; font-weight: 700; line-height: 1; }
+.A .a-folk { display: grid; align-content: center; justify-items: center; gap: 4px; padding-left: 8px; border-left: 1px solid var(--line-ink); }
+.A .a-folk .ic { font-size: 16px; }
+.A .a-bar { position: absolute; left: 14px; right: 14px; bottom: 18px; display: flex; gap: 8px; justify-content: space-between; }
+.A .a-bar button {
+  flex: 1 1 0; height: 60px; border: 0; border-radius: 20px; background: var(--panel); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: grid; place-items: center; gap: 1px; position: relative; padding: 0;
+}
+.A .a-bar button .ic { font-size: 26px; }
+.A .a-bar .badge {
+  position: absolute; top: -6px; right: -4px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--ink); color: var(--panel); font-size: 13px;
+  font-weight: 700; display: grid; place-items: center; padding: 0 6px; border: 2px solid var(--panel);
+}
+.A .a-bar .cost { font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
+.A .a-bar .cost .ic { font-size: 12px; }
+.A .a-bar button[disabled] { opacity: 0.4; }
+.A .a-sheet {
+  position: absolute; left: 10px; right: 10px; bottom: 90px; padding: 14px 14px 12px; border-radius: 26px; background: var(--panel);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); display: grid; gap: 10px; pointer-events: auto;
+}
+.A .a-head { display: flex; align-items: center; gap: 10px; padding-right: 36px; }
+.A .a-head .ttl { font-size: 18px; font-weight: 700; line-height: 1.1; }
+.A .a-head .sub { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.A .a-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.A .a-card {
+  border: 1.5px solid var(--line-ink); border-radius: 18px; background: #FFFCF5; padding: 8px 6px 8px; display: grid; justify-items: center; gap: 4px;
+  text-align: center;
+}
+.night .A .a-card { background: rgba(255, 255, 255, 0.06); }
+.A .a-card .nm { font-size: 12px; font-weight: 700; line-height: 1.1; }
+.A .a-card .cost, .A .a-card .eff { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.A .a-card .eff { font-size: 14px; color: var(--ink-2); }
+.A .a-card .eff .ic { font-size: 16px; color: var(--ink); }
+.A .a-card.dim > .bld, .A .a-card.dim > .nm, .A .a-card.dim > .eff { opacity: 0.45; }
+.A .a-card.more { justify-content: center; align-content: center; color: var(--ink-2); font-size: 14px; }
+.A .a-card.more .bld { opacity: 0.5; }
+.A .flow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 6px; border-radius: 16px; background: rgba(43, 42, 51, 0.05); }
+.A .flow .node { display: grid; justify-items: center; gap: 2px; font-size: 12px; font-weight: 700; }
+.A .flow .node .ic { font-size: 22px; }
+.A .flow .node .bld { width: 36px; height: 36px; }
+.A .flow .link { width: 22px; height: 3px; background: var(--ink); opacity: 0.6; border-radius: 2px; }
+.A .flow .link.broken { background: repeating-linear-gradient(90deg, var(--bad) 0 4px, transparent 4px 7px); opacity: 1; height: 3px; }
+.A .flow .crate { width: 26px; height: 22px; border: 2px solid var(--ink); border-radius: 4px; position: relative; overflow: hidden; }
+.A .flow .crate i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ink); opacity: 0.6; }
+.A .flow .late { color: var(--bad); display: grid; justify-items: center; font-size: 11px; font-weight: 700; }
+.A .flow .late .ic { font-size: 20px; color: var(--bad); }
+.A .a-acts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.A .a-act { border: 0; background: none; display: grid; justify-items: center; gap: 4px; padding: 0; }
+.A .a-act .disc { width: 52px; height: 52px; border-radius: 50%; background: #FFFCF5; border: 1.5px solid var(--line-ink); display: grid; place-items: center; }
+.night .A .a-act .disc { background: rgba(255, 255, 255, 0.06); }
+.A .a-act .disc .ic { font-size: 26px; }
+.A .a-act.dim .disc { opacity: 0.45; }
+.A .a-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.A .a-row .stp { display: inline-flex; align-items: center; gap: 6px; }
+.A .a-row .stp button { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line-ink); background: #FFFCF5; font-size: 18px; line-height: 1; }
+.night .A .a-row .stp button { background: rgba(255, 255, 255, 0.06); }
+.A .a-moon {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 150px; height: 150px; display: grid; place-items: center;
+}
+.A .a-moon > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.A .a-moon .trk { fill: var(--panel); stroke: rgba(255, 210, 122, 0.25); stroke-width: 4; }
+.A .a-moon .prog { fill: none; stroke: var(--glow); stroke-width: 4; stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
+.A .a-moon .inner { position: relative; display: grid; justify-items: center; gap: 2px; }
+.A .a-moon .inner .ic { font-size: 40px; color: var(--glow); }
+.A .a-moon .inner b { font-size: 22px; letter-spacing: 0.02em; }
+.A .a-moon .inner .sun { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-2); }
+
+/* ---------- B · Lådan: pebbles upptill, allt annat i en låda med hyllor ---------- */
+.B .b-sun { position: absolute; left: 0; right: 0; top: 0; height: 6px; background: rgba(43, 42, 51, 0.25); }
+.B .b-sun i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--glow); border-radius: 0 3px 3px 0; }
+.B .b-sun .mark { position: absolute; top: 3px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 0 3px rgba(255, 210, 122, 0.35); }
+.B .b-avatar {
+  position: absolute; left: 14px; top: 20px; width: 44px; height: 44px; border-radius: 50%; background: var(--panel); border: 0; display: grid; place-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.B .b-avatar .ic { font-size: 24px; }
+.B .b-pebbles { position: absolute; right: 12px; top: 18px; display: flex; gap: 6px; }
+.B .pebble {
+  width: 60px; height: 48px; border-radius: 30px 28px 26px 30px / 24px 26px 30px 22px; background: var(--panel); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), inset 0 -3px 0 rgba(43, 42, 51, 0.08);
+  display: grid; grid-template-columns: auto auto; place-items: center; gap: 3px; padding: 0 6px; font-size: 16px;
+}
+.B .pebble .ic { font-size: 18px; }
+.B .b-drawer {
+  position: absolute; left: 0; right: 0; bottom: 0; border-radius: 30px 30px 0 0; background: var(--panel); box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.22);
+  display: grid; grid-template-rows: auto auto 1fr; gap: 10px; padding: 8px 14px 16px; pointer-events: auto; height: 236px;
+}
+.B .b-drawer.open { height: 470px; }
+.B .b-drawer.sliver { height: 150px; }
+.B .handle { width: 56px; height: 5px; border-radius: 3px; background: rgba(43, 42, 51, 0.22); justify-self: center; }
+.B .b-tabs { display: flex; gap: 6px; justify-content: space-between; }
+.B .b-tabs button {
+  flex: 1 1 0; height: 48px; border-radius: 16px; border: 0; background: rgba(43, 42, 51, 0.06); display: grid; place-items: center; position: relative;
+}
+.B .b-tabs button .ic { font-size: 24px; }
+.B .b-tabs button.on { background: var(--ink); color: var(--panel); }
+.B .b-tabs button[disabled] { opacity: 0.35; }
+.B .b-tabs .badge { position: absolute; top: 4px; right: 8px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--ink); color: var(--panel); font-size: 12px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; }
+.B .b-tabs .cost { position: absolute; bottom: 3px; right: 6px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 1px; }
+.B .b-tabs .cost .ic { font-size: 11px; }
+.B .b-shelf { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; align-items: end; padding: 0 2px 8px; border-bottom: 3px solid rgba(43, 42, 51, 0.12); }
+.B .stack { display: grid; justify-items: center; gap: 2px; }
+.B .stack svg { width: 42px; height: 46px; }
+.B .stack b { font-size: 14px; }
+.B .b-queue { display: flex; gap: 10px; align-items: center; }
+.B .q-item { position: relative; width: 60px; height: 60px; border-radius: 16px; border: 1.5px solid var(--line-ink); background: #FFFCF5; overflow: hidden; display: grid; place-items: center; }
+.night .B .q-item { background: rgba(255, 255, 255, 0.06); }
+.B .q-item .fill { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(155, 203, 122, 0.55); }
+.B .q-item .bld { position: relative; width: 38px; height: 38px; }
+.B .q-item .tag { position: absolute; right: 3px; top: 3px; font-size: 12px; color: var(--ink); display: inline-flex; gap: 1px; align-items: center; }
+.B .q-item .tag .ic { font-size: 13px; }
+.B .q-item.now { border-color: var(--ink); }
+.B .q-hammer { display: grid; justify-items: center; color: var(--ink-2); font-size: 12px; font-weight: 700; }
+.B .q-hammer .ic { font-size: 22px; color: var(--ink); }
+.B .b-folk { margin-left: auto; display: grid; justify-items: center; gap: 4px; }
+.B .b-folk .pips { width: 76px; }
+.B .b-folk .ic { font-size: 20px; }
+.B .b-head { display: flex; align-items: center; gap: 10px; padding-right: 36px; }
+.B .b-head .ttl { font-size: 18px; font-weight: 700; }
+.B .b-head .sub { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.B .b-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.B .dio {
+  flex: 0 0 132px; height: 170px; border-radius: 18px; overflow: hidden; border: 1.5px solid var(--line-ink); background: #FFFCF5; display: grid;
+  grid-template-rows: 92px 1fr; padding: 0; text-align: left;
+}
+.night .B .dio { background: rgba(255, 255, 255, 0.06); }
+.B .dio .scene { position: relative; background: linear-gradient(#DDF0FB, #C3E5F3); display: grid; place-items: center; }
+.B .dio .scene .hexbg { position: absolute; bottom: -6px; left: 10px; right: 10px; height: 44px; border-radius: 50%; }
+.B .dio .scene .bld { position: relative; width: 62px; height: 62px; margin-top: 6px; }
+.B .dio .meta { display: grid; gap: 4px; padding: 6px 8px 8px; align-content: start; }
+.B .dio .nm { font-size: 13px; font-weight: 700; }
+.B .dio .cost { display: flex; gap: 3px; flex-wrap: wrap; }
+.B .dio.dim .scene { filter: saturate(0.2) opacity(0.6); }
+.B .dio.dim .nm { opacity: 0.5; }
+.B .b-work { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.B .b-work .scene { position: relative; width: 120px; height: 100px; border-radius: 18px; background: linear-gradient(#DDF0FB, #C3E5F3); overflow: hidden; display: grid; place-items: center; }
+.B .b-work .scene .hexbg { position: absolute; bottom: -8px; left: 8px; right: 8px; height: 48px; border-radius: 50%; background: var(--t-shallow); }
+.B .b-work .scene .bld { position: relative; width: 72px; height: 72px; margin-top: 8px; }
+.B .b-work .scene .sign { position: absolute; right: 10px; top: 8px; }
+.B .b-chain { display: grid; gap: 6px; }
+.B .b-chain .row { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.B .b-chain .row .ic { font-size: 22px; }
+.B .b-chain .row .crate { width: 24px; height: 20px; border: 2px solid var(--ink); border-radius: 4px; position: relative; overflow: hidden; }
+.B .b-chain .row .crate i { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: var(--ink); opacity: 0.6; }
+.B .b-chain .row .dash { flex: 1 1 0; height: 3px; background: repeating-linear-gradient(90deg, var(--bad) 0 4px, transparent 4px 7px); }
+.B .b-chain .row .ok { flex: 1 1 0; height: 3px; background: var(--ink); opacity: 0.5; border-radius: 2px; }
+.B .b-chain .late { color: var(--bad); }
+.B .b-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.B .tile { border: 1.5px solid var(--line-ink); border-radius: 16px; background: #FFFCF5; display: grid; justify-items: center; gap: 4px; padding: 8px 4px; }
+.night .B .tile { background: rgba(255, 255, 255, 0.06); }
+.B .tile .ic { font-size: 28px; }
+.B .tile.dim .ic { opacity: 0.4; }
+.B .b-rowline { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.B .b-rowline .ic { font-size: 18px; color: var(--ink); }
+.B .b-night { display: flex; align-items: center; gap: 14px; }
+.B .b-night .dial { width: 74px; height: 74px; position: relative; display: grid; place-items: center; }
+.B .b-night .dial > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.B .b-night .dial .trk { fill: none; stroke: rgba(255, 210, 122, 0.25); stroke-width: 4; }
+.B .b-night .dial .prog { fill: none; stroke: var(--glow); stroke-width: 4; stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
+.B .b-night .dial .ic { font-size: 30px; color: var(--glow); position: relative; }
+.B .b-night .houses { display: flex; gap: 4px; align-items: flex-end; flex: 1 1 0; }
+.B .b-night .houses .bld { width: 34px; height: 34px; }
+.B .b-night .opens { display: grid; justify-items: center; }
+.B .b-night .opens b { font-size: 20px; }
+.B .b-night .opens .ic { font-size: 18px; color: var(--dawn); }
+
+/* ---------- C · Världen talar: nästan ingen ram, informationen bor på kartan ---------- */
+.C .c-horizon { position: absolute; left: 0; right: 0; top: 0; height: 30px; display: flex; background: rgba(16, 24, 48, 0.35); backdrop-filter: blur(6px); }
+.C .c-horizon .segm { position: relative; display: flex; align-items: center; gap: 4px; padding: 0 8px; color: #FFFFFF; font-size: 13px; font-weight: 700; min-width: 0; }
+.C .c-horizon .segm::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: currentColor; }
+.C .c-horizon .segm .ic { font-size: 16px; }
+.C .c-horizon .segm.explore { color: #59C3E8; } .C .c-horizon .segm.strength { color: #F08A5D; } .C .c-horizon .segm.dawn { color: #FFD27A; }
+.C .c-horizon .segm span { color: #FFFFFF; }
+.C .c-rail { position: absolute; left: 10px; top: 46px; display: grid; gap: 8px; }
+.C .c-rail button {
+  width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--panel); display: grid; place-items: center; position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.C .c-rail button .ic { font-size: 22px; }
+.C .c-rail .badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--ink); color: var(--panel); font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; border: 2px solid var(--panel); }
+.C .c-rail .folk { width: 44px; display: grid; justify-items: center; gap: 2px; color: #FFFFFF; font-size: 12px; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.C .c-rail .folk .ic { font-size: 18px; }
+.C .c-rail .folk .pips { width: 36px; justify-content: center; }
+.C .c-rail .folk .pips i { background: #FFFFFF; } .C .c-rail .folk .pips i.empty { box-shadow: inset 0 0 0 1.5px #FFFFFF; background: none; }
+.C .bubble {
+  position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: var(--panel); display: grid; place-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); transform: translateY(-26px);
+}
+.C .bubble::after { content: ""; position: absolute; left: 50%; bottom: -5px; width: 8px; height: 8px; margin-left: -4px; background: var(--panel); transform: rotate(45deg); }
+.C .bubble .ic { font-size: 17px; position: relative; }
+.C .bubble .mini { position: absolute; right: -6px; top: -6px; font-size: 13px; }
+.C .bubble .mini.sign { width: 17px; height: 17px; box-shadow: 0 0 0 2px var(--ink); } .C .bubble .mini.sign::before { width: 6px; height: 6px; border-width: 2.5px; }
+.C .bubble.wide { width: 54px; margin-left: -27px; border-radius: 15px; gap: 3px; grid-auto-flow: column; padding: 0 6px; }
+.C .bubble .vbar { width: 6px; height: 16px; border-radius: 2px; background: rgba(43, 42, 51, 0.12); position: relative; overflow: hidden; }
+.C .bubble .vbar i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--ink); opacity: 0.75; }
+.C .bubble .ringp { position: absolute; inset: -3px; }
+.C .bubble .ringp circle { fill: none; stroke-width: 3; }
+.C .c-compass {
+  position: absolute; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(251, 247, 239, 0.9); border: 0; display: grid; place-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.C .c-compass .ic { font-size: 28px; }
+.C .c-compass .cost { position: absolute; bottom: -8px; right: -6px; }
+.C .radial { position: absolute; width: 0; height: 0; }
+.C .radial .item {
+  position: absolute; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; border: 0; background: var(--panel); display: grid; place-items: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+.C .radial .item .bld { width: 40px; height: 40px; }
+.C .radial .item .ic.act { font-size: 28px; }
+.C .radial .item .cost { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); white-space: nowrap; display: inline-flex; gap: 2px; }
+.C .radial .item .cost .chip { padding: 1px 5px 1px 4px; font-size: 11px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); background: var(--panel); }
+.C .radial .item .cost .chip.lack { box-shadow: inset 0 0 0 1.5px var(--bad), 0 1px 3px rgba(0, 0, 0, 0.25); }
+.C .radial .item.dim .bld, .C .radial .item.dim .ic.act { opacity: 0.4; }
+.C .radial .spoke { position: absolute; left: 0; top: 0; height: 2px; background: rgba(251, 247, 239, 0.7); transform-origin: 0 50%; }
+.C .radial .centre { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; }
+.C .diag { position: absolute; left: 0; top: 0; width: 360px; height: 800px; }
+.C .diag path { fill: none; stroke: var(--bad); stroke-width: 3; stroke-dasharray: 5 6; }
+.C .late { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--bad); }
+.C .late .ic { font-size: 22px; color: var(--bad); }
+.C .late .clock { position: absolute; right: -8px; top: -8px; width: 18px; height: 18px; border-radius: 50%; background: var(--bad); color: #FFFFFF; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.C .c-night { position: absolute; left: 0; right: 0; top: 0; height: 112px; display: grid; place-items: center; }
+.C .c-night svg { width: 240px; height: 112px; }
+.C .c-night .arc { fill: none; stroke: rgba(255, 210, 122, 0.25); stroke-width: 3; }
+.C .c-night .prog { fill: none; stroke: var(--glow); stroke-width: 3; stroke-linecap: round; }
+.C .c-night .lbl { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); color: var(--glow); font-size: 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+.C .c-night .lbl .ic { font-size: 20px; color: var(--dawn); }
+
+/* Anteckningar och jämförelse */
+.notes { display: grid; gap: 16px; min-width: 0; }
+.notes .letter { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: var(--accent); }
+.notes .head { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.notes .head p { color: var(--muted); }
+.notes .box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; }
+.notes .box h3 { font-size: 1.1rem; }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.notes li { color: var(--fg); }
+.notes li b { font-weight: 600; }
+.notes .risks li { color: var(--muted); }
+.kbd { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.8125rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+.compare { display: grid; gap: 16px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.9375rem; }
+th { font-size: var(--step--1); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.common { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.common .box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 6px; }
+.common .box p { color: var(--muted); font-size: 0.9375rem; }
+
+/* Flytande växlare (inte en del av designen som granskas) */
+.switcher {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; align-items: center; gap: 4px;
+  padding: 6px; border-radius: 999px; background: #12151C; color: #F2F4F8; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); z-index: 20;
+}
+.switcher button { font: inherit; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.1); color: inherit; font-size: 20px; cursor: pointer; }
+.switcher button:hover { background: rgba(255, 255, 255, 0.2); }
+.switcher .cur { min-width: 170px; text-align: center; font-weight: 600; font-size: 0.9375rem; padding: 0 8px; }
+.switcher .cur small { display: block; color: #9AA3B5; font-weight: 400; font-size: 0.75rem; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: no-preference) {
+  .C .bubble .ic.pulse { animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+}
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <span class="eyebrow">Prototyp · gränssnitt · tre riktningar</span>
+    <h1>Bild före ord</h1>
+    <p class="lede">
+      Dagens gränssnitt säger allt med text: krafternas namn, lagret som en rad ord och siffror, byggnader som rubriker med kostnaden i en mening.
+      Här är tre sätt att låta form, ikon och läge bära informationen i stället, över samma ö och samma speldag.
+      Bläddra mellan riktningarna med knappraden längst ned eller <span class="kbd">←</span> <span class="kbd">→</span>, och byt läge här ovanför telefonen.
+    </p>
+    <span class="question">Beslut 2026-10-26: riktning C, Världen talar. A och B står kvar som underlag.</span>
+  </header>
+
+  <section class="stage-wrap" style="display:grid;gap:18px">
+    <div class="controls">
+      <span class="label">Läge</span>
+      <div class="seg" role="tablist" id="states">
+        <button role="tab" data-state="overview" aria-pressed="true">Översikt</button>
+        <button role="tab" data-state="site" aria-pressed="false">Byggplats vald</button>
+        <button role="tab" data-state="building" aria-pressed="false">Byggnad vald</button>
+        <button role="tab" data-state="night" aria-pressed="false">Natt, vilolås</button>
+      </div>
+      <span class="label">Riktning</span>
+      <div class="seg" role="tablist" id="variants">
+        <button role="tab" data-variant="a" aria-pressed="true">A Kompassen</button>
+        <button role="tab" data-variant="b" aria-pressed="false">B Lådan</button>
+        <button role="tab" data-variant="c" aria-pressed="false">C Världen talar</button>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="phone-fit"><div class="phone" id="phone"></div></div>
+      <aside class="notes" id="notes"></aside>
+    </div>
+  </section>
+
+  <section class="compare">
+    <div>
+      <span class="eyebrow">Gemensamt för alla tre</span>
+      <h2>Det som inte skiljer</h2>
+    </div>
+    <div class="common">
+      <div class="box"><h3>Samma speldag</h3><p>Dag 7 klockan 10, 14 av 16 bybor, fiskeboden står still för att bärarna inte hinner, sågverket byggs och bryggan byggs med handkraft. Krafterna är 135 Utforskning, 70 Styrka och 30 Ork.</p></div>
+      <div class="box"><h3>Krafterna har form, inte bara färg</h3><p>Kompasstjärna, gavelhus och sol vid horisonten enligt art direction, princip 4. Ingen riktning sätter ut krafternas namn i spel; formen och färgen räcker och namnen sägs i den guidade turen.</p></div>
+      <div class="box"><h3>Kostnad är en bild</h3><p>Ett chip med kraftens eller varans form och ett tal. Det som saknas får röd ring, det som är gratis grönt. Ingen riktning skriver «ingen kraft» eller «60 Styrka» i ord.</p></div>
+      <div class="box"><h3>Ett läge är ett tecken</h3><p>Byggnaden som står still har samma tecken på ön och i gränssnittet. Orsaken visas som en bruten kedja mellan byggnaden och förrådet, inte som en mening.</p></div>
+    </div>
+    <div>
+      <span class="eyebrow">Jämförelse</span>
+      <h2>Vad varje riktning gör med varje del</h2>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Del</th><th>A Kompassen</th><th>B Lådan</th><th>C Världen talar</th></tr></thead>
+        <tbody>
+          <tr><td>Krafterna</td><td>Tre ringar upptill; ringen fylls mot det mjuka taket</td><td>Tre stenar i övre högra hörnet med formen och talet</td><td>En horisontremsa längst upp, tre fält i proportion</td></tr>
+          <tr><td>Lagret</td><td>Hylla under ringarna: ikon, tal och en stapel mot förrådets rymd</td><td>Travar i lådan vars höjd följer mängden</td><td>Ingen lista: förrådets bubbla på ön visar tre staplar, varje byggnad visar sin vara</td></tr>
+          <tr><td>Dagen och vilan</td><td>Solbåge från gryning till vila, solen står där dagen är</td><td>En tunn sollinje längs skärmens överkant</td><td>Inget alls på dagen; natten får en båge från måne till sol</td></tr>
+          <tr><td>Byggval på en ruta</td><td>Kort i rutnät: pictogram, kostnadschip och effekt som ikon → ikon</td><td>Dioramakort att bläddra i sidled, byggnaden på sin mark</td><td>Radiell meny runt rutan, kostnaden som en liten bricka under varje val</td></tr>
+          <tr><td>Byggnad som står still</td><td>Flödesrad: bybor → bod → full låda ⇢ bärare → förråd, brutet led i rött</td><td>Mini-diorama med tecknet, kedjan som rader med staplar</td><td>Streckad röd linje över ön från boden till förrådet, bäraren och en klocka mitt på</td></tr>
+          <tr><td>Byggkön</td><td>Knappen bär antalet</td><td>Tumnaglar i lådan med fyllnadsgrad; den som byggs har ram</td><td>Hammare med framstegsring över bygget på ön; antalet på rälsen</td></tr>
+          <tr><td>Natten</td><td>Ringarna dämpas, en månring mitt på skärmen räknar fram till gryningen</td><td>Lådan sjunker till en remsa: måne, husen med tända fönster, gryningstiden</td><td>Allt försvinner utom en båge från måne till sol</td></tr>
+          <tr><td>Risk</td><td>Mest konventionell; liknar andra mobilspels HUD</td><td>Lådan skymmer ön när den är öppen; mycket att teckna</td><td>Svårast att göra tillgänglig; små mål att träffa; inget ställe för längre förklaringar</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="switcher" id="switcher">
+  <button id="prev" aria-label="Föregående riktning">‹</button>
+  <div class="cur" id="cur"></div>
+  <button id="next" aria-label="Nästa riktning">›</button>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Krafter: samma form som ForceIcon i klienten -->
+    <symbol id="i-explore" viewBox="0 0 24 24"><path d="M12 1 16 8 23 12 16 16 12 23 8 16 1 12 8 8Z"/></symbol>
+    <symbol id="i-strength" viewBox="0 0 24 24"><path d="M12 1.5 22.5 11H19.7V22.5H4.3V11H1.5Z"/></symbol>
+    <symbol id="i-dawn" viewBox="0 0 24 24"><path d="M2 17.3a10 10 0 0 1 20 0Z"/><rect x="0" y="20.2" width="24" height="2"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M15 2a10 10 0 1 0 7 17 9 9 0 0 1-7-17Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <!-- Varor -->
+    <symbol id="i-fish" viewBox="0 0 24 24"><path d="M2 12c3.5-5.5 11-6.5 15-1.5l5-3.5v10l-5-3.5C13 18.5 5.5 17.5 2 12Z"/><circle cx="6.5" cy="11" r="1.3" fill="#FBF7EF"/></symbol>
+    <symbol id="i-grain" viewBox="0 0 24 24"><path d="M11 23V9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><ellipse cx="11" cy="4" rx="2.6" ry="3.6"/><ellipse cx="6.5" cy="9" rx="2.4" ry="3.4" transform="rotate(-35 6.5 9)"/><ellipse cx="15.5" cy="9" rx="2.4" ry="3.4" transform="rotate(35 15.5 9)"/><ellipse cx="6" cy="15" rx="2.4" ry="3.4" transform="rotate(-35 6 15)"/><ellipse cx="16" cy="15" rx="2.4" ry="3.4" transform="rotate(35 16 15)"/></symbol>
+    <symbol id="i-timber" viewBox="0 0 24 24"><path d="M3 7h14a5 5 0 0 1 0 10H3Z"/><circle cx="17" cy="12" r="5" fill="#E0C9A4"/><circle cx="17" cy="12" r="2.2" fill="currentColor"/><path d="M4 7.5v9M7 7.5v9" stroke="#E0C9A4" stroke-width="1" opacity=".7"/></symbol>
+    <symbol id="i-planks" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="4.4" rx="1.2"/><rect x="2" y="9.8" width="20" height="4.4" rx="1.2"/><rect x="2" y="16.6" width="20" height="4.4" rx="1.2"/></symbol>
+    <symbol id="i-stone" viewBox="0 0 24 24"><path d="M4 20 2 12l6-8 9 1 5 7-3 8Z"/><path d="M8 4l2 8-6 0M10 12l7-7M10 12l7 8" stroke="#FBF7EF" stroke-width="1" opacity=".5"/></symbol>
+    <symbol id="i-wool" viewBox="0 0 24 24"><path d="M7 19a4 4 0 0 1-1.5-7.7A5 5 0 0 1 14 7.5 4 4 0 0 1 20.5 11 4 4 0 0 1 18 19Z"/></symbol>
+    <!-- Figurer och tecken -->
+    <symbol id="i-villager" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3.4"/><path d="M12 9.5c-3.5 0-5.5 5-6 13h12c-.5-8-2.5-13-6-13Z"/></symbol>
+    <symbol id="i-carrier" viewBox="0 0 24 24"><circle cx="9" cy="5" r="3"/><path d="M9 9c-3 0-4.5 4.5-5 13h10c-.5-8.5-2-13-5-13Z"/><rect x="13" y="10" width="9" height="8" rx="1.5"/></symbol>
+    <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M3 20.5 12.5 11l2.8 2.8L5.8 23.3a2 2 0 0 1-2.8-2.8Z"/><path d="M11 5l4-3 7 7-3 4-2-2-1.5 1.5L11.5 8.5 13 7Z"/></symbol>
+    <symbol id="i-report" viewBox="0 0 24 24"><path d="M4 3h12l4 4v14H4Z"/><path d="M7 11h10M7 15h10M7 7h5" stroke="#FBF7EF" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-care" viewBox="0 0 24 24"><path d="M12 23V11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M12 12C12 6 8 3 2 3c0 6 4 9 10 9Z"/><path d="M12 15c0-5 3.5-8 9-8 0 5-3.5 8-9 8Z"/></symbol>
+    <symbol id="i-account" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5"/><path d="M3 22c1-5.5 4.5-8 9-8s8 2.5 9 8Z"/></symbol>
+    <symbol id="i-road" viewBox="0 0 24 24"><path d="M9 22 11 2h2l2 20Z" opacity=".35"/><path d="M12 4v3M12 10.5v3M12 17v3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M2 22 8 2h2L6 22ZM22 22 16 2h-2l4 20Z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 1.5 22.5 11H19.7V22.5H4.3V11H1.5Z" opacity=".3"/><path d="M12 8l5 5h-3v6h-4v-6H7Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="5" y="3" width="5" height="18" rx="1.5"/><rect x="14" y="3" width="5" height="18" rx="1.5"/></symbol>
+    <symbol id="i-first" viewBox="0 0 24 24"><path d="M4 4h16v3H4Z"/><path d="M12 8l7 7h-4v6H9v-6H5Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2.5" stroke="#FBF7EF" stroke-width="2" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24"><path d="M12 2 23 12h-3v10H4V12H1Z"/><rect x="10" y="15" width="4" height="7" fill="#FBF7EF"/></symbol>
+    <!-- Byggnader som pictogram (falurött, björkvitt, ark enligt art direction A) -->
+    <symbol id="b-cottage" viewBox="0 0 48 48"><path d="M8 44V26h32v18Z" fill="#F3E9DA"/><path d="M4 27 24 10l20 17Z" fill="#B4473A"/><rect x="20" y="33" width="8" height="11" fill="#8A6A4A"/><rect x="28" y="12" width="4" height="8" fill="#8A6A4A"/><path d="M8 44V26h32v18Z" fill="none" stroke="#2B2A33" stroke-width="1.5"/><path d="M4 27 24 10l20 17Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="b-longhouse" viewBox="0 0 48 48"><path d="M3 44V30h42v14Z" fill="#F3E9DA"/><path d="M1 31 24 14l23 17Z" fill="#B4473A"/><rect x="10" y="35" width="5" height="9" fill="#8A6A4A"/><rect x="33" y="35" width="5" height="9" fill="#8A6A4A"/><rect x="21" y="35" width="6" height="9" fill="#8A6A4A"/><path d="M3 44V30h42v14Z" fill="none" stroke="#2B2A33" stroke-width="1.5"/><path d="M1 31 24 14l23 17Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="b-storehouse" viewBox="0 0 48 48"><path d="M5 44V24h38v20Z" fill="#F3E9DA"/><path d="M2 25 24 8l22 17Z" fill="#B4473A"/><path d="M14 44V32h20v12Z" fill="#8A6A4A"/><path d="M24 32v12" stroke="#F3E9DA" stroke-width="1.5"/><path d="M5 44V24h38v20Z" fill="none" stroke="#2B2A33" stroke-width="1.5"/><path d="M2 25 24 8l22 17Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="b-fishing" viewBox="0 0 48 48"><path d="M2 40c4-3 8-3 12 0s8 3 12 0 8-3 12 0 6 2 8 2v6H2Z" fill="#6CC4C0"/><path d="M12 30v12M20 30v12M28 30v12M36 30v12" stroke="#8A6A4A" stroke-width="3"/><path d="M9 32V20h30v12Z" fill="#F3E9DA"/><path d="M6 21 24 6l18 15Z" fill="#B4473A"/><rect x="20" y="24" width="8" height="8" fill="#8A6A4A"/><path d="M9 32V20h30v12Z" fill="none" stroke="#2B2A33" stroke-width="1.5"/><path d="M6 21 24 6l18 15Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="b-woodcutter" viewBox="0 0 48 48"><path d="M30 20 38 6l8 14Z" fill="#3F7F55"/><path d="M28 30 38 14l10 16Z" fill="#3F7F55"/><rect x="36" y="30" width="4" height="7" fill="#8A6A4A"/><path d="M4 44V30h24v14Z" fill="#F3E9DA"/><path d="M2 31 16 18l14 13Z" fill="#B4473A"/><rect x="13" y="36" width="6" height="8" fill="#8A6A4A"/><path d="M4 44V30h24v14Z" fill="none" stroke="#2B2A33" stroke-width="1.5"/><path d="M2 31 16 18l14 13Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="b-sawmill" viewBox="0 0 48 48"><path d="M6 44V28h30v16Z" fill="#F3E9DA"/><path d="M3 29 21 14l18 15Z" fill="#B4473A"/><circle cx="37" cy="30" r="8" fill="#8E8B93"/><circle cx="37" cy="30" r="8" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="37" cy="30" r="2" fill="#2B2A33"/><rect x="12" y="35" width="6" height="9" fill="#8A6A4A"/><path d="M6 44V28h30v16Z" fill="none" stroke="#2B2A33" stroke-width="1.5"/><path d="M3 29 21 14l18 15Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="b-jetty" viewBox="0 0 48 48"><path d="M2 32c4-3 8-3 12 0s8 3 12 0 8-3 12 0 6 2 8 2v12H2Z" fill="#6CC4C0"/><path d="M4 22h40v8H4Z" fill="#C9A97C" stroke="#2B2A33" stroke-width="1.5"/><path d="M12 22v8M20 22v8M28 22v8M36 22v8" stroke="#8A6A4A" stroke-width="1.5"/><path d="M8 30v10M40 30v10" stroke="#8A6A4A" stroke-width="3"/><path d="M30 6l10 8-10 8Z" fill="#F3E9DA" stroke="#2B2A33" stroke-width="1.5"/><path d="M30 6v18" stroke="#8A6A4A" stroke-width="2"/></symbol>
+    <symbol id="b-lookout" viewBox="0 0 48 48"><path d="M14 44 18 14h12l4 30Z" fill="#8A6A4A"/><path d="M12 16h24v6H12Z" fill="#F3E9DA" stroke="#2B2A33" stroke-width="1.5"/><path d="M10 16 24 4l14 12Z" fill="#B4473A" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/><path d="M18 24l12 20M30 24 18 44" stroke="#F3E9DA" stroke-width="1.5"/></symbol>
+    <symbol id="b-field" viewBox="0 0 48 48"><path d="M4 42 14 10h20l10 32Z" fill="#D9C878"/><path d="M11 36h26M13 30h22M15 24h18M17 18h14" stroke="#8A6A4A" stroke-width="2.5" stroke-linecap="round"/><path d="M4 42 14 10h20l10 32Z" fill="none" stroke="#2B2A33" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<script>
+(function () {
+  "use strict";
+  // ---------- Speltillståndet som alla riktningar visar ----------
+  const D = {
+    day: 7, hour: 10, restStart: 23, restEnd: 7,
+    forces: [
+      { k: "explore", v: 135, cap: 400, name: "Utforskning" },
+      { k: "strength", v: 70, cap: 200, name: "Styrka" },
+      { k: "dawn", v: 30, cap: 120, name: "Ork" },
+    ],
+    cap: 150,
+    stock: [["fish", 32], ["grain", 18], ["timber", 54], ["planks", 9], ["stone", 21], ["wool", 6]],
+    have: { fish: 32, grain: 18, timber: 54, planks: 9, stone: 21, wool: 6, explore: 135, strength: 70, dawn: 30 },
+    villagers: 14, housing: 16, free: 2,
+    queue: [
+      { b: "b-sawmill", pct: 0.82, now: true, tag: null },
+      { b: "b-jetty", pct: 0.3, hand: true, tag: "5" },
+      { b: "i-road", pct: 0, tag: null },
+    ],
+    // Byggval på den valda skogsrutan: det bara skogen tar först, sedan det all mark tar.
+    site: [
+      { b: "b-woodcutter", name: "Skogshuggare", cost: [["timber", 8]], eff: [["timber", "+"]] },
+      { b: "b-cottage", name: "Stuga", cost: [["timber", 10], ["stone", 4]], eff: [["villager", "+4"]] },
+      { b: "b-storehouse", name: "Förråd", cost: [["planks", 20], ["stone", 10]], eff: [["carrier", "+"]] },
+      { b: "b-longhouse", name: "Långhus", cost: [["strength", 60], ["planks", 30]], eff: [["villager", "+8"]] },
+      { b: "b-lookout", name: "Utkikstorn", cost: [["strength", 40], ["timber", 20], ["stone", 10]], eff: [["explore", "−25 %"]] },
+    ],
+    actions: [
+      { i: "i-dawn", cls: "dawn", cost: [["dawn", 30]], eff: "+50 %" },
+      { i: "i-up", cls: "", cost: [["strength", 60], ["planks", 20]] },
+      { i: "i-road", cls: "", cost: [["stone", 6]] },
+      { i: "i-pause", cls: "", cost: [] },
+    ],
+  };
+  const lack = (k, n) => (D.have[k] ?? 0) < n;
+  const affordable = (cost) => cost.every(([k, n]) => !lack(k, n));
+
+  // ---------- Kartan: en handritad ö på hexrutor i art direction A ----------
+  const MAP = [
+    "~~~~~~~~~~~~~~~", "~~~~~~~~~~~~~~~", "~~~~~~~~~~.....", "~~~~~~~~~......", "~~~~~~~ss......",
+    "~~~~~~sbmms....", "~~~~~sbgmmfs...", "~~~~sbgffgffbs.", "~~~sbgaafggfbs~", "~~~sbgagggpgbs~",
+    "~~~sbgggggpgbs~", "~~~sbbgggppbs~~", "~~~~ssbbgbbs~~~", "~~~~~~sbbs~~~~~", "~~~~~~~ss~~~~~~",
+    "~~~~~~~~~~~~~~~", "~~~~~~~~~~~~~~~", ".~~~~~~~~~~~~~~", "..~~~~~~~~~~~~~", "....~~~~~~~~~~~",
+    "......~~~~~~~~~", "........~~~~~~~",
+  ];
+  const W = 40, R = W / Math.sqrt(3), H = 2 * R * 0.82, STEP = H * 0.75;
+  const OFFX = (360 - (MAP[0].length * W + W / 2)) / 2, OFFY = (800 - (MAP.length * STEP + H / 4)) / 2 + 10;
+  const TERRAIN = {
+    "~": ["deep", 0], "s": ["shallow", 0], "b": ["sand", 3], "g": ["grass", 5], "f": ["forest", 5], "a": ["farm", 5],
+    "p": ["pasture", 5], "m": ["mountain", 14], ".": ["fog", 6],
+  };
+  const BUILDINGS = [
+    { r: 10, c: 7, kind: "storehouse" }, { r: 10, c: 6, kind: "cottage" }, { r: 11, c: 7, kind: "cottage" }, { r: 11, c: 8, kind: "cottage" },
+    { r: 12, c: 5, kind: "fishing" }, { r: 8, c: 6, kind: "field" }, { r: 9, c: 6, kind: "field" }, { r: 7, c: 7, kind: "woodcutter" },
+    { r: 9, c: 9, kind: "site" }, { r: 13, c: 7, kind: "jetty-site" }, { r: 10, c: 10, kind: "sheep" },
+  ];
+  const ROAD = [[7, 7], [8, 7], [9, 7], [10, 7]];
+  const SITE = [8, 8], HUT = [12, 5], DEPOT = [10, 7], FOG_EDGE = [6, 11], CONSTRUCTION = [9, 9];
+  function centre(r, c) { return { x: OFFX + c * W + (r % 2 ? W / 2 : 0) + W / 2, y: OFFY + r * STEP + H / 2 }; }
+  function hexPts(cx, cy, dy) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 180 * (30 + 60 * i);
+      pts.push([cx + (W / 2) * Math.cos(a), cy + dy + (H / 2) * Math.sin(a)]);
+    }
+    return pts;
+  }
+  const fmt = (pts) => pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function house(g, x, y, w, wall, roof, kind) {
+    // Ett upprättstående hus med gavel mot kameran och en skuggad långsida; fönster bara i natt (CSS).
+    const d = w * 0.5;
+    el("polygon", { points: fmt([[x + w / 2, y], [x + w / 2 + d, y + 2], [x + w / 2 + d, y + wall + 2 + roof], [x + w / 2, y + wall + roof]]), fill: "color-mix(in srgb, #F3E9DA, #2B2A33 35%)" }, g);
+    el("polygon", { points: fmt([[x - w / 2, y + roof], [x + w / 2, y + roof], [x + w / 2, y + roof + wall], [x - w / 2, y + roof + wall]]), fill: "#F3E9DA" }, g);
+    el("polygon", { points: fmt([[x - w / 2 - 1.5, y + roof + 1], [x, y - 1], [x + w / 2 + 1.5, y + roof + 1]]), fill: "#B4473A" }, g);
+    el("polygon", { points: fmt([[x, y - 1], [x + d, y + 1], [x + w / 2 + d, y + roof + 3], [x + w / 2 + 1.5, y + roof + 1]]), fill: "color-mix(in srgb, #B4473A, #2B2A33 30%)" }, g);
+    el("rect", { x: x - 2, y: y + roof + wall - 5, width: 4, height: 5, fill: "#8A6A4A" }, g);
+    el("rect", { class: "win", x: x - w / 2 + 3, y: y + roof + 3, width: 3, height: 3 }, g);
+    if (w > 16) el("rect", { class: "win", x: x + w / 2 - 6, y: y + roof + 3, width: 3, height: 3 }, g);
+    if (kind === "storehouse") el("rect", { class: "win", x: x + w / 2 + d * 0.3, y: y + roof + 4, width: 3, height: 3 }, g);
+  }
+  function tree(g, x, y, s) {
+    el("rect", { x: x - 1, y: y - 2, width: 2, height: 4, fill: "var(--t-trunk)" }, g);
+    el("polygon", { points: fmt([[x - s, y - 1], [x, y - s * 2.6], [x + s, y - 1]]), fill: "var(--t-tree)" }, g);
+    el("polygon", { points: fmt([[x, y - s * 2.6], [x + s, y - 1], [x + s * 0.5, y - 1]]), fill: "color-mix(in srgb, var(--t-tree), #2B2A33 30%)" }, g);
+  }
+  function figure(g, x, y, colour) {
+    el("polygon", { class: "folk", points: fmt([[x - 2.2, y], [x, y - 7], [x + 2.2, y]]), fill: colour }, g);
+    el("circle", { class: "folk", cx: x, cy: y - 7.6, r: 1.6, fill: "#F3E9DA" }, g);
+  }
+  function stillSign(g, x, y) {
+    const s = el("g", { class: "still-sign" }, g);
+    el("line", { x1: x, y1: y, x2: x, y2: y - 14, stroke: "#2B2A33", "stroke-width": 1.5 }, s);
+    el("circle", { cx: x, cy: y - 20, r: 7, fill: "#2B2A33" }, s);
+    el("circle", { cx: x, cy: y - 20, r: 5.5, fill: "#F3E9DA" }, s);
+    el("rect", { x: x - 3.2, y: y - 23, width: 2, height: 6, fill: "#2B2A33" }, s);
+    el("rect", { x: x + 1.2, y: y - 23, width: 2, height: 6, fill: "#2B2A33" }, s);
+  }
+  function buildMap() {
+    const svg = el("svg", { class: "map", viewBox: "0 0 360 800" });
+    const ground = el("g", {}, svg), things = el("g", {}, svg);
+    for (let r = 0; r < MAP.length; r++) {
+      for (let c = 0; c < MAP[r].length; c++) {
+        const [t, h] = TERRAIN[MAP[r][c]];
+        const { x, y } = centre(r, c);
+        const fill = "var(--t-" + t + ")";
+        if (h > 0) {
+          const top = hexPts(x, y, -h), low = hexPts(x, y, 0);
+          // Sidorna: höger-nedre, nedre och vänster-nedre kanterna dragna ned till marken.
+          el("polygon", { class: "side", points: fmt([top[5], top[0], top[1], top[2], top[3], low[3], low[2], low[1], low[0], low[5]]), fill: "color-mix(in srgb, " + fill + ", #2B2A33 38%)" }, ground);
+          el("polygon", { class: "top " + t, points: fmt(top), fill: fill }, ground);
+          if (t === "mountain") {
+            el("polygon", { points: fmt([[x - 12, y - h + 4], [x - 2, y - h - 16], [x + 10, y - h + 4]]), fill: "color-mix(in srgb, var(--t-mountain), #2B2A33 20%)" }, ground);
+            el("polygon", { points: fmt([[x - 5, y - h - 10], [x - 2, y - h - 16], [x + 2, y - h - 9]]), fill: "var(--t-snow)" }, ground);
+          }
+          if (t === "forest" && !(r === SITE[0] && c === SITE[1]) && !(r === 7 && c === 7)) {
+            tree(things, x - 9, y - h + 4, 5); tree(things, x + 7, y - h + 2, 5.5); tree(things, x - 1, y - h - 6, 4.5);
+          }
+          if (t === "forest" && r === SITE[0] && c === SITE[1]) { tree(things, x - 9, y - h + 5, 4.5); tree(things, x + 8, y - h + 3, 4.5); }
+          if (t === "farm") for (let i = -1; i <= 1; i++) el("line", { x1: x - 12, y1: y - h + i * 5, x2: x + 12, y2: y - h + i * 5, stroke: "color-mix(in srgb, var(--t-farm), #2B2A33 30%)", "stroke-width": 1.6 }, ground);
+          if (t === "pasture") for (const [dx, dy] of [[-8, 2], [6, -4]]) el("ellipse", { cx: x + dx, cy: y - h + dy, rx: 3.2, ry: 2.2, fill: "var(--t-snow)" }, things);
+        } else {
+          el("polygon", { class: "sea " + t, points: fmt(hexPts(x, y, 0)), fill: fill }, ground);
+        }
+      }
+    }
+    // Vägen, i hexens mitt och över marken.
+    const road = ROAD.map(([r, c]) => { const p = centre(r, c); return [p.x, p.y - 5]; });
+    el("polyline", { points: fmt(road), fill: "none", stroke: "var(--t-road)", "stroke-width": 7, "stroke-linecap": "round", "stroke-linejoin": "round" }, things);
+    for (const b of BUILDINGS) {
+      const { x, y } = centre(b.r, b.c);
+      const h = TERRAIN[MAP[b.r][b.c]][1];
+      switch (b.kind) {
+        case "storehouse": house(things, x - 4, y - h - 14, 22, 9, 7, "storehouse"); break;
+        case "cottage": house(things, x - 3, y - h - 9, 13, 6, 5); break;
+        case "woodcutter": house(things, x - 5, y - h - 9, 12, 6, 5); tree(things, x + 10, y - h + 3, 5); break;
+        case "fishing":
+          for (const dx of [-7, 7]) el("rect", { x: x + dx - 1, y: y - 6, width: 2, height: 8, fill: "#8A6A4A" }, things);
+          house(things, x - 3, y - 15, 14, 6, 5);
+          stillSign(things, x + 14, y - 16);
+          break;
+        case "field": break;
+        case "site": {
+          // Sågverket byggs: en stomme i trä.
+          el("rect", { x: x - 11, y: y - h - 10, width: 18, height: 10, fill: "none", stroke: "#8A6A4A", "stroke-width": 2 }, things);
+          el("line", { x1: x - 11, y1: y - h - 10, x2: x - 2, y2: y - h - 17, stroke: "#8A6A4A", "stroke-width": 2 }, things);
+          el("line", { x1: x + 7, y1: y - h - 10, x2: x - 2, y2: y - h - 17, stroke: "#8A6A4A", "stroke-width": 2 }, things);
+          figure(things, x + 12, y - h + 2, "#B4473A"); figure(things, x - 14, y - h + 3, "#2A7FB0");
+          break;
+        }
+        case "jetty-site":
+          el("rect", { x: x - 4, y: y - 6, width: 20, height: 6, fill: "var(--t-road)", opacity: 0.55 }, things);
+          el("rect", { x: x + 6, y: y - 10, width: 2, height: 8, fill: "#8A6A4A" }, things);
+          break;
+        case "sheep":
+          el("polyline", { points: fmt([[x - 14, y - h + 6], [x - 14, y - h - 2], [x + 14, y - h - 2], [x + 14, y - h + 6]]), fill: "none", stroke: "#8A6A4A", "stroke-width": 1.5 }, things);
+          house(things, x + 2, y - h - 9, 10, 4, 4);
+          break;
+      }
+    }
+    // Bybor vid de bemannade byggnaderna och bärare på vägen.
+    const hut = centre(HUT[0], HUT[1]); figure(things, hut.x - 12, hut.y + 2, "#2A7FB0"); figure(things, hut.x + 6, hut.y + 5, "#C27A12");
+    const wc = centre(7, 7); figure(things, wc.x - 12, wc.y + 1, "#B4473A");
+    const f1 = centre(8, 6); figure(things, f1.x + 8, f1.y - 2, "#9BCB7A");
+    const mid = centre(8, 7); figure(things, mid.x + 3, mid.y - 4, "#C27A12");
+    const mid2 = centre(9, 7); figure(things, mid2.x - 6, mid2.y - 3, "#2A7FB0");
+    return svg;
+  }
+  function selectHex(svg, r, c) {
+    const h = TERRAIN[MAP[r][c]][1], { x, y } = centre(r, c);
+    const g = el("g", { class: "selection" }, svg);
+    el("polygon", { class: "sel-glow", points: fmt(hexPts(x, y, -h)) }, g);
+    el("polygon", { class: "sel", points: fmt(hexPts(x, y, -h)) }, g);
+    return g;
+  }
+  function stars() {
+    const svg = el("svg", { class: "stars", viewBox: "0 0 360 800" });
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    for (let i = 0; i < 70; i++) {
+      const y = rnd() * 800, x = rnd() * 360;
+      el("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: (0.6 + rnd() * 1.1).toFixed(2), fill: "#E8EEF8", opacity: (0.35 + rnd() * 0.5).toFixed(2) }, svg);
+    }
+    return svg;
+  }
+
+  // ---------- Små hjälpare för HUD-markup ----------
+  const ic = (name, cls = "") => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const bic = (sym, cls = "bld") => `<svg class="${cls}" aria-hidden="true"><use href="#${sym}"/></svg>`;
+  const FORCE = new Set(["explore", "strength", "dawn"]);
+  const chip = ([k, n]) => `<i class="chip ${lack(k, n) ? "lack" : ""}">${ic(k, FORCE.has(k) ? k : "")}${n}</i>`;
+  const chips = (cost) => cost.length ? cost.map(chip).join("") : `<i class="chip free">${ic("villager")}</i>`;
+  const effs = (eff) => eff.map(([k, v]) => `<span>${v}</span>${ic(k, FORCE.has(k) ? k : "")}`).join("");
+  const pips = (n, of, me) => `<span class="pips">${Array.from({ length: of }, (_, i) => `<i class="${i >= n ? "empty" : ""}${i === me ? " me" : ""}"></i>`).join("")}</span>`;
+  const groundThumb = (t) => {
+    const col = { forest: "var(--t-forest)", shallow: "var(--t-shallow)", grass: "var(--t-grass)" }[t];
+    const extra = t === "forest" ? `<polygon points="12,26 17,14 22,26" fill="#2B5F3F"/><polygon points="22,27 28,13 34,27" fill="#2B5F3F"/>` : t === "shallow" ? `<path d="M8 22c4-3 8-3 12 0s8 3 12 0" fill="none" stroke="#FBF7EF" stroke-width="2" opacity=".7"/>` : "";
+    return `<svg class="ground" viewBox="0 0 44 40"><polygon points="22,2 41,11 41,29 22,38 3,29 3,11" fill="${col}" stroke="#2B2A33" stroke-width="1.5"/>${extra}</svg>`;
+  };
+  const dayFrac = () => (D.hour - D.restEnd) / (D.restStart - D.restEnd);
+  const nightFrac = () => (1 + 24 - D.restStart) / (24 - D.restStart + D.restEnd); // klockan 01 i vilan 23–07
+  const ringSvg = (frac, colour, cls = "") => {
+    const r = 26, L = 2 * Math.PI * r;
+    return `<svg viewBox="0 0 60 60" class="${cls}"><circle class="track" cx="30" cy="30" r="${r}"/><circle class="arc" cx="30" cy="30" r="${r}" stroke="${colour}" stroke-dasharray="${(L * frac).toFixed(1)} ${L.toFixed(1)}"/></svg>`;
+  };
+  // Dagbågen: en kvadratisk bezier från gryning (vänster) till vila (höger).
+  const arcPt = (t, w = 112, h = 62) => {
+    const p0 = [8, h - 10], p1 = [w / 2, -14], p2 = [w - 8, h - 10];
+    const x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0], y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1];
+    return [x, y];
+  };
+  const arcPath = (w = 112, h = 62) => `M8 ${h - 10} Q ${w / 2} -14 ${w - 8} ${h - 10}`;
+  function dayArc(night) {
+    const t = night ? nightFrac() : dayFrac();
+    const [sx, sy] = arcPt(t);
+    const sampled = Array.from({ length: 24 }, (_, i) => arcPt(t * i / 23));
+    const done = "M" + sampled.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L");
+    const ends = night
+      ? `<g transform="translate(2 44)" fill="var(--glow)"><use href="#i-moon" width="12" height="12"/></g><g transform="translate(98 44)" fill="var(--glow)"><use href="#i-sun" width="12" height="12"/></g>`
+      : `<g transform="translate(2 44)" fill="#FBF7EF"><use href="#i-sun" width="12" height="12"/></g><g transform="translate(98 44)" fill="#FBF7EF"><use href="#i-moon" width="12" height="12"/></g>`;
+    const marker = night
+      ? `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="6" fill="#E8EEF8"/>`
+      : `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="7" fill="var(--glow)"/><circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="10" fill="none" stroke="var(--glow)" stroke-width="1.5" opacity=".6"/>`;
+    return `<svg class="a-day" viewBox="0 -4 112 66"><path class="arcpath" d="${arcPath()}"/><path class="done" d="${done}"/>${ends}${marker}</svg>`;
+  }
+  const stack = (k, v) => {
+    const n = Math.max(1, Math.round(v / D.cap * 6));
+    const rows = Array.from({ length: n }, (_, i) => `<use href="#i-${k}" width="22" height="22" x="${(i % 2) * 4 + 8}" y="${44 - 22 - i * 5}"/>`).join("");
+    return `<svg viewBox="0 0 42 46" fill="var(--ink)">${rows}</svg>`;
+  };
+
+  // ---------- A · Kompassen ----------
+  function variantA(state) {
+    const night = state === "night";
+    let sheet = "";
+    if (state === "site") {
+      sheet = `<section class="a-sheet">
+        <div class="a-head">${groundThumb("forest")}<div><div class="ttl">Skog</div><div class="sub">${ic("timber")} 24</div></div></div>
+        <button class="xbtn" aria-label="Stäng">×</button>
+        <div class="a-cards">
+          ${D.site.slice(0, 5).map((s) => `<button class="a-card ${affordable(s.cost) ? "" : "dim"}">${bic(s.b)}<span class="nm">${s.name}</span><span class="cost">${chips(s.cost)}</span><span class="eff">${effs(s.eff)}</span></button>`).join("")}
+          <button class="a-card more">${bic("i-road")}<span class="nm">Väg</span><span class="cost">${chip(["stone", 2])}</span><span class="eff">${ic("carrier")} ×2</span></button>
+        </div>
+      </section>`;
+    } else if (state === "building") {
+      sheet = `<section class="a-sheet">
+        <div class="a-head">${bic("b-fishing")}<div><div class="ttl">Fiskebod</div><div class="sub"><span class="sign"></span>${groundThumb("shallow").replace('class="ground"', 'class="ground" style="width:28px;height:24px"')}</div></div></div>
+        <button class="xbtn" aria-label="Stäng">×</button>
+        <div class="flow">
+          <div class="node">${pips(2, 2)}${ic("villager")}</div><i class="link"></i>
+          <div class="node">${bic("b-fishing")}</div><i class="link"></i>
+          <div class="node"><span class="crate"><i style="height:100%"></i></span>${ic("fish")}</div><i class="link broken"></i>
+          <div class="late">${ic("carrier")}${ic("clock")}</div><i class="link broken"></i>
+          <div class="node">${bic("b-storehouse")}</div>
+        </div>
+        <div class="a-acts">
+          ${D.actions.map((a) => `<button class="a-act ${affordable(a.cost) ? "" : "dim"}"><span class="disc">${ic(a.i.slice(2), a.cls)}</span><span class="cost">${chips(a.cost)}</span></button>`).join("")}
+        </div>
+        <div class="a-row"><span>${ic("villager")} ${pips(7, 7, 2)}</span><span class="stp"><button>−</button><b>3</b><button>+</button></span></div>
+      </section>`;
+    } else if (night) {
+      const r = 66, L = 2 * Math.PI * r;
+      sheet = `<div class="a-moon"><svg viewBox="0 0 150 150"><circle class="trk" cx="75" cy="75" r="${r}"/><circle class="prog" cx="75" cy="75" r="${r}" stroke-dasharray="${(L * nightFrac()).toFixed(1)} ${L.toFixed(1)}"/></svg>
+        <div class="inner">${ic("moon")}<b>07:00</b><span class="sun">${ic("sun", "dawn")}</span></div></div>`;
+    }
+    const bar = `<nav class="a-bar">
+      <button>${ic("care")}</button>
+      <button ${night ? "disabled" : ""}>${ic("explore", "explore")}<span class="cost">${ic("explore", "explore")}60</span></button>
+      <button ${night ? "disabled" : ""}>${ic("hammer")}<span class="badge">3</span></button>
+      <button>${ic("report")}</button>
+      <button>${ic("account")}</button>
+    </nav>`;
+    return `<div class="hud A">
+      <div class="a-top">
+        <div class="a-rings">${D.forces.map((f) => `<div class="ring" style="${night ? "opacity:.6" : ""}">${ringSvg(f.v / f.cap, "var(--" + f.k + ")").replace("<svg ", `<svg style="position:relative" `)}<b>${f.v}</b></div>`).join("")}</div>
+        ${dayArc(night)}
+      </div>
+      <div class="a-shelf">
+        ${D.stock.map(([k, v]) => `<div class="a-res"><i class="bar"><b style="height:${Math.round(v / D.cap * 100)}%"></b></i>${ic(k)}<span>${v}</span></div>`).join("")}
+        <div class="a-folk">${ic("villager")}${pips(D.villagers, D.housing)}</div>
+      </div>
+      ${sheet}${bar}
+    </div>`;
+  }
+  // Ringens ikon läggs ovanpå via en extra absolut use: enklast med en wrapper.
+  function placeRingIcons(root) {
+    root.querySelectorAll(".A .ring").forEach((ring, i) => {
+      const f = D.forces[i];
+      const icon = document.createElementNS(NS, "svg");
+      icon.setAttribute("class", "ic " + f.k);
+      icon.setAttribute("style", "position:absolute;left:18px;top:18px;width:28px;height:28px");
+      const use = el("use", { href: "#i-" + f.k }, icon);
+      ring.style.position = "relative";
+      ring.insertBefore(icon, ring.querySelector("b"));
+    });
+  }
+
+  // ---------- B · Lådan ----------
+  function variantB(state) {
+    const night = state === "night";
+    const tabs = (on) => `<nav class="b-tabs">
+      <button class="${on === "care" ? "on" : ""}">${ic("care")}</button>
+      <button ${night ? "disabled" : ""}>${ic("explore", "explore")}<span class="cost">${ic("explore", "explore")}60</span></button>
+      <button ${night ? "disabled" : ""} class="${on === "queue" ? "on" : ""}">${ic("hammer")}<span class="badge">3</span></button>
+      <button>${ic("report")}</button>
+    </nav>`;
+    const shelf = `<div class="b-shelf">${D.stock.map(([k, v]) => `<div class="stack">${stack(k, v)}<b>${v}</b></div>`).join("")}</div>`;
+    const queue = `<div class="b-queue">
+      <span class="q-hammer">${ic("hammer")}</span>
+      ${D.queue.map((q) => `<div class="q-item ${q.now ? "now" : ""}"><i class="fill" style="height:${Math.round(q.pct * 100)}%"></i>${bic(q.b)}${q.hand ? `<span class="tag">${ic("villager")}${q.tag}</span>` : ""}</div>`).join("")}
+      <div class="b-folk">${ic("house")}${pips(D.villagers, D.housing)}</div>
+    </div>`;
+    let drawer;
+    if (state === "site") {
+      drawer = `<section class="b-drawer open"><div class="handle"></div>
+        <div class="b-head">${groundThumb("forest")}<div><div class="ttl">Skog</div><div class="sub">${ic("timber")} 24</div></div></div><button class="xbtn" aria-label="Stäng">×</button>
+        <div style="display:grid;gap:12px;align-content:start">
+          <div class="b-scroll">
+            ${D.site.map((s) => `<button class="dio ${affordable(s.cost) ? "" : "dim"}"><span class="scene"><i class="hexbg" style="background:${s.b === "b-woodcutter" ? "var(--t-forest)" : "var(--t-grass)"}"></i>${bic(s.b)}</span><span class="meta"><span class="nm">${s.name}</span><span class="cost">${chips(s.cost)}</span><span class="cost">${effs(s.eff)}</span></span></button>`).join("")}
+          </div>
+          ${shelf}
+        </div></section>`;
+    } else if (state === "building") {
+      drawer = `<section class="b-drawer open"><div class="handle"></div>
+        <div class="b-head">${bic("b-fishing")}<div><div class="ttl">Fiskebod</div><div class="sub">${pips(2, 2)} ${ic("villager")}</div></div></div><button class="xbtn" aria-label="Stäng">×</button>
+        <div style="display:grid;gap:12px;align-content:start">
+          <div class="b-work">
+            <div class="scene"><i class="hexbg"></i>${bic("b-fishing")}<span class="sign"></span></div>
+            <div class="b-chain">
+              <div class="row">${ic("villager")}${ic("villager")}<i class="ok"></i>${ic("fish")}<span class="crate"><i></i></span></div>
+              <div class="row late"><span class="crate" style="border-color:var(--bad)"><i style="background:var(--bad)"></i></span><i class="dash"></i>${ic("carrier")}${ic("clock")}<i class="dash"></i>${bic("b-storehouse", "ic")}</div>
+              <div class="row">${ic("carrier")} ${pips(1, 4)} <span style="color:var(--ink-2)">→</span> ${ic("road")} ${chip(["stone", 6])}</div>
+            </div>
+          </div>
+          <div class="b-tiles">
+            ${D.actions.map((a) => `<button class="tile ${affordable(a.cost) ? "" : "dim"}">${ic(a.i.slice(2), a.cls)}<span class="cost">${chips(a.cost)}</span></button>`).join("")}
+          </div>
+          <div class="b-rowline"><span>${ic("villager")} ${pips(7, 7, 2)}</span><span>${ic("first")}</span></div>
+          ${shelf}
+        </div></section>`;
+    } else if (night) {
+      const r = 33, L = 2 * Math.PI * r;
+      drawer = `<section class="b-drawer sliver"><div class="handle"></div>
+        ${tabs()}
+        <div class="b-night">
+          <div class="dial"><svg viewBox="0 0 74 74"><circle class="trk" cx="37" cy="37" r="${r}"/><circle class="prog" cx="37" cy="37" r="${r}" stroke-dasharray="${(L * nightFrac()).toFixed(1)} ${L.toFixed(1)}"/></svg>${ic("moon")}</div>
+          <div class="houses">${bic("b-cottage")}${bic("b-storehouse")}${bic("b-cottage")}${bic("b-fishing")}</div>
+          <div class="opens">${ic("sun")}<b>07:00</b></div>
+        </div></section>`;
+    } else {
+      drawer = `<section class="b-drawer"><div class="handle"></div>${tabs()}<div style="display:grid;gap:10px">${shelf}${queue}</div></section>`;
+    }
+    const sun = night
+      ? `<div class="b-sun" style="background:rgba(255,210,122,.15)"><i style="width:${Math.round(nightFrac() * 100)}%;background:rgba(232,238,248,.7)"></i><span class="mark" style="left:${Math.round(nightFrac() * 100)}%;background:#E8EEF8;box-shadow:none"></span></div>`
+      : `<div class="b-sun"><i style="width:${Math.round(dayFrac() * 100)}%"></i><span class="mark" style="left:${Math.round(dayFrac() * 100)}%"></span></div>`;
+    return `<div class="hud B">
+      ${sun}
+      <button class="b-avatar">${ic("account")}</button>
+      <div class="b-pebbles">${D.forces.map((f) => `<div class="pebble" style="${night ? "opacity:.7" : ""}">${ic(f.k, f.k)}<b>${f.v}</b></div>`).join("")}</div>
+      ${drawer}
+    </div>`;
+  }
+
+  // ---------- C · Världen talar ----------
+  function variantC(state) {
+    const night = state === "night";
+    const pos = (rc, dy = 0) => { const p = centre(rc[0], rc[1]); const h = TERRAIN[MAP[rc[0]][rc[1]]][1]; return { x: p.x, y: p.y - h + dy }; };
+    const at = (p) => `left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px`;
+    let overlay = "";
+    if (night) {
+      const t = nightFrac();
+      const pts = Array.from({ length: 30 }, (_, i) => arcPt(t * i / 29, 240, 100));
+      const done = "M" + pts.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L");
+      overlay = `<div class="c-night"><svg viewBox="0 -6 240 106"><path class="arc" d="${arcPath(240, 100)}"/><path class="prog" d="${done}"/>
+        <g transform="translate(2 84)" fill="var(--glow)"><use href="#i-moon" width="14" height="14"/></g><g transform="translate(224 84)" fill="var(--dawn)"><use href="#i-sun" width="14" height="14"/></g>
+        <circle cx="${pts[29][0].toFixed(1)}" cy="${pts[29][1].toFixed(1)}" r="6" fill="#E8EEF8"/></svg>
+        <span class="lbl">07:00</span></div>`;
+    } else {
+      // Bubblor över byggnaderna: det byggnaden gör, och dess tecken.
+      const hut = pos(HUT, -14), wc = pos([7, 7], -10), depot = pos(DEPOT, -18), field = pos([8, 6], 2), con = pos(CONSTRUCTION, -12), fog = pos(FOG_EDGE, 0);
+      const r = 16, L = 2 * Math.PI * r;
+      const faded = state === "overview" ? "" : "opacity:.35;";
+      if (state !== "building") overlay += `<div class="bubble" style="${at(hut)};${faded}">${ic("fish")}<span class="mini sign"></span></div>`;
+      overlay += `<div class="bubble" style="${at(wc)};${faded}">${ic("timber", "pulse")}</div>`;
+      overlay += `<div class="bubble" style="${at(field)};${faded}">${ic("grain")}</div>`;
+      if (state !== "building") overlay += `<div class="bubble wide" style="${at(depot)};${faded}">${[["fish", 32], ["timber", 54], ["stone", 21]].map(([k, v]) => `<span class="vbar"><i style="height:${Math.round(v / D.cap * 100)}%"></i></span>`).join("")}</div>`;
+      overlay += `<div class="bubble" style="${at(con)};${faded}"><svg class="ringp" viewBox="0 0 36 36"><circle cx="18" cy="18" r="${r}" stroke="rgba(43,42,51,.15)"/><circle cx="18" cy="18" r="${r}" stroke="var(--t-grass)" stroke-dasharray="${(L * 0.82).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 18 18)"/></svg>${ic("hammer")}</div>`;
+      if (state === "overview") overlay += `<button class="c-compass" style="${at(fog)}">${ic("explore", "explore")}<span class="cost chip">${ic("explore", "explore")}60</span></button>`;
+      if (state === "site") {
+        const c = pos(SITE, -4);
+        const items = [...D.site.slice(0, 5), { b: "i-road", name: "Väg", cost: [["stone", 2]], eff: [] }];
+        const rad = 86;
+        overlay += `<div class="radial" style="${at(c)}">
+          ${items.map((s, i) => { const a = -90 + i * 60; return `<i class="spoke" style="width:${rad - 30}px;transform:rotate(${a}deg)"></i>`; }).join("")}
+          <span class="centre">${groundThumb("forest").replace('class="ground"', 'class="ground" style="width:36px;height:36px"')}</span>
+          ${items.map((s, i) => { const a = (-90 + i * 60) * Math.PI / 180; const x = Math.cos(a) * rad, y = Math.sin(a) * rad; return `<button class="item ${affordable(s.cost) ? "" : "dim"}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px">${bic(s.b)}<span class="cost">${chips(s.cost)}</span></button>`; }).join("")}
+        </div>`;
+      }
+      if (state === "building") {
+        const c = pos(HUT, -6), d = pos(DEPOT, -4);
+        const acts = [...D.actions, { i: "i-carrier", cls: "", cost: [] }];
+        const rad = 80;
+        // Boden står vid skärmens vänsterkant, så menyn öppnar sig nedåt höger och lämnar plats för orsaken, som ritas
+        // från boden upp till förrådet.
+        const mx = (c.x + d.x) / 2, my = (c.y + d.y) / 2 - 24;
+        overlay += `<svg class="diag" viewBox="0 0 360 800"><path d="M${c.x + 10} ${c.y - 24} Q ${mx - 20} ${my - 40} ${d.x} ${d.y - 14}"/></svg>`;
+        overlay += `<div class="late" style="left:${(mx - 8).toFixed(1)}px;top:${(my - 28).toFixed(1)}px">${ic("carrier")}<span class="clock">!</span></div>`;
+        const angle = (i) => -25 + i * 38;
+        overlay += `<div class="radial" style="${at(c)}">
+          ${acts.map((s, i) => `<i class="spoke" style="width:${rad - 30}px;transform:rotate(${angle(i)}deg)"></i>`).join("")}
+          <span class="centre" style="display:grid;place-items:center"><span class="sign"></span></span>
+          ${acts.map((s, i) => { const a = angle(i) * Math.PI / 180; const x = Math.cos(a) * rad, y = Math.sin(a) * rad; return `<button class="item ${affordable(s.cost) ? "" : "dim"}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px">${ic(s.i.slice(2), "act " + s.cls)}<span class="cost">${chips(s.cost)}</span></button>`; }).join("")}
+        </div>`;
+      }
+    }
+    const total = D.forces.reduce((s, f) => s + f.v, 0);
+    const horizon = night ? "" : `<div class="c-horizon">${D.forces.map((f) => `<div class="segm ${f.k}" style="flex:${(f.v / total).toFixed(3)} 1 0">${ic(f.k)}<span>${f.v}</span></div>`).join("")}</div>`;
+    const rail = `<div class="c-rail" style="${night ? "top:120px" : ""}">
+      <button>${ic("care")}</button>
+      ${night ? "" : `<button>${ic("hammer")}<span class="badge">3</span></button>`}
+      <button>${ic("report")}</button>
+      <button>${ic("account")}</button>
+      ${night ? "" : `<div class="folk">${ic("villager")}${pips(D.villagers, D.housing)}</div>`}
+    </div>`;
+    return `<div class="hud C">${horizon}${rail}${overlay}</div>`;
+  }
+
+  // ---------- Anteckningar per riktning ----------
+  const NOTES = {
+    a: {
+      name: "Kompassen", sub: "Ringar, ikonrad och kort",
+      idea: "Ett klassiskt mobil-HUD gjort utan ord. Krafterna är tre ringar som fylls mot det mjuka taket, lagret är en hylla med staplar mot förrådets rymd och dagen är en solbåge från gryning till vila. Allt som går att trycka på är en ikon med ett tal.",
+      replaces: ["<b>Krafternas namn</b> → form och färg i ringen; talet står under.", "<b>«Fisk 32 · Säd 18 …»</b> → ikon, tal och en stapel som visar hur nära förrådets tak varan är.", "<b>«Dag 7 · 14 av 16 bybor · Byn vilar klockan 23»</b> → solbågen och en rad bybopinnar, fyllda och tomma.", "<b>Byggnadens rubrik och kostnadsmening</b> → ett kort med pictogram, kostnadschip och effekt som ikon → ikon.", "<b>«Står still: bärarna hinner inte»</b> → en flödesrad där ledet till bäraren är brutet och rött."],
+      review: ["Hinner du läsa ringarna och hyllan på ett ögonkast, eller behövs talen?", "Känns korten i rutnät rätt när det finns åtta byggnader, eller blir det en katalog?", "Är solbågen begriplig utan klockslag?"],
+      risks: ["Liknar andra mobilspels HUD, så Eiroras egenart måste komma från ön och ljuset.", "Hyllan tar höjd upptill; med nio varor behöver den rulla i sidled."],
+    },
+    b: {
+      name: "Lådan", sub: "Ön fri, allt i en låda med hyllor",
+      idea: "Ön får hela skärmen; gränssnittet är en låda nedtill som dras upp. Krafterna ligger som tre stenar i hörnet. I lådan står lagret som travar vars höjd följer mängden och byggkön som tumnaglar som fylls. Byggval är dioramakort: byggnaden på sin mark, att bläddra i sidled.",
+      replaces: ["<b>Lagerraden</b> → travar: plankorna staplas, stenarna hopas; mer vara, högre trave.", "<b>«Byggkö · 3 st»</b> → tre tumnaglar med fyllnadsgrad; den som byggs har ram, den med handkraft bär en bybo och dagarna kvar.", "<b>Byggnadsvalet</b> → dioramakort där byggnaden står på sin mark; det som inte går att betala blir grått.", "<b>Byggnadens läge</b> → en kedja i rader: bybor, bod, full låda, bäraren som är sen, förrådet.", "<b>Nattkortets text</b> → en remsa med måne, husen med tända fönster och gryningstiden."],
+      review: ["Är det värt att ön alltid syns helt, mot att lådan skymmer den när ett val görs?", "Läses travarna som mängd, eller måste talet ändå stå där?", "Bjuder dioramakorten till att bläddra, eller gömmer de alternativ?"],
+      risks: ["Mycket att teckna: en trave per vara och ett diorama per byggnad, och fler när epokerna växer.", "Lådan öppen täcker över halva ön; byggnaden som valts måste hållas i bild ovanför."],
+    },
+    c: {
+      name: "Världen talar", sub: "Nästan ingen ram, informationen bor på ön",
+      idea: "Ingen hylla, ingen låda. Varje byggnad säger med en bubbla vad den gör, förrådet visar sina staplar, bygget sin framstegsring och det som står still sitt tecken. Krafterna är en horisontremsa längst upp. Att trycka på en ruta öppnar en radiell meny runt den, och orsaken till ett stopp ritas som en bruten linje över ön.",
+      replaces: ["<b>Lagerraden</b> → förrådets bubbla med tre staplar; varje byggnads bubbla visar sin vara.", "<b>Byggnadsarket</b> → en radiell meny runt rutan med kostnaden som bricka under varje val.", "<b>«Bärarna hinner inte»</b> → en streckad röd linje från boden till förrådet, bäraren och ett utropstecken mitt på.", "<b>Knappen Kartlägg</b> → kompasstjärnan står i dimman där den lyfts, med sin kostnad.", "<b>Natten</b> → allt försvinner utom bågen från måne till sol; ön med tända fönster är nattkortet."],
+      review: ["Ger bubblorna en känsla av liv, eller blir ön plottrig när byn har trettio byggnader?", "Är den radiella menyn träffsäker med tummen, också nära skärmens kant?", "Räcker horisontremsan för att veta vad man har råd med?"],
+      risks: ["Svårast att göra tillgänglig: små mål, färg och form på liten yta, ingen plats för förklaringar.", "Bubblorna måste prioriteras när byn växer, annars visar ön allt och säger inget.", "Längre texter, som guidens, behöver ändå ett kort någonstans."],
+    },
+  };
+  function renderNotes(v) {
+    const n = NOTES[v];
+    document.getElementById("notes").innerHTML = `
+      <div class="head"><span class="letter">${v.toUpperCase()}</span><div><h2>${n.name}</h2><p>${n.sub}</p></div></div>
+      <div class="box"><h3>Kärnidé</h3><p>${n.idea}</p></div>
+      <div class="box"><h3>Så ersätts texten</h3><ul>${n.replaces.map((s) => `<li>${s}</li>`).join("")}</ul></div>
+      <div class="box"><h3>Granska</h3><ul>${n.review.map((s) => `<li>${s}</li>`).join("")}</ul></div>
+      <div class="box"><h3>Risker</h3><ul class="risks">${n.risks.map((s) => `<li>${s}</li>`).join("")}</ul></div>`;
+  }
+
+  // ---------- Växling ----------
+  const VARIANTS = ["a", "b", "c"];
+  let variant = "a", state = "overview";
+  const map = buildMap(), starField = stars();
+  const phone = document.getElementById("phone");
+  function render() {
+    phone.className = "phone" + (state === "night" ? " night" : "");
+    phone.innerHTML = "";
+    phone.appendChild(map);
+    // Kameran glider upp så att den valda rutan hålls i bild ovanför arket eller lådan, som spelet gör.
+    map.style.transform = (state === "site" || state === "building") && variant !== "c" ? "translateY(-150px)" : "";
+    map.querySelectorAll(".selection").forEach((e) => e.remove());
+    if (state === "site") selectHex(map, SITE[0], SITE[1]);
+    if (state === "building") selectHex(map, HUT[0], HUT[1]);
+    const sky = document.createElement("div"); sky.className = "sky"; phone.appendChild(sky);
+    phone.appendChild(starField);
+    const hud = document.createElement("div");
+    hud.innerHTML = variant === "a" ? variantA(state) : variant === "b" ? variantB(state) : variantC(state);
+    phone.appendChild(hud.firstElementChild);
+    if (variant === "a") placeRingIcons(phone);
+    renderNotes(variant);
+    document.getElementById("cur").innerHTML = `${variant.toUpperCase()} · ${NOTES[variant].name}<small>${VARIANTS.indexOf(variant) + 1} av ${VARIANTS.length} · ← →</small>`;
+    document.querySelectorAll("#variants button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.variant === variant)));
+    document.querySelectorAll("#states button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.state === state)));
+    try { history.replaceState(null, "", "#" + variant); } catch (e) { /* file:// */ }
+  }
+  function setVariant(v) { variant = v; render(); }
+  function step(dir) { setVariant(VARIANTS[(VARIANTS.indexOf(variant) + dir + VARIANTS.length) % VARIANTS.length]); }
+  document.getElementById("prev").addEventListener("click", () => step(-1));
+  document.getElementById("next").addEventListener("click", () => step(1));
+  document.querySelectorAll("#variants button").forEach((b) => b.addEventListener("click", () => setVariant(b.dataset.variant)));
+  document.querySelectorAll("#states button").forEach((b) => b.addEventListener("click", () => { state = b.dataset.state; render(); }));
+  document.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    if (e.key === "ArrowLeft") { step(-1); e.preventDefault(); }
+    if (e.key === "ArrowRight") { step(1); e.preventDefault(); }
+    const states = ["overview", "site", "building", "night"];
+    if (e.key >= "1" && e.key <= "4") { state = states[Number(e.key) - 1]; render(); }
+  });
+  // Den valda riktningen öppnas först; en länk med #a eller #b visar underlaget.
+  const fromUrl = (location.hash || "").replace("#", "").toLowerCase() || new URLSearchParams(location.search).get("variant");
+  variant = VARIANTS.includes(fromUrl) ? fromUrl : "c";
+  render();
+})();
+</script>

@@ -15,55 +15,350 @@
     color: rgb(43, 42, 51);
 }
 
-.top {
-    flex-direction: column;
-}
-
-.forces {
+/* The forces along the horizon (ui-prototypes.html, direction C): a translucent strip whose three fields grow with
+   the amounts, each with the force's shape, its amount and a line in its colour. */
+.horizon {
     flex-direction: row;
-    justify-content: space-between;
+    height: 84px;
+    border-radius: 42px;
+    overflow: hidden;
+    background-color: rgba(16, 24, 48, 0.42);
 }
 
-.force {
+.segment {
     flex-direction: row;
     align-items: center;
+    justify-content: center;
+    flex-basis: 0;
+    min-width: 200px;
+    padding: 0 20px;
+    border-bottom-width: 10px;
 }
 
-.force-value {
-    font-size: 54px;
+.segment-value {
+    font-size: 38px;
     -unity-font-style: bold;
+    color: rgb(255, 255, 255);
     margin-left: 12px;
 }
 
-.force-name {
-    font-size: 26px;
-    color: rgb(104, 101, 117);
-    margin-left: 10px;
-    margin-top: 10px;
+/* The rail at the left: round signs for self-care, the queue, the report and the account, and the villagers' pips. */
+.rail {
+    position: absolute;
+    left: 0;
+    top: 24px;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* One label per resource, spread over the card with at least a small gap. The row's negative right margin takes back
-   the last label's gap, its left margin lines it up with the status below, whose label keeps its padding, and it
-   wraps only when the stock no longer fits on one line. */
-.resources {
+.rail-button {
+    width: 132px;
+    height: 132px;
+    margin: 0 0 20px 0;
+    padding: 0;
+    border-radius: 66px;
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.10);
+    background-color: rgba(251, 247, 239, 0.96);
+    align-items: center;
+    justify-content: center;
+}
+
+.rail-button:active {
+    background-color: rgb(241, 233, 220);
+}
+
+.badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 54px;
+    height: 54px;
+    padding: 0 14px;
+    border-radius: 27px;
+    border-width: 4px;
+    border-color: rgb(251, 247, 239);
+    background-color: rgb(43, 42, 51);
+    color: rgb(251, 247, 239);
+    font-size: 30px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+.folk {
+    align-items: center;
+    margin-top: 8px;
+}
+
+.pips {
     flex-direction: row;
     flex-wrap: wrap;
-    justify-content: space-between;
-    margin: 18px -12px 0 2px;
+    justify-content: center;
+    width: 132px;
+    margin-top: 6px;
 }
 
-.resource {
-    font-size: 30px;
-    margin: 0 12px 0 0;
+.pip {
+    width: 18px;
+    height: 28px;
+    margin: 2px;
+    border-radius: 7px 7px 5px 5px;
+    background-color: rgb(255, 255, 255);
+}
+
+.pip-empty {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 3px;
+    border-color: rgb(255, 255, 255);
+}
+
+/* What lives on the island: the layer under the screen whose children follow the camera (Hud.World.cs). */
+.island-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.bubbles {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.bubble {
+    position: absolute;
+    width: 96px;
+    height: 96px;
+    margin: 0;
     padding: 0;
-    color: rgb(68, 66, 80);
+    border-radius: 48px;
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.12);
+    background-color: rgb(251, 247, 239);
+    align-items: center;
+    justify-content: center;
 }
 
-.status {
+.bubble:active {
+    background-color: rgb(241, 233, 220);
+}
+
+.bubble-tail {
+    position: absolute;
+    bottom: -9px;
+    left: 36px;
+    width: 22px;
+    height: 22px;
+    rotate: 45deg;
+    background-color: rgb(251, 247, 239);
+}
+
+.bubble-wide {
+    width: auto;
+    flex-direction: row;
+    padding: 0 14px;
+    border-radius: 42px;
+}
+
+.shelf {
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+.stock {
+    align-items: center;
+    margin: 0 6px;
+}
+
+.stock-bar {
+    width: 18px;
+    height: 44px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    background-color: rgba(43, 42, 51, 0.12);
+    overflow: hidden;
+    justify-content: flex-end;
+}
+
+.stock-fill {
+    width: 100%;
+    border-radius: 6px;
+    background-color: rgba(43, 42, 51, 0.75);
+}
+
+.progress-ring {
+    position: absolute;
+    left: -10px;
+    top: -10px;
+    right: -10px;
+    bottom: -10px;
+}
+
+/* The compass in the fog, which the next survey lifts, with its cost. */
+.compass {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    margin: 0;
+    padding: 0;
+    border-radius: 75px;
+    border-width: 0;
+    background-color: rgba(251, 247, 239, 0.92);
+    align-items: center;
+    justify-content: center;
+}
+
+.compass > .chip {
+    position: absolute;
+    bottom: -16px;
+    right: -12px;
+}
+
+/* The late carrier, on the way from a building whose goods wait to its depot (TASK-043). */
+.late {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 60px;
+    border-width: 6px;
+    border-color: rgb(180, 71, 58);
+    background-color: rgb(251, 247, 239);
+    align-items: center;
+    justify-content: center;
+}
+
+.late-clock {
+    position: absolute;
+    top: -16px;
+    right: -16px;
+}
+
+/* The ring of choices around the selected tile: a round picture or sign each, its cost as chips under it, and the
+   words of the chosen one on a caption below the ring. */
+.ring {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.ring-centre {
+    position: absolute;
+    left: -45px;
+    top: -45px;
+    width: 90px;
+    height: 90px;
+    margin: 0;
+    padding: 0;
+    border-radius: 45px;
+    border-width: 0;
+    background-color: rgba(251, 247, 239, 0.9);
+    color: rgb(43, 42, 51);
+    font-size: 44px;
+    -unity-text-align: middle-center;
+}
+
+.choice {
+    position: absolute;
+    width: 156px;
+    height: 156px;
+    margin: 0;
+    padding: 0;
+    border-radius: 78px;
+    border-width: 3px;
+    border-color: rgba(43, 42, 51, 0.12);
+    background-color: rgb(251, 247, 239);
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+}
+
+.choice:active {
+    background-color: rgb(241, 233, 220);
+}
+
+.choice-chosen {
+    border-width: 6px;
+    border-color: rgb(43, 42, 51);
+}
+
+.choice-unavailable > .choice-picture,
+.choice-unavailable > .glyph,
+.choice-unavailable > .force-icon {
+    opacity: 0.4;
+}
+
+.choice-picture {
+    width: 136px;
+    height: 136px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.choice-chips {
+    position: absolute;
+    bottom: -26px;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.chip {
+    flex-direction: row;
+    align-items: center;
+    height: 48px;
+    margin: 0 3px;
+    padding: 0 12px 0 6px;
+    border-radius: 24px;
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.12);
+    background-color: rgb(251, 247, 239);
+}
+
+.chip-lack {
+    border-width: 4px;
+    border-color: rgb(180, 71, 58);
+    background-color: rgb(246, 226, 222);
+}
+
+.chip-amount {
     font-size: 30px;
-    color: rgb(104, 101, 117);
-    margin-top: 12px;
+    -unity-font-style: bold;
+    color: rgb(43, 42, 51);
+    margin-left: 4px;
+}
+
+.caption {
+    position: absolute;
+    left: -380px;
+    width: 760px;
+    padding: 18px 28px;
+    border-radius: 30px;
+    background-color: rgba(251, 247, 239, 0.96);
+    border-width: 2px;
+    border-color: rgba(43, 42, 51, 0.08);
+}
+
+.caption-title {
+    font-size: 38px;
+    -unity-font-style: bold;
+    color: rgb(43, 42, 51);
     white-space: normal;
+}
+
+.caption-text {
+    font-size: 29px;
+    color: rgb(104, 101, 117);
+    white-space: normal;
+    margin-top: 4px;
+}
+
+.caption-hint {
+    font-size: 27px;
+    color: rgb(104, 101, 117);
+    -unity-font-style: italic;
+    margin-top: 8px;
 }
 
 .bottom {
@@ -102,43 +397,6 @@
 
 .button:disabled {
     opacity: 0.45;
-}
-
-.button-title {
-    font-size: 31px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
-    color: rgb(43, 42, 51);
-}
-
-.button-cost {
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    margin-top: 4px;
-}
-
-.button-cost-value {
-    font-size: 27px;
-    color: rgb(104, 101, 117);
-    margin-left: 6px;
-}
-
-/* A bar button's second line that is not a cost, such as how long the building queue is. */
-.button-detail {
-    font-size: 27px;
-    color: rgb(104, 101, 117);
-    margin-top: 4px;
-    -unity-text-align: middle-center;
-}
-
-/* The account button at the end of the bar: a square with a person (ADR-0008). */
-.button-icon {
-    flex-grow: 0;
-    flex-basis: 120px;
-    width: 120px;
-    align-items: center;
-    justify-content: center;
 }
 
 .button-wide {
@@ -383,25 +641,27 @@
     background-color: rgba(43, 42, 51, 0.12);
 }
 
-.night {
-    background-color: rgba(16, 24, 48, 0.86);
-    border-color: rgba(255, 210, 122, 0.25);
-    color: rgb(232, 238, 248);
+/* The night (RST-03): an arc from the moon to the sun along the top, with how far the rest has come and when the
+   world opens. Nothing else is said; the island with its lit windows is the night's card. */
+.night-arc {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
     align-items: center;
-    margin-top: 40px;
 }
 
-.night-title {
+.arc {
+    width: 760px;
+    height: 330px;
+}
+
+.night-time {
+    position: absolute;
+    top: 196px;
     font-size: 58px;
     -unity-font-style: bold;
     color: rgb(255, 210, 122);
-}
-
-.night-text {
-    font-size: 34px;
-    white-space: normal;
-    -unity-text-align: middle-center;
-    margin-top: 8px;
 }
 
 .toast {

@@ -105,6 +105,7 @@ namespace Eirora.Client.Tests
             Close(root);
 
             hud.Select(s_farmstead);
+            hud.ShowMore();
 
             var texts = root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray();
             Assert.That(texts, Does.Contain("Hemön har 4 bönder i bostäder för 6."));
@@ -122,6 +123,7 @@ namespace Eirora.Client.Tests
             Close(root);
 
             hud.Select(s_farmstead);
+            hud.ShowMore();
 
             var texts = root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray();
             Assert.That(texts, Does.Contain("Hemön har inga bönder än, bostäder för sex."));
@@ -158,9 +160,12 @@ namespace Eirora.Client.Tests
         {
             string[] Bar(World world)
             {
+                // The goods the village has met are the store's (ui-prototypes.html, direction C).
                 var root = new VisualElement();
-                new Hud(root, _ => throw new InvalidOperationException("Nothing is played here.")).Show(world, Array.Empty<GameEvent>());
-                return root.Query<Label>(className: "resource").ToList().Select(l => l.text.Split(' ')[0]).ToArray();
+                var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
+                hud.Show(world, Array.Empty<GameEvent>());
+                hud.OpenStore(world.HomeIsland);
+                return root.Query<Label>(className: "good-name").ToList().Select(l => l.text).ToArray();
             }
 
             Assert.That(Bar(Village(step: 0)), Has.None.EqualTo("Vilt").And.None.EqualTo("Skinn"));

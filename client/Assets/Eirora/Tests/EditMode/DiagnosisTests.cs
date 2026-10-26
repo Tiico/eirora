@@ -88,6 +88,7 @@ namespace Eirora.Client.Tests
             var hud = new Hud(root, command => { played.Add(command); return world.Apply($"cap-{played.Count}", command); });
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
             hud.Select(Hex.Origin);
+            hud.ShowMore();
 
             Press(root.Query<Button>(className: "stepper-button").ToList().First());
 
@@ -208,7 +209,7 @@ namespace Eirora.Client.Tests
             hud.SelectionChanged += tile => selected = tile;
             Press(bottleneck);
             Assert.That(selected, Is.EqualTo(s_beside), "The bottleneck leads to the building.");
-            Assert.That(root.Q<Label>(className: "sheet-title").text, Is.EqualTo("Sågverk"));
+            Assert.That(root.Q<Label>(className: "caption-title").text, Is.EqualTo("Sågverk"));
         }
 
         [Test]
@@ -258,13 +259,14 @@ namespace Eirora.Client.Tests
             var hud = new Hud(root, _ => throw new InvalidOperationException("Nothing is played here."));
             hud.Show(world, Array.Empty<Simulation.Events.GameEvent>());
             hud.Select(tile);
+            hud.ShowMore();
             bool marked = false;
             WithIsland(world, island => marked = island.MarkedStandingStill.Contains(tile));
             return (
                 root.Q<Label>(className: "sheet-subtitle").text,
                 root.Query<Label>(className: "sheet-text").ToList().Select(l => l.text).ToArray(),
                 root.Query<Button>(className: "action").ToList().Select(a => $"{Label(a, "action-title")} | {Label(a, "action-cost")}").ToArray(),
-                root.Q(className: "standing-still") is not null,
+                root.Q(className: "sheet-status")?.Q(className: "standing-still") is not null, // On the card; the island's bubbles carry their own.
                 marked,
                 root.Q<Label>(className: "stepper-value")?.text);
         }

@@ -32,7 +32,7 @@ namespace Eirora.Client.UI
 
             if (_world is not null)
             {
-                ShowBar(_world);
+                ShowRail(_world);
             }
         }
 

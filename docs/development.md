@@ -141,6 +141,12 @@ På en Mac byggs spelaren med `Eirora.Editor.Builds.MacOS` och startas med `open
 open -W -n client/Builds/MacOS/Eirora.app --args -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -eirora-screenshots "$PWD/artifacts/screenshots"
 ```
 
+Utan en spelare för datorn, som på en Mac med bara Android-modulen, spelar `Eirora.Editor.EditorTour.Run` turen i editorns play-läge och ritar ön och gränssnittet till texturer i telefonens storlek (1080 × 2340), så att bilderna blir desamma som från en spelare:
+
+```bash
+/Applications/Unity/Hub/Editor/6000.3.26f1/Unity.app/Contents/MacOS/Unity -batchmode -projectPath client -executeMethod Eirora.Editor.EditorTour.Run -eirora-screenshots "$PWD/artifacts/screenshots" -logFile artifacts/unity-tour.log
+```
+
 Turen visar sedan en ny värld på en genererad karta, nära och på långt håll, och slutar i den odlade byn från epok 1:s fjärde vecka med bönder, hantverkare och varje byggnad som stegen låser upp, var och en med sitt blad.
 Den odlade byn är en sparning i `client/Assets/Eirora/Resources/Tour/GrownVillage.bytes`, som `GrownVillageTests` skriver när den saknas och prövar.
 
