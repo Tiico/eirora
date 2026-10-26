@@ -39,6 +39,7 @@ En användare på värden med UID 1654 kan därför läsa de filerna om den komm
 Skriptet behåller hemligheter som redan finns, så det kan köras igen för att laga ägare och rättigheter.
 Utan Apples nyckel lägger skriptet en tom `secrets/apple_private_key.p8` som platshållare, eftersom Compose inte kan hoppa över en filhemlighet; servern läser en tom nyckel som ingen nyckel.
 CI kör de här stegen och `compose.yaml` mot varje ny avbildning, både med bara Google och med Google och Apple ([smoke-test.sh](./smoke-test.sh)).
+Där läser en Traefik serverns etiketter som på servern, och testet kräver att båda routrarna är påslagna, att inloggningsroutern har sin hastighetsbegränsning och att den svarar 429 efter sin skur.
 
 5. Starta:
 
@@ -84,6 +85,14 @@ Produktägaren har beslutat om ett dokumenterat undantag (2026-10-26).
 Under prototypen körs servern på en disk utan kryptering, trots förutsättningen ovan om krypterad disk för Dockers volymer.
 Servern innehåller då bara produktägarens egna data, och bidragen är ändå krypterade från ände till ände (D-57).
 Undantaget måste hävas, och disken krypteras, innan andra spelare får konton.
+
+## Traefiks etiketter
+
+Etiketterna i `compose.yaml` är en lista med `"nyckel=värde"`, inte en mappning.
+Compose fyller bara i variabler i värden, aldrig i nycklar, så `${EIRORA_PROJECT}` i en mappningsnyckel når Traefik som bokstavlig text.
+Då heter routrarna `${EIRORA_PROJECT:-eirora}`, produktion och staging krockar, och Traefik stänger av inloggningsroutern eftersom dess middleware inte finns under det ifyllda namnet, så att inloggningen går genom huvudroutern utan begränsning.
+Routrar, tjänst och middleware heter efter `EIRORA_PROJECT`, så att produktion och staging har egna namn.
+[check-labels.sh](./check-labels.sh) kontrollerar båda compose-filerna i CI: inga variabler kvar i etiketterna, varje middleware som en router använder finns, och två projekt delar inga namn.
 
 ## Uppdatera
 
