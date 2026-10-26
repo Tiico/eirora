@@ -13,7 +13,9 @@ public static class Report
     private static readonly string[] s_columns =
     [
         "map", "seed", "strategy", "profile", "days", "villagers", "housing", "buildings", "level_2", "islands",
-        "fish", "grain", "timber", "planks", "stone", "wool", "wadmal", "daily_output", "value", "start_value",
+        "crofters", "farmers", "craftsmen", "settlements",
+        .. Enum.GetValues<Resource>().Select(Column),
+        "daily_output", "value", "start_value",
         "used_exploration", "used_build_power", "used_dawn_power", "saved_exploration", "saved_build_power", "saved_dawn_power",
         "value_per_force", "plan_finished_day", "goals_done", "goals_skipped", "goals_pending", "commands", "accepted", "hours_checked",
     ];
@@ -37,6 +39,8 @@ public static class Report
                 Whole(run.Buildings),
                 Whole(run.LevelTwo),
                 Whole(run.Islands),
+                .. run.Tiers.Select(t => Whole(t)),
+                Whole(run.Settlements),
                 .. run.Stock.Select(Whole),
                 Rounded(run.DailyOutput),
                 Rounded(run.Value),
@@ -70,8 +74,8 @@ public static class Report
         foreach (var group in all.GroupBy(r => (r.Spec.Map.Name, r.Spec.Days)))
         {
             text.Append(Invariant($"\n## {group.Key.Name}, {group.Key.Days} dagar\n\n"));
-            text.Append("| Karta | Körning | Egenvård | Bybor | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft | Planen klar | Mål kvar |\n");
-            text.Append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+            text.Append("| Karta | Körning | Egenvård | Bybor | Nivåer T/B/H | Bosättningar | Byggnader | Öar | Sten i lager | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft | Planen klar | Mål kvar |\n");
+            text.Append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n");
             foreach (var run in group)
             {
                 string[] cells =
@@ -80,6 +84,8 @@ public static class Report
                     run.Spec.Strategy.Name,
                     run.Spec.Profile.Name,
                     Whole(run.Villagers),
+                    string.Join('/', run.Tiers.Select(t => Whole(t))),
+                    Whole(run.Settlements),
                     Whole(run.Buildings),
                     Whole(run.Islands),
                     Whole(run.Stock[(int)Resource.Stone]),
@@ -107,6 +113,9 @@ public static class Report
 
         return text.ToString();
     }
+
+    /// <summary>A resource's column, such as wadmal or tar, so that every resource in store has one.</summary>
+    private static string Column(Resource resource) => resource.ToString().ToLowerInvariant();
 
     private static string Seed(RunResult run) => run.Spec.Map.Seed?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
 

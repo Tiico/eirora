@@ -15,6 +15,12 @@ public static class Suites
         new(MapChoice.Prototype, Strategy.Idle, SelfCareProfile.Normal, 7),
     ];
 
+    /// <summary>
+    /// The scenarios of economy v2, section 15: every thoughtful strategy and the naive one on each scenario's map with
+    /// its profile, four weeks each.
+    /// </summary>
+    public static IReadOnlyList<RunSpec> Scenarios() => [.. Scenario.All.SelectMany(scenario => scenario.Runs())];
+
     /// <summary>Närområdet and Havet with normal self-care on generated maps, four weeks each.</summary>
     public static IReadOnlyList<RunSpec> Generated(ulong from = 0, int seeds = 20, int days = 28)
     {

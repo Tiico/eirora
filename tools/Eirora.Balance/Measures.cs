@@ -11,7 +11,8 @@ namespace Eirora.Balance;
 /// </summary>
 internal static class Measures
 {
-    private const int VillagerValue = 15;
+    /// <summary>What a villager of each tier is worth: crofters, farmers and craftsmen (economy-v2.md, section 9).</summary>
+    private static readonly int[] s_tierValues = [15, 25, 40];
 
     /// <summary>
     /// Weighted production capacity a game day: what each staffed building makes at its level, without workdays, whether
@@ -80,8 +81,9 @@ internal static class Measures
     }
 
     /// <summary>
-    /// The development value: villagers × 15, half the weighted stock at home and of the knarrs' materials, also of one a
-    /// shipyard is building, and three days of production (economy-v1.md, section 7; economy_v2.py, value).
+    /// The development value: crofters × 15, farmers × 25 and craftsmen × 40, half the weighted stock at home and of the
+    /// knarrs' materials, also of one a shipyard is building, and three days of production (economy-v1.md, section 7;
+    /// economy-v2.md, section 9; economy_v2.py, value).
     /// </summary>
     public static long Value(World world)
     {
@@ -102,6 +104,7 @@ internal static class Measures
             }
         }
 
-        return Quantity.Units(world.Villagers * VillagerValue) + (stock / 2) + (3 * DailyOutput(world));
+        long villagers = world.Settlements.Sum(s => Enum.GetValues<PopulationTier>().Sum(tier => (long)s.VillagersOf(tier) * s_tierValues[(int)tier]));
+        return Quantity.Units(villagers) + (stock / 2) + (3 * DailyOutput(world));
     }
 }
