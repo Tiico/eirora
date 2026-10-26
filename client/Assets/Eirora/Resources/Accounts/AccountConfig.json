@@ -1,6 +1,6 @@
 {
-  "server": "",
+  "server": "https://eirora-api.ockelberg.com",
   "appleServicesId": "",
-  "googleWebClientId": "",
-  "googleIosClientId": ""
+  "googleWebClientId": "177245026300-f54ejeqeqbt7u10aqt2ev4n5c8ilajan.apps.googleusercontent.com",
+  "googleIosClientId": "177245026300-74dp01ctp4plhuou9d3h5o25rvggm8dr.apps.googleusercontent.com"
 }

@@ -19,12 +19,14 @@
 #
 # Set ADB to the adb binary if it is not on PATH, and ANDROID_SERIAL to pick a device when several are attached.
 # MEASURE_PAUSE_SECONDS sets the pause between cold starts (default 3), FIRST_FRAME_WAIT_SECONDS how long to wait for
-# the client's first frame with the world (default 120).
+# the client's first frame with the world (default 120), MEASURE_SETTLE_SECONDS how long the scene settles before the
+# session is measured (default 10).
 set -euo pipefail
 
 PACKAGE="se.eirora.app"
 PAUSE_SECONDS="${MEASURE_PAUSE_SECONDS:-3}"
 FIRST_FRAME_WAIT_SECONDS="${FIRST_FRAME_WAIT_SECONDS:-120}"
+SETTLE_SECONDS="${MEASURE_SETTLE_SECONDS:-10}"
 ADB="${ADB:-adb}"
 if ! command -v "$ADB" >/dev/null 2>&1 && [ -x "${LOCALAPPDATA:-}/Android/Sdk/platform-tools/adb.exe" ]; then
     ADB="$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe"
@@ -32,6 +34,9 @@ fi
 
 die() { echo "measure.sh: $*" >&2; exit 1; }
 shell() { "$ADB" shell "$@" | tr -d '\r'; }
+# adb joins the arguments of `adb shell` into one command line that the phone's shell splits again, so every value that
+# is not a fixed word, such as a name read from the phone, is passed through quote to arrive there as one string.
+quote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
 record() { printf '%s\t%s\n' "$1" "$2" >>"$OUT/results.tsv"; printf '  %-28s %s\n' "$1" "$2"; }
 
 parse_options() {
@@ -105,9 +110,8 @@ app_layer() {
     shell dumpsys SurfaceFlinger --list | grep -F "SurfaceView[$PACKAGE" | grep -v -F "Background" | grep -F "BLAST" | head -n 1
 }
 
-# The Unity extra for the measurement scene. adb joins its arguments into one command line that the phone's shell
-# splits again, so the extra is quoted for that shell to arrive as one string.
-scene_argument() { printf "'-eirora-measure %s'" "$LIGHT"; }
+# The Unity extra for the measurement scene.
+scene_argument() { quote "-eirora-measure $LIGHT"; }
 
 median() { sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }'; }
 
@@ -137,7 +141,7 @@ measure_cold_start() {
     echo "Cold start ($STARTS times):"
     for i in $(seq 1 "$STARTS"); do
         "$ADB" logcat -c
-        total="$(shell am start -W -S -n "$activity" -e unity "$(scene_argument)" | awk '/TotalTime:/ { print $2 }')"
+        total="$(shell am start -W -S -n "$(quote "$activity")" -e unity "$(scene_argument)" | awk '/TotalTime:/ { print $2 }')"
         [ -n "$total" ] || die "am start reported no TotalTime"
         frame="$(first_frame)" || die "the log has no start of the activity before the first frame of the world"
         times+=("$total")
@@ -155,8 +159,8 @@ measure_cold_start() {
 measure_session() {
     local activity="$1" layer start end i temps
     echo "Holding the $LIGHT scene for $SECONDS_TO_HOLD s:"
-    shell am start -S -n "$activity" -e unity "$(scene_argument)" >/dev/null
-    sleep 10 # Let the scripted week play and the scene settle before measuring.
+    shell am start -S -n "$(quote "$activity")" -e unity "$(scene_argument)" >/dev/null
+    sleep "$SETTLE_SECONDS" # Let the scripted week play and the scene settle before measuring.
 
     shell dumpsys batterystats --reset >/dev/null
     shell dumpsys battery unplug >/dev/null # Count the session as on battery even while USB is attached.
@@ -171,7 +175,7 @@ measure_session() {
     start="$(date +%s)"; end=$((start + SECONDS_TO_HOLD)); i=0
     while [ "$(date +%s)" -lt "$end" ]; do
         # The latency dump holds the last 127 frames, about 4 s at 30 fps, so read it every 2 s.
-        shell dumpsys SurfaceFlinger --latency "$layer" | awk 'NR > 1 && $2 > 0 && $2 < 9e18 { print $2 }' >>"$OUT/frames.txt"
+        shell dumpsys SurfaceFlinger --latency "$(quote "$layer")" | awk 'NR > 1 && $2 > 0 && $2 < 9e18 { print $2 }' >>"$OUT/frames.txt"
         if [ $((i % 5)) -eq 0 ]; then pss_kb >>"$OUT/pss-kb.txt"; fi
         i=$((i + 1)); sleep 2
     done

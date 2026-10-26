@@ -5,11 +5,13 @@ on:
   pull_request:
     paths:
       - deploy/site/**
+      - deploy/check-labels.sh
       - .github/workflows/site.yml
   push:
     branches: [main]
     paths:
       - deploy/site/**
+      - deploy/check-labels.sh
       - .github/workflows/site.yml
   workflow_dispatch:
 
@@ -36,6 +38,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Compose fills in variables in label values only; a variable in a label key reaches Traefik literally.
+      - name: Check the Traefik labels
+        run: ../check-labels.sh
+
       # On the server Traefik owns this network; here it only has to exist.
       - run: docker network create traefik
 
@@ -61,5 +67,33 @@ jobs:
           if docker compose logs site | grep -q "ERROR"; then echo "::error::The entrypoint reported an error"; failed=1; fi
           if [ "$failed" = 1 ]; then echo "$page"; exit 1; fi
 
+      # Traefik reads the site's labels from Docker, as on the server, and must route the site's host to it.
+      - name: Traefik routes the site's host to the policy
+        shell: bash
+        run: |
+          docker run --detach --name proxy --network traefik \
+            --volume /var/run/docker.sock:/var/run/docker.sock:ro \
+            traefik:v3.7.16 \
+            --api.insecure=true \
+            --entrypoints.websecure.address=:8443 \
+            --providers.docker.exposedbydefault=false > /dev/null
+          proxy=$(docker inspect --format '{{.NetworkSettings.Networks.traefik.IPAddress}}' proxy)
+          status=missing
+          for _ in $(seq 30); do
+            status=$(curl --silent --fail "http://$proxy:8080/api/http/routers/eirora-site@docker" | jq --raw-output .status || echo missing)
+            [ "$status" = enabled ] && break
+            sleep 1
+          done
+          if [ "$status" != enabled ]; then
+            echo "::error::Traefik's router eirora-site@docker is $status, not enabled"
+            curl --silent "http://$proxy:8080/api/http/routers" | jq --compact-output '.[] | {name, status, error}'
+            exit 1
+          fi
+          code=$(curl --silent --insecure --output /dev/null --write-out '%{http_code}' \
+            --resolve "$EIRORA_SITE_HOST:8443:$proxy" "https://$EIRORA_SITE_HOST:8443/privacy/")
+          if [ "$code" != 200 ]; then echo "::error::/privacy/ answered $code through Traefik, expected 200"; exit 1; fi
+
       - if: failure()
-        run: docker compose logs
+        run: |
+          docker compose logs
+          docker logs proxy || true

@@ -89,6 +89,7 @@ namespace Eirora.Client.Accounts
 
             if (reply.Status != 200 || reply.AccessToken is null || reply.RefreshToken is null)
             {
+                UnityEngine.Debug.LogWarning($"Sign-in with {provider} failed: the server answered {reply.Status}");
                 return AccountOutcome.SignInFailed;
             }
 
@@ -332,12 +333,15 @@ namespace Eirora.Client.Accounts
                 var signIn = await source.SignInAsync(Nonce.Hash(nonce));
                 return (AccountOutcome.Done, new ExternalLogin(provider, signIn.IdToken, nonce, forDeletion ? signIn.AuthorizationCode : null));
             }
-            catch (SignInCancelledException)
+            catch (SignInCancelledException cancelled)
             {
+                // Logged too, so that an error a provider calls a cancellation shows in logcat (TASK-067).
+                UnityEngine.Debug.Log($"Sign-in with {provider} was cancelled" + (cancelled.Reason is null ? string.Empty : ": " + cancelled.Reason));
                 return (AccountOutcome.Cancelled, null);
             }
-            catch (LoginProviderException)
+            catch (LoginProviderException failed)
             {
+                UnityEngine.Debug.LogWarning($"Sign-in with {provider} failed: {failed.Message}");
                 return (AccountOutcome.SignInFailed, null);
             }
         }

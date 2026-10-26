@@ -122,7 +122,7 @@ namespace Eirora.Client.Accounts
                     answer.SetResult((first ?? string.Empty, second));
                     break;
                 case 1:
-                    answer.SetException(new SignInCancelledException());
+                    answer.SetException(new SignInCancelledException(first));
                     break;
                 default:
                     answer.SetException(new LoginProviderException(first ?? "The sign-in failed"));

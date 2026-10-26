@@ -18,7 +18,7 @@ Arkitekturen bakom står i [ADR-0001](./adr/0001-local-world-server-for-shared-s
 | `tests/Eirora.Balance.Tests/` | Balansbotarnas korta körningar: ekonomi v1:s sju dygn, determinismen och 20 genererade kartor i fyra veckor. |
 | `benchmarks/` | Prestandamätningar med BenchmarkDotNet, se [Bygga och testa](#bygga-och-testa). |
 | `client/` | Unity-klienten (Unity 6.3 LTS). Kod under `client/Assets/Eirora/`. |
-| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor och `Eirora.Balance` låter balansbotar spela simuleringen (båda byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget, och `measure.sh cold-start` mot en låtsad `adb`. |
+| `tools/` | Verktyg för utvecklare: `Eirora.MapCheck` validerar kartor och `Eirora.Balance` låter balansbotar spela simuleringen (båda byggs i CI), och skript som [mätningar på enhet](./design/device-measurements.md), som körs för hand; i CI prövas bara `measure.sh budget` med sitt test och mot storleken på release-bygget, och `measure.sh cold-start` och `measure.sh active` mot en låtsad `adb`. |
 | `spikes/` | Fristående spikar som besvarar en fråga och sedan kastas, till exempel [Health Connect](../spikes/health-connect/README.md). Ingår inte i CI. |
 | `Eirora.slnx` | Lösningen med alla .NET-projekt. Unity-projektet öppnas separat. |
 
@@ -352,7 +352,8 @@ dotnet run --project src/Eirora.Server
 ```
 
 Lokalt signeras token med nycklar som slängs när processen avslutas.
-Inloggning med Apple eller Google kräver att appens klient-id står under `SignIn:Providers:<apple|google>:Audiences` (till exempel med `dotnet user-secrets`); utan dem är leverantören avstängd.
+Inloggning med Google kräver att appens klient-id står under `SignIn:Providers:google:Audiences` (till exempel med `dotnet user-secrets`); utan dem är Google avstängt.
+Apple kräver alla sina inställningar eller ingen, se [Inloggning](#inloggning).
 
 En ändring i datamodellen blir en migration med verktyget i `dotnet-tools.json`; den genererade koden redigeras aldrig för hand:
 
@@ -372,6 +373,13 @@ Hur servern körs på produktägarens server står i [deploy/README.md](../deplo
 
 Spelaren loggar in med Apple eller Google under kontoknappen längst till höger i nederkanten ([ADR-0008](./adr/0008-backend-hosting-accounts-and-database.md)).
 Kontot behövs aldrig för att spela, och knappen syns bara i ett bygge som har en server och minst en leverantör.
+
+Servern kan köras med bara Google, utan någon Apple-konfiguration alls, som Android-prototypen gör tills produktägaren har ett Apple Developer-konto.
+Apple är påslaget när någon av dess inställningar är satt, och då krävs alla: `SignIn:Providers:apple:Audiences`, `SignIn:Web:AppleServicesId`, `SignIn:Apple:TeamId`, `SignIn:Apple:KeyId` och `SignIn:Apple:PrivateKey`.
+Ett tomt värde räknas som inte satt.
+En delvis ifylld Apple-konfiguration, eller ett Services ID som inte är ett av Apples klient-id, stoppar servern vid start med ett fel som säger vad som saknas.
+Med Apple avstängt registreras ingen Apple-leverantör, `/signin/apple/callback` finns inte, raderingssidan visar bara Google och en radering återkallar inget hos Apple.
+Hur det ser ut i driftsättningen står i [deploy/README.md](../deploy/README.md#google-ensam-eller-google-och-apple).
 
 | Plattform | Apple | Google |
 |---|---|---|
@@ -435,9 +443,9 @@ Kontrollera detta på både Android och iOS innan en version med inloggning slä
 
 | Workflow | Körs vid | Gör |
 |---|---|---|
-| [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md` ([smoke-test.sh](../deploy/smoke-test.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
+| [`.NET`](../.github/workflows/dotnet.yml) | Pull requests och push till `main`, utom ändringar som bara rör `client/`, `docs/` eller Markdown, samt manuellt | Restore med sårbarhetskontroll, formatkontroll, bygge och alla .NET-tester, med serverns tester mot PostgreSQL i Testcontainers. Därefter byggs serverns containeravbildning och driftsätts på försök enligt `deploy/README.md`, både med bara Google och med Google och Apple bakom en Traefik som måste begränsa inloggningen ([smoke-test.sh](../deploy/smoke-test.sh)), efter att Traefiks etiketter i båda compose-filerna kontrollerats ([check-labels.sh](../deploy/check-labels.sh)); på `main` publiceras den som `ghcr.io/tiico/eirora-server:<commit>`. |
 | [`Unity`](../.github/workflows/unity.yml) | Pull requests som ändrar `client/`, `src/Eirora.Simulation/`, `src/Eirora.Contracts/`, `src/Eirora.WorldGeneration/`, `src/Eirora.CloudSaving/`, workflowen eller dess actions ([`free-disk-space`](../.github/actions/free-disk-space/action.yml), [`build-version`](../.github/actions/build-version/action.yml)); publicerade releaser; manuellt | På pull requests bara Unity-testerna. Vid en release och manuellt också jämförelsen av determinismkorpusen mellan .NET och IL2CPP på en Android-emulator, Android-bygget och ett iOS-Xcode-projekt som kompileras med Xcode på macOS utan signering; en manuell körning med `builds=determinism` gör bara jämförelsen. En release blir ett app-paket som går till Google Plays interna test, se [Släppa en version](#släppa-en-version). |
-| [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/` eller workflowen, samt manuellt | Startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i och har sina säkerhetshuvuden. |
+| [`Site`](../.github/workflows/site.yml) | Pull requests och push till `main` som ändrar `deploy/site/`, `deploy/check-labels.sh` eller workflowen, samt manuellt | Kontrollerar Traefiks etiketter, startar de publika sidorna med serverns compose-fil och kontrollerar att integritetspolicyn fylls i, har sina säkerhetshuvuden och nås genom Traefik. |
 
 Repot är privat och har en budget på 2000 Actions-minuter i månaden, och macOS-minuter räknas tio gånger.
 En release kostar runt 75 minuter, varav 40 för Xcode på macOS, och en körning av Unity-testerna runt 7; därför bygger CI appen bara när en version släpps.

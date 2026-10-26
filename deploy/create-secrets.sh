@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Creates the secrets compose.yaml reads in deploy/secrets/ and hands them to the containers that read them
 # (deploy/README.md). Existing secrets are kept, so running it again only repairs owners and modes.
-# Usage: sudo ./create-secrets.sh, after placing Apple's key as secrets/apple_private_key.p8.
+# Usage: sudo ./create-secrets.sh, after placing Apple's key as secrets/apple_private_key.p8 if Sign in with Apple is on.
 set -euo pipefail
 
 # Outside Swarm, Compose mounts file secrets with the host file's owner and mode and does not support setting uid, gid
@@ -18,11 +18,6 @@ fi
 cd "$(dirname "$0")"
 mkdir -p secrets
 chmod 700 secrets
-
-if [ ! -s secrets/apple_private_key.p8 ]; then
-    echo "Place the Sign in with Apple key as secrets/apple_private_key.p8 first (deploy/README.md)." >&2
-    exit 1
-fi
 
 # The new files are only readable by root until they are handed over below.
 umask 077
@@ -51,6 +46,12 @@ create postgres_password password
 create connection_string connection_string
 create token_signing_key.pem openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072
 create token_encryption_key password
+
+# Sign in with Apple is optional. Compose cannot leave out a file secret, so without Apple's key an empty placeholder
+# stands in for it, which the server reads as no key; Apple is then off as long as the APPLE_* ids in .env are empty too.
+if [ ! -e secrets/apple_private_key.p8 ]; then
+    : > secrets/apple_private_key.p8
+fi
 
 # PostgreSQL's entrypoint reads its password as root before it drops to the postgres user, so root may keep it.
 chown root:root secrets/postgres_password

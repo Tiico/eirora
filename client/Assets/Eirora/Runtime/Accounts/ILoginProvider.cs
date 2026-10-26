@@ -37,12 +37,17 @@ namespace Eirora.Client.Accounts
     }
 
     /// <summary>The player closed the provider's sign-in without signing in.</summary>
+    /// <remarks>A provider's error is never one, even when the provider calls it a cancellation (TASK-067).</remarks>
     public sealed class SignInCancelledException : Exception
     {
-        public SignInCancelledException()
+        public SignInCancelledException(string? reason = null)
             : base("The sign-in was cancelled.")
         {
+            Reason = reason;
         }
+
+        /// <summary>What the provider said, for the log: never a token or an identifier.</summary>
+        public string? Reason { get; }
     }
 
     /// <summary>The provider could not sign the player in; the message names the reason, never a token or identifier.</summary>

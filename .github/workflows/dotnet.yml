@@ -52,6 +52,10 @@ jobs:
       - name: Test the cold-start measurement
         run: tools/device-measurements/test-cold-start.sh
 
+      # The active pass is measured by hand too; its fake adb parses shell commands like a phone (#30).
+      - name: Test the active measurement
+        run: tools/device-measurements/test-active.sh
+
   # The time a year away takes to fast-forward (TASK-049) is reported against its budget but never fails the build:
   # timings on shared runners vary too much to gate on, so the tests count the quarter hours it works instead (#170).
   fast-forward:
@@ -98,13 +102,22 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Compose fills in variables in label values only; a variable in a label key reaches Traefik literally.
+      - name: Check the Traefik labels
+        run: deploy/check-labels.sh
+
       # Every run proves the image builds and deploys as deploy/README.md says; only main publishes that same image, tagged
       # with the commit.
       - name: Build the image
         run: dotnet publish src/Eirora.Server --configuration Release /t:PublishContainer -p:ContainerImageTags=ci
 
-      - name: Smoke-test the deployment
-        run: deploy/smoke-test.sh tiico/eirora-server:ci
+      # Both ways the server is deployed: with Google only, as until the product owner has an Apple Developer account, and
+      # with Google and Sign in with Apple.
+      - name: Smoke-test the deployment with Google only
+        run: deploy/smoke-test.sh tiico/eirora-server:ci google
+
+      - name: Smoke-test the deployment with Google and Apple
+        run: deploy/smoke-test.sh tiico/eirora-server:ci google-and-apple
 
       - name: Log in to GitHub Container Registry
         if: github.ref == 'refs/heads/main'

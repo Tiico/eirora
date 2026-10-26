@@ -42,16 +42,18 @@ services:
     environment:
       # Only Traefik reaches the server, so its X-Forwarded headers are trusted.
       ForwardedHeaders__TrustAll: "true"
-      SignIn__Providers__apple__Audiences__0: ${APPLE_BUNDLE_ID:?}
-      SignIn__Providers__apple__Audiences__1: ${APPLE_SERVICES_ID:?}
+      # Sign in with Apple is optional: with all APPLE_* empty and the empty placeholder create-secrets.sh leaves for its
+      # key, the server runs with Google only. A partly filled Apple configuration stops the server at startup.
+      SignIn__Providers__apple__Audiences__0: ${APPLE_BUNDLE_ID:-}
+      SignIn__Providers__apple__Audiences__1: ${APPLE_SERVICES_ID:-}
       SignIn__Providers__google__Audiences__0: ${GOOGLE_SERVER_CLIENT_ID:?}
       SignIn__Providers__google__Audiences__1: ${GOOGLE_IOS_CLIENT_ID:?}
       # Apple's web flow for the Android app and the deletion page Google Play requires (docs/development.md#inloggning).
-      SignIn__Web__AppleServicesId: ${APPLE_SERVICES_ID:?}
+      SignIn__Web__AppleServicesId: ${APPLE_SERVICES_ID:-}
       SignIn__Web__GoogleClientId: ${GOOGLE_SERVER_CLIENT_ID:?}
       SignIn__Web__AndroidPackage: ${ANDROID_PACKAGE:-se.eirora.app}
-      SignIn__Apple__TeamId: ${APPLE_TEAM_ID:?}
-      SignIn__Apple__KeyId: ${APPLE_KEY_ID:?}
+      SignIn__Apple__TeamId: ${APPLE_TEAM_ID:-}
+      SignIn__Apple__KeyId: ${APPLE_KEY_ID:-}
     secrets:
       - source: connection_string
         target: ConnectionStrings__Eirora
@@ -67,22 +69,24 @@ services:
     networks:
       - backend
       - traefik
+    # A list, not a mapping: Compose fills in variables in values only, so a variable in a mapping key would reach Traefik
+    # as literal text (deploy/check-labels.sh).
     labels:
-      traefik.enable: "true"
-      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik}
-      traefik.http.services.${EIRORA_PROJECT:-eirora}.loadbalancer.server.port: "8080"
-      traefik.http.services.${EIRORA_PROJECT:-eirora}.loadbalancer.healthcheck.path: /health
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}.rule: Host(`${EIRORA_HOST:?}`)
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.services.${EIRORA_PROJECT:-eirora}.loadbalancer.server.port=8080"
+      - "traefik.http.services.${EIRORA_PROJECT:-eirora}.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}.rule=Host(`${EIRORA_HOST:?}`)"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
       # Sign-in and deletion get their own router with a rate limit per client address (threat model: guessing and flooding).
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.rule: Host(`${EIRORA_HOST:?}`) && (PathPrefix(`/connect`) || PathPrefix(`/signin`) || Path(`/account/delete`))
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
-      traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.middlewares: ${EIRORA_PROJECT:-eirora}-signin-limit
-      traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.average: "10"
-      traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.period: 1m
-      traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.burst: "20"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.rule=Host(`${EIRORA_HOST:?}`) && (PathPrefix(`/connect`) || PathPrefix(`/signin`) || Path(`/account/delete`))"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${EIRORA_PROJECT:-eirora}-signin.middlewares=${EIRORA_PROJECT:-eirora}-signin-limit"
+      - "traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.average=10"
+      - "traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.period=1m"
+      - "traefik.http.middlewares.${EIRORA_PROJECT:-eirora}-signin-limit.ratelimit.burst=20"
     restart: unless-stopped
 
 networks:
@@ -101,6 +105,7 @@ secrets:
     file: ./secrets/postgres_password
   connection_string:
     file: ./secrets/connection_string
+  # Compose cannot leave out a file secret, so without Sign in with Apple this is an empty file, which means no key.
   apple_private_key:
     file: ./secrets/apple_private_key.p8
   token_signing_key:

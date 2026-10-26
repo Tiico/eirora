@@ -513,7 +513,7 @@ namespace Eirora.Client.UI
             Accounts.AccountOutcome.Deleted => "Kontot är raderat. Din värld finns kvar på telefonen.",
             Accounts.AccountOutcome.Offline => "Servern går inte att nå just nu. Spelet fungerar som vanligt.",
             Accounts.AccountOutcome.SignedOut => "Du är utloggad. Logga in igen för att fortsätta.",
-            Accounts.AccountOutcome.SignInFailed => "Inloggningen gick inte. Försök igen.",
+            Accounts.AccountOutcome.SignInFailed => "Inloggningen gick inte. Spelet fungerar som vanligt.",
             Accounts.AccountOutcome.ProviderUnavailable => "Den inloggningen finns inte på den här telefonen.",
             Accounts.AccountOutcome.LoginOfAnotherAccount => "Den inloggningen hör redan till ett annat konto.",
             Accounts.AccountOutcome.LastLogin => "Kontot behöver minst en inloggning.",
