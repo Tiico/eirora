@@ -39,6 +39,7 @@ namespace Eirora.Client.Tests
         public void TheHomeJettyShowsEverySeaRouteAndWhatWaitsOnEachIsland()
         {
             _hud.Select(Jetty(_game.World!.HomeIsland));
+            _hud.ShowMore();
 
             Assert.That(Labels(), Does.Contain("Sjövägen till Nyön är öppen. Skeppen bär 40 varor per dag, åt båda hållen tillsammans."));
             Assert.That(Labels().Where(l => l.StartsWith("Nyön: ")).ToArray(), Is.EqualTo(new[] { Settlement(), $"Nyön: {Waiting()} väntar på skeppen." }));
@@ -49,6 +50,7 @@ namespace Eirora.Client.Tests
         public void NyonsJettyShowsItsOwnVillagersItsRouteAndItsStore()
         {
             _hud.Select(Jetty(PrototypeHome.Nyon));
+            _hud.ShowMore();
 
             var nyon = _game.World!.SettlementOn(PrototypeHome.Nyon)!;
             Assert.That(nyon.Villagers, Is.GreaterThan(0), "No villager has moved to Nyön by the end of the tour's week.");

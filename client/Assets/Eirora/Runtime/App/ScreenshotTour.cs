@@ -79,11 +79,13 @@ namespace Eirora.Client.App
 
             client.Hud.Select(ScriptedWeek.EmptyFarmland);
             yield return Capture(client, folder, "03-site");
-            client.Hud.ShowMoreBuildings();
+            client.Hud.ShowMore();
             yield return Capture(client, folder, "03-site-more");
 
             client.Hud.Select(ScriptedWeek.FishingHut);
             yield return Capture(client, folder, "04-building");
+            client.Hud.ShowMore();
+            yield return Capture(client, folder, "04-building-more");
             client.Hud.Select(null);
 
             // A building that stands still (TASK-043): the sign above it on the island, and its sheet saying why.
@@ -291,7 +293,11 @@ namespace Eirora.Client.App
                 client.Hud.Select(null);
             }
 
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.ExitPlaymode(); // In the editor's play mode (EditorTour) a quit does nothing.
+#else
             Application.Quit();
+#endif
         }
 
         /// <summary>The first building of each kind that a step unlocks, in the catalog's order, as the grown village's shots show them.</summary>
@@ -309,13 +315,13 @@ namespace Eirora.Client.App
             yield return client.Frames(3);
             if (client.Hud.ShowsIntroduction)
             {
-                ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + "-introduction.png"));
+                client.Capture(Path.Combine(folder, name + "-introduction.png"));
                 yield return client.Frames(3);
                 client.Hud.CloseIntroduction();
                 yield return client.Frames(3);
             }
 
-            ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + ".png"));
+            client.Capture(Path.Combine(folder, name + ".png"));
             yield return client.Frames(3);
         }
     }

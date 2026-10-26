@@ -33,6 +33,10 @@ namespace Eirora.Client
         private HealthSync? _healthSync;
         private HealthStatus? _healthStatus;
         private CloudSaveSync? _cloud;
+        private Pictograms _pictograms = null!;
+        private UIDocument _document = null!;
+        private RenderTexture? _shotScene;
+        private RenderTexture? _shotPanel;
 
         private void Start()
         {
@@ -44,16 +48,21 @@ namespace Eirora.Client
             var flat = new Material(Shader.Find("Eirora/Flat"));
             var glow = new Material(Shader.Find("Eirora/Glow"));
             var sky = new Material(Shader.Find("Eirora/Sky"));
-            _island = new IslandView(new GameObject("Island").transform, flat, glow, Looks.Load());
+            var looks = Looks.Load();
+            _island = new IslandView(new GameObject("Island").transform, flat, glow, looks);
+            _pictograms = new Pictograms(looks, flat, glow);
             StagedLook.Edited += LooksEdited;
             _atmosphere = new Atmosphere(_camera, sun, sky, glow);
             _atmosphere.Apply(LightMood.Dawn, Atmosphere.East, _camera);
 
             var document = gameObject.AddComponent<UIDocument>();
             document.panelSettings = PanelSettings();
+            _document = document;
             var introductions = new Introductions(Path.Combine(Application.persistentDataPath, Introductions.File));
             _hud = new Hud(document.rootVisualElement, command => _session.Apply(command), new HealthControls(this), introductions);
-            _hud.SelectionChanged += hex => _island.Select(hex);
+            _hud.UseCamera(_camera);
+            _hud.UsePictograms(_pictograms);
+            _hud.SelectionChanged += hex => _island.Select(hex, _hud.WayBehind);
 
             _rig = new CameraRig(_camera, _hud.IsOverInterface);
             _rig.Tapped += point =>
@@ -77,6 +86,11 @@ namespace Eirora.Client
             string? screenshots = Argument("-eirora-screenshots");
             if (screenshots is not null)
             {
+                if (Application.isEditor)
+                {
+                    PrepareOffscreenCapture();
+                }
+
                 StartCoroutine(ScreenshotTour.Run(this, screenshots));
                 return;
             }
@@ -220,6 +234,7 @@ namespace Eirora.Client
                 }
 
                 _hud.Show(world, _session.SinceDawn, diagnostics);
+                _island.Select(_hud.Selected, _hud.WayBehind); // The way behind the late carrier follows the diagnosis.
                 _atmosphere.Apply(world, _camera);
             }
         }
@@ -227,6 +242,7 @@ namespace Eirora.Client
         private void Update()
         {
             _rig.Update();
+            _hud.FollowCamera();
             if (_session?.World is not { } world)
             {
                 return;
@@ -269,11 +285,13 @@ namespace Eirora.Client
         {
             StagedLook.Edited -= LooksEdited;
             _island?.Dispose();
+            _pictograms?.Dispose();
         }
 
-        /// <summary>A designer changed a look while playing in the editor: show it at once.</summary>
+        /// <summary>A designer changed a look while playing in the editor: show it at once, on the island and in the pictures.</summary>
         private void LooksEdited()
         {
+            _pictograms.Clear();
             if (_session?.World is not null)
             {
                 Refresh();
@@ -296,6 +314,61 @@ namespace Eirora.Client
             var args = Environment.GetCommandLineArgs();
             int index = Array.IndexOf(args, name);
             return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+        }
+
+        /// <summary>
+        /// Saves what the player sees to a file: the screen in a player, and in the editor's play mode (EditorTour), which has
+        /// no screen, the island and the interface rendered off screen at the phone's size.
+        /// </summary>
+        internal void Capture(string path)
+        {
+            if (_shotScene is null || _shotPanel is null)
+            {
+                ScreenCapture.CaptureScreenshot(path);
+                return;
+            }
+
+            var scene = Read(_shotScene);
+            var panel = Read(_shotPanel);
+            var shot = new Texture2D(_shotScene.width, _shotScene.height, TextureFormat.RGB24, false);
+            var pixels = scene.GetPixels();
+            var over = panel.GetPixels();
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = Color.Lerp(pixels[i], over[i], over[i].a);
+            }
+
+            shot.SetPixels(pixels);
+            shot.Apply();
+            File.WriteAllBytes(path, shot.EncodeToPNG());
+            Destroy(scene);
+            Destroy(panel);
+            Destroy(shot);
+        }
+
+        /// <summary>The interface laid out for a phone and drawn into a texture, and a texture for the island, for <see cref="Capture"/>.</summary>
+        private void PrepareOffscreenCapture()
+        {
+            // The camera draws into its texture every frame, so its view has the phone's shape and the bubbles land where
+            // the island is; the interface needs the stencil of a depth buffer for its rounded clipping.
+            var size = _document.panelSettings.referenceResolution;
+            _shotScene = new RenderTexture(size.x, size.y, 24, RenderTextureFormat.ARGB32) { name = "Shot scene" };
+            _shotPanel = new RenderTexture(size.x, size.y, 24, RenderTextureFormat.ARGB32) { name = "Shot panel" };
+            _camera.targetTexture = _shotScene;
+            _document.panelSettings.targetTexture = _shotPanel;
+            _document.panelSettings.clearColor = true;
+            _document.panelSettings.colorClearValue = new Color(0f, 0f, 0f, 0f);
+        }
+
+        private static Texture2D Read(RenderTexture source)
+        {
+            var previous = RenderTexture.active;
+            RenderTexture.active = source;
+            var texture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+            texture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            texture.Apply();
+            RenderTexture.active = previous;
+            return texture;
         }
 
         internal IEnumerator Frames(int count)
