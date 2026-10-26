@@ -1,6 +1,6 @@
 # Mätningar på enhet
 
-> **Status:** [FÖRSLAG] v0.1, metoden är klar, mätningarna på produktägarens telefon återstår  
+> **Status:** [FÖRSLAG] v0.2, de första mätningarna på produktägarens telefon är gjorda, batteriet under ett dygn återstår  
 > **Ärende:** TASK-015 · **Milstolpe:** M1 · **PRD:** NFR-03, NFR-13, O-13, D-70  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md)
 
@@ -106,21 +106,50 @@ Temperaturen före passet styr uppvärmningen, så telefonen ska ha legat stilla
 
 ## 5. Resultat
 
-Mätningarna på produktägarens telefon återstår.
-Skriptets tolkning av `dumpsys` är prövad mot exempelutdata i Android 14:s format, men inte mot en riktig telefon.
+De första mätningarna gjordes den 26 oktober 2026 på produktägarens Google Pixel 7 med Android 17 (API 37), som är referensnivån i [målenheter och mätbudgetar](./performance-budgets.md).
+Appen var bygge 0.2.1, installerad från Google Plays interna test.
+Skriptet var `measure.sh` från main med två rättningar som mätningen på en riktig telefon krävde: värdena från telefonen citeras i det aktiva passet så att väntslingan fungerar (#218), och appens lager läses ur Android 17:s lista i SurfaceFlinger (#223).
+Varje ljus mättes två gånger; tabellen visar första / andra körningen.
 
 | Mått | Dagsljus | Natt |
 |---|---|---|
-| Telefon och Android | | |
-| APK-storlek | | |
-| Kallstart, median | | |
-| Bildfrekvens | | |
-| Bildtid, median / 95:e percentil / max | | |
-| Bilder över 50 ms | | |
-| Minne, medel / max | | |
-| Uppvärmning under fem minuter | | |
-| Batteri, mAh per timme aktivt spel | | |
-| Batteri under ett dygn, appens andel | | |
+| Telefon och Android | Google Pixel 7, Android 17 (API 37) | Google Pixel 7, Android 17 (API 37) |
+| APK-storlek | Inte mätt; Play installerar delade APK:er | Inte mätt; Play installerar delade APK:er |
+| Kallstart, median | 161 / 158 ms | 161 / 157 ms |
+| Första bilden av världen, median | 3757 / 3660 ms | 3694 / 3691 ms |
+| Framspolning, median | 0 / 0 ms | 6 / 7 ms |
+| Bildfrekvens | 28,5 / 27,4 fps | 28,1 / 27,5 fps |
+| Bildtid, median / 95:e percentil / max | 33,3 / 33,6 / 926,9 ms och 33,3 / 33,5 / 732,4 ms | 33,3 / 33,6 / 898,8 ms och 33,3 / 33,6 / 726,8 ms |
+| Bilder över 50 ms | 1,67 / 1,67 % | 1,63 / 1,63 % |
+| Minne, medel / max | 427 / 439 MB och 410 / 420 MB | 409 / 418 MB och 413 / 423 MB |
+| Uppvärmning under fem minuter, skal / batteri | +0,3 / 0,0 °C och −0,3 / 0,0 °C | −0,1 / 0,0 °C och −0,8 / 0,0 °C |
+| Batteri, mAh per timme aktivt spel | 68,5 / 68,4 mAh | 68,5 / 67,0 mAh |
+| Batteri under ett dygn, appens andel | Mäts: startad 26 oktober 2026, klar ungefär ett dygn senare | Samma mätning som i dagsljus |
+
+Klienten är låst till 30 fps, så bildtidens median på 33,3 ms är målet och inte ett tak.
+Kallstarten efter ett års frånvaro (`year-1`) gav kallstart 167 ms och första bilden av världen 3492 ms, varav framspolningen tog 254 ms.
+Det är ungefär sju och en halv gånger de 34 ms som `FastForwardBenchmarks` tog på en M1 Pro, och väl inom den sekund som golvet ger framspolningen.
+
+**Upprepbarhet.**
+`measure.sh compare --margin 10` godkänner alla mått i båda ljusen utom två.
+`frame_max_ms` skiljer 23,4 % i dagsljus och 21,2 % i natt; det är en enda bild, den värsta under passet, och väntas variera.
+Nattens `catch_up_median_ms` skiljer 15,4 %, men det är 6 mot 7 ms, för litet för en relativ marginal.
+Ingen tredje körning behövdes.
+
+**Uppvärmning.**
+Telefonen hade gjort många pass i rad och var redan varm när passen startade, med skalet på 40,3–41,5 °C och batteriet på 37,2–38,3 °C.
+Att uppvärmningen är ungefär noll säger därför inte hur mycket en kall telefon värms upp; det mäts om med telefonen vilad i minst tio minuter, som avsnitt 4 föreskriver.
+
+**Budgeten.**
+`measure.sh budget --tier reference` underkänner fyra mått i alla fyra passen:
+
+- Minnet `pss_max_mb` är 418–439 MB, över 400 MB; åtgärdas i [#224](https://github.com/Tiico/eirora/issues/224).
+- Bilderna över 50 ms, `frames_over_50ms_pct`, är 1,63–1,67 %, över 1 %; åtgärdas i [#225](https://github.com/Tiico/eirora/issues/225).
+- Bildfrekvensen `fps` är 27,4–28,5, under 29, trots att bildtidens median och 95:e percentil ligger vid 30 fps; de långa bilderna drar troligen ner snittet, så den följer med #225.
+- Första bilden av världen, `first_frame_median_ms`, är 3660–3757 ms, och 3492 ms efter ett år, över referensnivåns 2 s; gränsen är en öppen fråga i [målenheter och mätbudgetar](./performance-budgets.md#6-öppna-frågor-för-produktägaren).
+
+Kallstarten, bildtidens 95:e percentil, uppvärmningen och batteriet vid aktivt spel håller budgeten med god marginal.
+APK-storleken och appens andel av dygnets förbrukning (`app_share_of_drain_pct`) är inte mätta än.
 
 ## 6. Första budgetförslag
 
