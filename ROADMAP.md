@@ -1,7 +1,7 @@
 # EIRORA — Roadmap till version 1.0
 
-> **Dokumentstatus:** Utkast v0.7 — M0 godkänd vid grind A0  
-> **Datum:** 2026-10-23  
+> **Dokumentstatus:** Utkast v0.8 — M0 godkänd vid grind A0  
+> **Datum:** 2026-10-26  
 > **Produktkrav:** [PRD.md](./PRD.md) · **Ordlista:** [GLOSSARY.md](./GLOSSARY.md) · **Beslut:** [docs/adr/](./docs/adr/)  
 > **Planeringsprincip:** kvalitetsstyrda milstolpar. **Utvecklingstid är aldrig en faktor** (D-09); genvägar och halvfärdiga system accepteras inte.
 
@@ -154,6 +154,8 @@ Minst två strategier fungerar och ingen dominerar.
 7. Återkomst efter frånvaro (O-12).
 
 **Kvalitetsgrind A5 / GRIND A:** en extern testare förstår hur egenvård blir krafter och krafter blir beslut, och spelar epok 1 med meningsfulla val. **Spelet är roligt även med enbart manuell inmatning**, och det är inte en stegräknare med dekor (R-01).
+
+Uppgifterna står i [Uppgifter för M5](#uppgifter-för-m5).
 
 ### M6 — Hälsomotor och native-integrationer
 
@@ -411,6 +413,42 @@ Varje uppgift som tillför tillstånd utökar frånvarotestet från TASK-049, s�
 | [TASK-058 — Ekonomi v2: befolkningsnivåer, behov, kedjor, upplåsning och bärare](https://github.com/Tiico/eirora/issues/145) | M4 | – |
 | [TASK-059 — Beslut: vad rivning ger tillbaka (D-38)](https://github.com/Tiico/eirora/issues/147) | M4 | – |
 
+### Uppgifter för M5
+
+M5 bygger på M4:s ekonomi, så all kod i M5 väntar på grind A4 (TASK-057).
+Designen av expeditioner, fynd och forskning (TASK-068, TASK-069) och protokollet för testet med extern testare (TASK-088) kan påbörjas direkt.
+Epok 1 räknas om ovanpå dem och krafternas värden från M4 (TASK-070), innan Vårdkasen byggs.
+Expeditionerna, forskningens inriktningar och Vårdkasens etapper kommer som vertikala skivor, var och en med sin introduktion i systemet från TASK-072.
+Fake health provider (TASK-071) kommer först, eftersom den guidade turen, återkomsten och balansbotarna prövas med den.
+Krafternas slutliga värden (O-01) beslutas när balansbotarna spelat hela epok 1 (TASK-085, TASK-086), och regeländringarna väntar på M4:s värden i TASK-056.
+Grind A5 prövas med en extern testare (TASK-089) och är också den övergripande grind A för M0–M5.
+
+| Uppgift | Milstolpe | Blockeras av |
+|---|---|---|
+| [TASK-068 — Design: expeditioner och fynd i epok 1 (EXP-01–03, NAR-01)](https://github.com/Tiico/eirora/issues/194) | M5 | – |
+| [TASK-069 — Design: forskningens tre inriktningar (RES-01, RES-02)](https://github.com/Tiico/eirora/issues/196) | M5 | – |
+| [TASK-070 — Epok 1 v2: tempo och siffror med ekonomi v2, expeditioner, fynd och forskning](https://github.com/Tiico/eirora/issues/197) | M5 | TASK-068, TASK-069, TASK-055 |
+| [TASK-071 — Fake health provider med profilerna låg, hög, ingen och manuell (NFR-11)](https://github.com/Tiico/eirora/issues/198) | M5 | TASK-057 |
+| [TASK-072 — Introduktionerna för hela epok 1 (PRG-02)](https://github.com/Tiico/eirora/issues/199) | M5 | TASK-057 |
+| [TASK-073 — Den guidade turen enligt resa 1 med ekonomi v2 (PRG-01, UX-03)](https://github.com/Tiico/eirora/issues/200) | M5 | TASK-071, TASK-072, TASK-057 |
+| [TASK-074 — Expedition med mål: Ytterön (EXP-01)](https://github.com/Tiico/eirora/issues/201) | M5 | TASK-068, TASK-072, TASK-057 |
+| [TASK-075 — Fynd i dimman (EXP-02, NAR-01)](https://github.com/Tiico/eirora/issues/202) | M5 | TASK-068, TASK-057 |
+| [TASK-076 — Expeditionstyper i epok 1 (EXP-03)](https://github.com/Tiico/eirora/issues/203) | M5 | TASK-074, TASK-075, TASK-057 |
+| [TASK-077 — Runstenen och forskningens första inriktning: produktion (RES-01)](https://github.com/Tiico/eirora/issues/204) | M5 | TASK-069, TASK-072, TASK-057 |
+| [TASK-078 — Forskningens andra inriktning: sjöfart och logistik (RES-02)](https://github.com/Tiico/eirora/issues/205) | M5 | TASK-077, TASK-057 |
+| [TASK-079 — Forskningens tredje inriktning: kartläggning och kultur (RES-02)](https://github.com/Tiico/eirora/issues/206) | M5 | TASK-077, TASK-075, TASK-057 |
+| [TASK-080 — Epoker som innehåll och Vårdkasens grund (PRG-03, D-64)](https://github.com/Tiico/eirora/issues/207) | M5 | TASK-070, TASK-072, TASK-057 |
+| [TASK-081 — Vårdkasens stomme och eld med sina förutsättningar](https://github.com/Tiico/eirora/issues/208) | M5 | TASK-080, TASK-074, TASK-077, TASK-057 |
+| [TASK-082 — Vårdkasen tänds och epok 2 börjar nästa gryning (D-67, PRG-04)](https://github.com/Tiico/eirora/issues/209) | M5 | TASK-081, TASK-057 |
+| [TASK-083 — Sedan sist: återkomst efter frånvaro enligt resa 2 (O-12, AC-02)](https://github.com/Tiico/eirora/issues/210) | M5 | TASK-071, TASK-057 |
+| [TASK-084 — Se veckan: tidsförlopp över ön efter frånvaro](https://github.com/Tiico/eirora/issues/211) | M5 | TASK-083, TASK-057 |
+| [TASK-085 — Balansbotar spelar epok 1 till milstolpen (O-01, D-34, AC-06)](https://github.com/Tiico/eirora/issues/212) | M5 | TASK-071, TASK-076, TASK-078, TASK-079, TASK-082, TASK-057 |
+| [TASK-086 — Beslut: krafternas slutliga värden för epok 1 (O-01 i M5)](https://github.com/Tiico/eirora/issues/213) | M5 | TASK-085, TASK-056 |
+| [TASK-087 — Krafternas slutliga värden i reglerna (O-01)](https://github.com/Tiico/eirora/issues/214) | M5 | TASK-086, TASK-056, TASK-057 |
+| [TASK-088 — Testprotokoll för grind A5 med extern testare](https://github.com/Tiico/eirora/issues/215) | M5 | – |
+| [TASK-089 — Extern testare spelar epok 1 (grind A5)](https://github.com/Tiico/eirora/issues/216) | M5 | TASK-088, TASK-073, TASK-082, TASK-083, TASK-087 |
+| [TASK-090 — Grind A5 / Grind A: spegeln fungerar](https://github.com/Tiico/eirora/issues/217) | M5 | TASK-016, TASK-057 och TASK-068–089 |
+
 **Format för backlogpost:** ett GitHub-ärende med Epic, Milstolpe, PRD-referens, Prioritet, Förutsättningar, Beskrivning, Invariant, Acceptanskriterier (Given/When/Then), Testnivå, Integritetspåverkan, Migration och Definition of Done.
 
 ---
@@ -514,3 +552,4 @@ Ingen feature får användas som ursäkt för att skjuta grundläggande arkitekt
 | 0.5 | 2026-10-18 | Uppgifter för M3 TASK-027–036 fram till grind A3. |
 | 0.6 | 2026-10-18 | Grind A0 godkänd: M0 `ACCEPTED`, M1–M3 `IN_PROGRESS`; O-01 i M4 och M5, O-02 i M4. |
 | 0.7 | 2026-10-23 | Uppgifter för M4 TASK-039–059 fram till grind A4, med ekonomi v2 efter D-105–D-107; M4 `IN_PROGRESS`. |
+| 0.8 | 2026-10-26 | Uppgifter för M5 TASK-068–090 fram till grind A5 och grind A. |
