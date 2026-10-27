@@ -219,7 +219,7 @@ namespace Eirora.Simulation
         /// <summary>Whole units of a resource reserved on an island, which neither the ships nor processing take (TASK-046).</summary>
         public int ReservationOf(string island, Resource resource) => _settlement.ReservationOf(island, resource);
 
-        /// <summary>The order the ships take an island's goods home in (TASK-046): the player's, or the resources' fixed order.</summary>
+        /// <summary>The order the ships take an island's goods home in (TASK-046): the player's, or <see cref="StockRules.DefaultImportOrder"/>.</summary>
         public IReadOnlyList<Resource> ImportOrder(string island) => _settlement.ImportOrder(island);
 
         /// <summary>The building on a tile, if any.</summary>

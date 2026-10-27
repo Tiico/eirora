@@ -18,7 +18,7 @@ public sealed class StockRulesArriveTests
     private static readonly string s_folder = Repository.PathTo("tests", "Eirora.Simulation.Tests", "Saving", "Golden");
 
     // Acceptance: a save from the previous rules gives every processing building the minimum stock 20 and the sea routes
-    // today's order.
+    // the default order, which is wool before stone since rules 16 (TASK-056).
     [Fact]
     public void EveryProcessingBuildingLeavesTwentyAndTheShipsKeepTheFixedOrder()
     {
@@ -32,7 +32,7 @@ public sealed class StockRulesArriveTests
         Assert.All(world.Buildings, b => Assert.Equal(world.Content.For(b.Kind).Recipe?.Inputs.Count > 0 ? StockRules.StandardReserve : 0, b.Reserve));
         Assert.All(world.Islands, island =>
         {
-            Assert.Equal(Enum.GetValues<Resource>(), world.ImportOrder(island));
+            Assert.Equal(StockRules.DefaultImportOrder, world.ImportOrder(island));
             Assert.All(Enum.GetValues<Resource>(), r => Assert.Equal(0, world.ReservationOf(island, r)));
         });
     }

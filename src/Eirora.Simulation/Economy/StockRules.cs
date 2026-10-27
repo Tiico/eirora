@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Eirora.Simulation.Economy
 {
     /// <summary>
@@ -12,6 +15,21 @@ namespace Eirora.Simulation.Economy
         /// unless its recipe says otherwise: the tannery leaves 5 game, which is also food (TASK-061).
         /// </summary>
         public const int StandardReserve = 20;
+
+        /// <summary>
+        /// The order the ships take an island's goods home in until the player changes it (GLOSSARY: Importprioritet,
+        /// D-126): every good in the order it was added, except that wool comes just before stone, so that the islands'
+        /// wool reaches the weaveries at home before the stone the home island's quarries also give (D-135, TASK-056).
+        /// </summary>
+        public static IReadOnlyList<Resource> DefaultImportOrder { get; } = Array.AsReadOnly(DefaultOrder());
+
+        private static Resource[] DefaultOrder()
+        {
+            var order = new List<Resource>((Resource[])Enum.GetValues(typeof(Resource)));
+            order.Remove(Resource.Wool);
+            order.Insert(order.IndexOf(Resource.Stone), Resource.Wool);
+            return order.ToArray();
+        }
     }
 
     /// <summary>Which of the player's rules keeps a good in the store.</summary>

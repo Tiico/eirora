@@ -1,7 +1,7 @@
 # Ekonomi v1
 
 > **Status:** [FÖRSLAG] v1.1, byggplatser på rutor (avsnitt 3.1), väntar på granskning av produktägaren; v1.0 godkändes vid grind A0 (D-82)  
-> **Ärende:** TASK-004, TASK-037, TASK-044, TASK-046 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107, D-125–D-127  
+> **Ärende:** TASK-004, TASK-037, TASK-044, TASK-046, TASK-056 · **Milstolpe:** M0, M3, M4 · **PRD:** CIV-01–09, LOG-01–04, LOG-06, MAP-02, MAP-03, D-12, D-17, D-34, D-39, D-43–D-45, D-79, D-88–D-93, D-95, D-105–D-107, D-125–D-127, D-135  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v1.py](./models/economy_v1.py) (`python -I economy_v1.py`) · **Balansbotar:** [tools/Eirora.Balance](../../tools/Eirora.Balance) (TASK-048, avsnitt 7.1)
 
@@ -259,7 +259,8 @@ De flyttar eller håller kvar varor men skapar och förstör aldrig något (INV-
   Bärarna bär bara fram råvara över minimilagret, så ett sågverk med minimilagret 40 och 45 timmer i lagret förädlar högst 5 timmer.
   Varvet i ekonomi v2 har på samma sätt ett minimilager av plankor och tjära, 20 som standard, som det lämnar när det påbörjar en knarr ([ekonomi v2, avsnitt 4](./economy-v2.md#4-byggnader)).
 - **Importprioritet** per sjöväg: i vilken ordning skeppen tar hem öns varor, till exempel sten före ull så att stenådern på Nyön inte trängs undan.
-  Spelaren ordnar alla varor, och utan spelarens ordning går de i sin fasta ordning: fisk, säd, timmer, plankor, sten, ull och tyg (D-126).
+  Spelaren ordnar alla varor, och utan spelarens ordning går de i den förvalda ordningen: fisk, säd, timmer, plankor, ull, sten och tyg, och därefter de upplåsta stegens varor i den ordning de kom till (D-126).
+  Ull går före sten sedan regelversion 16, så att öarnas ull når väverierna på Hemön före stenen, som Hemöns stenbrott också ger (D-135, TASK-056).
   Ordningen kan sättas innan sjövägen öppnar.
 - **Reservering** per ö och vara, alltså per bosättning: ett lager som skeppen inte tar hem och förädlingen och varvet inte tar, till exempel timmer på Nyön till byggen där eller timmer på Hemön som sågverket inte ska såga.
   Med 30 timmer reserverade på en ö lämnar sjövägen 30 timmer kvar där.
@@ -401,7 +402,7 @@ Kalkylen utan bärare finns kvar för ekonomi v2:s migration och epok 1:s tempo,
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 11 | 1 | 210 | 204 | 1 308 | 180/260/410 | 461/110/233 | 1,06 |
 | Närområdet, ordnad | måttlig | 19 | 12 | 1 | 112 | 228 | 1 301 | 180/260/380 | 461/110/274 | 1,09 |
-| Havet | måttlig | 20 | 12 | 2 | 29 | 246 | 1 242 | 250/210/340 | 426/160/270 | 1,04 |
+| Havet | måttlig | 20 | 12 | 2 | 10 | 246 | 1 241 | 250/210/340 | 426/160/270 | 1,04 |
 | Naiv | hög | 19 | 10 | 1 | 54 | 211 | 1 169 | 180/360/630 | 520/85/96 | 0,65 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 156 | 1 138 | 180/0/480 | 461/100/204 | 1,10 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |
@@ -411,7 +412,8 @@ Kalkylen utan bärare finns kvar för ekonomi v2:s migration och epok 1:s tempo,
 *Utvecklingsvärde* är ett grovt balansmått (bybor × 15 + halva lagrets värde + tre dagars produktion) som bara används i balanstester och aldrig visas för spelaren.
 Startvärdet är 409.
 Kalkylen räknar med en bosättning per ö som i regelversion 9 (avsnitt 4.2).
-Bärarna använder 31–74 % av sin tid under veckan, och startförrådets ensamma bärare i den orörda byn 37 %, som i [ekonomi v2, avsnitt 11](./economy-v2.md#11-utan-egenvård).
+Från regelversion 16 tar skeppen hem Nyöns ull före stenen (D-135), så Havet slutar med 10 sten i lager i stället för 29 och med mer tyg.
+Bärarna använder 32–74 % av sin tid under veckan, och startförrådets ensamma bärare i den orörda byn 37 %, som i [ekonomi v2, avsnitt 11](./economy-v2.md#11-utan-egenvård).
 
 **Olika men jämbördiga.**
 Närområdet slutar med ett starkt produktionskluster och ett stort stenlager på en ö.
@@ -450,7 +452,7 @@ Hur botarna körs står i [development.md](../development.md#balansbotar).
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 11 | 1 | 207 | 204 | 1 304 | 180/260/410 | 461/110/233 | 1,05 |
 | Närområdet, ordnad | måttlig | 19 | 12 | 1 | 109 | 228 | 1 299 | 180/260/380 | 461/110/274 | 1,09 |
-| Havet | måttlig | 21 | 12 | 2 | 29 | 246 | 1 256 | 250/210/340 | 426/160/270 | 1,06 |
+| Havet | måttlig | 21 | 12 | 2 | 11 | 246 | 1 254 | 250/210/340 | 426/160/270 | 1,06 |
 | Naiv | hög | 20 | 10 | 1 | 53 | 211 | 1 177 | 180/360/630 | 520/85/96 | 0,66 |
 | Utan träning | utan träning | 19 | 11 | 1 | 150 | 146 | 1 108 | 180/0/510 | 461/100/174 | 1,01 |
 | Ingen spelare | ingen | 16 | 4 | 1 | 20 | 48 | 583 | 0/0/0 | 100/100/310 | – |

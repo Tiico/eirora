@@ -61,7 +61,8 @@ public sealed class Strategy
     /// <summary>
     /// Havet: a jetty and an expedition, sheep and stone on the island it finds, wadmal for faster growth. The jetty,
     /// sheep and stone on the island go before the first housing, which is a cottage (economy-v2.md, section 9), and the
-    /// jetty goes first in the queue, so that its settlement is founded and villagers can move there early (D-106).
+    /// jetty goes first in the queue, so that its settlement is founded and villagers can move there early (D-106). The
+    /// ships take the island's wool home first, so that the wool for clothes does not wait on the sea route (D-135).
     /// </summary>
     public static Strategy Sea { get; } = new(
         "sea",
@@ -78,14 +79,7 @@ public sealed class Strategy
             new BuildOne(BuildingKind.Weavery, Placement.Village),
             new BuildOne(BuildingKind.Longhouse, Placement.Village),
         ],
-        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst(), new KeepGrowing()]);
-
-    /// <summary>
-    /// Havet, ull först (TASK-054): Havet with wool first in the order the ships take the island's goods home in (D-126),
-    /// so that the wool for clothes is not crowded out by the island's stone on the sea route, which the standard order
-    /// ships first.
-    /// </summary>
-    public static Strategy SeaWoolFirst { get; } = new("sea-wool", "Havet, ull först", Sea.Goals, [.. Sea.Daily, new ImportFirst(Resource.Wool)]);
+        [new WorkdayOn(BuildingKind.Sawmill), new WorkdayOn(BuildingKind.SheepFarm), new QueueFirstUntilBuilt(BuildingKind.Jetty), new RushFirst(), new KeepGrowing(), new ImportFirst(Resource.Wool)]);
 
     /// <summary>
     /// Bygden (economy-v2.md, section 9): surveys the home island and builds a sheep farm and a quarry with a storehouse
@@ -194,7 +188,7 @@ public sealed class Strategy
     /// <summary>Ingen spelare: no commands at all; only self-care, if any, is recorded.</summary>
     public static Strategy Idle { get; } = new("idle", "Ingen spelare", [], []);
 
-    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, SeaWoolFirst, Village, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
+    public static IReadOnlyList<Strategy> All { get; } = [Near, NearOrdered, NearMoved, Sea, Village, Naive, NoTraining, NoTrainingByHand, Tour, Idle];
 
     /// <summary>The id the tool takes on its command line.</summary>
     public string Id { get; }

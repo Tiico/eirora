@@ -1,7 +1,7 @@
 # Ekonomi v2
 
-> **Status:** [BESLUTAT] v2.4, scenarierna i avsnitt 15 (TASK-053) och toleransen för egna beslut (TASK-097) väntar på produktägarens granskning, delfrågorna avgjorda som D-109–D-119, bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
-> **Ärende:** TASK-058 (#145), TASK-050 (#133), TASK-046 (#129), TASK-053 (#136), TASK-097 (#230) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-127, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
+> **Status:** [BESLUTAT] v2.5, ull före sten i importprioriteten (D-135, TASK-056), scenarierna i avsnitt 15 (TASK-053) och toleransen för egna beslut (TASK-097) väntar på produktägarens granskning, delfrågorna avgjorda som D-109–D-119, bosättningarnas frågor i TASK-050 som D-121–D-124 och lagerreglerna i TASK-046 som D-125–D-127  
+> **Ärende:** TASK-058 (#145), TASK-050 (#133), TASK-046 (#129), TASK-053 (#136), TASK-097 (#230), TASK-056 (#139) · **Milstolpe:** M4 · **PRD:** D-105–D-107, D-109–D-119, D-121–D-127, D-135, CIV-01–09, LOG-01–03, LOG-06, D-12, D-17, D-34, D-39, D-43, D-65, D-87, D-103, O-02  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Ekonomi v1:** [economy-v1.md](./economy-v1.md) · **Krafter:** [forces.md](./forces.md) · **Epok 1:** [epoch-1.md](./epoch-1.md) · **Invarianter:** [invariants.md](./invariants.md)  
 > **Kalkyl:** [models/economy_v2.py](./models/economy_v2.py) (`python -I economy_v2.py`)
 
@@ -382,7 +382,7 @@ Som jämförelse körs samma **naiva** strategi med **hög** egenvård som i v1.
 | Körning | Egenvård | Bybor | Nivåer T/B/H | Byggnader | Bosättningar | Plankor | Sten | Bärarnas last | Dagsproduktion | Utvecklingsvärde | Använt U/S/O | Sparat U/S/O | Värde per använd kraft |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | 19 | 19/0/0 | 11 | 1 | 47 | 210 | 72 % | 228 | 1 407 | 180/260/440 | 461/110/229 | 1,13 |
-| Havet | måttlig | 22 | 22/0/0 | 12 | 2 | 42 | 29 | 32 % | 246 | 1 297 | 250/210/340 | 426/160/304 | 1,11 |
+| Havet | måttlig | 22 | 22/0/0 | 12 | 2 | 42 | 21 | 32 % | 246 | 1 294 | 250/210/340 | 426/160/304 | 1,11 |
 | Bygden | måttlig | 20 | 20/0/0 | 12 | 1 | 2 | 67 | 54 % | 207 | 1 237 | 180/150/470 | 461/220/214 | 1,03 |
 | Naiv | hög | 19 | 19/0/0 | 10 | 1 | 3 | 54 | 69 % | 211 | 1 173 | 180/360/630 | 520/85/96 | 0,65 |
 | Utan träning | utan träning | 19 | 19/0/0 | 11 | 1 | 16 | 150 | 66 % | 156 | 1 162 | 180/0/480 | 461/100/204 | 1,14 |
@@ -397,7 +397,7 @@ Startvärdet är 409, som i v1.
 **Olika men jämbördiga.**
 Närområdet slutar med ett stenlager och ett kluster som bärarna hinner med, Havet med två bosättningar, flest bybor och högst dagsproduktion, och Bygden med 20 bybor och bönderna upplåsta.
 Utvecklingsvärdena skiljer sig med 14 %, mot 12 % i v1, och värdet per använd kraft med 10 %.
-Havet är jämbördigt första veckan men svagare vecka 6, med 5 942 mot Närområdets 6 334 och Bygdens 7 071 (avsnitt 10), eftersom alla strategier delar samma planerare från vecka 2.
+Havet är jämbördigt första veckan men svagare vecka 6, med 6 282 mot Närområdets 6 334 och Bygdens 7 093 (avsnitt 10), eftersom alla strategier delar samma planerare från vecka 2.
 Scenarierna i [avsnitt 15](#15-scenarier) visar lägen där Havet vinner.
 
 **Strategin hinner ikapp (D-34).**
@@ -418,8 +418,8 @@ Den höga profilen lägger det Ork den har utöver den måttliga på extraarbete
 | Strategi | Utvecklingsvärde måttlig/hög dygn 7 | Dygn 14 | Dygn 28 | Dygn 42 | Sämsta dygnet | Dygn under måttlig |
 |---|---|---|---|---|---|---|
 | Närområdet | 1 407 / 1 407 | 2 250 / 2 250 | 4 415 / 4 424 | 6 334 / 6 343 | ±0 % | 0 av 42 |
-| Havet | 1 297 / 1 297 | 2 069 / 2 069 | 4 173 / 4 173 | 5 942 / 5 942 | +0 % | 0 av 42 |
-| Bygden | 1 237 / 1 243 | 2 424 / 2 436 | 5 047 / 5 083 | 7 071 / 7 097 | +0 % | 0 av 42 |
+| Havet | 1 294 / 1 294 | 2 359 / 2 363 | 4 497 / 4 545 | 6 282 / 6 320 | +0 % | 0 av 42 |
+| Bygden | 1 237 / 1 243 | 2 424 / 2 436 | 5 033 / 5 057 | 7 093 / 7 117 | +0 % | 0 av 42 |
 
 Mer egenvård syns alltså mest i saldot och i epokens tempo ([epok 1, avsnitt 5](./epoch-1.md#5-tempo)), och lite i världen genom extraarbetet.
 Vid veckans slut är världen med hög egenvård nästan alltid minst lika stor som med måttlig.
@@ -439,19 +439,20 @@ Planeraren lämnar alltid två lediga bybor som bygger och uppgraderar bara av m
 | Körning | Egenvård | Bönder | Hantverkare | Sjöfart | Bärarna hinner inte | Bybor | Hemön T/B/H | Nyön T/B/H | Byggnader | Utvecklingsvärde vecka 2/4/6 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Närområdet | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 1 | 84 | 40/8/16 | 8/12/0 | 45 | 2 250 / 4 415 / 6 334 |
-| Havet | måttlig | vecka 2 | vecka 4 | vecka 4 | – | 88 | 32/12/26 | 12/6/0 | 42 | 2 069 / 4 173 / 5 942 |
-| Bygden | måttlig | vecka 1 | vecka 2 | vecka 3 | vecka 6 | 104 | 31/15/40 | 12/6/0 | 52 | 2 424 / 5 047 / 7 071 |
-| Turen | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 4 | 90 | 14/16/44 | 16/0/0 | 46 | 2 369 / 4 720 / 6 076 |
-| Turen | manuell | vecka 2 | vecka 3 | vecka 4 | vecka 5 | 87 | 15/16/40 | 16/0/0 | 45 | 1 925 / 4 673 / 6 093 |
+| Havet | måttlig | vecka 2 | vecka 2 | vecka 4 | vecka 6 | 102 | 30/22/34 | 16/0/0 | 47 | 2 359 / 4 497 / 6 282 |
+| Bygden | måttlig | vecka 1 | vecka 2 | vecka 3 | vecka 6 | 105 | 32/15/40 | 12/6/0 | 52 | 2 424 / 5 033 / 7 093 |
+| Turen | måttlig | vecka 2 | vecka 3 | vecka 4 | vecka 4 | 92 | 16/16/44 | 16/0/0 | 46 | 2 369 / 4 722 / 6 116 |
+| Turen | manuell | vecka 2 | vecka 3 | vecka 4 | vecka 5 | 89 | 17/16/40 | 16/0/0 | 45 | 1 925 / 4 675 / 6 107 |
 | Naiv | hög | vecka 2 | – | – | – | 32 | 32/0/0 | – | 10 | 1 592 / 1 940 / 2 230 |
 | Utan träning | utan träning | vecka 2 | vecka 3 | – | vecka 5 | 75 | 31/12/32 | – | 40 | 1 353 / 3 108 / 3 960 |
-| Havet | hög | vecka 2 | vecka 3 | vecka 4 | – | 90 | 30/14/28 | 12/6/0 | 42 | 2 074 / 4 235 / 6 049 |
+| Havet | hög | vecka 2 | vecka 2 | vecka 4 | vecka 6 | 102 | 30/22/34 | 16/0/0 | 47 | 2 362 / 4 534 / 6 316 |
 | Ingen spelare | ingen | – | – | – | – | 16 | 16/0/0 | – | 4 | 643 / 671 / 671 |
 
-- **Upplåsningen sprids över epokens första halva:** bönder vecka 1–2, hantverkare vecka 2–4 och sjöfarten vecka 3–4.
+- **Upplåsningen sprids över epokens första halva:** bönder vecka 1–2, hantverkare vecka 2–3 och sjöfarten vecka 3–4.
+  Sedan skeppen tar Nyöns ull före stenen (D-135) når Havet hantverkarna vecka 2 i stället för 4.
 - **Enbart manuell inmatning når hantverkarna och sjöfarten samma vecka som normal**, men med ett lägre utvecklingsvärde de första veckorna.
 - **Nyön får en egen bosättning med egna nivåer.**
-  Den växer till 16–20 bybor, och med kläder från hemön stiger 6–12 av dem till bönder i fyra av körningarna; flytten, öns behov och sjövägen åt båda hållen räknas alltså.
+  Den växer till 16–20 bybor, och med kläder från hemön stiger 6–12 av dem till bönder i två av körningarna; flytten, öns behov och sjövägen åt båda hållen räknas alltså.
   Där Nyön anläggs först vecka 3 är hemöns lediga bönder, så Nyöns första bybo blir en bonde som bor i en torparbostad tills Nyön har en bondgård; efter den flyttar bara torpare dit (D-124).
 - **Utan träning nås alla tre nivåerna**, med garveri, bryggeri, bigård, mjöderi och stugor.
   Sjöfarten kräver en sjöväg, och utan Styrka kommer bryggan med handkraft efter 7 dagar (D-65), som kalkylen inte räknar.
@@ -507,17 +508,17 @@ Kalkylen migrerar fyra världar efter sju dygn i v1 och spelar sju dygn till i v
 |---|---|---|---|---|---|---|---|---|---|
 | Närområdet | 19 | 11 | 1 | 0 | 0 | 0 | 27 | 18 | 2 227 |
 | Närområdet med väg till fiskeboden | 19 | 11 | 1 | 2 | 2 | 0 | 27 | 19 | 2 200 |
-| Havet | 20 | 12 | 2 | 0 | 0 | 0 | 37 | 20 | 2 090 |
-| Havet med fulla lager | 20 | 12 | 2 | 0 | 0 | 20 | 38 | 20 | 2 287 |
+| Havet | 20 | 12 | 2 | 0 | 0 | 0 | 37 | 21 | 2 251 |
+| Havet med fulla lager | 20 | 12 | 2 | 0 | 0 | 20 | 38 | 20 | 2 285 |
 
 I alla fyra är byborna, byggnaderna, nivåerna, krafterna och den upptäckta kartan desamma före och efter, ingen vara har försvunnit och inget lager är över sin kapacitet; kalkylen stoppar annars.
 
 ## 13. Lärdomar och risker
 
 1. **En bosättning per ö gör havet långsammare.**
-   Havet behövde en ny byggordning för att hålla jämna steg, och byggarna från hemön (D-113) håller havet levande; utan dem får Havet 1,06 i värde per kraft i stället för 1,11.
+   Havet behövde en ny byggordning för att hålla jämna steg, och byggarna från hemön (D-113) håller havet levande; utan dem får Havet 1,05 i värde per kraft i stället för 1,11.
    Med D-121 växer Nyön först när byborna har flyttat dit, en per gryning, så Havet låter hemöns väveri och långhus vänta tills Nyöns brygga ligger i kön; utan det blir Havet 16 % sämre första veckan.
-   Vecka 6 ligger Havet ändå 12–17 % under Närområdet och Bygden, mot 6–15 % före D-121, eftersom alla följer samma planerare från vecka 2 (avsnitt 10).
+   Vecka 6 ligger Havet ändå 1–11 % under Närområdet och Bygden, mot 12–17 % innan skeppen tog Nyöns ull före stenen (D-135) och 6–15 % före D-121, eftersom alla följer samma planerare från vecka 2 (avsnitt 10).
 2. **Bärarna gör folk ännu knappare.**
    Varje bärare är en byggare mindre, och utan lediga bybor är vägen den enda åtgärd som hjälper.
 3. **Bärarnas ordning kan ta tillbaka en del av extraarbetet.**
@@ -546,7 +547,7 @@ Produktägarens svar på delfrågorna, loggade i PRD:n; F1–F10 besvarades i v2
 - **D-112 (F4):** vägar läggs ruta för ruta, med genvägen *Väg till förrådet*.
 - **D-113 (F5), det enda tillägget till D-106:** lediga bybor får bygga på öar som sjövägen förbinder med deras, eftersom att bygga inte är att bemanna.
   I övrigt gäller D-106: inga nybyggare, högst en flytt per gryning i hela världen, och byggmaterial från hemön tar plats på sjövägen.
-  Med D-106 utan tillägget får Havet 1,06 i stället för 1,11, och med byggmaterialet utanför sjövägen också 1,11.
+  Med D-106 utan tillägget får Havet 1,05 i stället för 1,11, och med byggmaterialet utanför sjövägen också 1,11.
 - **D-114 (F6):** upplåsningen gäller hela världen.
 - **D-115 (F7):** ett uppfyllt behov ger bara tillväxt och att stiga en nivå.
 - **D-116 (F8):** hantverkare bygger dubbelt så fort och bemannar varvet.
@@ -569,7 +570,7 @@ Produktägarens svar på frågorna i TASK-050 (PR #164):
 Lagerreglerna i TASK-046 (#129) står i [ekonomi v1, avsnitt 5](./economy-v1.md#lagerregler):
 
 - **D-125:** förädlingen lämnar det största av sitt minimilager och öns reservering, och diagnostiken säger vilket som håller kvar varan.
-- **D-126:** importprioriteten är en ordnad lista med alla varor, med dagens fasta ordning som standard.
+- **D-126:** importprioriteten är en ordnad lista med alla varor, med varornas fasta ordning som standard; sedan regelversion 16 går ull före sten i den (D-135, TASK-056).
 - **D-127:** reserveringen hindrar bara skeppning hemåt, förädling och varvets knarrar, inte byggmaterial och mat som skeppas ut till öarna; varvet tillkom 2026-10-25 (PR #185).
 
 Senare beslut om rivning (TASK-047, [ekonomi v1, avsnitt 3.2](./economy-v1.md#32-rivning)), som gäller också med bärarna: varorna i en riven byggnads utlager och den råvara bärarna burit dit går till öns lager, ett rivet förråds bärare blir lediga, och byggnaderna det betjänade går till det förråd bärarna når snabbast.
@@ -590,10 +591,11 @@ Balansbotarna ([development.md](../development.md#balansbotar)) spelar dem i den
   Kartan och profilen är det som skiljer scenarierna.
 - **Strategierna** är kalkylens: Närområdet, Havet och Bygden (avsnitt 9), Utan träning, Utan träning med handkraft ([epok 1, avsnitt 5](./epoch-1.md#5-tempo)) och Naiv.
   Varje genomtänkt strategi följer sin egen plan första veckan och sedan samma planerare som kalkylen från vecka 2 (avsnitt 10), utan Styrka för dem som valt bort träning.
+  Havet skeppar öns ull först (D-135).
   Befolkningsnivåerna, upplåsningen, bosättningarna och bärarna ingår alltså i besluten.
 - **Måttet** är utvecklingsvärdet efter fyra veckor, med nivåerna inräknade som i avsnitt 9; de flesta genomtänkta körningar har då hantverkare.
 - **Botarnas planerare spelar bättre än kalkylens.**
-  På prototypens karta får botarna efter sex veckor Bygden 7 828, Närområdet 7 588, Havet 5 821 och Utan träning 3 898, mot kalkylens 7 071, 6 334, 5 942 och 3 960.
+  På prototypens karta får botarna efter sex veckor Bygden 7 843, Närområdet 7 588, Havet 6 846 och Utan träning 3 898, mot kalkylens 7 093, 6 334, 6 282 och 3 960.
   Sedan TASK-097 uppgraderar botarna när det finns material över också med annat i byggkön, räknar bara hemöns egen ull och vilt till kläderna där, och räknar med bärarna när de väljer byggplats; kalkylen gör inget av det.
   Efter första veckan har botarnas Bygden 20 bybor som kalkylen, och ett utvecklingsvärde på 1 389 mot 1 237.
 
@@ -601,9 +603,9 @@ Balansbotarna ([development.md](../development.md#balansbotar)) spelar dem i den
 
 | Scenario | Karta | Egenvård | Närområdet | Havet | Bygden | Utan träning | Utan träning, handkraft | Naiv | Bäst, före tvåan |
 |---|---|---|---|---|---|---|---|---|---|
-| Rik hemö | seed 174 | normal | **5 602** | 5 138 | 4 098 | 3 418 | 3 791 | 1 936 | Närområdet, 9 % |
+| Rik hemö | seed 174 | normal | **5 602** | 5 461 | 4 098 | 3 418 | 3 580 | 1 936 | Närområdet, 3 % |
 | Rik grannö | seed 153 | normal | 4 521 | **4 744** | 4 571 | 3 105 | 4 012 | 2 028 | Havet, 4 % |
-| Prototypens karta | prototypens | normal | 5 171 | 4 883 | **6 138** | 3 585 | 3 553 | 1 916 | Bygden, 19 % |
+| Prototypens karta | prototypens | normal | 5 173 | 5 474 | **6 144** | 3 585 | 4 256 | 1 916 | Bygden, 12 % |
 | Utan träning | seed 31 | utan träning | 2 600 | 2 234 | 3 841 | 3 235 | **4 290** | 1 528 | Utan träning, handkraft, 12 % |
 
 Kartorna är generatorns `procedural-archipelago` version 1 med seeden i tabellen, och prototypens handgjorda karta.
@@ -612,7 +614,7 @@ Kartorna är generatorns `procedural-archipelago` version 1 med seeden i tabelle
   Närområdets kluster med skogshuggare, stenbrott, förråd och sågverk ger mest, och planeraren bygger vidare på det.
 - **Rik grannö:** bara ett berg inom två steg från starten, och expeditionens ö har rik betesmark och ett rikt berg.
   Havet anlägger bosättningen där första veckan och slutar med 79 bybor, varav 28 bönder, mot Bygdens 61.
-- **Prototypens karta:** Bygden, som bygger kläder och bostäder först, hinner före Närområdet med 19 %.
+- **Prototypens karta:** Bygden, som bygger kläder och bostäder först, hinner före Havet med 12 %.
 - **Utan träning:** en spelare som valt bort träning (D-43), på en karta där expeditionens ö har rik betesmark och ett rikt berg.
   Havet med bryggorna och väveriet byggda med handkraft (D-65) slutar med 77 bybor och två bosättningar, mot Bygdens 54 på hemön.
   Närområdet och Havet utan handkraft väntar på Styrka till sågverk, väveri och brygga och når inga bönder på fyra veckor.
@@ -651,10 +653,10 @@ Prövat: med 12 bostäder i bondgården i stället för 6 blir Bygden bäst i Ri
 ### Det scenarierna visar
 
 1. **Närområdet och Bygden delar på de flesta kartor.**
-   På 260 genererade kartor (seed 0–259) med normal egenvård i fyra veckor är Närområdet bäst på 127 (49 %), Bygden på 114 (44 %) och Havet på 19 (7 %).
-   Före TASK-097:s planerare var Bygden bäst på 200 (77 %), Närområdet på 52 och Havet på 8.
-   Det uppfyller AC-06, men Havet vinner sällan, och också i kalkylen är Havet 16 % efter Bygden vecka 6 (avsnitt 10).
-   Med ull först i importprioriteten är Havet bäst på 28 % ([balansrapport M4](./balance-m4.md#4-havet)); den förvalda ordningen ändras så i TASK-056 (D-135).
+   På 260 genererade kartor (seed 0–259) med normal egenvård i fyra veckor är Bygden bäst på 100 (38 %), Närområdet på 89 (34 %) och Havet på 71 (27 %).
+   Med regelversion 15, där skeppen tog öns sten före ullen, var Närområdet bäst på 127 (49 %), Bygden på 114 (44 %) och Havet på 19 (7 %), och före TASK-097:s planerare var Bygden bäst på 200 (77 %), Närområdet på 52 och Havet på 8.
+   Sedan ull går före sten i den förvalda importprioriteten och botarnas Havet skeppar ull först (D-135, TASK-056) vinner Havet alltså nästan fyra gånger så ofta, och i kalkylen är Havet 11 % efter Bygden vecka 6 i stället för 16 % (avsnitt 10).
+   Med bara den nya förvalda ordningen, utan att Havet sätter ullen först, är Havet bäst på 47 kartor (18 %) ([balansrapport M4, avsnitt 4](./balance-m4.md#4-havet)).
 2. **Första veckan skiljer sig strategierna mindre från den naiva.**
    Efter sju dygn på scenariernas genererade kartor ger den sämsta genomtänkta strategin bara 1,11–1,24 gånger den naivas värde per använd kraft med normal egenvård och 1,01–1,06 utan träning, och på seed 31 med normal egenvård har den naiva strategin störst utvecklingsvärde.
    På prototypens karta är kvoten 1,47 efter sju dygn, och efter fyra veckor håller D-34 överallt.

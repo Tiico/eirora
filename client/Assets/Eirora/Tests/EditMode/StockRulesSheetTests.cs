@@ -110,7 +110,7 @@ namespace Eirora.Client.Tests
             Assert.That(Labels(), Does.Contain("Lagret på Nyön"));
             // Game and hide wait for step 1, honey, mead and ale for step 2 and tar for step 3, which the scripted week has not
             // reached (TASK-061, TASK-062, TASK-063).
-            var met = System.Enum.GetValues(typeof(Resource)).Cast<Resource>()
+            var met = StockRules.DefaultImportOrder
                 .Where(r => r is not Resource.Game and not Resource.Hide and not Resource.Honey and not Resource.Mead and not Resource.Ale and not Resource.Tar).ToArray();
             Assert.That(_game.World!.Step, Is.EqualTo(0));
             Assert.That(Goods(), Is.EqualTo(met.Select(r => Capital(Texts.Name(r))).ToArray()));

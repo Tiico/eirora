@@ -1,13 +1,14 @@
 # Balansrapport M4
 
-> **Status:** [BESLUTAT] v1.1, produktägarens beslut i TASK-055 (#138) 2026-10-27 som D-133–D-137 (avsnitt 9); den förvalda importprioriteten ändras i TASK-056 (#139)  
-> **Ärende:** TASK-054 (#137), TASK-055 (#138) · **Milstolpe:** M4 · **PRD:** O-01, D-34, D-35, D-43, D-65, D-126, D-133–D-137, AC-02, AC-06  
+> **Status:** [BESLUTAT] v1.2, produktägarens beslut i TASK-055 (#138) 2026-10-27 som D-133–D-137 (avsnitt 9); den förvalda importprioriteten ändrades med regelversion 16 i TASK-056 (#139), och körningarna med den står i avsnitt 10  
+> **Ärende:** TASK-054 (#137), TASK-055 (#138), TASK-056 (#139) · **Milstolpe:** M4 · **PRD:** O-01, D-34, D-35, D-43, D-65, D-126, D-133–D-137, AC-02, AC-06  
 > **Termer:** enligt [GLOSSARY.md](../../GLOSSARY.md) · **Krafter:** [forces.md](./forces.md) · **Ekonomi:** [economy-v1.md](./economy-v1.md), [economy-v2.md](./economy-v2.md) · **Epok 1:** [epoch-1.md](./epoch-1.md)  
 > **Verktyg:** balansbotarna i `tools/Eirora.Balance` ([development.md](../development.md#balansbotar))
 
 Balansbotarna har spelat ekonomin i en hel epok och ett år, med alla sex profilerna, på scenariernas kartor och på 260 genererade kartor.
 Rapporten föreslår krafternas värden och kraftkostnader för M4 och prövar siffror för Havet, som produktägaren bad om 2026-10-26.
-Inga regler ändras här; produktägaren beslutade i TASK-055 (#138), och regeländringen förs in i TASK-056 (#139).
+Avsnitt 1–9 räknar med regelversion 15, som produktägaren beslutade på i TASK-055 (#138).
+Regeländringen fördes in i TASK-056 (#139) som regelversion 16, och avsnitt 10 visar att körningarna med den ger det utfall som avsnitt 4 förutsåg.
 Måtten är ekonomi v2:s (avsnitt 9): utvecklingsvärdet och värdet per använd kraft, som aldrig visas för spelaren.
 Alla körningar är gjorda med planeraren efter TASK-097 (#230, PR #231).
 
@@ -33,7 +34,7 @@ Alla körningar är gjorda med planeraren efter TASK-097 (#230, PR #231).
 | Epok | `--suite epoch` | 144 | Varje jämförd strategi med varje profil på de fyra scenariernas kartor i tolv veckor |
 | År | `--suite year` | 8 | Ingen spelare utan egenvård och Bygden med normal egenvård på scenariernas kartor i 365 dygn |
 | Scenarier | `--suite scenarios` | 24 | Ekonomi v2, avsnitt 15, fyra veckor |
-| 260 kartor | `--maps generated --from 0 --seeds 260 --strategies near,sea,sea-wool,village,naive --profiles high,normal,manual,low --days 28` | 5 200 | Vilken strategi som är bäst, och D-34, efter fyra veckor |
+| 260 kartor | `--maps generated --from 0 --seeds 260 --strategies near,sea,sea-wool,village,naive --profiles high,normal,manual,low --days 28`; från TASK-056 är `sea` Havet med ull först, och `sea-wool` finns inte längre | 5 200 | Vilken strategi som är bäst, och D-34, efter fyra veckor |
 | Alla profiler | `--maps generated --from 0 --seeds 260 --strategies near,sea,village,no-training,no-training-by-hand,naive --profiles high,normal,manual,low,no-training,none --days 28` | 9 360 | D-34 med varje profil och strategi |
 
 Alla kommandon körs som `dotnet run -c Release --project tools/Eirora.Balance -- …`.
@@ -123,7 +124,7 @@ Med planeraren efter TASK-097 är Havet bäst på 7 %.
 ### 4.1 Varför Havet förlorar
 
 Havet bygger fårgården och stenbrottet på expeditionens ö, och allt därifrån går över sjövägen, som bär 40 enheter per dygn.
-Den förvalda importprioriteten är resursernas ordning, där sten kommer före ull (D-126), så ullen till tyg väntar bakom stenen.
+Med regelversion 15 var den förvalda importprioriteten resursernas ordning, där sten kommer före ull (D-126), så ullen till tyg väntade bakom stenen.
 Utan tyg får byborna inga kläder, blir inte bönder och når hantverkarna senare.
 
 ### 4.2 Svepet
@@ -224,7 +225,7 @@ Det här är fynd om botarna, inte om reglerna, men de påverkar hur säkra siff
    Planeraren bygger tre jaktstugor men inget garveri, eftersom dess regel väntar på mer vilt än stugorna ger, och byborna blir aldrig bönder.
    Bygden och *Utan träning, handkraft* växer på samma kartor, så D-43 håller; planeraren rättas i en egen uppgift.
 2. **Havet är svagare än en skicklig spelare.**
-   Den förvalda importprioriteten och en planerare som bara bygger hantverkare på hemön håller Havet tillbaka (avsnitt 4).
+   Den förvalda importprioriteten med regelversion 15 och en planerare som bara bygger hantverkare på hemön håller Havet tillbaka (avsnitt 4); importprioriteten är ändrad med regelversion 16 (avsnitt 10).
 3. **Med låg egenvård är Bygden oftast bäst**, på 81 % av kartorna och 71 % med *Havet, ull först*.
    Bygden använder minst Styrka, och med 100 Styrka i veckan bestämmer Styrkan.
    I scenarierna är Havet ändå bäst med låg egenvård på Rik hemö och handkraften på seed 31 (ekonomi v2, avsnitt 15).
@@ -252,3 +253,62 @@ Produktägarens beslut i TASK-055 (#138), 2026-10-27, loggade i PRD:n:
   Produktägaren godtog 98 % från v1.0 av rapporten; med planeraren efter TASK-097 är det 81 %.
 
 Alternativen bakom D-135: ull först bara för botarna, utan regeländring; ull först och en sjöväg med 60 enheter per dygn, som ger Havet 36 % och behåller scenariernas vinnare med 1–3 % på Rik hemö och Rik grannö.
+
+## 10. Regelversion 16
+
+TASK-056 (#139) förde in D-133–D-135 i reglerna.
+Krafternas omvandling, tak och kostnader är oförändrade, så den enda regeländringen är importprioriteten.
+
+- **Den förvalda importprioriteten** är varornas fasta ordning med ull direkt före sten: fisk, säd, timmer, plankor, ull, sten, tyg och sedan de upplåsta stegens varor (`StockRules.DefaultImportOrder`).
+- **Migrationen** från regelversion 15 behåller saldon, lager, byggnader och bybor.
+  En ö utan spelarens egen ordning får den nya ordningen från migrationen, och en ordning som spelaren själv har satt behålls.
+  Journaler från regelversion 15 spelas inte upp, eftersom en värld med sjöväg skulle ta hem varorna i en annan ordning.
+- **Balansbotarnas Havet** sätter öns ull först, som *Havet, ull först* gjorde i avsnitt 4; den strategin är borttagen.
+
+Alla körningar i avsnitt 2 är gjorda om med regelversion 16, och ingen bröt mot någon invariant.
+
+### 10.1 Havet vinner oftare
+
+Närområdet, Havet, Bygden och Naiv på 260 kartor i fyra veckor:
+
+| Profil | Havet, regelversion 15 | Havet med bara den nya ordningen | Havet med ull först | Närområdet | Bygden | Lägsta D-34 | Kartor under 1,3 |
+|---|---|---|---|---|---|---|---|
+| Hög | 8 % | 16 % | **27 %** | 37 % | 37 % | 1,36 | 0 |
+| Normal | 7 % | 18 % | **27 %** | 34 % | 38 % | 1,42 | 0 |
+| Enbart manuell | 10 % | 16 % | **24 %** | 36 % | 40 % | 1,44 | 0 |
+| Låg | 18 % | 24 % | **28 %** | 1 % | 71 % | 1,44 | 0 |
+
+Närområdet och Bygden avser körningarna med ull först.
+
+- **Havet vinner nästan fyra gånger så ofta** med normal egenvård, 27 % mot 7 %, som avsnitt 4.2 förutsåg (28 %).
+  Ingen strategi är bäst på mer än 40 % av kartorna med hög, normal eller manuell egenvård.
+- **Den nya ordningen ensam gör ungefär hälften.**
+  Med ullen direkt före stenen men efter fisk, säd, timmer och plankor är Havet bäst på 18 %; resten kommer av att boten sätter ullen först.
+- **D-34 håller på alla kartor med alla fyra profilerna**, också seed 247 med hög egenvård, som låg på 1,26 med regelversion 15.
+
+### 10.2 Scenarierna
+
+| Scenario | Bäst, före tvåan, regelversion 15 | Regelversion 16 |
+|---|---|---|
+| Rik hemö | Närområdet, 9 % | Närområdet, 3 % |
+| Rik grannö | Havet, 4 % | Havet, 4 % |
+| Prototypens karta | Bygden, 19 % | Bygden, 12 % |
+| Utan träning | Handkraft, 12 % | Handkraft, 12 % |
+
+Alla fyra scenarierna behåller sin vinnare, med de försprång som avsnitt 4.3 förutsåg.
+På Rik hemö är Havet nu 3 % efter Närområdet, och på prototypens karta är Havet tvåa efter Bygden.
+Med varje profil på varje scenarios karta är vinnarna desamma som i [ekonomi v2, avsnitt 15](./economy-v2.md#alla-profiler), och den lägsta kvoten mot den naiva strategin är 1,61–1,68.
+
+### 10.3 Epoken och året
+
+- **Efter tolv veckor** med normal egenvård ligger Havet 9–31 % under det bästa på scenariernas kartor, som *Havet, ull först* i avsnitt 4.4.
+- **Tempot:** Havet når hantverkarna vecka 2–3 och sjöfarten vecka 3 med normal och hög egenvård, och tänder Vårdkasen vecka 7–9; de andra strategierna och *Allt sparas till kasen* är oförändrade (avsnitt 5).
+- **Krafterna** används som i avsnitt 3.2: 3–12 % av Utforskningen och omkring hälften av Styrkan.
+- **Ett år:** utan spelare är allt som i avsnitt 6, och Bygden når 121–183 bybor och 8 188–10 060 i utvecklingsvärde; bara Rik hemö ändras, från 9 791 till 9 840.
+- **Kalkylen** i ekonomi v2 skeppar i samma ordning: Havet får 6 282 vecka 6 i stället för 5 942 och når hantverkarna vecka 2 i stället för 4 ([ekonomi v2, avsnitt 10](./economy-v2.md#10-sex-veckor)).
+  Botarnas Havet på prototypens karta får 6 846 efter sex veckor i stället för 5 821.
+
+### 10.4 Kvar
+
+- Strategin *Utan träning* stannar fortfarande på 40 bybor på seed 126, 170, 229 och 259 (avsnitt 7).
+- Med profilen utan träning stannar också Havet på 40 bybor på seed 247, med 1,15 gånger den naiva strategins värde per använd kraft; det var likadant med regelversion 15, eftersom bryggan på expeditionens ö väntar på Styrka som profilen inte ger, och Havet då aldrig skeppar något.

@@ -43,6 +43,9 @@ def daily(value, day):
 
 RESOURCES = ["fisk", "vilt", "säd", "timmer", "plankor", "sten", "ull", "tyg", "skinn",
              "honung", "mjöd", "öl", "tjära"]
+# Den förvalda importprioriteten: skeppen tar hem ull före sten (D-135, regelversion 16, TASK-056).
+IMPORT_ORDER = [r for r in RESOURCES if r != "ull"]
+IMPORT_ORDER.insert(IMPORT_ORDER.index("sten"), "ull")
 # Vikter för utvecklingsvärdet (endast balansmått, visas aldrig för spelaren).
 WEIGHT = {"fisk": 1, "vilt": 1, "säd": 1, "timmer": 1, "plankor": 3, "sten": 2, "ull": 2,
           "tyg": 6, "skinn": 6, "honung": 2, "mjöd": 8, "öl": 5, "tjära": 3}
@@ -861,7 +864,7 @@ class World:
                 for need, per in NEEDS[t].items():
                     for r in NEED_GOODS[need]:
                         keep[r] = keep.get(r, 0) + 2 * math.ceil(s.tiers[t] * per)
-            for r in RESOURCES:
+            for r in IMPORT_ORDER:
                 n = min(room, max(0.0, s.stock[r] - keep.get(r, 0)), max(0.0, cap_home - home.stock[r]))
                 s.stock[r] -= n
                 home.stock[r] += n

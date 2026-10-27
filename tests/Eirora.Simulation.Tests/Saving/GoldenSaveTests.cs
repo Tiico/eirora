@@ -155,7 +155,7 @@ public sealed class GoldenSaveTests
         Assert.Contains(world.Islands, i => world.Settlement.Owed(i) > 0);
         Assert.Contains(world.Buildings, b => b.Held is not null && b.Reserve != StockRules.StandardReserve);
         Assert.Contains(world.Islands, i => Enum.GetValues<Resource>().Any(r => world.ReservationOf(i, r) > 0));
-        Assert.Contains(world.Islands, i => !world.ImportOrder(i).SequenceEqual(Enum.GetValues<Resource>()));
+        Assert.Contains(world.Islands, i => !world.ImportOrder(i).SequenceEqual(StockRules.DefaultImportOrder));
         Assert.Contains(world.Settlements, s => s.VillagersOf(PopulationTier.Farmers) > 0);
         Assert.All([BuildingKind.Farmstead, BuildingKind.HuntingLodge, BuildingKind.Tannery], kind => Assert.Contains(world.Buildings, b => b.Kind == kind));
         Assert.Contains(world.Islands, i => world.Stock(i, Resource.Game) > 0);

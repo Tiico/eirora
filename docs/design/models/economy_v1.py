@@ -19,6 +19,8 @@ ACTIVE_HOURS = 16  # vilotid 8 h; dagen börjar vid gryning (timme 0)
 # --- Resurser -----------------------------------------------------------------
 
 RESOURCES = ["fisk", "säd", "timmer", "plankor", "sten", "ull", "tyg"]
+# Den förvalda importprioriteten: skeppen tar hem ull före sten (D-135, regelversion 16, TASK-056).
+IMPORT_ORDER = ["fisk", "säd", "timmer", "plankor", "ull", "sten", "tyg"]
 FOOD = ["fisk", "säd"]
 # Vikter för utvecklingsvärdet (endast balansmått, visas aldrig för spelaren).
 WEIGHT = {"fisk": 1, "säd": 1, "timmer": 1, "plankor": 3, "sten": 2, "ull": 2, "tyg": 6}
@@ -336,7 +338,7 @@ class World:
     carried_hours: float = 0.0
     carrier_hours: float = 0.0
     # Spelarens lagerregler (LOG-06, TASK-046), gratis planering (D-23): reserverat per ö och vara, som sjövägen
-    # inte skeppar och förädlingen inte tar, och importprioriteten per sjöväg; utan den går varorna i fast ordning.
+    # inte skeppar och förädlingen inte tar, och importprioriteten per sjöväg; utan den går varorna i den förvalda ordningen.
     reserved: dict = field(default_factory=dict)  # ö -> {vara: enheter}
     imports: dict = field(default_factory=dict)   # ö -> varorna i den ordning skeppen tar dem
 
@@ -849,7 +851,7 @@ class World:
             if not (self.has("Brygga", island) and self.has("Brygga", HOME)):
                 continue
             room = SEA_CAPACITY_PER_DAY / ACTIVE_HOURS
-            for r in self.imports.get(island, RESOURCES):
+            for r in self.imports.get(island, IMPORT_ORDER):
                 moved = self.add(self.stock, r, min(room, max(0.0, remote[r] - self.kept(island, r))), cap)
                 remote[r] -= moved
                 room -= moved
@@ -1181,7 +1183,7 @@ class Settlements(World):
                 self.staff()
         self.produce_hour_carried()
         self.carry_hour()
-        # Sjövägarna: materialet till byggen, sedan mat ut för två dygn, sedan öns varor hem.
+        # Sjövägarna: materialet till byggen, sedan mat ut för två dygn, sedan öns varor hem i importprioriteten.
         for island in self.people:
             if not self.linked(island, HOME):
                 continue
@@ -1198,7 +1200,7 @@ class Settlements(World):
                 short -= n
             kept = {"fisk": min(remote["fisk"], food)}  # två dygns mat sammanlagt, i ätordningen
             kept["säd"] = min(remote["säd"], max(0.0, food - remote["fisk"]))
-            for r in RESOURCES:
+            for r in self.imports.get(island, IMPORT_ORDER):
                 spare = remote[r] - kept.get(r, 0.0)
                 moved = self.add(self.stock, r, max(0.0, min(room, spare)), self.cap(HOME))
                 remote[r] -= moved
