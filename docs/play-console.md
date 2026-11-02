@@ -205,7 +205,8 @@ Kraven kommer från [Googles riktlinjer för grafik](https://support.google.com/
 
 ## Väg till produktion
 
-Ett personligt utvecklarkonto som skapats efter 13 november 2023 får inte släppa i produktion förrän appen har haft ett slutet test med minst 12 testare som varit anmälda utan avbrott i 14 dagar ([production access](https://support.google.com/googleplay/android-developer/answer/14151465)).
+Eirora ligger på ett personligt utvecklarkonto.
+Ett sådant konto, om det skapats efter 13 november 2023, får inte släppa i produktion förrän appen har haft ett slutet test med minst 12 testare som varit anmälda utan avbrott i 14 dagar ([production access](https://support.google.com/googleplay/android-developer/answer/14151465)).
 Ansökan frågar sedan om testet, om appen och om vad som ändrats efter testet; Google svarar oftast inom 7 dagar.
 Det slutna testet kräver Hälsoappar, Dataskydd och Finansiella funktioner, så allt ovan behöver vara inskickat innan det kan börja.
 Grind A5 med extern testare (TASK-089) är ett naturligt tillfälle att starta det.
