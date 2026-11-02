@@ -571,8 +571,8 @@ Det här gör produktägaren en gång; inga nycklar eller lösenord lämnas till
    Paketnamnet kan aldrig ändras i Google Play.
    Nyckeln från guiden blir uppladdningsnyckel och kan bytas ut via Play Console om den försvinner.
 3. Publicera integritetspolicyn på servern enligt [deploy/site](../deploy/site/README.md).
-   Fyll sedan i **Appinnehåll**: policyns adress, dataskydd och deklarationen för Health Connect-behörigheterna.
-   Appen läser steg, träningspass och sömn när spelaren öppnar den, för spelets krafter, och skickar inga hälsodata till någon server (HLT-10).
+   Fyll sedan i **Appinnehåll** med svaren i [Play Console-underlaget](./play-console.md): policyns adress, dataskydd och deklarationen för Health Connect-behörigheterna.
+   Appen läser steg, träningspass och sömn när spelaren öppnar den, för spelets krafter, och skickar hälsodata till servern bara krypterade på telefonen i bidragsdelen, som servern inte kan läsa (HLT-10, D-57).
    Google släpper ingen version med Health Connect-behörigheter förrän deklarationen är godkänd.
 4. Lägg till ditt Google-konto som testare under **Testa → Internt test → Testare**, öppna länken för att gå med på telefonen och godkänn.
 5. Skapa ett tjänstkonto i Google Cloud med en JSON-nyckel och bjud in dess e-postadress under **Användare och behörigheter** i Play Console, med behörighet att släppa till testspår för Eirora.
